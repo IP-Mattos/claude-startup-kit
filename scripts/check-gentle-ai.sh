@@ -4,12 +4,23 @@
 set -uo pipefail
 
 STATE_FILE="$HOME/.claude/scripts/.gentle-ai-last-check"
+LOG_FILE="$HOME/.claude/logs/startup-kit.log"
 NOW=$(date +%s)
 THRESHOLD=$((24 * 60 * 60))
+
+log_kit() {
+  local level="$1"; shift
+  local msg="$*"
+  mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+  printf '[%s] [%s] [check-gentle-ai] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$level" "$msg" >> "$LOG_FILE" 2>/dev/null || true
+}
+
+log_kit INFO "Hook fired"
 
 if [ -f "$STATE_FILE" ]; then
   LAST=$(cat "$STATE_FILE" 2>/dev/null || echo 0)
   if [ $((NOW - LAST)) -lt $THRESHOLD ]; then
+    log_kit INFO "Skipped (last check $((NOW - LAST))s ago, < 24h)"
     exit 0
   fi
 fi

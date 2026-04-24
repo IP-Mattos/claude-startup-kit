@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate PowerShell syntax (.ps1)
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path . -Recurse -Include *.ps1 -File | Where-Object { $_.FullName -notmatch '\\.git\\' }
+          $failed = @()
+          foreach ($f in $files) {
+            $errors = $null
+            $tokens = $null
+            $null = [System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errors)
+            if ($errors -and $errors.Count -gt 0) {
+              $failed += $f.FullName
+              Write-Host "::error file=$($f.FullName)::Parse error in $($f.Name)"
+              foreach ($e in $errors) { Write-Host "  - line $($e.Extent.StartLineNumber): $($e.Message)" }
+            } else {
+              Write-Host "OK  $($f.FullName)"
+            }
+          }
+          if ($failed.Count -gt 0) { exit 1 }
+
+      - name: Validate shell scripts (.sh)
+        shell: bash
+        run: |
+          set -e
+          fail=0
+          for f in $(find . -name '*.sh' -not -path './.git/*'); do
+            if bash -n "$f"; then
+              echo "OK  $f"
+            else
+              echo "::error file=$f::bash -n failed"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Validate batch files (basic check)
+        shell: pwsh
+        run: |
+          # Batch files don't have a standard linter; do a minimal check that they exist + are readable + have reasonable structure
+          $bats = Get-ChildItem -Path . -Recurse -Include *.bat -File | Where-Object { $_.FullName -notmatch '\\.git\\' }
+          $fail = 0
+          foreach ($b in $bats) {
+            $content = Get-Content $b.FullName -Raw
+            if (-not $content) {
+              Write-Host "::error file=$($b.FullName)::empty .bat file"
+              $fail = 1
+              continue
+            }
+            # Sanity: must contain @echo off or start or some recognizable command
+            if ($content -notmatch '(?i)(echo|start|cmd|powershell|chcp)') {
+              Write-Host "::warning file=$($b.FullName)::.bat looks empty of recognizable commands"
+            }
+            Write-Host "OK  $($b.FullName)"
+          }
+          if ($fail -gt 0) { exit 1 }
+
+      - name: Validate JSON snippets
+        shell: pwsh
+        run: |
+          $jsons = Get-ChildItem -Path . -Recurse -Include *.json -File | Where-Object { $_.FullName -notmatch '\\.git\\' }
+          $fail = 0
+          foreach ($j in $jsons) {
+            try {
+              $null = Get-Content $j.FullName -Raw | ConvertFrom-Json -ErrorAction Stop
+              Write-Host "OK  $($j.FullName)"
+            } catch {
+              Write-Host "::error file=$($j.FullName)::invalid JSON: $($_.Exception.Message)"
+              $fail = 1
+            }
+          }
+          if ($fail -gt 0) { exit 1 }

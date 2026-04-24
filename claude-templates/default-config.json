@@ -1,0 +1,23 @@
+{
+  "_README": "Claude Startup Kit — user config. Edit the user copy at ~/.claude/scripts/startup-kit-config.json. The installer copies this default file ONLY when no user config exists; subsequent installs preserve your customizations.",
+  "window": {
+    "cols": 120,
+    "lines": 32,
+    "fontSize": 14,
+    "fontName": "Consolas",
+    "topmost": true,
+    "startMinimized": true
+  },
+  "projects": {
+    "activityWindowDays": 14,
+    "recentForBriefDays": 2
+  },
+  "vsCode": {
+    "minimizeAfterLaunch": true,
+    "openInNewWindow": true
+  },
+  "engram": {
+    "fetchSummariesForBrief": true,
+    "summaryMaxChars": 90
+  }
+}

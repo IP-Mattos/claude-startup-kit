@@ -4,11 +4,22 @@
 set -uo pipefail
 
 STATE_FILE="$HOME/.claude/scripts/.daily-brief-last-date"
+LOG_FILE="$HOME/.claude/logs/startup-kit.log"
 TODAY=$(date +%Y%m%d)
+
+log_kit() {
+  local level="$1"; shift
+  local msg="$*"
+  mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+  printf '[%s] [%s] [daily-brief] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$level" "$msg" >> "$LOG_FILE" 2>/dev/null || true
+}
+
+log_kit INFO "Hook fired"
 
 if [ -f "$STATE_FILE" ]; then
   LAST=$(cat "$STATE_FILE" 2>/dev/null || echo "00000000")
   if [ "$LAST" = "$TODAY" ]; then
+    log_kit INFO "Skipped (already ran today: $LAST)"
     exit 0
   fi
 fi
