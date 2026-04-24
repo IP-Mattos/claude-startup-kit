@@ -1,0 +1,21 @@
+{
+  "_README": "Snippet of the SessionStart hooks block to merge into ~/.claude/settings.json. The installer reads this and inserts the entries into the existing hooks.SessionStart array (creating it if absent). Idempotent: re-running detects existing entries by command and skips them.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash %USERPROFILE_BASH%/.claude/scripts/check-gentle-ai.sh",
+            "timeout": 180
+          },
+          {
+            "type": "command",
+            "command": "bash %USERPROFILE_BASH%/.claude/scripts/daily-brief.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

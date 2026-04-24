@@ -1,0 +1,26 @@
+# State files (regenerated automatically by the scripts)
+*.last-check
+*.last-date
+*.last-seen-version
+.gentle-ai-last-check
+.daily-brief-last-date
+.gentle-ai-last-seen-version
+
+# Backups
+*.bak
+*.bak-*
+
+# Local logs
+*.log
+gentle-ai-upgrade.log
+
+# OS / IDE noise
+Thumbs.db
+.DS_Store
+desktop.ini
+.vscode/
+.idea/
+
+# Local-only test scripts you might add
+demo-*.ps1
+toast-*.ps1
