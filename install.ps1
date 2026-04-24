@@ -1,4 +1,4 @@
-# Claude Startup Kit — installer
+﻿# Claude Startup Kit — installer
 #
 # Idempotent. Safe to run multiple times. Won't duplicate hooks or markdown blocks.
 #
@@ -114,13 +114,20 @@ function Copy-FileSafe {
 }
 
 Write-Info "Copying scripts..."
-$scriptFiles = @("check-gentle-ai.sh", "daily-brief.sh", "startup-brief.ps1", "startup-brief-launcher.bat")
+$scriptFiles = @(
+    "check-gentle-ai.sh", "daily-brief.sh",
+    "startup-brief.ps1", "startup-brief-launcher.bat",
+    "health-check.ps1", "standup.ps1"
+)
 foreach ($f in $scriptFiles) {
     Copy-FileSafe -Src (Join-Path $repoRoot "scripts\$f") -Dst (Join-Path $scriptsDst $f)
 }
 
 # Copy lib/
-$libFiles = @("config.ps1", "logging.ps1", "scan-projects.ps1", "engram.ps1")
+$libFiles = @(
+    "config.ps1", "logging.ps1", "scan-projects.ps1", "engram.ps1",
+    "themes.ps1", "git-recent.ps1", "github-prs.ps1", "self-update.ps1"
+)
 foreach ($f in $libFiles) {
     Copy-FileSafe -Src (Join-Path $repoRoot "scripts\lib\$f") -Dst (Join-Path $libDst $f)
 }
@@ -142,7 +149,8 @@ if (-not (Test-Path $logsDir) -and -not $DryRun) {
 }
 
 # ---------- 3. UTF-8 BOM on .ps1 files ----------
-function Ensure-Bom {
+function Set-Utf8Bom {
+    [CmdletBinding(SupportsShouldProcess=$false)]
     param([string]$Path)
     if (-not (Test-Path $Path) -or $DryRun) { return }
     $bytes = [System.IO.File]::ReadAllBytes($Path)
@@ -154,8 +162,9 @@ function Ensure-Bom {
         [System.IO.File]::WriteAllBytes($Path, $combined)
     }
 }
-foreach ($f in @("startup-brief.ps1") + ($libFiles | ForEach-Object { "lib\$_" })) {
-    Ensure-Bom (Join-Path $scriptsDst $f)
+$psToBom = @("startup-brief.ps1", "health-check.ps1", "standup.ps1") + ($libFiles | ForEach-Object { "lib\$_" })
+foreach ($f in $psToBom) {
+    Set-Utf8Bom (Join-Path $scriptsDst $f)
 }
 if (-not $DryRun) { Write-Ok "UTF-8 BOM ensured on .ps1 files" }
 
@@ -289,7 +298,17 @@ if ($DryRun) {
     Write-Host "What you have now:" -ForegroundColor Cyan
     Write-Host "  - Daily gentle-ai auto-update (runs once per 24h on Claude Code SessionStart)"
     Write-Host "  - Daily Brief in Claude Code (first session of the day shows project menu)"
-    Write-Host "  - Startup launcher on PC boot (cmd window with project picker, real Engram summaries)"
+    Write-Host "  - Startup launcher on PC boot — TOPMOST cmd window with:"
+    Write-Host "      * Pinned projects + activity menu"
+    Write-Host "      * Real Engram session-summary Goals + last commit per project"
+    Write-Host "      * GitHub PR queue (set github.showPrQueue=true in config)"
+    Write-Host "      * Quick actions: N t (terminal) / N g (git status) / N l (log) / N e (explorer) / N c (copy)"
+    Write-Host "      * Self-update: detects when the kit repo is behind, type 'u' to pull+install"
+    Write-Host "      * Themes: default | dracula | solarized | nord | monochrome"
+    Write-Host ""
+    Write-Host "Standalone commands:" -ForegroundColor Cyan
+    Write-Host "  health-check.ps1  - validate the install"
+    Write-Host "  standup.ps1       - generate a markdown standup from Engram + git"
     Write-Host ""
     Write-Host "Customize via: $userConfigPath" -ForegroundColor Cyan
     Write-Host "Logs:          $logsDir\startup-kit.log" -ForegroundColor Cyan

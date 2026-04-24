@@ -1,4 +1,4 @@
-# Claude Startup Kit — uninstaller
+﻿# Claude Startup Kit — uninstaller
 # Removes everything install.ps1 added. Safe and idempotent.
 
 $ErrorActionPreference = "Stop"
@@ -25,13 +25,11 @@ if (Test-Path $startupBat) {
 
 # 2. Remove scripts (only those installed by this kit)
 $ourScripts = @(
-    "check-gentle-ai.sh",
-    "daily-brief.sh",
-    "startup-brief.ps1",
-    "startup-brief-launcher.bat",
-    ".gentle-ai-last-check",
-    ".daily-brief-last-date",
-    ".gentle-ai-last-seen-version"
+    "check-gentle-ai.sh", "daily-brief.sh",
+    "startup-brief.ps1", "startup-brief-launcher.bat",
+    "health-check.ps1", "standup.ps1",
+    ".gentle-ai-last-check", ".daily-brief-last-date", ".gentle-ai-last-seen-version",
+    ".kit-version", "startup-kit-config.json"
 )
 foreach ($f in $ourScripts) {
     $p = Join-Path $scriptsDir $f
@@ -39,6 +37,13 @@ foreach ($f in $ourScripts) {
         Remove-Item $p -Force
         Write-Ok "Removed $f"
     }
+}
+
+# Remove lib/
+$libDir = Join-Path $scriptsDir "lib"
+if (Test-Path $libDir) {
+    Remove-Item $libDir -Recurse -Force
+    Write-Ok "Removed lib/"
 }
 
 # 3. Strip our hooks from settings.json

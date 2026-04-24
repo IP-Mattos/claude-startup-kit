@@ -4,8 +4,8 @@
 function Get-StartupKitConfig {
     param([string]$ConfigDir)
 
-    # Defaults (used when keys are missing from user config)
     $defaults = [PSCustomObject]@{
+        theme    = "default"
         window   = [PSCustomObject]@{
             cols           = 120
             lines          = 32
@@ -26,25 +26,36 @@ function Get-StartupKitConfig {
             fetchSummariesForBrief = $true
             summaryMaxChars        = 90
         }
+        git = [PSCustomObject]@{
+            showRecentCommitInBrief = $true
+        }
+        github = [PSCustomObject]@{
+            showPrQueue = $false   # off by default — requires gh authenticated
+            prLimit     = 5
+        }
+        selfUpdate = [PSCustomObject]@{
+            checkOnStart = $true
+            repoPath     = ""
+        }
+        pinned = @()
     }
 
     $userPath = Join-Path $ConfigDir "startup-kit-config.json"
-    if (-not (Test-Path $userPath)) {
-        return $defaults
-    }
+    if (-not (Test-Path $userPath)) { return $defaults }
 
     try {
         $userRaw = Get-Content $userPath -Raw
         $user = $userRaw | ConvertFrom-Json -ErrorAction Stop
 
-        # Shallow per-section merge: copy user overrides into the defaults clone
-        foreach ($section in @("window", "projects", "vsCode", "engram")) {
+        foreach ($section in @("window", "projects", "vsCode", "engram", "git", "github", "selfUpdate")) {
             if ($user.PSObject.Properties.Name -contains $section -and $user.$section) {
                 foreach ($prop in $user.$section.PSObject.Properties) {
                     $defaults.$section.$($prop.Name) = $prop.Value
                 }
             }
         }
+        if ($user.PSObject.Properties.Name -contains "theme")  { $defaults.theme = $user.theme }
+        if ($user.PSObject.Properties.Name -contains "pinned") { $defaults.pinned = @($user.pinned) }
         return $defaults
     } catch {
         Write-Host "[config] WARN: failed to parse $userPath ($($_.Exception.Message)) — falling back to defaults" -ForegroundColor Yellow
