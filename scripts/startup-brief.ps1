@@ -21,6 +21,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $scriptDir "lib\github-prs.ps1")
 . (Join-Path $scriptDir "lib\self-update.ps1")
 . (Join-Path $scriptDir "lib\screen-adapt.ps1")
+. (Join-Path $scriptDir "lib\render-layout.ps1")
 
 Initialize-StartupKitLog
 Write-KitLog -Level INFO -Source startup-brief -Message "Brief launched"
@@ -253,122 +254,123 @@ if ($cfg.selfUpdate.checkOnStart) {
     }
 }
 
-# -------- Render function --------
+# -------- Clean render (minimal, comfortable, one visual language) --------
 function Show-Menu {
     Clear-Host
     Write-Host ""
-    PrintHr
-    Write-Host ""
-    [string]$bannerInner = (Color -Code "$($T.BOLD);$($T.MAG)" -Text ">>  CLAUDE CODE") + "   " + (Color -Code $T.GRAY -Text "|") + "   " + (Color -Code "$($T.BOLD);$($T.CYAN)" -Text "DAILY BRIEF")
-    Write-Host "    $bannerInner"
-    Write-Host ""
-    PrintHr
-    Write-Host ""
-    [string]$today = Get-Date -Format "dddd, MMMM dd, yyyy  -  HH:mm"
-    Write-Host "    $(Color -Code $T.GRAY -Text $today)"
-    Write-Host ""
 
-    # Self-update banner
-    if ($updateStatus -and $updateStatus.Available) {
-        Write-Host ("    " + (Color -Code "$($T.BOLD);$($T.YELLOW)" -Text "[!] Update disponible:") + " " +
-                    (Color -Code $T.GRAY -Text "v$($updateStatus.LocalHash)") + " -> " +
-                    (Color -Code $T.GREEN -Text "v$($updateStatus.RemoteHash)") + "  " +
-                    (Color -Code $T.GRAY -Text "(behind by $($updateStatus.Behind) commits)"))
-        Write-Host "    $(Color -Code $T.GRAY -Text 'Escribi "u" en el prompt para actualizar el kit.')"
-        Write-Host ""
-    }
+    [int]$contentW = $W - 2
+    if ($contentW -lt 60) { $contentW = 60 }
+    $hr = (Color -Code $T.GRAY -Text ([string]([char]0x2500) * $contentW))
 
-    # gentle-ai
-    PrintHrTitle -Title "GENTLE-AI"
-    Write-Host ""
+    # ===== HEADER (1 line: title + date + gentle-ai status) =====
+    Write-Host ("  " + $hr)
+    [string]$datestr = (Get-Date).ToString("ddd dd MMM yyyy '·' HH:mm").ToLower()
+    $headerL = (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "daily brief") + "  " + (Color -Code $T.GRAY -Text "·  $datestr")
+
     if ([string]::IsNullOrWhiteSpace($currentVersion)) {
-        Write-Host "    $(Color -Code $T.YELLOW -Text 'gentle-ai no detectado en el PATH.')"
-    } elseif ([string]::IsNullOrWhiteSpace($lastSeen)) {
-        Write-Host "    $(Color -Code $T.GRAY -Text 'Version actual:') $(Color -Code "$($T.BOLD);$($T.WHITE)" -Text "v$currentVersion") $(Color -Code $T.GRAY -Text '(primer registro)')"
-    } elseif ($lastSeen -eq $currentVersion) {
-        Write-Host "    $(Color -Code $T.GRAY -Text 'Version actual:') $(Color -Code "$($T.BOLD);$($T.WHITE)" -Text "v$currentVersion") $(Color -Code $T.GRAY -Text '- sin cambios')"
+        $gaStatus = (Color -Code $T.RED -Text "gentle-ai · no instalado")
+    } elseif ([string]::IsNullOrWhiteSpace($lastSeen) -or $lastSeen -eq $currentVersion) {
+        $gaStatus = (Color -Code $T.GRAY -Text "gentle-ai v$currentVersion · al día")
     } else {
-        Write-Host "    $(Color -Code $T.GREEN -Text 'ACTUALIZADO:') $(Color -Code $T.YELLOW -Text "v$lastSeen") -> $(Color -Code "$($T.BOLD);$($T.GREEN)" -Text "v$currentVersion")"
+        $gaStatus = (Color -Code $T.GREEN -Text "gentle-ai v$lastSeen → v$currentVersion · actualizado")
     }
-    Write-Host ""
-
-    # GitHub PR queue (only when configured + gh available + something to show)
-    if ($cfg.github.showPrQueue -and $null -ne $pendingPRs) {
-        PrintHrTitle -Title ("GITHUB PRs  -  esperando tu review ({0})" -f $pendingPRs.Count)
-        Write-Host ""
-        if ($pendingPRs.Count -eq 0) {
-            Write-Host "    $(Color -Code $T.GREEN -Text 'Cero pendientes. ¡A laburar!')"
-        } else {
-            foreach ($pr in $pendingPRs) {
-                $repoFull = if ($pr.repository.nameWithOwner) { $pr.repository.nameWithOwner } else { "?" }
-                Write-Host ("    " + (Color -Code $T.CYAN -Text "> ") +
-                            (Color -Code "$($T.BOLD);$($T.WHITE)" -Text $pr.title) + "  " +
-                            (Color -Code $T.GRAY -Text "($repoFull by $($pr.author.login))"))
-            }
-        }
-        Write-Host ""
+    if ($cfg.github.showPrQueue -and $null -ne $pendingPRs -and $pendingPRs.Count -gt 0) {
+        $gaStatus += (Color -Code $T.GRAY -Text " · ") + (Color -Code $T.YELLOW -Text "$($pendingPRs.Count) PRs pendientes")
     }
 
-    # AYER EN RESUMEN
-    PrintHrTitle -Title "AYER EN RESUMEN"
+    $hL = Get-VisibleLength $headerL
+    $hR = Get-VisibleLength $gaStatus
+    $hPad = $contentW - $hL - $hR
+    if ($hPad -lt 1) { $hPad = 1 }
+    Write-Host ("  " + $headerL + (' ' * $hPad) + $gaStatus)
+    Write-Host ("  " + $hr)
     Write-Host ""
+
+    # ===== UPDATE BANNER (slim, only when available) =====
+    if ($updateStatus -and $updateStatus.Available) {
+        $msg = (Color -Code $T.YELLOW -Text "  ! ") + (Color -Code $T.WHITE -Text "Update kit disponible") +
+               (Color -Code $T.GRAY -Text "  ·  $($updateStatus.LocalHash) → $($updateStatus.RemoteHash) · $($updateStatus.Behind) commits  ·  ") +
+               (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "u") + (Color -Code $T.GRAY -Text " para actualizar")
+        Write-Host $msg
+        Write-Host ""
+    }
+
+    # ===== "Ayer hiciste" — only if there is recent activity =====
     $recentForBrief = @($projects | Where-Object { $_.DaysAgo -le $cfg.projects.recentForBriefDays })
-    if ($recentForBrief.Count -eq 0) {
-        Write-Host "    $(Color -Code $T.GRAY -Text 'Sin actividad en las ultimas 48h.')"
-    } else {
+    if ($recentForBrief.Count -gt 0) {
+        Write-Host ("  " + (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "Ayer hiciste"))
+        Write-Host ""
         foreach ($p in $recentForBrief) {
             [string]$name = Split-Path $p.Path -Leaf
             if ([string]::IsNullOrWhiteSpace($name)) { $name = $p.Path }
-            $bullet = (Color -Code $T.CYAN -Text "> ")
-            $nameStyled = (Color -Code "$($T.BOLD);$($T.WHITE)" -Text $name)
-            $dot = (Color -Code $T.GRAY -Text "|")
             $summaryText = $engramSummaries[$p.Path]
-            if (-not $summaryText) { $summaryText = "(sin summary en Engram)" }
-            Write-Host "    $bullet$nameStyled  $dot  $(Color -Code $T.GRAY -Text $summaryText)"
+
+            $line = "   " + (Color -Code $T.CYAN -Text ("{0,-13}" -f $name)) + " "
+            if ($summaryText) {
+                $line += (Color -Code $T.GRAY -Text $summaryText)
+            } else {
+                $line += (Color -Code $T.GRAY -Text "(sin summary en Engram)")
+            }
+            Write-Host $line
 
             if ($recentCommits.ContainsKey($p.Path)) {
                 $c = $recentCommits[$p.Path]
-                Write-Host ("        " + (Color -Code $T.GRAY -Text "git: ") +
-                            (Color -Code $T.GRAY -Text $c.Hash) + " " +
-                            (Color -Code $T.GRAY -Text $c.Subject) + " " +
-                            (Color -Code $T.GRAY -Text "($($c.Ago), $($c.Author))"))
+                $cmt = "                " + (Color -Code $T.GRAY -Text "└ $($c.Hash)  $($c.Subject)   · $($c.Author) · hace $($c.Ago)")
+                Write-Host $cmt
             }
+            Write-Host ""
         }
     }
+
+    # ===== "Proyectos activos" =====
+    $headProjL = "  " + (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "Proyectos activos")
+    $headProjR = (Color -Code $T.GRAY -Text "★ favoritos")
+    $padProj = $contentW - (Get-VisibleLength $headProjL) - (Get-VisibleLength $headProjR) + 2
+    if ($padProj -lt 2) { $padProj = 2 }
+    Write-Host ($headProjL + (' ' * $padProj) + $headProjR)
     Write-Host ""
 
-    # PROYECTOS ACTIVOS
-    PrintHrTitle -Title "PROYECTOS ACTIVOS  -  ultimos $($cfg.projects.activityWindowDays) dias"
-    Write-Host ""
     if ($projects.Count -eq 0) {
-        Write-Host "    $(Color -Code $T.YELLOW -Text 'Sin proyectos con actividad reciente.')"
+        Write-Host ("   " + (Color -Code $T.YELLOW -Text "sin proyectos en los últimos $($cfg.projects.activityWindowDays)d"))
     } else {
         [int]$idx = 1
         foreach ($p in $projects) {
-            if ($p.DaysAgo -eq 0)      { $label = "hoy";  $labelColor = $T.GREEN }
-            elseif ($p.DaysAgo -eq 1)  { $label = "ayer"; $labelColor = $T.GREEN }
-            elseif ($p.DaysAgo -le 3)  { $label = "$($p.DaysAgo)d"; $labelColor = $T.YELLOW }
+            if ($p.DaysAgo -eq 0)      { $label = "hoy";   $labelColor = $T.GREEN }
+            elseif ($p.DaysAgo -eq 1)  { $label = "ayer";  $labelColor = $T.GRAY }
             else                       { $label = "$($p.DaysAgo)d"; $labelColor = $T.GRAY }
+
             [string]$name = Split-Path $p.Path -Leaf
             if ([string]::IsNullOrWhiteSpace($name)) { $name = $p.Path }
             $isPinned = $pinnedNames -contains $name.ToLowerInvariant()
-            $pinIcon = if ($isPinned) { (Color -Code $T.MAG -Text "*") } else { " " }
-            $num = "{0,2}" -f $idx
-            Write-Host ("    " + $pinIcon + " " + (Color -Code $T.CYAN -Text $num) + ". " +
-                        (Color -Code "$($T.BOLD);$($T.WHITE)" -Text $name) + "  " +
-                        (Color -Code $T.GRAY -Text ("- " + $p.Path)) + "  " +
-                        (Color -Code $labelColor -Text "[$label]"))
+            $star = if ($isPinned) { (Color -Code $T.YELLOW -Text "★") } else { " " }
+            $idxStr = "{0:D2}" -f $idx
+
+            $left = "   $star " + (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "[$idxStr]") + "  " +
+                    (Color -Code $T.CYAN -Text ("{0,-14}" -f $name)) + " " +
+                    (Color -Code $T.GRAY -Text $p.Path)
+            $leftLen = Get-VisibleLength $left
+            $labelLen = $label.Length
+            $pad = $contentW - $leftLen - $labelLen - 1
+            if ($pad -lt 2) { $pad = 2 }
+            Write-Host ($left + (' ' * $pad) + (Color -Code $labelColor -Text $label))
             $idx++
         }
-        Write-Host ""
-        Write-Host "    $(Color -Code $T.GRAY -Text 'Quick actions:') $(Color -Code $T.WHITE -Text 'N')$(Color -Code $T.GRAY -Text ' = abrir VS Code  |  ')$(Color -Code $T.WHITE -Text 'N t')$(Color -Code $T.GRAY -Text ' = terminal  |  ')$(Color -Code $T.WHITE -Text 'N g')$(Color -Code $T.GRAY -Text ' = git status  |  ')$(Color -Code $T.WHITE -Text 'N l')$(Color -Code $T.GRAY -Text ' = git log  |  ')$(Color -Code $T.WHITE -Text 'N e')$(Color -Code $T.GRAY -Text ' = explorer  |  ')$(Color -Code $T.WHITE -Text 'N c')$(Color -Code $T.GRAY -Text ' = copy path')"
-        Write-Host "    $(Color -Code $T.GRAY -Text 'Comandos:') $(Color -Code $T.WHITE -Text 'q')$(Color -Code $T.GRAY -Text ' = salir  |  ')$(Color -Code $T.WHITE -Text 'r')$(Color -Code $T.GRAY -Text ' = refrescar')$(if ($updateStatus -and $updateStatus.Available) { (Color -Code $T.GRAY -Text '  |  ') + (Color -Code $T.WHITE -Text 'u') + (Color -Code $T.GRAY -Text ' = actualizar kit') } else { '' })"
+        $exitNum = "{0:D2}" -f ($projects.Count + 1)
+        Write-Host ("     " + (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "[$exitNum]") + "  " +
+                    (Color -Code $T.GRAY -Text "Quedarme acá / empezar algo nuevo"))
     }
     Write-Host ""
-    PrintHr
+    Write-Host ("  " + $hr)
+
+    # ===== FOOTER (1 line) =====
+    $foot = (Color -Code $T.GRAY -Text "  número para abrir") +
+            (Color -Code $T.GRAY -Text "  ·  N+t terminal · N+g git · N+l log · N+e explorer · N+c copy") +
+            (Color -Code $T.GRAY -Text "  ·  p# fijar · q salir · r refresh") +
+            $(if ($updateStatus -and $updateStatus.Available) { (Color -Code $T.GRAY -Text " · u actualizar") } else { "" })
+    Write-Host $foot
     Write-Host ""
 }
-
 # -------- Empty path --------
 if ($projects.Count -eq 0) {
     Show-Menu
@@ -448,7 +450,7 @@ function Copy-PathToClipboard {
 
 # -------- Prompt loop --------
 while ($true) {
-    Write-Host -NoNewline ("    " + (Color -Code $T.BOLD -Text "Que abris hoy?") + " " + (Color -Code $T.GRAY -Text "[N | N letra | q/r]") + (Color -Code $T.CYAN -Text " > "))
+    Write-Host -NoNewline ("  " + (Color -Code "$($T.BOLD);$($T.MAG)" -Text ">> INPUT::") + " " + (Color -Code $T.GRAY -Text "[ N | N+letra | q | r") + $(if ($updateStatus -and $updateStatus.Available) { (Color -Code $T.GRAY -Text " | u") } else { "" }) + (Color -Code $T.GRAY -Text " ] ") + (Color -Code "$($T.BOLD);$($T.CYAN)" -Text "_> "))
     [string]$selection = (Read-Host).Trim()
 
     if ([string]::IsNullOrWhiteSpace($selection)) {

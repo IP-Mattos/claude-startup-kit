@@ -127,7 +127,7 @@ foreach ($f in $scriptFiles) {
 $libFiles = @(
     "config.ps1", "logging.ps1", "scan-projects.ps1", "engram.ps1",
     "themes.ps1", "git-recent.ps1", "github-prs.ps1", "self-update.ps1",
-    "screen-adapt.ps1"
+    "screen-adapt.ps1", "render-layout.ps1"
 )
 foreach ($f in $libFiles) {
     Copy-FileSafe -Src (Join-Path $repoRoot "scripts\lib\$f") -Dst (Join-Path $libDst $f)

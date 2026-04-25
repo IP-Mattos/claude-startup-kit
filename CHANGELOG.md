@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.3.0 — 2026-04-24
+
+### Visual redesign — clean over decorative
+
+The v1.1/v1.2 cyberpunk HUD layout was found "raro / cargado / no óptimo" by the user. Two reviewer agents (an Explore review of the rendered output + a frontend-design redesign proposal) agreed: the layout had too many fake status indicators, redundant labels, duplicated sections, and conflicting colors. This release replaces it with a calm, single-language layout.
+
+**Removed**:
+- 3 stat tiles with 6 lines each (`MODULE/VERSION/STATE/MODE/INTERVAL/CHANNEL` per tile) — most of it decorative.
+- Auto-generated `NODE-XXX-YY` codes per project — duplicated the project name.
+- `ARCHIVE_LOG :: AYER_EN_RESUMEN` / `NODE_INDEX :: PROYECTOS_ACTIVOS` ALL-CAPS section titles — visually loud.
+- Fake HUD indicators: `SIGNAL STRONG`, `AUTH gh OK`, `[scan ok]`, `MCP active`.
+- `PATH ` label before the actual path (the path itself was already there).
+- 2-line footer with verbose `>> CMD::` / `>> SYS::` keybinding docs.
+- Session ID + KIT version + ts header strip.
+- Side-by-side card layout — was making things harder to scan, not easier.
+- Dead lib helpers: `New-Card`, `New-StatTile`, `New-NodeCode`, `New-SessionId`, `Format-SideBySide` (no longer called).
+
+**Kept / improved**:
+- Header: ONE line with title + date · gentle-ai status · optional PR count.
+- "Ayer hiciste": only projects with activity in last 48h, with Engram goal + last commit (`└` connector).
+- "Proyectos activos": clean numbered list `★ [01] Name  path  hoy/ayer/Nd`. Star marks pinned, day-tag is right-aligned.
+- Footer: ONE line with all keybindings.
+- Three accent colors only: cyan (project names), green (hoy), yellow (★ + cursor + warnings).
+
+The redesign was driven by independent agents — the model didn't pick the design, the reviewers did.
+
 ## 1.2.0 — 2026-04-24
 
 ### Features
