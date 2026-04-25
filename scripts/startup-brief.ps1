@@ -20,12 +20,27 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 . (Join-Path $scriptDir "lib\git-recent.ps1")
 . (Join-Path $scriptDir "lib\github-prs.ps1")
 . (Join-Path $scriptDir "lib\self-update.ps1")
+. (Join-Path $scriptDir "lib\screen-adapt.ps1")
 
 Initialize-StartupKitLog
 Write-KitLog -Level INFO -Source startup-brief -Message "Brief launched"
 
 $cfg = Get-StartupKitConfig -ConfigDir $scriptDir
-Write-KitLog -Level INFO -Source startup-brief -Message ("Config loaded: window={0}x{1} @ {2}px {3}, theme={4}" -f $cfg.window.cols, $cfg.window.lines, $cfg.window.fontSize, $cfg.window.fontName, $cfg.theme)
+
+# Adaptive sizing: override cols/lines/fontSize based on the primary monitor's resolution.
+if ($cfg.window.adaptive) {
+    try {
+        $adaptive = Get-AdaptiveDimensions
+        $cfg.window.cols     = $adaptive.Cols
+        $cfg.window.lines    = $adaptive.Lines
+        $cfg.window.fontSize = $adaptive.FontSize
+        Write-KitLog -Level INFO -Source startup-brief -Message ("Adaptive: screen={0}x{1} -> window={2}x{3} @ {4}px" -f $adaptive.ScreenWidth, $adaptive.ScreenHeight, $adaptive.Cols, $adaptive.Lines, $adaptive.FontSize)
+    } catch {
+        Write-KitLog -Level WARN -Source startup-brief -Message "Adaptive sizing failed: $($_.Exception.Message). Falling back to config values."
+    }
+}
+
+Write-KitLog -Level INFO -Source startup-brief -Message ("Config: window={0}x{1} @ {2}px {3}, theme={4}, adaptive={5}" -f $cfg.window.cols, $cfg.window.lines, $cfg.window.fontSize, $cfg.window.fontName, $cfg.theme, $cfg.window.adaptive)
 
 # Theme
 $T = Get-StartupKitTheme -Name $cfg.theme
@@ -81,6 +96,24 @@ try {
     $cfi.FontFamily = 54; $cfi.FontWeight = 400; $cfi.FaceName = $cfg.window.fontName
     [void][BriefNative.Api]::SetCurrentConsoleFontEx($h, $false, [ref]$cfi)
 } catch { Write-KitLog -Level WARN -Source startup-brief -Message "Font bump failed: $($_.Exception.Message)" }
+
+# Apply adaptive cols/lines via the PowerShell host (buffer must be >= window).
+try {
+    $ui = $Host.UI.RawUI
+    [int]$wantCols = [int]$cfg.window.cols
+    [int]$wantLines = [int]$cfg.window.lines
+    if ($wantCols -lt 40) { $wantCols = 40 }
+    if ($wantLines -lt 10) { $wantLines = 10 }
+    # Buffer first (must be >= window in both dimensions; allow tall scrollback)
+    $newBuffer = New-Object System.Management.Automation.Host.Size $wantCols, ([math]::Max($wantLines, 3000))
+    $ui.BufferSize = $newBuffer
+    # Then window (cap at MaxPhysicalWindowSize to avoid an exception)
+    $maxW = $ui.MaxPhysicalWindowSize.Width
+    $maxH = $ui.MaxPhysicalWindowSize.Height
+    if ($wantCols -gt $maxW)  { $wantCols  = $maxW }
+    if ($wantLines -gt $maxH) { $wantLines = $maxH }
+    $ui.WindowSize = New-Object System.Management.Automation.Host.Size $wantCols, $wantLines
+} catch { Write-KitLog -Level WARN -Source startup-brief -Message "Window resize failed: $($_.Exception.Message)" }
 
 try {
     Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue

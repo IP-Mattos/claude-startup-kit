@@ -3,6 +3,8 @@
   "theme": "default",
   "_themes": "default | dracula | solarized | nord | monochrome",
   "window": {
+    "adaptive": true,
+    "_adaptive_help": "When true, cols/lines/fontSize are computed from the screen resolution. Set false to lock to the values below.",
     "cols": 120,
     "lines": 32,
     "fontSize": 14,
@@ -26,7 +28,7 @@
     "showRecentCommitInBrief": true
   },
   "github": {
-    "showPrQueue": true,
+    "showPrQueue": false,
     "prLimit": 5
   },
   "selfUpdate": {

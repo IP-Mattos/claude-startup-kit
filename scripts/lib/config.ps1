@@ -7,6 +7,7 @@ function Get-StartupKitConfig {
     $defaults = [PSCustomObject]@{
         theme    = "default"
         window   = [PSCustomObject]@{
+            adaptive       = $true
             cols           = 120
             lines          = 32
             fontSize       = 14

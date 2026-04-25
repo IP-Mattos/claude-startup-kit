@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.2.0 — 2026-04-24
+
+### Features
+- **Adaptive sizing** (`window.adaptive: true` by default): the brief now detects the primary monitor's working area and computes window cols/lines and font size automatically. Works across HD (1366x768), FHD (1920x1080), 2K (2560x1440), and 4K (3840x2160) screens. DPI scaling is respected (Windows reports the post-scaling working area). Set `window.adaptive: false` to lock to the literal `cols`/`lines`/`fontSize` values in config.
+- New module: `scripts/lib/screen-adapt.ps1` (`Get-AdaptiveDimensions`) — returns dimensions based on screen ratios + Consolas character cell metrics, clamped to sane min/max bounds.
+- Window resize is applied at runtime via the PowerShell host's `RawUI.BufferSize`/`WindowSize`, capped at `MaxPhysicalWindowSize` to avoid throwing on small screens.
+
+### Calibration
+
+| Screen | Working area (typical) | Adaptive output |
+|--------|------------------------|-----------------|
+| 1366x768  | ~1366x728 | 100x24 @ 12px |
+| 1920x1080 | ~1920x1040 | 130x32 @ 15px |
+| 2K (2560x1440) | ~2560x1392 | 153x38 @ 20px |
+| 4K (3840x2160) | ~3840x2112 | 156x42 @ 28px (font capped) |
+
+Adjust the ratios or clamps in `lib/screen-adapt.ps1` if you want different proportions.
+
 ## 1.1.0 — 2026-04-24
 
 ### New features
