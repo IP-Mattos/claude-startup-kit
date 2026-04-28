@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.0.0 — 2026-04-28
+
+### Why a major bump
+Two milestones land together: an automated test suite for the library modules,
+and a public roadmap for the work that wouldn't fit a single release.
+
+### Pester test suite
+- New `tests/` directory with Pester v5 specs covering the library modules:
+  - `tests/config.Tests.ps1` — `Get-StartupKitConfig` defaults, user merge,
+    underscore-key skipping, unknown-key tolerance, invalid-JSON fallback.
+  - `tests/screen-adapt.Tests.ps1` — `Get-AdaptiveDimensions` bounds, custom
+    min/max parameters, reported screen dimensions.
+  - `tests/themes.Tests.ps1` — `Get-StartupKitTheme` default, requested theme,
+    case-insensitive match, fallback to default for unknown names, every
+    shipped theme exposes the full color key set.
+  - `tests/render-layout.Tests.ps1` — `Get-VisibleLength` strips ANSI,
+    `Format-PadRight` pads correctly while ignoring ANSI, no mid-ANSI truncation.
+- CI workflow extended: installs Pester v5 fresh, runs the suite with NUnit
+  XML output, uploads results as a GitHub Actions artifact, and fails the
+  build if any test fails.
+
+### Roadmap
+- New `ROADMAP.md` documents the two big projects that are *not* in scope for
+  the 1.x line: cross-platform Mac/Linux rewrite (Go or Rust, sub-100ms cold
+  start), and Choco/Scoop/Brew distribution (depends on the binary). Each
+  with tradeoffs, acceptance criteria, and effort estimates so the path is
+  clear when someone picks them up.
+- Pomodoro and AI-suggested-project are listed as **deliberately excluded**
+  to prevent re-proposal in future planning.
+
 ## 1.4.0 — 2026-04-28
 
 ### New commands at the prompt

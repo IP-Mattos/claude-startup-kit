@@ -84,3 +84,34 @@ jobs:
             }
           }
           if ($fail -gt 0) { exit 1 }
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
+          Import-Module Pester
+          Get-Module Pester | Select-Object Name, Version | Format-Table
+
+      - name: Run Pester tests
+        shell: pwsh
+        run: |
+          $cfg = New-PesterConfiguration
+          $cfg.Run.Path = './tests'
+          $cfg.Run.PassThru = $true
+          $cfg.Output.Verbosity = 'Detailed'
+          $cfg.TestResult.Enabled = $true
+          $cfg.TestResult.OutputPath = './pester-results.xml'
+          $r = Invoke-Pester -Configuration $cfg
+          if ($r.FailedCount -gt 0) {
+            Write-Host "::error::$($r.FailedCount) tests failed"
+            exit 1
+          }
+          Write-Host "Pester: $($r.PassedCount) passed, $($r.FailedCount) failed, $($r.SkippedCount) skipped"
+
+      - name: Upload Pester results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pester-results
+          path: pester-results.xml
+          if-no-files-found: ignore
