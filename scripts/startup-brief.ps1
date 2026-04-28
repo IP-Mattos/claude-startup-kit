@@ -101,19 +101,18 @@ try {
 # Apply adaptive cols/lines via the PowerShell host (buffer must be >= window).
 try {
     $ui = $Host.UI.RawUI
-    [int]$wantCols = [int]$cfg.window.cols
-    [int]$wantLines = [int]$cfg.window.lines
-    if ($wantCols -lt 40) { $wantCols = 40 }
-    if ($wantLines -lt 10) { $wantLines = 10 }
-    # Buffer first (must be >= window in both dimensions; allow tall scrollback)
-    $newBuffer = New-Object System.Management.Automation.Host.Size $wantCols, ([math]::Max($wantLines, 3000))
-    $ui.BufferSize = $newBuffer
-    # Then window (cap at MaxPhysicalWindowSize to avoid an exception)
-    $maxW = $ui.MaxPhysicalWindowSize.Width
-    $maxH = $ui.MaxPhysicalWindowSize.Height
-    if ($wantCols -gt $maxW)  { $wantCols  = $maxW }
-    if ($wantLines -gt $maxH) { $wantLines = $maxH }
-    $ui.WindowSize = New-Object System.Management.Automation.Host.Size $wantCols, $wantLines
+    [int]$wantCols  = [math]::Max(40, [int]$cfg.window.cols)
+    [int]$wantLines = [math]::Max(10, [int]$cfg.window.lines)
+    [int]$maxBufW = $ui.MaxPhysicalWindowSize.Width
+    [int]$maxBufH = $ui.MaxPhysicalWindowSize.Height
+    if ($maxBufW -lt 40) { $maxBufW = 200 }   # fallback if MaxPhysicalWindowSize is unavailable
+    if ($maxBufH -lt 10) { $maxBufH = 100 }
+    [int]$bufW = [math]::Min($wantCols, $maxBufW)
+    [int]$bufH = [math]::Min(9999, [math]::Max($wantLines, 3000))
+    $ui.BufferSize = New-Object System.Management.Automation.Host.Size $bufW, $bufH
+    [int]$winW = [math]::Min($wantCols, $maxBufW)
+    [int]$winH = [math]::Min($wantLines, $maxBufH)
+    $ui.WindowSize = New-Object System.Management.Automation.Host.Size $winW, $winH
 } catch { Write-KitLog -Level WARN -Source startup-brief -Message "Window resize failed: $($_.Exception.Message)" }
 
 try {
@@ -151,7 +150,7 @@ function PrintHrTitle {
     param([string]$Title)
     [string]$prefix = (HLine -Length 4) + " "
     [int]$rest = $W - $prefix.Length - $Title.Length - 1
-    if ($rest -lt 4) { $rest = 4 }
+    $rest = [math]::Max(4, $rest)
     [Console]::WriteLine("  " + (Color -Code $T.CYAN -Text ($prefix + $Title + " " + (HLine -Length $rest))))
 }
 
@@ -259,12 +258,11 @@ function Show-Menu {
     Clear-Host
     Write-Host ""
 
-    [int]$contentW = $W - 2
-    if ($contentW -lt 60) { $contentW = 60 }
-    $hr = (Color -Code $T.GRAY -Text ([string]([char]0x2500) * $contentW))
+    [int]$contentW = [math]::Max(60, $W - 2)
+    $rule = (Color -Code $T.GRAY -Text ([string]([char]0x2500) * $contentW))
 
     # ===== HEADER (1 line: title + date + gentle-ai status) =====
-    Write-Host ("  " + $hr)
+    Write-Host ("  " + $rule)
     [string]$datestr = (Get-Date).ToString("ddd dd MMM yyyy '·' HH:mm").ToLower()
     $headerL = (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "daily brief") + "  " + (Color -Code $T.GRAY -Text "·  $datestr")
 
@@ -282,9 +280,9 @@ function Show-Menu {
     $hL = Get-VisibleLength $headerL
     $hR = Get-VisibleLength $gaStatus
     $hPad = $contentW - $hL - $hR
-    if ($hPad -lt 1) { $hPad = 1 }
+    $hPad = [math]::Max(1, $hPad)
     Write-Host ("  " + $headerL + (' ' * $hPad) + $gaStatus)
-    Write-Host ("  " + $hr)
+    Write-Host ("  " + $rule)
     Write-Host ""
 
     # ===== UPDATE BANNER (slim, only when available) =====
@@ -327,7 +325,7 @@ function Show-Menu {
     $headProjL = "  " + (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "Proyectos activos")
     $headProjR = (Color -Code $T.GRAY -Text "★ favoritos")
     $padProj = $contentW - (Get-VisibleLength $headProjL) - (Get-VisibleLength $headProjR) + 2
-    if ($padProj -lt 2) { $padProj = 2 }
+    $padProj = [math]::Max(2, $padProj)
     Write-Host ($headProjL + (' ' * $padProj) + $headProjR)
     Write-Host ""
 
@@ -352,7 +350,7 @@ function Show-Menu {
             $leftLen = Get-VisibleLength $left
             $labelLen = $label.Length
             $pad = $contentW - $leftLen - $labelLen - 1
-            if ($pad -lt 2) { $pad = 2 }
+            $pad = [math]::Max(2, $pad)
             Write-Host ($left + (' ' * $pad) + (Color -Code $labelColor -Text $label))
             $idx++
         }
@@ -361,7 +359,7 @@ function Show-Menu {
                     (Color -Code $T.GRAY -Text "Quedarme acá / empezar algo nuevo"))
     }
     Write-Host ""
-    Write-Host ("  " + $hr)
+    Write-Host ("  " + $rule)
 
     # ===== FOOTER (1 line) =====
     $foot = (Color -Code $T.GRAY -Text "  número para abrir") +

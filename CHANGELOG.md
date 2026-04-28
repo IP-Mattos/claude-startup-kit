@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1 — 2026-04-28
+
+### Fixes (caught by integration test)
+- **"41" stray output bug**: a value (the visible length of the gentle-ai status line) was leaking to stdout between the header and "Ayer hiciste" sections, and again before the footer. Root cause was `if ($x -lt N) { $x = N }` patterns in PowerShell that occasionally emit the assigned value when at script-statement level. All 4 occurrences converted to `$x = [math]::Max(N, $x)`, which is idiomatic and never leaks. Bonus: renamed `$hr` to `$rule` since `hr` is short enough that PowerShell can confuse it in some parses.
+- **`startup-kit-config.json` parse error**: the user config kept emitting `Exception setting "_repoPath_help": ...` because the config loader was trying to copy every key from user config to defaults, including the `_help`-style documentation keys that don't exist on the defaults object. Fixed: `Get-StartupKitConfig` now skips keys starting with `_` AND skips any key the defaults don't already declare.
+- **`Window resize failed: BufferSize too large`**: the buffer height was forced to `max(lines, 3000)` which exceeds the Windows console host's MaxPhysicalWindowSize on some configurations. Now caps at 9999 and respects MaxPhysicalWindowSize for both buffer and window dimensions, with a sane fallback if the host doesn't report it.
+- **`.kit-version` desfasado**: re-running `install.ps1` syncs it to the current `VERSION`. (No code change — just `install.ps1` always writes the marker on success, which it already did. Just needed a re-run.)
+
 ## 1.3.0 — 2026-04-24
 
 ### Visual redesign — clean over decorative

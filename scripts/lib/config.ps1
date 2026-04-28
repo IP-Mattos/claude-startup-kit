@@ -51,6 +51,11 @@ function Get-StartupKitConfig {
         foreach ($section in @("window", "projects", "vsCode", "engram", "git", "github", "selfUpdate")) {
             if ($user.PSObject.Properties.Name -contains $section -and $user.$section) {
                 foreach ($prop in $user.$section.PSObject.Properties) {
+                    # Skip documentation keys (those starting with `_`) and any key
+                    # the defaults object doesn't already declare — avoids errors
+                    # when the user's file has a comment-style "_help" key.
+                    if ($prop.Name.StartsWith('_')) { continue }
+                    if (-not ($defaults.$section.PSObject.Properties.Name -contains $prop.Name)) { continue }
                     $defaults.$section.$($prop.Name) = $prop.Value
                 }
             }
