@@ -7,7 +7,6 @@ $ErrorActionPreference = "Continue"
 
 $claudeDir = Join-Path $env:USERPROFILE ".claude"
 $scriptsDir = Join-Path $claudeDir "scripts"
-$libDir = Join-Path $scriptsDir "lib"
 $logsDir = Join-Path $claudeDir "logs"
 $startupDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup"
 
@@ -56,13 +55,22 @@ foreach ($rel in $expected) {
     else                 { Add-Check "file: $rel" $ERR "missing" }
 }
 
-# 3. UTF-8 BOM on .ps1
-$psFiles = Get-ChildItem -Path $scriptsDir -Recurse -Include *.ps1 -File -ErrorAction SilentlyContinue
-foreach ($f in $psFiles) {
-    $bytes = [System.IO.File]::ReadAllBytes($f.FullName)
+# 3. UTF-8 BOM on .ps1 — only check files installed by the kit (whitelist).
+# Other .ps1 files in scripts/ may be the user's own POCs; not the kit's concern.
+$kitPsFiles = @(
+    "startup-brief.ps1", "health-check.ps1", "standup.ps1",
+    "lib\config.ps1", "lib\logging.ps1", "lib\scan-projects.ps1", "lib\engram.ps1",
+    "lib\themes.ps1", "lib\git-recent.ps1", "lib\github-prs.ps1",
+    "lib\self-update.ps1", "lib\screen-adapt.ps1", "lib\render-layout.ps1"
+)
+foreach ($rel in $kitPsFiles) {
+    $full = Join-Path $scriptsDir $rel
+    if (-not (Test-Path $full)) { continue }   # the "missing file" check (#2) already flagged it
+    $bytes = [System.IO.File]::ReadAllBytes($full)
     $hasBom = ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)
-    if ($hasBom) { Add-Check ("BOM: " + $f.Name) $OK }
-    else         { Add-Check ("BOM: " + $f.Name) $WARN "no UTF-8 BOM (Unicode chars may render incorrectly)" }
+    $name = Split-Path $rel -Leaf
+    if ($hasBom) { Add-Check ("BOM: " + $name) $OK }
+    else         { Add-Check ("BOM: " + $name) $WARN "no UTF-8 BOM (Unicode chars may render incorrectly)" }
 }
 
 # 4. settings.json hooks

@@ -446,6 +446,57 @@ function Copy-PathToClipboard {
     Start-Sleep -Milliseconds 800
 }
 
+# Toggle a project in/out of the user's pinned list, persist to config.
+# Returns the new state ("pinned" or "unpinned") for log/UX, or $null on failure.
+function Set-PinnedToggle {
+    param([Parameter(Mandatory=$true)][string]$ProjectName)
+
+    $userConfigPath = Join-Path $scriptDir "startup-kit-config.json"
+    if (-not (Test-Path $userConfigPath)) {
+        Write-Host "    $(Color -Code $T.RED -Text 'No existe startup-kit-config.json — corre install.ps1 primero.')"
+        return $null
+    }
+
+    try {
+        $userCfg = Get-Content $userConfigPath -Raw | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+        Write-Host "    $(Color -Code $T.RED -Text "Config invalido: $($_.Exception.Message)")"
+        return $null
+    }
+
+    if (-not ($userCfg.PSObject.Properties.Name -contains "pinned")) {
+        $userCfg | Add-Member -NotePropertyName "pinned" -NotePropertyValue @() -Force
+    }
+
+    $pinnedList = @($userCfg.pinned | ForEach-Object { [string]$_ })
+    $lower = $ProjectName.ToLowerInvariant()
+    $matchIdx = -1
+    for ($i = 0; $i -lt $pinnedList.Count; $i++) {
+        if ($pinnedList[$i].ToLowerInvariant() -eq $lower) { $matchIdx = $i; break }
+    }
+
+    [string]$state
+    if ($matchIdx -ge 0) {
+        $pinnedList = @($pinnedList | Where-Object { $_ -ne $pinnedList[$matchIdx] })
+        $state = "unpinned"
+    } else {
+        $pinnedList = @($pinnedList) + $ProjectName
+        $state = "pinned"
+    }
+    $userCfg.pinned = $pinnedList
+
+    try {
+        $userCfg | ConvertTo-Json -Depth 20 | Set-Content -Path $userConfigPath -Encoding utf8
+        # Mirror into the in-memory state used by Show-Menu for the next render
+        $script:pinnedNames = @($pinnedList | ForEach-Object { $_.ToString().ToLowerInvariant() })
+        Write-KitLog -Level INFO -Source startup-brief -Message ("Pin toggle: '$ProjectName' -> $state (now {0} pinned)" -f $pinnedList.Count)
+        return $state
+    } catch {
+        Write-Host "    $(Color -Code $T.RED -Text "No se pudo guardar config: $($_.Exception.Message)")"
+        return $null
+    }
+}
+
 # -------- Prompt loop --------
 while ($true) {
     Write-Host -NoNewline ("  " + (Color -Code "$($T.BOLD);$($T.MAG)" -Text ">> INPUT::") + " " + (Color -Code $T.GRAY -Text "[ N | N+letra | q | r") + $(if ($updateStatus -and $updateStatus.Available) { (Color -Code $T.GRAY -Text " | u") } else { "" }) + (Color -Code $T.GRAY -Text " ] ") + (Color -Code "$($T.BOLD);$($T.CYAN)" -Text "_> "))
@@ -483,9 +534,44 @@ while ($true) {
         }
     }
 
-    # Pattern: "<num>" or "<num> <letter>"
+    # Pattern: "p<num>" (pin/unpin), "<num>", or "<num> <letter>"
+    if ($selection -match '^p(\d+)$') {
+        [int]$pinChoice = [int]$matches[1]
+        if ($pinChoice -lt 1 -or $pinChoice -gt $projects.Count) {
+            Write-Host "    $(Color -Code $T.RED -Text "Numero fuera de rango. Elegi entre 1 y $($projects.Count).")"
+            continue
+        }
+        $pinTarget = $projects[$pinChoice - 1]
+        $pinName = Split-Path $pinTarget.Path -Leaf
+        $newState = Set-PinnedToggle -ProjectName $pinName
+        if ($newState) {
+            $color = if ($newState -eq "pinned") { $T.YELLOW } else { $T.GRAY }
+            $verb  = if ($newState -eq "pinned") { "fijado" } else { "desfijado" }
+            Write-Host "    $(Color -Code $color -Text "★ $pinName") $(Color -Code $T.GRAY -Text "-> $verb")"
+            Start-Sleep -Milliseconds 600
+        }
+        # Re-scan + re-render so the pinned order reflects the new state
+        $script:pinned = @()
+        $script:rest = @()
+        if ($script:pinnedNames.Count -gt 0) {
+            foreach ($pn in $script:pinnedNames) {
+                $hit = $allProjects | Where-Object { (Split-Path $_.Path -Leaf).ToLowerInvariant() -eq $pn } | Select-Object -First 1
+                if ($hit) { $script:pinned += $hit }
+            }
+            $script:rest = $allProjects | Where-Object {
+                $leaf = (Split-Path $_.Path -Leaf).ToLowerInvariant()
+                $script:pinnedNames -notcontains $leaf
+            }
+        } else {
+            $script:rest = $allProjects
+        }
+        $script:projects = @($script:pinned) + @($script:rest)
+        Show-Menu
+        continue
+    }
+
     if ($selection -notmatch '^(\d+)(\s+([a-z]))?$') {
-        Write-Host "    $(Color -Code $T.RED -Text 'Formato invalido. Tipea N o "N letra" (t/g/l/e/c).')"
+        Write-Host "    $(Color -Code $T.RED -Text 'Formato invalido. Tipea N, "N letra" (t/g/l/e/c), o "p#" para fijar.')"
         continue
     }
 

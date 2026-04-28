@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.3 — 2026-04-28
+
+### Bug fixes
+- **`p#` pin/unpin now actually works**. The footer documented `p# fijar` since v1.1.0, but the prompt loop's regex never accepted `p<num>` — the handler was missing entirely. Now you can pin/unpin a project from the menu by typing `p2` (toggles project #2's pin status, persists to `startup-kit-config.json`, re-renders the menu so the new order is visible).
+- **`Set-PinnedToggle`** function added: reads user config, toggles project in/out of `pinned[]`, writes back, and updates the in-memory `$script:pinnedNames` so the next render reflects the change without reloading.
+- **Pin event logged**: `Pin toggle: 'PolyMarket' -> pinned (now 2 pinned)` (and same on unpin).
+- **`health-check.ps1` no longer warns about non-kit files**. Previously it scanned every `.ps1` in `~/.claude/scripts/` for BOMs, which flagged unrelated user scripts (POCs, demos). Now it uses an explicit whitelist of files the kit installs and ignores everything else.
+- **Removed dead helpers from `lib/render-layout.ps1`**: `New-Card`, `New-StatTile`, `New-NodeCode`, `New-SessionId`, `Format-SideBySide`. Tras el rediseño v1.3.0, none of these were called anymore; only `Get-VisibleLength` and `Format-PadRight` remain. Net: -150 lines of unused code.
+- Removed unused `$libDir` variable in `health-check.ps1` (linter warning).
+
 ## 1.3.2 — 2026-04-28
 
 ### Improvements
