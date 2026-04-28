@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.2 — 2026-04-28
+
+### Improvements
+- **Verbose `check-gentle-ai.sh` logging** so the kit log records every upgrade event — not just hook fired/skipped. New log entries:
+  - `INFO Installed version: vX.Y.Z` (every check)
+  - `INFO Latest release: vA.B.C` (every check that reaches GitHub)
+  - `WARN Could not reach GitHub API (network/rate-limit?)` (offline / API blocked)
+  - `WARN gentle-ai not installed on PATH` (corner case)
+  - `INFO Up to date (vX.Y.Z). No action.`
+  - `INFO Update available: vX.Y.Z → vA.B.C. Running PowerShell installer...`
+  - `INFO UPGRADED vX.Y.Z → vA.B.C (target was vA.B.C)` ← the "did it actually update?" line you can now grep
+  - `ERROR Upgrade FAILED (vX.Y.Z → vA.B.C)`
+- Now you can run `grep UPGRADED ~/.claude/logs/startup-kit.log` to see your full upgrade history per machine.
+
 ## 1.3.1 — 2026-04-28
 
 ### Fixes (caught by integration test)
