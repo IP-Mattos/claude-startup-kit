@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.4.0 — 2026-04-28
+
+### New commands at the prompt
+- **`t`** — cycle through themes live (`default → dracula → solarized → nord → monochrome → default`). Persists to `startup-kit-config.json` automatically. Re-renders with the new colors immediately.
+- **`c`** — opens `startup-kit-config.json` in VS Code via `code.cmd`. No more navigating to the path manually.
+- **`?`** — full help screen listing every command with a one-line description. Press ENTER to return to the menu. Decongests the footer (which now only shows the most-used commands).
+
+### Engram improvements
+- **Smarter project-name matching**: `Resolve-EngramProjectName` reads `engram projects list` once, caches the names, and tries (1) exact match → (2) prefix match → (3) substring match before falling back to the folder leaf. This fixes the case where a user's project is registered in Engram under a slightly different name (e.g. `polymarket-bot` in Engram vs `PolyMarket` on disk).
+- **Git fallback in "Ayer hiciste"**: when Engram has no `session_summary` for a project but the project is a git repo with a recent commit, the brief now promotes the commit subject as the headline instead of showing `(sin summary en Engram)`. Result: every recent project shows something useful.
+
+### Footer redesign
+- Footer is now a single concise line: `número para abrir · p# fijar · t tema · c config · ? ayuda · q salir [· u actualizar]`.
+- The keybinding-soup that was there before lives in the `?` help screen now.
+
 ## 1.3.3 — 2026-04-28
 
 ### Bug fixes

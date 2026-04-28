@@ -205,7 +205,8 @@ if ($projects.Count -gt 0) {
     if ($cfg.engram.fetchSummariesForBrief) {
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
         foreach ($p in $recentForBrief) {
-            $name = Get-EngramProjectName -ProjectPath $p.Path
+            $leaf = Split-Path $p.Path -Leaf
+            $name = Resolve-EngramProjectName -FolderLeaf $leaf
             if ($name) {
                 $goal = Get-EngramProjectGoal -ProjectName $name -MaxChars $cfg.engram.summaryMaxChars
                 if ($goal) { $engramSummaries[$p.Path] = $goal }
@@ -305,17 +306,24 @@ function Show-Menu {
             $summaryText = $engramSummaries[$p.Path]
 
             $line = "   " + (Color -Code $T.CYAN -Text ("{0,-13}" -f $name)) + " "
-            if ($summaryText) {
+            $hasSummary = -not [string]::IsNullOrEmpty($summaryText)
+            $hasCommit  = $recentCommits.ContainsKey($p.Path)
+            if ($hasSummary) {
                 $line += (Color -Code $T.GRAY -Text $summaryText)
-            } else {
-                $line += (Color -Code $T.GRAY -Text "(sin summary en Engram)")
-            }
-            Write-Host $line
-
-            if ($recentCommits.ContainsKey($p.Path)) {
+                Write-Host $line
+                if ($hasCommit) {
+                    $c = $recentCommits[$p.Path]
+                    Write-Host ("                " + (Color -Code $T.GRAY -Text "└ $($c.Hash)  $($c.Subject)   · $($c.Author) · hace $($c.Ago)"))
+                }
+            } elseif ($hasCommit) {
+                # Engram had nothing — promote the latest commit as the headline.
                 $c = $recentCommits[$p.Path]
-                $cmt = "                " + (Color -Code $T.GRAY -Text "└ $($c.Hash)  $($c.Subject)   · $($c.Author) · hace $($c.Ago)")
-                Write-Host $cmt
+                $line += (Color -Code $T.GRAY -Text "git: $($c.Subject)")
+                Write-Host $line
+                Write-Host ("                " + (Color -Code $T.GRAY -Text "└ $($c.Hash) · $($c.Author) · hace $($c.Ago)"))
+            } else {
+                $line += (Color -Code $T.GRAY -Text "(sin actividad registrable)")
+                Write-Host $line
             }
             Write-Host ""
         }
@@ -361,11 +369,14 @@ function Show-Menu {
     Write-Host ""
     Write-Host ("  " + $rule)
 
-    # ===== FOOTER (1 line) =====
-    $foot = (Color -Code $T.GRAY -Text "  número para abrir") +
-            (Color -Code $T.GRAY -Text "  ·  N+t terminal · N+g git · N+l log · N+e explorer · N+c copy") +
-            (Color -Code $T.GRAY -Text "  ·  p# fijar · q salir · r refresh") +
-            $(if ($updateStatus -and $updateStatus.Available) { (Color -Code $T.GRAY -Text " · u actualizar") } else { "" })
+    # ===== FOOTER (1 line — '?' opens full help) =====
+    $foot = (Color -Code $T.GRAY -Text "  número para abrir  ·  ") +
+            (Color -Code $T.WHITE -Text "p#") + (Color -Code $T.GRAY -Text " fijar  ·  ") +
+            (Color -Code $T.WHITE -Text "t") + (Color -Code $T.GRAY -Text " tema  ·  ") +
+            (Color -Code $T.WHITE -Text "c") + (Color -Code $T.GRAY -Text " config  ·  ") +
+            (Color -Code $T.WHITE -Text "?") + (Color -Code $T.GRAY -Text " ayuda  ·  ") +
+            (Color -Code $T.WHITE -Text "q") + (Color -Code $T.GRAY -Text " salir") +
+            $(if ($updateStatus -and $updateStatus.Available) { (Color -Code $T.GRAY -Text "  ·  ") + (Color -Code $T.WHITE -Text "u") + (Color -Code $T.GRAY -Text " actualizar") } else { "" })
     Write-Host $foot
     Write-Host ""
 }
@@ -514,6 +525,71 @@ while ($true) {
         "q"     { Write-Host "    $(Color -Code $T.GRAY -Text 'Buen laburo hoy!')"; Write-KitLog -Level INFO -Source startup-brief -Message "Closed (q)"; Start-Sleep -Seconds 1; exit 0 }
         "salir" { Write-Host "    $(Color -Code $T.GRAY -Text 'Buen laburo hoy!')"; Write-KitLog -Level INFO -Source startup-brief -Message "Closed (salir)"; Start-Sleep -Seconds 1; exit 0 }
         "r"     { Write-KitLog -Level INFO -Source startup-brief -Message "Refresh"; Show-Menu; continue }
+        "t"     {
+            $themeOrder = @("default", "dracula", "solarized", "nord", "monochrome")
+            $current = $cfg.theme.ToLowerInvariant()
+            $idxT = $themeOrder.IndexOf($current)
+            if ($idxT -lt 0) { $idxT = -1 }
+            $next = $themeOrder[($idxT + 1) % $themeOrder.Count]
+            $cfg.theme = $next
+            $script:T = Get-StartupKitTheme -Name $next
+            # Persist to user config
+            try {
+                $userConfigPath = Join-Path $scriptDir "startup-kit-config.json"
+                if (Test-Path $userConfigPath) {
+                    $userCfg = Get-Content $userConfigPath -Raw | ConvertFrom-Json -ErrorAction Stop
+                    $userCfg.theme = $next
+                    $userCfg | ConvertTo-Json -Depth 20 | Set-Content -Path $userConfigPath -Encoding utf8
+                }
+            } catch {}
+            Write-KitLog -Level INFO -Source startup-brief -Message "Theme: $current -> $next"
+            Show-Menu
+            Write-Host "    $(Color -Code $T.GREEN -Text "Tema:") $(Color -Code $T.WHITE -Text $next)"
+            continue
+        }
+        "c"     {
+            $userConfigPath = Join-Path $scriptDir "startup-kit-config.json"
+            $codeCmd = (Get-Command code.cmd -ErrorAction SilentlyContinue).Source
+            if ($codeCmd -and (Test-Path $userConfigPath)) {
+                & cmd.exe /c "code.cmd `"$userConfigPath`""
+                Write-Host "    $(Color -Code $T.GREEN -Text '> Abriendo config en VS Code') $(Color -Code $T.GRAY -Text $userConfigPath)"
+                Write-KitLog -Level INFO -Source startup-brief -Message "Opened config in VS Code"
+            } else {
+                Write-Host "    $(Color -Code $T.RED -Text "No se pudo abrir el config (path: $userConfigPath)")"
+            }
+            Start-Sleep -Milliseconds 600
+            continue
+        }
+        "?"     {
+            Clear-Host
+            Write-Host ""
+            Write-Host "  $(Color -Code "$($T.BOLD);$($T.WHITE)" -Text 'Comandos disponibles')"
+            Write-Host "  $(Color -Code $T.GRAY -Text ('─' * 50))"
+            Write-Host ""
+            Write-Host "  $(Color -Code "$($T.BOLD);$($T.CYAN)" -Text 'Abrir proyecto')"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'N')         abre el proyecto N en VS Code (workspace nuevo)"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'N t')       abre una terminal en el directorio del proyecto N"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'N g')       muestra git status del proyecto N"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'N l')       muestra git log -10 del proyecto N"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'N e')       abre File Explorer en el proyecto N"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'N c')       copia el path del proyecto N al clipboard"
+            Write-Host ""
+            Write-Host "  $(Color -Code "$($T.BOLD);$($T.CYAN)" -Text 'Pinned')"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'p N')       toggle pin del proyecto N (★ aparece en el menú)"
+            Write-Host ""
+            Write-Host "  $(Color -Code "$($T.BOLD);$($T.CYAN)" -Text 'UI / sistema')"
+            Write-Host "    $(Color -Code $T.WHITE -Text 't')         cycle theme (default → dracula → solarized → nord → mono)"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'c')         abre el config (startup-kit-config.json) en VS Code"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'r')         refresca el menú"
+            Write-Host "    $(Color -Code $T.WHITE -Text '?')         muestra esta ayuda"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'u')         actualiza el kit (si hay update disponible)"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'q')         salir"
+            Write-Host ""
+            Write-Host "  $(Color -Code $T.GRAY -Text '(presiona ENTER para volver al menú)')"
+            Read-Host | Out-Null
+            Show-Menu
+            continue
+        }
         "u"     {
             if ($updateStatus -and $updateStatus.Available) {
                 Write-Host "    $(Color -Code $T.YELLOW -Text 'Actualizando kit...')"
