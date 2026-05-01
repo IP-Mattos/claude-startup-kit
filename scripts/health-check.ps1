@@ -44,6 +44,8 @@ $expected = @(
     "scripts\standup.ps1",
     "scripts\claude-audit.ps1",
     "scripts\cleanup.ps1",
+    "scripts\brief.cmd",
+    "scripts\claude-brief-hotkey.ahk",
     "scripts\lib\config.ps1",
     "scripts\lib\logging.ps1",
     "scripts\lib\scan-projects.ps1",

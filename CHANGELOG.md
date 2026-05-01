@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.9.0 — 2026-05-01
+
+### Make the brief reachable from anywhere
+
+**`brief` shim on PATH** — type `brief` from any terminal, PowerShell prompt, or Win+R dialog and the brief opens. Implementation: `scripts/brief.cmd` is copied during install to `%LOCALAPPDATA%\Microsoft\WindowsApps\` (already on PATH for the current user, no admin required).
+
+**Global hotkey `Ctrl+Alt+B`** — install ships an AutoHotkey v2 script (`scripts/claude-brief-hotkey.ahk`) that, when copied to `shell:startup`, listens for `Ctrl+Alt+B` and opens the brief from any app, including fullscreen ones. Installer copies the .ahk to Startup folder only when AutoHotkey is detected.
+
+### Installer improvements
+- Searches for AutoHotkey in `$LOCALAPPDATA\Programs\AutoHotkey\v2\AutoHotkey64.exe` and `$ProgramFiles\AutoHotkey\v2\` in addition to `Get-Command`. This catches winget-installed AHK even when the PATH hasn't refreshed yet.
+- Tells you what to install if AHK is missing: `winget install AutoHotkey.AutoHotkey`.
+- The PATH shim install now succeeds gracefully if `WindowsApps` isn't found (rare).
+
+### Health-check + audit
+Both updated to recognize `brief.cmd` and `claude-brief-hotkey.ahk` as kit-installed files (won't get flagged as foreign).
+
+### How to use
+```powershell
+brief                # from any terminal/Win+R
+Ctrl+Alt+B           # from any app, anywhere on the desktop
+```
+
+Both run alongside the boot launcher — pick whichever matches your flow.
+
 ## 2.8.1 — 2026-05-01
 
 ### Bug fix: `claude-audit.ps1` crashed on the Summary line on some PCs

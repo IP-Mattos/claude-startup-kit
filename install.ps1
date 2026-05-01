@@ -117,7 +117,8 @@ Write-Info "Copying scripts..."
 $scriptFiles = @(
     "check-gentle-ai.sh", "daily-brief.sh",
     "startup-brief.ps1", "startup-brief-launcher.bat",
-    "health-check.ps1", "standup.ps1", "claude-audit.ps1", "cleanup.ps1"
+    "health-check.ps1", "standup.ps1", "claude-audit.ps1", "cleanup.ps1",
+    "brief.cmd", "claude-brief-hotkey.ahk"
 )
 foreach ($f in $scriptFiles) {
     Copy-FileSafe -Src (Join-Path $repoRoot "scripts\$f") -Dst (Join-Path $scriptsDst $f)
@@ -303,6 +304,41 @@ if ($DryRun) {
 } else {
     Copy-Item -Path (Join-Path $scriptsDst "startup-brief-launcher.bat") -Destination $startupBat -Force
     Write-Ok "Installed launcher in Startup folder: $startupBat"
+}
+
+# ---------- 6b. Install `brief` shim on PATH ----------
+$pathDir = Join-Path $env:LOCALAPPDATA "Microsoft\WindowsApps"
+$briefShimDst = Join-Path $pathDir "brief.cmd"
+if ($DryRun) {
+    Write-Plan "Would install PATH shim: $briefShimDst"
+} elseif (Test-Path $pathDir) {
+    Copy-Item -Path (Join-Path $scriptsDst "brief.cmd") -Destination $briefShimDst -Force
+    Write-Ok "Installed PATH shim — type 'brief' from any terminal or Win+R"
+} else {
+    Write-Warn "WindowsApps folder not found, PATH shim not installed"
+}
+
+# ---------- 6c. Optional: install global hotkey via AutoHotkey ----------
+$ahkPaths = @(
+    "$env:LOCALAPPDATA\Programs\AutoHotkey\v2\AutoHotkey64.exe",
+    "$env:LOCALAPPDATA\Programs\AutoHotkey\v2\AutoHotkey32.exe",
+    "$env:ProgramFiles\AutoHotkey\v2\AutoHotkey64.exe"
+)
+$ahkAvailable = ($null -ne (Get-Command AutoHotkey.exe -ErrorAction SilentlyContinue)) -or
+                ($null -ne (Get-Command AutoHotkeyU64.exe -ErrorAction SilentlyContinue)) -or
+                (@($ahkPaths | Where-Object { Test-Path $_ }).Count -gt 0)
+$hotkeyDst = Join-Path $startupFolder "claude-brief-hotkey.ahk"
+if ($DryRun) {
+    Write-Plan "Would install hotkey at: $hotkeyDst (requires AutoHotkey)"
+} elseif ($ahkAvailable) {
+    Copy-Item -Path (Join-Path $scriptsDst "claude-brief-hotkey.ahk") -Destination $hotkeyDst -Force
+    Write-Ok "Installed global hotkey — Ctrl+Alt+B opens the brief from anywhere"
+    Write-Info "Reboot or run the .ahk manually to activate"
+} else {
+    Write-Warn "AutoHotkey not installed — global hotkey skipped"
+    Write-Info "  To enable Ctrl+Alt+B from anywhere:"
+    Write-Info "    winget install AutoHotkey.AutoHotkey"
+    Write-Info "    .\install.ps1   # re-run after install"
 }
 
 # ---------- 7. Write installed version marker ----------
