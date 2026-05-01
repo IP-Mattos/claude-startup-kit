@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.7.1 — 2026-05-01
+
+### Fix: every letter command (`t`, `r`, `a`, `x`, `l`, `c`, `?`, `u`) printed `Formato invalido` after running
+Caught while testing `t`. After cycling the theme, the brief was rendering the menu correctly but then printing `Formato invalido. Tipea N, "N letra" (t/g/l/e/c), o "p#" para fijar.` right above the next prompt — making it look like the command had failed even though it had actually worked.
+
+**Root cause**: in PowerShell, `continue` inside a `switch` block only exits the switch, **not** the enclosing `while` loop. After the switch ended, execution fell through to the `/<query>` / `s N` / `pN` / numeric-pattern checks below, eventually hitting the catch-all "Formato invalido" message because no pattern matched a single letter.
+
+**Fix**: introduced a `$handled = $false` flag at the top of the prompt loop. Each letter case in the switch now sets `$handled = $true` instead of calling `continue`. Right after the switch, `if ($handled) { continue }` cleanly skips the regex section. 9 cases converted (`r`, `t`, `c`, `?`, `u`, `a`, `x`, `l`, plus the pin-toggle and snooze paths).
+
+Tested: typing `t` now cycles theme, persists to config, re-renders the menu, prints `Tema: <new>`, and goes straight to the next prompt — no spurious error.
+
 ## 2.7.0 — 2026-05-01
 
 ### Search/filter + Snooze

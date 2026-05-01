@@ -631,11 +631,14 @@ while ($true) {
         exit 0
     }
 
-    # Single-letter commands
+    # Single-letter commands. Note: 'continue' inside a PowerShell switch only
+    # exits the switch, NOT the enclosing while loop — so we set $handled and
+    # check it after the switch.
+    $handled = $false
     switch ($selection.ToLowerInvariant()) {
         "q"     { Write-Host "    $(Color -Code $T.GRAY -Text 'Buen laburo hoy!')"; Write-KitLog -Level INFO -Source startup-brief -Message "Closed (q)"; Start-Sleep -Seconds 1; exit 0 }
         "salir" { Write-Host "    $(Color -Code $T.GRAY -Text 'Buen laburo hoy!')"; Write-KitLog -Level INFO -Source startup-brief -Message "Closed (salir)"; Start-Sleep -Seconds 1; exit 0 }
-        "r"     { Write-KitLog -Level INFO -Source startup-brief -Message "Refresh"; Show-Menu; continue }
+        "r"     { Write-KitLog -Level INFO -Source startup-brief -Message "Refresh"; Show-Menu; $handled = $true }
         "t"     {
             $themeOrder = @("default", "dracula", "solarized", "nord", "monochrome")
             $current = $cfg.theme.ToLowerInvariant()
@@ -656,7 +659,7 @@ while ($true) {
             Write-KitLog -Level INFO -Source startup-brief -Message "Theme: $current -> $next"
             Show-Menu
             Write-Host "    $(Color -Code $T.GREEN -Text "Tema:") $(Color -Code $T.WHITE -Text $next)"
-            continue
+            $handled = $true
         }
         "c"     {
             $userConfigPath = Join-Path $scriptDir "startup-kit-config.json"
@@ -669,7 +672,7 @@ while ($true) {
                 Write-Host "    $(Color -Code $T.RED -Text "No se pudo abrir el config (path: $userConfigPath)")"
             }
             Start-Sleep -Milliseconds 600
-            continue
+            $handled = $true
         }
         "a"     {
             $auditScript = Join-Path $scriptDir "claude-audit.ps1"
@@ -683,7 +686,7 @@ while ($true) {
             } else {
                 Write-Host "    $(Color -Code $T.RED -Text "No se encontró $auditScript")"
             }
-            continue
+            $handled = $true
         }
         "x"     {
             $cleanupScript = Join-Path $scriptDir "cleanup.ps1"
@@ -698,7 +701,7 @@ while ($true) {
             } else {
                 Write-Host "    $(Color -Code $T.RED -Text "No se encontró $cleanupScript")"
             }
-            continue
+            $handled = $true
         }
         "l"     {
             $logFile = Join-Path $env:USERPROFILE ".claude\logs\startup-kit.log"
@@ -722,7 +725,7 @@ while ($true) {
             Write-Host "  $(Color -Code $T.GRAY -Text '(presiona ENTER para volver al menú)')"
             Read-Host | Out-Null
             Show-Menu
-            continue
+            $handled = $true
         }
         "?"     {
             Clear-Host
@@ -758,7 +761,7 @@ while ($true) {
             Write-Host "  $(Color -Code $T.GRAY -Text '(presiona ENTER para volver al menú)')"
             Read-Host | Out-Null
             Show-Menu
-            continue
+            $handled = $true
         }
         "u"     {
             if ($updateStatus -and $updateStatus.Available) {
@@ -772,13 +775,15 @@ while ($true) {
                 Write-Host "    $(Color -Code $T.GRAY -Text 'Presiona ENTER para continuar.')"
                 Read-Host | Out-Null
                 Show-Menu
-                continue
+                $handled = $true
             } else {
                 Write-Host "    $(Color -Code $T.GRAY -Text 'Sin updates disponibles.')"
-                continue
+                $handled = $true
             }
         }
     }
+    if ($handled) { continue }
+
 
     # Pattern: "/<query>" — filter the project list
     if ($selection -match '^/(.*)$') {
