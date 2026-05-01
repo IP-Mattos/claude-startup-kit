@@ -11,8 +11,13 @@
 [CmdletBinding()]
 param(
     [switch]$Json,
-    [switch]$NoNetwork    # skip TCP connection check (slow on some systems)
+    [switch]$NoNetwork,   # skip TCP connection check (slow on some systems)
+    [switch]$Summary      # only print/return counts; cheap mode used by the brief
 )
+
+# Summary mode short-circuits: skips network, runs the cheap checks, writes a
+# state file the brief reads to decide whether to flash an alert banner.
+if ($Summary) { $NoNetwork = $true }
 
 $ErrorActionPreference = "Continue"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -260,6 +265,30 @@ if (Test-Path $kitVerFile) {
 # ============================================================
 # RENDER
 # ============================================================
+$critCount = @($findings | Where-Object { $_.Level -eq "CRIT" }).Count
+$warnCount = @($findings | Where-Object { $_.Level -eq "WARN" }).Count
+$infoCount = @($findings | Where-Object { $_.Level -eq "INFO" }).Count
+
+if ($Summary) {
+    $state = [PSCustomObject]@{
+        Timestamp = (Get-Date).ToString("o")
+        Crit      = $critCount
+        Warn      = $warnCount
+        Info      = $infoCount
+        Findings  = @($findings | Where-Object { $_.Level -in @("CRIT", "WARN") } | Select-Object Level, Category, Title)
+    }
+    $statePath = Join-Path $scriptsDir ".audit-summary.json"
+    try {
+        $state | ConvertTo-Json -Depth 5 | Set-Content -Path $statePath -Encoding utf8
+    } catch {}
+    if ($Json) {
+        $state | ConvertTo-Json -Depth 5
+    } else {
+        Write-Host ("audit summary: {0} crit, {1} warn, {2} info" -f $critCount, $warnCount, $infoCount)
+    }
+    return
+}
+
 if ($Json) {
     $findings | ConvertTo-Json -Depth 5
     return
@@ -273,9 +302,9 @@ $lvlColor = @{
     "WARN" = "38;5;220"
     "CRIT" = "38;5;203"
 }
-$crit = @($findings | Where-Object { $_.Level -eq "CRIT" }).Count
-$warn = @($findings | Where-Object { $_.Level -eq "WARN" }).Count
-$info = @($findings | Where-Object { $_.Level -eq "INFO" }).Count
+$crit = $critCount
+$warn = $warnCount
+$info = $infoCount
 
 Write-Host ""
 Write-Host "  $(C '38;5;245' '────────────────────────────────────────────────────────────────')"

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.3.0 — 2026-05-01
+
+### Auto-audit + alert banner
+- The brief now runs `claude-audit.ps1 -Summary -NoNetwork` automatically once per 24h on launch. Adds ~300-500ms but only the first time of the day; subsequent launches read the cached `.audit-summary.json`.
+- New `-Summary` mode in `claude-audit.ps1`: writes a small JSON state file with `Crit`, `Warn`, `Info` counts and the list of CRIT/WARN findings. No console output unless `-Json` is also passed.
+- **Alert banner** in the brief header: if the auto-audit found any CRIT or WARN findings, a slim banner appears above the menu with severity, counts, and a hint to type `a` for details. If clean, a green `audit ✓` badge appears inline in the header alongside `gentle-ai`.
+- The audit state file is also re-generated whenever the user runs the audit interactively from the prompt — so the banner stays current.
+
+### Compact render
+- Removed double blank lines between sections (was wasting vertical space on smaller terminals).
+- Header rule no longer followed by a blank line; the eye picks up the section change from the bold heading.
+- Tighter spacing inside "Ayer hiciste" — projects now flow continuously instead of being separated by a blank line.
+- Footer remains on one line, now with `l log` added (was missing).
+- Net effect: the same content fits in ~6 fewer lines, which matters on adaptive 28-line laptop screens.
+
+### Logged
+Each auto-audit run logs `Auto-audit ran in Nms` at INFO level so you can see latency in `~/.claude/logs/startup-kit.log`.
+
 ## 2.2.0 — 2026-05-01
 
 ### TUI multi-screen (already there + new screen)

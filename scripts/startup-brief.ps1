@@ -237,6 +237,32 @@ if ($cfg.github.showPrQueue) {
     }
 }
 
+# -------- Auto-audit (once per 24h, summary mode only) --------
+$auditSummary = $null
+$auditState = Join-Path $scriptDir ".audit-summary.json"
+$auditScript = Join-Path $scriptDir "claude-audit.ps1"
+$shouldRun = $true
+if (Test-Path $auditState) {
+    try {
+        $auditSummary = Get-Content $auditState -Raw | ConvertFrom-Json -ErrorAction Stop
+        $age = (Get-Date) - [datetime]::Parse($auditSummary.Timestamp)
+        if ($age.TotalHours -lt 24) { $shouldRun = $false }
+    } catch { $shouldRun = $true }
+}
+if ($shouldRun -and (Test-Path $auditScript)) {
+    try {
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        & $auditScript -Summary -NoNetwork *> $null
+        $sw.Stop()
+        Write-KitLog -Level INFO -Source startup-brief -Message ("Auto-audit ran in {0}ms" -f $sw.ElapsedMilliseconds)
+        if (Test-Path $auditState) {
+            try { $auditSummary = Get-Content $auditState -Raw | ConvertFrom-Json } catch {}
+        }
+    } catch {
+        Write-KitLog -Level WARN -Source startup-brief -Message "Auto-audit failed: $($_.Exception.Message)"
+    }
+}
+
 # -------- Detect kit update --------
 $updateStatus = $null
 if ($cfg.selfUpdate.checkOnStart) {
@@ -274,6 +300,10 @@ function Show-Menu {
     } else {
         $gaStatus = (Color -Code $T.GREEN -Text "gentle-ai v$lastSeen → v$currentVersion · actualizado")
     }
+    # Audit badge — only show when clean (the alert strip handles the noisy case below)
+    if ($auditSummary -and [int]$auditSummary.Crit -eq 0 -and [int]$auditSummary.Warn -eq 0) {
+        $gaStatus += (Color -Code $T.GRAY -Text " · ") + (Color -Code $T.GREEN -Text "audit ✓")
+    }
     if ($cfg.github.showPrQueue -and $null -ne $pendingPRs -and $pendingPRs.Count -gt 0) {
         $gaStatus += (Color -Code $T.GRAY -Text " · ") + (Color -Code $T.YELLOW -Text "$($pendingPRs.Count) PRs pendientes")
     }
@@ -284,22 +314,40 @@ function Show-Menu {
     $hPad = [math]::Max(1, $hPad)
     Write-Host ("  " + $headerL + (' ' * $hPad) + $gaStatus)
     Write-Host ("  " + $rule)
-    Write-Host ""
 
-    # ===== UPDATE BANNER (slim, only when available) =====
+    # ===== ALERT STRIP (audit + update, slim, only when there's something) =====
+    $alertShown = $false
+    if ($auditSummary -and ([int]$auditSummary.Crit -gt 0 -or [int]$auditSummary.Warn -gt 0)) {
+        $crit = [int]$auditSummary.Crit
+        $warn = [int]$auditSummary.Warn
+        $sev  = if ($crit -gt 0) { $T.RED } else { $T.YELLOW }
+        $icon = if ($crit -gt 0) { "✗" } else { "⚠" }
+        $tag  = if ($crit -gt 0) { "CRITICAL" } else { "WARN" }
+        $msg = (Color -Code "$($T.BOLD);$sev" -Text "  $icon $tag") +
+               (Color -Code $T.GRAY -Text "  ·  audit: ") +
+               (Color -Code $T.RED -Text "$crit crit") +
+               (Color -Code $T.GRAY -Text " · ") +
+               (Color -Code $T.YELLOW -Text "$warn warn") +
+               (Color -Code $T.GRAY -Text "  ·  ") +
+               (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "a") +
+               (Color -Code $T.GRAY -Text " para ver detalles")
+        Write-Host $msg
+        $alertShown = $true
+    }
     if ($updateStatus -and $updateStatus.Available) {
         $msg = (Color -Code $T.YELLOW -Text "  ! ") + (Color -Code $T.WHITE -Text "Update kit disponible") +
                (Color -Code $T.GRAY -Text "  ·  $($updateStatus.LocalHash) → $($updateStatus.RemoteHash) · $($updateStatus.Behind) commits  ·  ") +
                (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "u") + (Color -Code $T.GRAY -Text " para actualizar")
         Write-Host $msg
-        Write-Host ""
+        $alertShown = $true
     }
+    if ($alertShown) { Write-Host "" }
 
     # ===== "Ayer hiciste" — only if there is recent activity =====
     $recentForBrief = @($projects | Where-Object { $_.DaysAgo -le $cfg.projects.recentForBriefDays })
     if ($recentForBrief.Count -gt 0) {
-        Write-Host ("  " + (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "Ayer hiciste"))
         Write-Host ""
+        Write-Host ("  " + (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "Ayer hiciste"))
         foreach ($p in $recentForBrief) {
             [string]$name = Split-Path $p.Path -Leaf
             if ([string]::IsNullOrWhiteSpace($name)) { $name = $p.Path }
@@ -310,10 +358,10 @@ function Show-Menu {
             $hasCommit  = $recentCommits.ContainsKey($p.Path)
             if ($hasSummary) {
                 $line += (Color -Code $T.GRAY -Text $summaryText)
-                Write-Host $line
+                Write-Host ("   " + $line.Substring(3))
                 if ($hasCommit) {
                     $c = $recentCommits[$p.Path]
-                    Write-Host ("                " + (Color -Code $T.GRAY -Text "└ $($c.Hash)  $($c.Subject)   · $($c.Author) · hace $($c.Ago)"))
+                    Write-Host ("                " + (Color -Code $T.GRAY -Text "└ $($c.Hash)  $($c.Subject)  · $($c.Author) · hace $($c.Ago)"))
                 }
             } elseif ($hasCommit) {
                 # Engram had nothing — promote the latest commit as the headline.
@@ -325,9 +373,10 @@ function Show-Menu {
                 $line += (Color -Code $T.GRAY -Text "(sin actividad registrable)")
                 Write-Host $line
             }
-            Write-Host ""
         }
     }
+
+    Write-Host ""
 
     # ===== "Proyectos activos" =====
     $headProjL = "  " + (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "Proyectos activos")
@@ -335,7 +384,6 @@ function Show-Menu {
     $padProj = $contentW - (Get-VisibleLength $headProjL) - (Get-VisibleLength $headProjR) + 2
     $padProj = [math]::Max(2, $padProj)
     Write-Host ($headProjL + (' ' * $padProj) + $headProjR)
-    Write-Host ""
 
     if ($projects.Count -eq 0) {
         Write-Host ("   " + (Color -Code $T.YELLOW -Text "sin proyectos en los últimos $($cfg.projects.activityWindowDays)d"))
@@ -366,7 +414,6 @@ function Show-Menu {
         Write-Host ("     " + (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "[$exitNum]") + "  " +
                     (Color -Code $T.GRAY -Text "Quedarme acá / empezar algo nuevo"))
     }
-    Write-Host ""
     Write-Host ("  " + $rule)
 
     # ===== FOOTER (1 line — '?' opens full help) =====
