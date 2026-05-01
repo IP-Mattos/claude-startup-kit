@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.4.0 — 2026-05-01
+
+### New: `cleanup.ps1` — disk cleanup utility
+A standalone tool plus `x` shortcut in the brief that handles the storage growth problem (`~/.claude/projects/` was already at 345 MB on the dev machine).
+
+**What it cleans** (anything older than `-OlderThanDays`, default 30):
+- **`logs/`** — old log files (preserves `startup-kit.log` itself; truncates it to last 1000 lines if > 5 MB)
+- **`backups/`** — pre-install backups left by the kit installer
+- **`projects/<name>/*.jsonl`** — old Claude Code session transcripts (these are the real disk hog)
+
+**Modes**:
+- `cleanup.ps1` — interactive: shows preview, asks before deleting
+- `cleanup.ps1 -DryRun` — preview only, no changes
+- `cleanup.ps1 -Yes` — non-interactive
+- `cleanup.ps1 -Logs` / `-Backups` / `-Projects` — limit to one category
+- `cleanup.ps1 -OlderThanDays 60` — different threshold
+
+**Output**: per-category breakdown with file counts and MB, plus a summary line. Color-coded (cyan section heading, white sizes, gray timestamps).
+
+### `x` shortcut in the brief
+Type `x` to run the cleanup in `-DryRun` mode (preview-only, can't accidentally delete from inside the brief). To actually delete, run the standalone script with confirmation.
+
+### Install + audit updates
+- `install.ps1` and the health-check whitelist now include `cleanup.ps1`.
+- `claude-audit.ps1`'s SCRIPTS whitelist also includes `cleanup.ps1` so it doesn't flag itself as foreign.
+
 ## 2.3.0 — 2026-05-01
 
 ### Auto-audit + alert banner

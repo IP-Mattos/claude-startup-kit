@@ -421,6 +421,7 @@ function Show-Menu {
             (Color -Code $T.WHITE -Text "p#") + (Color -Code $T.GRAY -Text " fijar  ·  ") +
             (Color -Code $T.WHITE -Text "t") + (Color -Code $T.GRAY -Text " tema  ·  ") +
             (Color -Code $T.WHITE -Text "a") + (Color -Code $T.GRAY -Text " audit  ·  ") +
+            (Color -Code $T.WHITE -Text "x") + (Color -Code $T.GRAY -Text " cleanup  ·  ") +
             (Color -Code $T.WHITE -Text "l") + (Color -Code $T.GRAY -Text " log  ·  ") +
             (Color -Code $T.WHITE -Text "c") + (Color -Code $T.GRAY -Text " config  ·  ") +
             (Color -Code $T.WHITE -Text "?") + (Color -Code $T.GRAY -Text " ayuda  ·  ") +
@@ -623,6 +624,21 @@ while ($true) {
             }
             continue
         }
+        "x"     {
+            $cleanupScript = Join-Path $scriptDir "cleanup.ps1"
+            if (Test-Path $cleanupScript) {
+                Clear-Host
+                Write-KitLog -Level INFO -Source startup-brief -Message "Cleanup invoked"
+                & $cleanupScript -DryRun
+                Write-Host "    $(Color -Code $T.YELLOW -Text 'Para limpiar de verdad: ejecutá')  $(Color -Code "$($T.BOLD);$($T.WHITE)" -Text '~\.claude\scripts\cleanup.ps1')"
+                Write-Host "    $(Color -Code $T.GRAY -Text '(presiona ENTER para volver al menú)')"
+                Read-Host | Out-Null
+                Show-Menu
+            } else {
+                Write-Host "    $(Color -Code $T.RED -Text "No se encontró $cleanupScript")"
+            }
+            continue
+        }
         "l"     {
             $logFile = Join-Path $env:USERPROFILE ".claude\logs\startup-kit.log"
             Clear-Host
@@ -669,6 +685,7 @@ while ($true) {
             Write-Host "    $(Color -Code $T.WHITE -Text 'c')         abre el config (startup-kit-config.json) en VS Code"
             Write-Host "    $(Color -Code $T.WHITE -Text 'a')         security audit — chequeos de procesos, hooks, drift, etc"
             Write-Host "    $(Color -Code $T.WHITE -Text 'l')         últimas 50 líneas del log (errores/warns destacados)"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'x')         disk cleanup — preview lo que está viejo (>30d) en projects/logs/backups"
             Write-Host "    $(Color -Code $T.WHITE -Text 'r')         refresca el menú"
             Write-Host "    $(Color -Code $T.WHITE -Text '?')         muestra esta ayuda"
             Write-Host "    $(Color -Code $T.WHITE -Text 'u')         actualiza el kit (si hay update disponible)"
