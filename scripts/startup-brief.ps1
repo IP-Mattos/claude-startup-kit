@@ -323,19 +323,53 @@ if ($shouldRun -and (Test-Path $auditScript)) {
     }
 }
 
-# -------- Detect kit update --------
+# -------- Detect kit update + maybe auto-apply --------
 $updateStatus = $null
-if ($cfg.selfUpdate.checkOnStart) {
-    $repoRoot = Split-Path -Parent (Split-Path -Parent $scriptDir)
-    # If the user is running from ~/.claude/scripts, scriptDir is ~/.claude/scripts
-    # and the repo lives elsewhere. Also try the configured repo path.
-    if ($cfg.selfUpdate.PSObject.Properties.Name -contains "repoPath" -and $cfg.selfUpdate.repoPath) {
-        $repoRoot = $cfg.selfUpdate.repoPath
-    }
-    if (Test-Path (Join-Path $repoRoot ".git")) {
-        $updateStatus = Get-KitUpdateStatus -RepoRoot $repoRoot
-        if ($updateStatus.Available) {
-            Write-KitLog -Level INFO -Source startup-brief -Message ("Kit update available: behind by {0} commits" -f $updateStatus.Behind)
+$autoUpdated  = $null
+if ($cfg.selfUpdate.checkOnStart -and $cfg.selfUpdate.PSObject.Properties.Name -contains "repoPath" -and $cfg.selfUpdate.repoPath -and (Test-Path (Join-Path $cfg.selfUpdate.repoPath ".git"))) {
+    $repoRoot = $cfg.selfUpdate.repoPath
+    $updateStatus = Get-KitUpdateStatus -RepoRoot $repoRoot
+    if ($updateStatus.Available) {
+        Write-KitLog -Level INFO -Source startup-brief -Message ("Kit update available: behind by {0} commits" -f $updateStatus.Behind)
+
+        $autoApply = $false
+        if ($cfg.selfUpdate.PSObject.Properties.Name -contains "autoApply") { $autoApply = [bool]$cfg.selfUpdate.autoApply }
+        if ($autoApply) {
+            $minHours = 24
+            if ($cfg.selfUpdate.PSObject.Properties.Name -contains "minHoursBetweenChecks") { $minHours = [int]$cfg.selfUpdate.minHoursBetweenChecks }
+            $autoStateFile = Join-Path $scriptDir ".kit-last-auto-update"
+            $shouldAttempt = $true
+            if (Test-Path $autoStateFile) {
+                try {
+                    $lastTs = [datetime]::Parse((Get-Content $autoStateFile -Raw).Trim())
+                    if ((Get-Date) - $lastTs -lt [timespan]::FromHours($minHours)) { $shouldAttempt = $false }
+                } catch {}
+            }
+            if ($shouldAttempt) {
+                try {
+                    $gitStatus = & git -C $repoRoot status --porcelain 2>$null
+                    if ($LASTEXITCODE -eq 0 -and ([string]::IsNullOrWhiteSpace(($gitStatus -join "")))) {
+                        Write-KitLog -Level INFO -Source startup-brief -Message "Auto-update: working tree clean, applying..."
+                        $r = Invoke-KitUpdate -RepoRoot $repoRoot
+                        if ($r.Success) {
+                            $autoUpdated = [PSCustomObject]@{
+                                FromHash = $updateStatus.LocalHash
+                                ToHash   = $updateStatus.RemoteHash
+                                Behind   = $updateStatus.Behind
+                            }
+                            Write-KitLog -Level INFO -Source startup-brief -Message ("AUTO-UPDATED kit {0} -> {1} ({2} commits)" -f $updateStatus.LocalHash, $updateStatus.RemoteHash, $updateStatus.Behind)
+                            $updateStatus = Get-KitUpdateStatus -RepoRoot $repoRoot
+                        } else {
+                            Write-KitLog -Level WARN -Source startup-brief -Message "Auto-update failed: $($r.Message)"
+                        }
+                    } else {
+                        Write-KitLog -Level WARN -Source startup-brief -Message "Auto-update skipped: repo has uncommitted changes"
+                    }
+                } catch {
+                    Write-KitLog -Level WARN -Source startup-brief -Message "Auto-update aborted: $($_.Exception.Message)"
+                }
+                Set-Content -Path $autoStateFile -Value (Get-Date).ToString("o") -Encoding ascii
+            }
         }
     }
 }
@@ -394,7 +428,13 @@ function Show-Menu {
         Write-Host $msg
         $alertShown = $true
     }
-    if ($updateStatus -and $updateStatus.Available) {
+    if ($autoUpdated) {
+        $msg = (Color -Code $T.GREEN -Text "  ✓ ") + (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "Kit actualizado automáticamente") +
+               (Color -Code $T.GRAY -Text "  ·  $($autoUpdated.FromHash) → $($autoUpdated.ToHash) · $($autoUpdated.Behind) commits aplicados")
+        Write-Host $msg
+        $alertShown = $true
+    }
+    elseif ($updateStatus -and $updateStatus.Available) {
         $msg = (Color -Code $T.YELLOW -Text "  ! ") + (Color -Code $T.WHITE -Text "Update kit disponible") +
                (Color -Code $T.GRAY -Text "  ·  $($updateStatus.LocalHash) → $($updateStatus.RemoteHash) · $($updateStatus.Behind) commits  ·  ") +
                (Color -Code "$($T.BOLD);$($T.WHITE)" -Text "u") + (Color -Code $T.GRAY -Text " para actualizar")

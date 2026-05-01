@@ -1,5 +1,45 @@
 # Changelog
 
+## 2.8.0 — 2026-05-01
+
+### Auto-update on every PC
+The brief now updates the kit silently in the background when configured to. No need to type `u` from each PC.
+
+**Config (`startup-kit-config.json` → `selfUpdate`)**:
+| Key | Default | Effect |
+|-----|---------|--------|
+| `repoPath` | auto-detected | Path to the cloned repo. **`install.ps1` now writes this automatically** if you ran the install from inside the repo. |
+| `autoApply` | `false` | Off by default — flip to `true` to enable silent auto-update |
+| `minHoursBetweenChecks` | `24` | Throttle. Default once per day per PC |
+
+**How it works**:
+1. Brief launches → reads `selfUpdate.repoPath`
+2. If `autoApply: true` AND last check was > `minHoursBetweenChecks` ago → `git fetch` + check `origin/main`
+3. If `origin/main` is ahead AND working tree is clean (no uncommitted changes) → `git pull --ff-only` + run `install.ps1` silently
+4. Logs `AUTO-UPDATED kit <hash> -> <hash> (N commits)` and shows a green banner: `✓ Kit actualizado automáticamente · oldhash → newhash · N commits aplicados`
+5. Stamps `.kit-last-auto-update` so it doesn't retry every launch
+
+**Safety guards**:
+- **Working tree must be clean** — if you're hacking on the repo locally with uncommitted changes, the auto-update is skipped (logged as WARN). You don't lose work.
+- **Throttled** — once per day at most. Even if the brief opens 50 times a day, it only auto-updates once.
+- **Idempotent timestamp** — if the update fails, the timestamp still gets set, so failures don't loop on every launch.
+- **Opt-in** — default is `false`. You have to flip the flag manually to enable.
+
+**On a new PC**:
+```powershell
+git clone https://github.com/IP-Mattos/claude-startup-kit.git
+cd claude-startup-kit
+.\install.ps1
+# Edit ~/.claude/scripts/startup-kit-config.json:
+#   "selfUpdate": { "autoApply": true, ... }
+```
+That's it. Every subsequent boot, the kit catches up silently if there are new commits.
+
+### `install.ps1` improvements
+- **Auto-detects `selfUpdate.repoPath`** from `$PSScriptRoot` (where install was run from). Writes it to user config only if currently empty — preserves your override.
+- New default config keys: `selfUpdate.autoApply`, `selfUpdate.minHoursBetweenChecks`, with `_help` documentation strings.
+- `lib/config.ps1` now declares the new keys in defaults so a user config that omits them gets sane fallbacks.
+
 ## 2.7.1 — 2026-05-01
 
 ### Fix: every letter command (`t`, `r`, `a`, `x`, `l`, `c`, `?`, `u`) printed `Formato invalido` after running

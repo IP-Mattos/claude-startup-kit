@@ -35,8 +35,10 @@ function Get-StartupKitConfig {
             prLimit     = 5
         }
         selfUpdate = [PSCustomObject]@{
-            checkOnStart = $true
-            repoPath     = ""
+            checkOnStart          = $true
+            repoPath              = ""
+            autoApply             = $false
+            minHoursBetweenChecks = 24
         }
         pinned = @()
     }

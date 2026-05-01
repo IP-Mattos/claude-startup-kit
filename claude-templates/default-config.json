@@ -33,8 +33,12 @@
   },
   "selfUpdate": {
     "checkOnStart": true,
-    "_repoPath_help": "Absolute path to the cloned claude-startup-kit repo. Set this to enable self-update.",
-    "repoPath": ""
+    "_repoPath_help": "Absolute path to the cloned claude-startup-kit repo. Auto-detected on install if you ran install.ps1 from inside the repo.",
+    "repoPath": "",
+    "_autoApply_help": "When true, the brief will git-pull and re-install automatically once per 24h if origin/main is ahead of local. Off by default — flip to true after testing.",
+    "autoApply": false,
+    "_minHoursBetweenChecks_help": "Throttle for the auto-check. 24 = once per day.",
+    "minHoursBetweenChecks": 24
   },
   "pinned": []
 }

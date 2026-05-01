@@ -143,6 +143,29 @@ if (-not (Test-Path $userConfigPath) -or $Force) {
     Write-Ok "Preserved existing user config: $userConfigPath"
 }
 
+# Auto-detect: write the kit repo path into selfUpdate.repoPath if it's empty.
+# This makes self-update + auto-update work on any PC without manual editing,
+# as long as the install was run from inside the cloned repo.
+if (-not $DryRun -and (Test-Path $userConfigPath) -and (Test-Path (Join-Path $repoRoot ".git"))) {
+    try {
+        $userCfgRaw = Get-Content $userConfigPath -Raw | ConvertFrom-Json -ErrorAction Stop
+        $needsWrite = $false
+        if ($userCfgRaw.PSObject.Properties.Name -notcontains "selfUpdate") {
+            $userCfgRaw | Add-Member -NotePropertyName "selfUpdate" -NotePropertyValue ([PSCustomObject]@{ repoPath = ""; autoApply = $false; checkOnStart = $true; minHoursBetweenChecks = 24 })
+        }
+        if (-not $userCfgRaw.selfUpdate.repoPath) {
+            $userCfgRaw.selfUpdate.repoPath = $repoRoot
+            $needsWrite = $true
+            Write-Ok "Auto-detected repo path: $repoRoot"
+        }
+        if ($needsWrite) {
+            $userCfgRaw | ConvertTo-Json -Depth 20 | Set-Content -Path $userConfigPath -Encoding utf8
+        }
+    } catch {
+        Write-Warn "Could not auto-set selfUpdate.repoPath: $($_.Exception.Message)"
+    }
+}
+
 # Logs dir
 if (-not (Test-Path $logsDir) -and -not $DryRun) {
     New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
