@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.8.1 — 2026-05-01
+
+### Bug fix: `claude-audit.ps1` crashed on the Summary line on some PCs
+Reported by user running on a different machine. Stack trace pointed to:
+```
+Cannot convert value "  Summary: 0 critical  ·  1 warnings  ·  20 info" of type "System.String"
+to type "System.Management.Automation.SwitchParameter"
+```
+
+**Two compounding issues** had to be fixed:
+
+1. The local helper function was named `C` — short, simple, but on machines that have **Az PowerShell modules** loaded, `C` is sometimes registered as an alias for `Connect-AzAccount`. PowerShell's command resolution doesn't always pick the local function over the alias. Renamed the helper to `_color` (underscore prefix, won't collide with anything).
+
+2. The variable used to build the summary line was named `$summary`. The script declares `[switch]$Summary` in its `param()` block (introduced in 2.3.0 for the auto-audit fast path). PowerShell variable names are case-insensitive, so `$summary = "  Summary: ..."` was being interpreted as "assign string to the switch parameter," which fails with `ArgumentTransformationMetadataException`. Renamed to `$summaryLine`.
+
+The crash also caused a stray `False` to appear above the next line — that was PS leaking the result of the failed conversion to the pipeline.
+
+The summary line now prints correctly:
+```
+  Summary: 0 critical  ·  0 warnings  ·  22 info
+  ✓ Clean.
+```
+
 ## 2.8.0 — 2026-05-01
 
 ### Auto-update on every PC

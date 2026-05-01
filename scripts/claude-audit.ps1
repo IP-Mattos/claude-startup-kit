@@ -386,7 +386,7 @@ if ($Json) {
 }
 
 $ESC = [char]27
-function C($code, $text) { return "$ESC[${code}m$text$ESC[0m" }
+function _color($code, $text) { return "$ESC[${code}m$text$ESC[0m" }
 $lvlColor = @{
     "OK"   = "38;5;42"
     "INFO" = "38;5;245"
@@ -398,9 +398,9 @@ $warn = $warnCount
 $info = $infoCount
 
 Write-Host ""
-Write-Host "  $(C '38;5;245' '────────────────────────────────────────────────────────────────')"
-Write-Host "  $(C '1;38;5;255' 'claude audit')  $(C '38;5;245' ('·  ' + (Get-Date -Format 'yyyy-MM-dd HH:mm')))"
-Write-Host "  $(C '38;5;245' '────────────────────────────────────────────────────────────────')"
+Write-Host "  $(_color '38;5;245' '────────────────────────────────────────────────────────────────')"
+Write-Host "  $(_color '1;38;5;255' 'claude audit')  $(_color '38;5;245' ('·  ' + (Get-Date -Format 'yyyy-MM-dd HH:mm')))"
+Write-Host "  $(_color '38;5;245' '────────────────────────────────────────────────────────────────')"
 Write-Host ""
 
 $lastCategory = ""
@@ -415,30 +415,40 @@ foreach ($f in $findings | Sort-Object @{ Expression = {
 } }, Category) {
     if ($f.Category -ne $lastCategory) {
         Write-Host ""
-        Write-Host "  $(C '1;38;5;51' $f.Category)"
+        Write-Host "  $(_color '1;38;5;51' $f.Category)"
         $lastCategory = $f.Category
     }
     $colorCode = $lvlColor[$f.Level]
     $tag = "[$($f.Level.PadRight(4))]"
-    Write-Host ("    {0}  {1}" -f (C $colorCode $tag), $f.Title)
+    Write-Host ("    {0}  {1}" -f (_color $colorCode $tag), $f.Title)
     if ($f.Detail) {
-        Write-Host ("           {0}" -f (C '38;5;240' $f.Detail))
+        Write-Host ("           {0}" -f (_color '38;5;240' $f.Detail))
     }
 }
 
 Write-Host ""
-Write-Host "  $(C '38;5;245' '────────────────────────────────────────────────────────────────')"
-$summary = "  Summary: " +
-           (C $lvlColor["CRIT"] "$crit critical") + (C '38;5;245' "  ·  ") +
-           (C $lvlColor["WARN"] "$warn warnings") + (C '38;5;245' "  ·  ") +
-           (C $lvlColor["INFO"] "$info info")
-Write-Host $summary
+Write-Host "  $(_color '38;5;245' '────────────────────────────────────────────────────────────────')"
+# Build the summary line piece by piece — multi-line concatenation with nested
+# function calls and hash lookups was tripping the PS parser into thinking the
+# concatenated string was a SwitchParameter on some Windows builds.
+$critColor = $lvlColor["CRIT"]
+$warnColor = $lvlColor["WARN"]
+$infoColor = $lvlColor["INFO"]
+$grayColor = '38;5;245'
+$pCrit = _color $critColor "$crit critical"
+$pSep1 = _color $grayColor "  ·  "
+$pWarn = _color $warnColor "$warn warnings"
+$pSep2 = _color $grayColor "  ·  "
+$pInfo = _color $infoColor "$info info"
+# Don't name this $summary — that collides with the script's [switch]$Summary param.
+$summaryLine = "  Summary: $pCrit$pSep1$pWarn$pSep2$pInfo"
+Write-Host $summaryLine
 Write-Host ""
 if ($crit -gt 0) {
-    Write-Host "  $(C '1;38;5;203' '✗ CRITICAL findings — review settings.json and remove the listed allow rules.')"
+    Write-Host "  $(_color '1;38;5;203' '✗ CRITICAL findings — review settings.json and remove the listed allow rules.')"
 } elseif ($warn -gt 0) {
-    Write-Host "  $(C '38;5;220' '⚠ Warnings present — investigate non-kit hooks or long-running processes.')"
+    Write-Host "  $(_color '38;5;220' '⚠ Warnings present — investigate non-kit hooks or long-running processes.')"
 } else {
-    Write-Host "  $(C '38;5;42' '✓ Clean.')"
+    Write-Host "  $(_color '38;5;42' '✓ Clean.')"
 }
 Write-Host ""
