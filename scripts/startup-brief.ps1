@@ -374,6 +374,7 @@ function Show-Menu {
             (Color -Code $T.WHITE -Text "p#") + (Color -Code $T.GRAY -Text " fijar  ·  ") +
             (Color -Code $T.WHITE -Text "t") + (Color -Code $T.GRAY -Text " tema  ·  ") +
             (Color -Code $T.WHITE -Text "a") + (Color -Code $T.GRAY -Text " audit  ·  ") +
+            (Color -Code $T.WHITE -Text "l") + (Color -Code $T.GRAY -Text " log  ·  ") +
             (Color -Code $T.WHITE -Text "c") + (Color -Code $T.GRAY -Text " config  ·  ") +
             (Color -Code $T.WHITE -Text "?") + (Color -Code $T.GRAY -Text " ayuda  ·  ") +
             (Color -Code $T.WHITE -Text "q") + (Color -Code $T.GRAY -Text " salir") +
@@ -575,6 +576,30 @@ while ($true) {
             }
             continue
         }
+        "l"     {
+            $logFile = Join-Path $env:USERPROFILE ".claude\logs\startup-kit.log"
+            Clear-Host
+            Write-Host ""
+            Write-Host "  $(Color -Code "$($T.BOLD);$($T.WHITE)" -Text 'startup-kit.log') $(Color -Code $T.GRAY -Text '— últimas 50 líneas')"
+            Write-Host "  $(Color -Code $T.GRAY -Text ('─' * 70))"
+            Write-Host ""
+            if (Test-Path $logFile) {
+                $tail = Get-Content $logFile -Tail 50 -ErrorAction SilentlyContinue
+                foreach ($line in $tail) {
+                    if ($line -match '\[ERROR\]')   { Write-Host "  $(Color -Code $T.RED -Text $line)" }
+                    elseif ($line -match '\[WARN\]') { Write-Host "  $(Color -Code $T.YELLOW -Text $line)" }
+                    elseif ($line -match '\[INFO\]') { Write-Host "  $(Color -Code $T.GRAY -Text $line)" }
+                    else                              { Write-Host "  $line" }
+                }
+            } else {
+                Write-Host "  $(Color -Code $T.YELLOW -Text "Sin log todavía: $logFile")"
+            }
+            Write-Host ""
+            Write-Host "  $(Color -Code $T.GRAY -Text '(presiona ENTER para volver al menú)')"
+            Read-Host | Out-Null
+            Show-Menu
+            continue
+        }
         "?"     {
             Clear-Host
             Write-Host ""
@@ -596,6 +621,7 @@ while ($true) {
             Write-Host "    $(Color -Code $T.WHITE -Text 't')         cycle theme (default → dracula → solarized → nord → mono)"
             Write-Host "    $(Color -Code $T.WHITE -Text 'c')         abre el config (startup-kit-config.json) en VS Code"
             Write-Host "    $(Color -Code $T.WHITE -Text 'a')         security audit — chequeos de procesos, hooks, drift, etc"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'l')         últimas 50 líneas del log (errores/warns destacados)"
             Write-Host "    $(Color -Code $T.WHITE -Text 'r')         refresca el menú"
             Write-Host "    $(Color -Code $T.WHITE -Text '?')         muestra esta ayuda"
             Write-Host "    $(Color -Code $T.WHITE -Text 'u')         actualiza el kit (si hay update disponible)"

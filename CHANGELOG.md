@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.2.0 — 2026-05-01
+
+### TUI multi-screen (already there + new screen)
+The brief is effectively a multi-screen TUI now. From the prompt you can navigate between:
+- **Brief** (default) — projects menu + recent activity
+- **Audit** (`a`) — security/integrity audit (added in 2.1.0)
+- **Logs** (`l`) — **NEW**: tail the last 50 lines of `~/.claude/logs/startup-kit.log` with ERROR/WARN/INFO color coding. Press ENTER to return.
+- **Help** (`?`) — full keybinding reference
+- **Config** (`c`) — opens `startup-kit-config.json` in VS Code
+
+Each screen returns cleanly to the brief on ENTER.
+
+### `l` command implementation
+- Reads `~/.claude/logs/startup-kit.log` with `Get-Content -Tail 50`.
+- Colorizes `[ERROR]` lines red, `[WARN]` yellow, `[INFO]` gray.
+- Press ENTER to return to the menu.
+- If no log file exists yet, shows a friendly message instead.
+
+### Footer + help screen updated to surface the new command
+Footer now reads:
+`número para abrir · p# fijar · t tema · a audit · l log · c config · ? ayuda · q salir`
+
+### Decision: stayed PowerShell-only for the multi-screen
+A full TUI framework rewrite (e.g. Spectre.Console, terminal.gui) was considered and skipped — it would force a major architectural change for limited gain. The current screen pattern (each command Clears-Host, renders its view, Read-Host, returns) is simple, fast, and free of dependencies. If a richer TUI is ever needed, that's the cross-platform Go/Rust rewrite from `ROADMAP.md`.
+
 ## 2.1.0 — 2026-05-01
 
 ### New: `claude-audit.ps1` — security/integrity audit
