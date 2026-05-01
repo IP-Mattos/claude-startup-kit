@@ -258,6 +258,39 @@ if ($shouldRun -and (Test-Path $auditScript)) {
         if (Test-Path $auditState) {
             try { $auditSummary = Get-Content $auditState -Raw | ConvertFrom-Json } catch {}
         }
+        # Trigger a Windows alert dialog if the freshly-run audit found CRIT issues.
+        # We only fire on transition (the .audit-alerted-crit marker file makes it idempotent).
+        if ($auditSummary -and [int]$auditSummary.Crit -gt 0) {
+            $alertedFile = Join-Path $scriptDir ".audit-alerted-crit"
+            $shouldAlert = $true
+            if (Test-Path $alertedFile) {
+                try {
+                    $lastAlertCount = [int](Get-Content $alertedFile -Raw).Trim()
+                    if ($lastAlertCount -eq [int]$auditSummary.Crit) { $shouldAlert = $false }
+                } catch {}
+            }
+            if ($shouldAlert) {
+                try {
+                    Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
+                    $titles = @($auditSummary.Findings | Where-Object { $_.Level -eq "CRIT" } | ForEach-Object { "  - " + $_.Title })
+                    $body = "Audit detectó {0} hallazgo(s) CRITICAL en ~/.claude:`n`n{1}`n`nAbrí el brief y tipeá 'a' para detalles." -f [int]$auditSummary.Crit, ($titles -join "`n")
+                    [System.Windows.Forms.MessageBox]::Show(
+                        $body,
+                        "Claude Startup Kit — alerta de seguridad",
+                        [System.Windows.Forms.MessageBoxButtons]::OK,
+                        [System.Windows.Forms.MessageBoxIcon]::Warning
+                    ) | Out-Null
+                    Set-Content -Path $alertedFile -Value $auditSummary.Crit -Encoding ascii
+                    Write-KitLog -Level WARN -Source startup-brief -Message "CRIT alert shown for $([int]$auditSummary.Crit) finding(s)"
+                } catch {
+                    Write-KitLog -Level WARN -Source startup-brief -Message "Could not show CRIT alert: $($_.Exception.Message)"
+                }
+            }
+        } elseif ($auditSummary -and [int]$auditSummary.Crit -eq 0) {
+            # Reset the alert marker if we're back to clean.
+            $alertedFile = Join-Path $scriptDir ".audit-alerted-crit"
+            if (Test-Path $alertedFile) { Remove-Item $alertedFile -Force -ErrorAction SilentlyContinue }
+        }
     } catch {
         Write-KitLog -Level WARN -Source startup-brief -Message "Auto-audit failed: $($_.Exception.Message)"
     }

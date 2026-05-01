@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.6.0 — 2026-05-01
+
+### Toast/dialog alert when audit finds CRIT
+The brief was already showing an inline alert banner above the menu when the auto-audit detected CRIT/WARN. But that only helps if you actually open the brief. v2.6.0 adds a **Windows MessageBox dialog** that pops up automatically right after the auto-audit completes, when:
+
+1. Auto-audit ran (24h guard passed → it ran)
+2. CRIT count > 0
+3. The CRIT count differs from what we last alerted on (idempotent — no spam)
+
+The dialog lists the CRIT finding titles and tells you to open the brief and type `a` for details. It's modal but only fires on transition: if you ignore it, you'll see it again only when the count *changes*. If the audit goes back to clean, the alert state resets so future CRIT counts trigger a fresh dialog.
+
+**State files** (in `~/.claude/scripts/`):
+- `.audit-summary.json` — counts + findings (already there since 2.3.0)
+- `.audit-alerted-crit` — last CRIT count we've alerted on (NEW)
+
+**Why a MessageBox and not a real Windows toast?** This is Win11 Enterprise LTSC; native toasts (`BurntToast`, AppUserModelID-based) are unreliable on this edition. MessageBox is uglier but works 100% of the time.
+
 ## 2.5.0 — 2026-05-01
 
 ### Deeper audit checks
