@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.7.0 — 2026-05-01
+
+### Search/filter + Snooze
+Two new commands at the prompt to handle a long project list without scrolling.
+
+**`/<query>`** — filter the menu live
+- `/poly` shows only projects whose folder name OR full path contains `poly` (case-insensitive)
+- `/` (just the slash, empty query) clears the filter
+- Filter is applied in-memory; doesn't touch any state file
+
+**`s <num> <days>`** — snooze a project
+- `s 3 7` hides project #3 from the menu for 7 days
+- Persists to `~/.claude/scripts/.snoozed.json` with the unsnooze timestamp
+- Snoozed projects come back automatically when the date passes (reads on every brief launch)
+- Project's data is untouched — this is purely a menu visibility filter
+
+**`s show`** — list everything currently snoozed with the date it returns
+
+### Footer + help screen
+Footer now reads:
+`número para abrir · p# fijar · /q filtrar · t tema · a audit · x cleanup · l log · c config · ? ayuda · q salir`
+
+The `?` help screen has a new "Pinned / Snooze / Filter" section grouping the three together with usage examples.
+
+### State files
+- `.snoozed.json` — `{"projectname": "2026-05-08T17:00:00..."}` mapping. Cleaned automatically when entries expire.
+
 ## 2.6.0 — 2026-05-01
 
 ### Toast/dialog alert when audit finds CRIT

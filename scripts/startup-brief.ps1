@@ -182,6 +182,33 @@ if ($pinnedNames.Count -gt 0) {
 }
 $projects = @($pinned) + @($rest)
 
+# -------- Snoozed projects (hidden until snooze date) --------
+$snoozeFile = Join-Path $scriptDir ".snoozed.json"
+$snoozed = @{}
+if (Test-Path $snoozeFile) {
+    try {
+        $raw = Get-Content $snoozeFile -Raw | ConvertFrom-Json -ErrorAction Stop
+        foreach ($p in $raw.PSObject.Properties) {
+            try {
+                $until = [datetime]::Parse($p.Value)
+                if ($until -gt (Get-Date)) {
+                    $snoozed[$p.Name.ToLowerInvariant()] = $until
+                }
+            } catch {}
+        }
+    } catch {}
+}
+if ($snoozed.Count -gt 0) {
+    $projects = @($projects | Where-Object {
+        $leaf = (Split-Path $_.Path -Leaf).ToLowerInvariant()
+        -not $snoozed.ContainsKey($leaf)
+    })
+    Write-KitLog -Level INFO -Source startup-brief -Message "Snoozed: $($snoozed.Count) project(s) hidden"
+}
+# Save the unfiltered list for /search to be able to find snoozed ones
+$script:projectsAll = $projects
+$script:filterQuery = ""
+
 # -------- gentle-ai version --------
 [string]$lastSeenFile = "$env:USERPROFILE\.claude\scripts\.gentle-ai-last-seen-version"
 [string]$currentVersion = ""
@@ -452,6 +479,7 @@ function Show-Menu {
     # ===== FOOTER (1 line — '?' opens full help) =====
     $foot = (Color -Code $T.GRAY -Text "  número para abrir  ·  ") +
             (Color -Code $T.WHITE -Text "p#") + (Color -Code $T.GRAY -Text " fijar  ·  ") +
+            (Color -Code $T.WHITE -Text "/q") + (Color -Code $T.GRAY -Text " filtrar  ·  ") +
             (Color -Code $T.WHITE -Text "t") + (Color -Code $T.GRAY -Text " tema  ·  ") +
             (Color -Code $T.WHITE -Text "a") + (Color -Code $T.GRAY -Text " audit  ·  ") +
             (Color -Code $T.WHITE -Text "x") + (Color -Code $T.GRAY -Text " cleanup  ·  ") +
@@ -710,8 +738,11 @@ while ($true) {
             Write-Host "    $(Color -Code $T.WHITE -Text 'N e')       abre File Explorer en el proyecto N"
             Write-Host "    $(Color -Code $T.WHITE -Text 'N c')       copia el path del proyecto N al clipboard"
             Write-Host ""
-            Write-Host "  $(Color -Code "$($T.BOLD);$($T.CYAN)" -Text 'Pinned')"
+            Write-Host "  $(Color -Code "$($T.BOLD);$($T.CYAN)" -Text 'Pinned / Snooze / Filter')"
             Write-Host "    $(Color -Code $T.WHITE -Text 'p N')       toggle pin del proyecto N (★ aparece en el menú)"
+            Write-Host "    $(Color -Code $T.WHITE -Text 's N <d>')   snooze proyecto N por <d> días (lo oculta del menú)"
+            Write-Host "    $(Color -Code $T.WHITE -Text 's show')    listado de proyectos snoozeados con fecha de vuelta"
+            Write-Host "    $(Color -Code $T.WHITE -Text '/<q>')      filtra el menú a proyectos que contengan <q>; ' / ' (vacío) limpia el filtro"
             Write-Host ""
             Write-Host "  $(Color -Code "$($T.BOLD);$($T.CYAN)" -Text 'UI / sistema')"
             Write-Host "    $(Color -Code $T.WHITE -Text 't')         cycle theme (default → dracula → solarized → nord → mono)"
@@ -747,6 +778,85 @@ while ($true) {
                 continue
             }
         }
+    }
+
+    # Pattern: "/<query>" — filter the project list
+    if ($selection -match '^/(.*)$') {
+        $q = $matches[1].Trim().ToLowerInvariant()
+        if ([string]::IsNullOrWhiteSpace($q)) {
+            $script:filterQuery = ""
+            $script:projects = $script:projectsAll
+            Write-Host "    $(Color -Code $T.GRAY -Text 'Filtro limpio.')"
+        } else {
+            $script:filterQuery = $q
+            $script:projects = @($script:projectsAll | Where-Object {
+                (Split-Path $_.Path -Leaf).ToLowerInvariant().Contains($q) -or
+                $_.Path.ToLowerInvariant().Contains($q)
+            })
+            Write-Host "    $(Color -Code $T.GREEN -Text "Filtro: '$q' → $($script:projects.Count) match(es)")"
+        }
+        Start-Sleep -Milliseconds 400
+        Show-Menu
+        continue
+    }
+
+    # Pattern: "s <num> <days>" — snooze project for N days
+    if ($selection -match '^s\s+(\d+)\s+(\d+)$') {
+        [int]$snoozeIdx = [int]$matches[1]
+        [int]$snoozeDays = [int]$matches[2]
+        if ($snoozeIdx -lt 1 -or $snoozeIdx -gt $projects.Count) {
+            Write-Host "    $(Color -Code $T.RED -Text "Numero fuera de rango (1..$($projects.Count)).")"
+            continue
+        }
+        $snTarget = $projects[$snoozeIdx - 1]
+        $snName = (Split-Path $snTarget.Path -Leaf).ToLowerInvariant()
+        $until = (Get-Date).AddDays($snoozeDays).ToString("o")
+        $snoozeFile = Join-Path $scriptDir ".snoozed.json"
+        $snoozeMap = @{}
+        if (Test-Path $snoozeFile) {
+            try {
+                $raw = Get-Content $snoozeFile -Raw | ConvertFrom-Json
+                foreach ($p in $raw.PSObject.Properties) { $snoozeMap[$p.Name] = $p.Value }
+            } catch {}
+        }
+        $snoozeMap[$snName] = $until
+        $snoozeMap | ConvertTo-Json | Set-Content -Path $snoozeFile -Encoding utf8
+        Write-Host "    $(Color -Code $T.YELLOW -Text "Snoozed:") $(Color -Code "$($T.BOLD);$($T.WHITE)" -Text $snName) $(Color -Code $T.GRAY -Text "por $snoozeDays días (vuelve $((Get-Date).AddDays($snoozeDays).ToString('yyyy-MM-dd')))")"
+        Write-KitLog -Level INFO -Source startup-brief -Message "Snoozed '$snName' for $snoozeDays days"
+        Start-Sleep -Milliseconds 800
+        # Re-derive the unfiltered list with the new snooze
+        $script:projectsAll = @($script:projectsAll | Where-Object {
+            (Split-Path $_.Path -Leaf).ToLowerInvariant() -ne $snName
+        })
+        $script:projects = $script:projectsAll
+        Show-Menu
+        continue
+    }
+
+    # Pattern: "s show" or "s list" — list snoozed projects
+    if ($selection -match '^s\s+(show|list)$') {
+        $snoozeFile = Join-Path $scriptDir ".snoozed.json"
+        if (-not (Test-Path $snoozeFile)) {
+            Write-Host "    $(Color -Code $T.GRAY -Text 'Sin proyectos snoozeados.')"
+        } else {
+            try {
+                $raw = Get-Content $snoozeFile -Raw | ConvertFrom-Json
+                Write-Host ""
+                Write-Host "    $(Color -Code "$($T.BOLD);$($T.WHITE)" -Text 'Snoozeados:')"
+                foreach ($p in $raw.PSObject.Properties) {
+                    $until = [datetime]::Parse($p.Value)
+                    $remaining = $until - (Get-Date)
+                    if ($remaining.TotalDays -gt 0) {
+                        Write-Host ("       $(Color -Code $T.CYAN -Text $p.Name)  $(Color -Code $T.GRAY -Text ('vuelve ' + $until.ToString('yyyy-MM-dd') + '  (' + [int]$remaining.TotalDays + 'd)'))")
+                    }
+                }
+            } catch { Write-Host "    $(Color -Code $T.RED -Text "No se pudo leer $snoozeFile")" }
+        }
+        Write-Host ""
+        Write-Host "    $(Color -Code $T.GRAY -Text '(presiona ENTER para volver)')"
+        Read-Host | Out-Null
+        Show-Menu
+        continue
     }
 
     # Pattern: "p<num>" (pin/unpin), "<num>", or "<num> <letter>"
