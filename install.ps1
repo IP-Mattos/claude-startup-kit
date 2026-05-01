@@ -118,7 +118,8 @@ $scriptFiles = @(
     "check-gentle-ai.sh", "daily-brief.sh",
     "startup-brief.ps1", "startup-brief-launcher.bat",
     "health-check.ps1", "standup.ps1", "claude-audit.ps1", "cleanup.ps1",
-    "brief.cmd"
+    "brief.cmd",
+    "tray.ps1", "tray-launcher.bat"
 )
 foreach ($f in $scriptFiles) {
     Copy-FileSafe -Src (Join-Path $repoRoot "scripts\$f") -Dst (Join-Path $scriptsDst $f)
@@ -187,7 +188,7 @@ function Set-Utf8Bom {
         [System.IO.File]::WriteAllBytes($Path, $combined)
     }
 }
-$psToBom = @("startup-brief.ps1", "health-check.ps1", "standup.ps1", "claude-audit.ps1", "cleanup.ps1") + ($libFiles | ForEach-Object { "lib\$_" })
+$psToBom = @("startup-brief.ps1", "health-check.ps1", "standup.ps1", "claude-audit.ps1", "cleanup.ps1", "tray.ps1") + ($libFiles | ForEach-Object { "lib\$_" })
 foreach ($f in $psToBom) {
     Set-Utf8Bom (Join-Path $scriptsDst $f)
 }
@@ -298,12 +299,25 @@ if ($appended -and -not $DryRun) {
 }
 
 # ---------- 6. Install Startup folder shortcut ----------
-$startupBat = Join-Path $startupFolder "claude-daily-brief.bat"
+# When the tray feature is enabled, replace the boot brief launcher with the
+# tray daemon. The tray runs persistently and offers the brief on demand —
+# avoids a cmd window flashing every login.
+$startupBriefBat = Join-Path $startupFolder "claude-daily-brief.bat"
+$startupTrayBat  = Join-Path $startupFolder "claude-tray.bat"
+$useTray = $true   # feature flag for this branch — set to $false to revert to boot-brief
 if ($DryRun) {
-    Write-Plan "Would install: $startupBat"
+    if ($useTray) { Write-Plan "Would install tray daemon as startup: $startupTrayBat" }
+    else          { Write-Plan "Would install brief launcher as startup: $startupBriefBat" }
+} elseif ($useTray) {
+    Copy-Item -Path (Join-Path $scriptsDst "tray-launcher.bat") -Destination $startupTrayBat -Force
+    if (Test-Path $startupBriefBat) {
+        Remove-Item $startupBriefBat -Force
+        Write-Info "Removed previous boot-brief shortcut (replaced by tray daemon)"
+    }
+    Write-Ok "Installed tray daemon in Startup folder: $startupTrayBat"
 } else {
-    Copy-Item -Path (Join-Path $scriptsDst "startup-brief-launcher.bat") -Destination $startupBat -Force
-    Write-Ok "Installed launcher in Startup folder: $startupBat"
+    Copy-Item -Path (Join-Path $scriptsDst "startup-brief-launcher.bat") -Destination $startupBriefBat -Force
+    Write-Ok "Installed launcher in Startup folder: $startupBriefBat"
 }
 
 # ---------- 6b. Install `brief` shim on PATH ----------
