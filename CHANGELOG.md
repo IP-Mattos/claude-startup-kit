@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.5.0 — 2026-05-01
+
+### Deeper audit checks
+Added 6 new categories to `claude-audit.ps1`:
+
+| Category | Check |
+|----------|-------|
+| **DRIFT** | Existence of `~/.claude/settings.local.json` (overrides settings.json — flagged as WARN) |
+| **ENV** | Environment vars matching `CLAUDE_*` / `MCP_*` / `ANTHROPIC_*`. Values containing `KEY`/`TOKEN`/`SECRET` are redacted in output |
+| **DRIFT** (plugins) | Plugins in `enabledPlugins` whose marketplace isn't declared in `extraKnownMarketplaces` — WARN |
+| **DISK** (big JSONLs) | Single Claude Code session JSONLs > 100 MB. Suggests running `cleanup.ps1` |
+| **HOOKS** (timeouts) | Hooks configured with `timeout > 300s` — WARN. Long timeouts can be used to keep daemons alive past their welcome |
+| **STARTUP** | Lists everything in Windows Startup folder (`shell:startup`). Annotates the kit's own launcher |
+
+These shore up the realistic threat model — drift detection, not malware. With these, the audit catches: a sneaky `settings.local.json` override, env var injection, plugins from unknown sources, single-session bloat, hook timeouts that look like persistence mechanisms, and unexpected startup-folder entries.
+
 ## 2.4.0 — 2026-05-01
 
 ### New: `cleanup.ps1` — disk cleanup utility

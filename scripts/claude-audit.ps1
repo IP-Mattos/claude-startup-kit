@@ -252,6 +252,97 @@ if (-not $NoNetwork) {
 }
 
 # ============================================================
+# 9. SETTINGS DRIFT — settings.local.json present?
+# ============================================================
+$localSettingsPath = Join-Path $claudeDir "settings.local.json"
+if (Test-Path $localSettingsPath) {
+    Add-Finding "WARN" "DRIFT" "settings.local.json exists — overrides settings.json" "Inspect: $localSettingsPath"
+}
+
+# ============================================================
+# 10. ENV VARS — Claude/MCP/Anthropic environment variables
+# ============================================================
+$envPatterns = @('^CLAUDE_', '^MCP_', '^ANTHROPIC_')
+$matched = New-Object System.Collections.Generic.List[string]
+foreach ($e in [System.Environment]::GetEnvironmentVariables().GetEnumerator()) {
+    foreach ($p in $envPatterns) {
+        if ($e.Key -match $p) {
+            $matched.Add(("{0} = {1}" -f $e.Key, $(if ($e.Key -match 'KEY|TOKEN|SECRET') { "<redacted>" } else { $e.Value })))
+        }
+    }
+}
+if ($matched.Count -gt 0) {
+    Add-Finding "INFO" "ENV" ("{0} relevant env var(s)" -f $matched.Count)
+    foreach ($m in $matched) { Add-Finding "INFO" "ENV" "  $m" }
+}
+
+# ============================================================
+# 11. PLUGIN SOURCES — flag plugins whose marketplace isn't declared
+# ============================================================
+if ($settings -and $settings.enabledPlugins) {
+    $declaredMarkets = @()
+    if ($settings.extraKnownMarketplaces) {
+        $declaredMarkets = @($settings.extraKnownMarketplaces.PSObject.Properties.Name)
+    }
+    foreach ($pl in $settings.enabledPlugins.PSObject.Properties) {
+        # Plugin name format is typically "name@marketplace"
+        if ($pl.Name -match '@(.+)$') {
+            $market = $matches[1]
+            if ($declaredMarkets -notcontains $market) {
+                Add-Finding "WARN" "DRIFT" "Plugin '$($pl.Name)' uses marketplace '$market' which isn't declared in extraKnownMarketplaces"
+            }
+        }
+    }
+}
+
+# ============================================================
+# 12. BIG JSONLs — single Claude session files > 100 MB
+# ============================================================
+$projectsDir = Join-Path $claudeDir "projects"
+if (Test-Path $projectsDir) {
+    $bigFiles = Get-ChildItem -Path $projectsDir -Recurse -Filter "*.jsonl" -File -ErrorAction SilentlyContinue |
+                Where-Object { $_.Length -gt 100MB }
+    foreach ($f in $bigFiles) {
+        $sizeMB = [math]::Round($f.Length / 1MB, 1)
+        Add-Finding "WARN" "DISK" "Large JSONL: $($f.Name) ($sizeMB MB)" "Consider running cleanup.ps1"
+    }
+}
+
+# ============================================================
+# 13. HOOK TIMEOUTS — flag hooks with > 300s timeout
+# ============================================================
+if ($settings -and $settings.hooks) {
+    foreach ($evt in $settings.hooks.PSObject.Properties) {
+        foreach ($entry in $evt.Value) {
+            if ($entry.hooks) {
+                foreach ($h in $entry.hooks) {
+                    if ($h.timeout -and [int]$h.timeout -gt 300) {
+                        Add-Finding "WARN" "HOOKS" "Hook timeout > 300s ($($h.timeout)s) on $($evt.Name)" $h.command
+                    }
+                }
+            }
+        }
+    }
+}
+
+# ============================================================
+# 14. STARTUP FOLDER — what else runs at Windows login?
+# ============================================================
+$startupDir = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup"
+if (Test-Path $startupDir) {
+    $startupItems = Get-ChildItem -Path $startupDir -File -ErrorAction SilentlyContinue
+    Add-Finding "INFO" "STARTUP" "$($startupItems.Count) item(s) in Windows Startup folder"
+    foreach ($s in $startupItems) {
+        $name = $s.Name
+        if ($name -eq "claude-daily-brief.bat") {
+            Add-Finding "INFO" "STARTUP" "  - $name (kit launcher)"
+        } else {
+            Add-Finding "INFO" "STARTUP" "  - $name"
+        }
+    }
+}
+
+# ============================================================
 # 9. KIT VERSION
 # ============================================================
 $kitVerFile = Join-Path $scriptsDir ".kit-version"
