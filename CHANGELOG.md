@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.9.1 — 2026-05-01
+
+### Removed: AutoHotkey-based global hotkey
+2.9.0 shipped a `Ctrl+Alt+B` global hotkey via an `.ahk` script and required AutoHotkey as a third-party dependency. After running it for one session the maintainer decided the benefit didn't justify the install footprint.
+
+**Removed**:
+- `scripts/claude-brief-hotkey.ahk` (deleted from repo)
+- The AutoHotkey-detection block in `install.ps1`
+- Whitelist entries for `claude-brief-hotkey.ahk` in `health-check.ps1` and `claude-audit.ps1`
+
+**Still there for reaching the brief on demand**:
+- **`brief`** on PATH (type it in any terminal or Win+R) — installed since 2.9.0
+- **Boot launcher** (Windows Startup folder) — installed since 1.0.0
+
+If you want a hotkey, hook one yourself in PowerToys Run or your shell of choice, pointing at `brief`. Less to install, less to maintain.
+
 ## 2.9.0 — 2026-05-01
 
 ### Make the brief reachable from anywhere

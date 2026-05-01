@@ -139,7 +139,7 @@ $kitWhitelist = @(
     "check-gentle-ai.sh", "daily-brief.sh",
     "startup-brief.ps1", "startup-brief-launcher.bat",
     "health-check.ps1", "standup.ps1", "claude-audit.ps1", "cleanup.ps1",
-    "brief.cmd", "claude-brief-hotkey.ahk",
+    "brief.cmd",
     "startup-kit-config.json",
     ".gentle-ai-last-check", ".daily-brief-last-date", ".gentle-ai-last-seen-version", ".kit-version",
     "lib"
