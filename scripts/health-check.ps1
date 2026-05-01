@@ -40,6 +40,9 @@ $expected = @(
     "scripts\daily-brief.sh",
     "scripts\startup-brief.ps1",
     "scripts\startup-brief-launcher.bat",
+    "scripts\health-check.ps1",
+    "scripts\standup.ps1",
+    "scripts\claude-audit.ps1",
     "scripts\lib\config.ps1",
     "scripts\lib\logging.ps1",
     "scripts\lib\scan-projects.ps1",
@@ -47,7 +50,9 @@ $expected = @(
     "scripts\lib\themes.ps1",
     "scripts\lib\git-recent.ps1",
     "scripts\lib\github-prs.ps1",
-    "scripts\lib\self-update.ps1"
+    "scripts\lib\self-update.ps1",
+    "scripts\lib\screen-adapt.ps1",
+    "scripts\lib\render-layout.ps1"
 )
 foreach ($rel in $expected) {
     $full = Join-Path $claudeDir $rel
@@ -58,7 +63,7 @@ foreach ($rel in $expected) {
 # 3. UTF-8 BOM on .ps1 — only check files installed by the kit (whitelist).
 # Other .ps1 files in scripts/ may be the user's own POCs; not the kit's concern.
 $kitPsFiles = @(
-    "startup-brief.ps1", "health-check.ps1", "standup.ps1",
+    "startup-brief.ps1", "health-check.ps1", "standup.ps1", "claude-audit.ps1",
     "lib\config.ps1", "lib\logging.ps1", "lib\scan-projects.ps1", "lib\engram.ps1",
     "lib\themes.ps1", "lib\git-recent.ps1", "lib\github-prs.ps1",
     "lib\self-update.ps1", "lib\screen-adapt.ps1", "lib\render-layout.ps1"

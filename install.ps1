@@ -117,7 +117,7 @@ Write-Info "Copying scripts..."
 $scriptFiles = @(
     "check-gentle-ai.sh", "daily-brief.sh",
     "startup-brief.ps1", "startup-brief-launcher.bat",
-    "health-check.ps1", "standup.ps1"
+    "health-check.ps1", "standup.ps1", "claude-audit.ps1"
 )
 foreach ($f in $scriptFiles) {
     Copy-FileSafe -Src (Join-Path $repoRoot "scripts\$f") -Dst (Join-Path $scriptsDst $f)
@@ -163,7 +163,7 @@ function Set-Utf8Bom {
         [System.IO.File]::WriteAllBytes($Path, $combined)
     }
 }
-$psToBom = @("startup-brief.ps1", "health-check.ps1", "standup.ps1") + ($libFiles | ForEach-Object { "lib\$_" })
+$psToBom = @("startup-brief.ps1", "health-check.ps1", "standup.ps1", "claude-audit.ps1") + ($libFiles | ForEach-Object { "lib\$_" })
 foreach ($f in $psToBom) {
     Set-Utf8Bom (Join-Path $scriptsDst $f)
 }

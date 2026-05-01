@@ -1,5 +1,39 @@
 # Changelog
 
+## 2.1.0 — 2026-05-01
+
+### New: `claude-audit.ps1` — security/integrity audit
+A standalone command that walks `~/.claude` looking for drift from a known-good baseline. **NOT an antivirus** — it can't detect unknown malware. What it CAN do is flag risky settings and unfamiliar files quickly.
+
+**8 categories of checks** (with severity levels OK / INFO / WARN / CRIT):
+
+| Category | What it inspects |
+|----------|------------------|
+| **PROCESSES** | Long-running Claude/VS Code/PowerShell/cmd processes (>12h INFO, >48h WARN) |
+| **HOOKS** | All `SessionStart` hooks; flags any not from the kit |
+| **PERMISSIONS** | Allow-rules in `settings.json` against risky patterns: `rm -rf`, `sudo`, `curl ... \| bash`, `iex`, `Invoke-Expression`, `..\..` (path traversal). Hits = CRIT. |
+| **SCRIPTS** | Files in `~/.claude/scripts/` and `lib/` not on the kit whitelist |
+| **PLUGINS** | `enabledPlugins` and registered marketplaces with their source repos |
+| **LOGS** | Recent ERROR / WARN counts in `startup-kit.log` (last 200 lines) |
+| **DISK** | `~/.claude` total + breakdown (projects/, logs/, backups/). >5 GB = WARN. |
+| **NETWORK** | Established TCP connections from Claude processes to non-localhost endpoints (use `-NoNetwork` to skip) |
+| **KIT** | Reports installed kit version |
+
+**Modes**:
+- `claude-audit.ps1` — colored table (default)
+- `claude-audit.ps1 -Json` — pipe-friendly JSON output
+- `claude-audit.ps1 -NoNetwork` — skip TCP connection scan
+
+### `a` command in the brief
+From the prompt, type `a` to invoke the audit inline. Press ENTER to return to the menu.
+
+### Install updates
+- `install.ps1` now copies `claude-audit.ps1` and BOMs it.
+- `health-check.ps1` whitelist updated to include `claude-audit.ps1`, plus the previously-missing entries for `health-check.ps1`, `standup.ps1`, `lib/screen-adapt.ps1`, `lib/render-layout.ps1`.
+
+### Tested in this release
+Ran on the dev machine: 0 CRIT, 0 WARN, 12 INFO. Detected 2 non-kit files (`toast-daily-brief.ps1`, `demo-messagebox.ps1`) from earlier POC sessions — exactly the kind of drift the tool is meant to surface.
+
 ## 2.0.0 — 2026-04-28
 
 ### Why a major bump

@@ -373,6 +373,7 @@ function Show-Menu {
     $foot = (Color -Code $T.GRAY -Text "  número para abrir  ·  ") +
             (Color -Code $T.WHITE -Text "p#") + (Color -Code $T.GRAY -Text " fijar  ·  ") +
             (Color -Code $T.WHITE -Text "t") + (Color -Code $T.GRAY -Text " tema  ·  ") +
+            (Color -Code $T.WHITE -Text "a") + (Color -Code $T.GRAY -Text " audit  ·  ") +
             (Color -Code $T.WHITE -Text "c") + (Color -Code $T.GRAY -Text " config  ·  ") +
             (Color -Code $T.WHITE -Text "?") + (Color -Code $T.GRAY -Text " ayuda  ·  ") +
             (Color -Code $T.WHITE -Text "q") + (Color -Code $T.GRAY -Text " salir") +
@@ -560,6 +561,20 @@ while ($true) {
             Start-Sleep -Milliseconds 600
             continue
         }
+        "a"     {
+            $auditScript = Join-Path $scriptDir "claude-audit.ps1"
+            if (Test-Path $auditScript) {
+                Clear-Host
+                Write-KitLog -Level INFO -Source startup-brief -Message "Audit invoked"
+                & $auditScript
+                Write-Host "    $(Color -Code $T.GRAY -Text '(presiona ENTER para volver al menú)')"
+                Read-Host | Out-Null
+                Show-Menu
+            } else {
+                Write-Host "    $(Color -Code $T.RED -Text "No se encontró $auditScript")"
+            }
+            continue
+        }
         "?"     {
             Clear-Host
             Write-Host ""
@@ -580,6 +595,7 @@ while ($true) {
             Write-Host "  $(Color -Code "$($T.BOLD);$($T.CYAN)" -Text 'UI / sistema')"
             Write-Host "    $(Color -Code $T.WHITE -Text 't')         cycle theme (default → dracula → solarized → nord → mono)"
             Write-Host "    $(Color -Code $T.WHITE -Text 'c')         abre el config (startup-kit-config.json) en VS Code"
+            Write-Host "    $(Color -Code $T.WHITE -Text 'a')         security audit — chequeos de procesos, hooks, drift, etc"
             Write-Host "    $(Color -Code $T.WHITE -Text 'r')         refresca el menú"
             Write-Host "    $(Color -Code $T.WHITE -Text '?')         muestra esta ayuda"
             Write-Host "    $(Color -Code $T.WHITE -Text 'u')         actualiza el kit (si hay update disponible)"
