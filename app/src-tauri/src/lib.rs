@@ -129,6 +129,46 @@ fn scan_projects(window_days: u64) -> Vec<Project> {
     out
 }
 
+#[derive(Serialize, Clone)]
+pub struct GitInfo {
+    pub hash: String,
+    pub ago: String,
+    pub author: String,
+    pub subject: String,
+}
+
+#[tauri::command]
+fn git_last_commit(path: String) -> Option<GitInfo> {
+    let project = Path::new(&path);
+    if !project.is_dir() {
+        return None;
+    }
+    if !project.join(".git").exists() {
+        return None;
+    }
+    let output = Command::new("git")
+        .args(["-C", &path, "log", "-1", "--pretty=format:%h|%cr|%an|%s"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let line = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if line.is_empty() {
+        return None;
+    }
+    let parts: Vec<&str> = line.splitn(4, '|').collect();
+    if parts.len() < 4 {
+        return None;
+    }
+    Some(GitInfo {
+        hash: parts[0].to_string(),
+        ago: parts[1].to_string(),
+        author: parts[2].to_string(),
+        subject: parts[3].to_string(),
+    })
+}
+
 #[tauri::command]
 fn open_in_vscode(path: String) -> Result<(), String> {
     // Use code.cmd explicitly so cmd.exe doesn't pick the MSYS wrapper.
@@ -165,6 +205,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             scan_projects,
+            git_last_commit,
             open_in_vscode,
             open_path_in_explorer
         ])

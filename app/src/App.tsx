@@ -9,6 +9,13 @@ type Project = {
   last_date: string;
 };
 
+type GitInfo = {
+  hash: string;
+  ago: string;
+  author: string;
+  subject: string;
+};
+
 function projectName(path: string): string {
   const parts = path.replace(/\\/g, "/").split("/").filter(Boolean);
   return parts[parts.length - 1] ?? path;
@@ -22,6 +29,7 @@ function activityLabel(daysAgo: number): string {
 
 function App() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [gitInfo, setGitInfo] = useState<Record<string, GitInfo | null>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [windowDays, setWindowDays] = useState(14);
@@ -32,6 +40,17 @@ function App() {
     try {
       const res = await invoke<Project[]>("scan_projects", { windowDays: days });
       setProjects(res);
+      const entries = await Promise.all(
+        res.map(async (p) => {
+          try {
+            const g = await invoke<GitInfo | null>("git_last_commit", { path: p.path });
+            return [p.path, g] as const;
+          } catch {
+            return [p.path, null] as const;
+          }
+        })
+      );
+      setGitInfo(Object.fromEntries(entries));
     } catch (e) {
       setError(String(e));
     } finally {
@@ -112,6 +131,13 @@ function App() {
               <div className="project-main">
                 <div className="project-name">{projectName(p.path)}</div>
                 <div className="project-path">{p.path}</div>
+                {gitInfo[p.path] && (
+                  <div className="project-git">
+                    <span className="git-hash">{gitInfo[p.path]!.hash}</span>
+                    <span className="git-subject">{gitInfo[p.path]!.subject}</span>
+                    <span className="git-ago">· {gitInfo[p.path]!.ago}</span>
+                  </div>
+                )}
               </div>
               <div className="project-meta">
                 <span className="badge">{activityLabel(p.days_ago)}</span>
