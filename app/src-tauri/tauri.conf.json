@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "app",
+  "productName": "Claude Startup Kit",
   "version": "0.1.0",
   "identifier": "com.claudestartupkit.app",
   "build": {
@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "app",
-        "width": 800,
-        "height": 600
+        "title": "Claude Startup Kit",
+        "label": "main",
+        "width": 1000,
+        "height": 720,
+        "minWidth": 640,
+        "minHeight": 480
       }
     ],
     "security": {

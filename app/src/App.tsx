@@ -1,49 +1,132 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+type Project = {
+  path: string;
+  mtime: number;
+  days_ago: number;
+  last_date: string;
+};
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+function projectName(path: string): string {
+  const parts = path.replace(/\\/g, "/").split("/").filter(Boolean);
+  return parts[parts.length - 1] ?? path;
+}
+
+function activityLabel(daysAgo: number): string {
+  if (daysAgo <= 0) return "today";
+  if (daysAgo === 1) return "yesterday";
+  return `${daysAgo}d ago`;
+}
+
+function App() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [windowDays, setWindowDays] = useState(14);
+
+  async function refresh(days: number) {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await invoke<Project[]>("scan_projects", { windowDays: days });
+      setProjects(res);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
   }
+
+  useEffect(() => {
+    refresh(windowDays);
+  }, [windowDays]);
+
+  async function openCode(path: string) {
+    try {
+      await invoke("open_in_vscode", { path });
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  async function openExplorer(path: string) {
+    try {
+      await invoke("open_path_in_explorer", { path });
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  const todayCount = projects.filter((p) => p.days_ago <= 1).length;
 
   return (
     <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+      <header className="topbar">
+        <div className="brand">
+          <span className="logo-dot" />
+          <h1>Claude Startup Kit</h1>
+        </div>
+        <div className="filters">
+          <label>
+            Last
+            <select
+              value={windowDays}
+              onChange={(e) => setWindowDays(Number(e.currentTarget.value))}
+            >
+              <option value={1}>24h</option>
+              <option value={7}>7d</option>
+              <option value={14}>14d</option>
+              <option value={30}>30d</option>
+            </select>
+          </label>
+          <button className="ghost" onClick={() => refresh(windowDays)}>
+            Refresh
+          </button>
+        </div>
+      </header>
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+      <section className="summary">
+        <span>
+          <strong>{projects.length}</strong> active projects
+        </span>
+        <span className="dim">·</span>
+        <span>
+          <strong>{todayCount}</strong> touched today
+        </span>
+      </section>
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
+      {error && <div className="error">{error}</div>}
+
+      {loading ? (
+        <div className="state">Scanning…</div>
+      ) : projects.length === 0 ? (
+        <div className="state">
+          No active projects in the last {windowDays} days.
+        </div>
+      ) : (
+        <ul className="projects">
+          {projects.map((p) => (
+            <li key={p.path} className="project">
+              <div className="project-main">
+                <div className="project-name">{projectName(p.path)}</div>
+                <div className="project-path">{p.path}</div>
+              </div>
+              <div className="project-meta">
+                <span className="badge">{activityLabel(p.days_ago)}</span>
+                <span className="date">{p.last_date}</span>
+              </div>
+              <div className="project-actions">
+                <button onClick={() => openCode(p.path)}>Open in VS Code</button>
+                <button className="ghost" onClick={() => openExplorer(p.path)}>
+                  Explorer
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </main>
   );
 }
