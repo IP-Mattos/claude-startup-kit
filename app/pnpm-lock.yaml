@@ -8,12 +8,21 @@ importers:
 
   .:
     dependencies:
+      '@fontsource/bitter':
+        specifier: ^5.2.10
+        version: 5.2.10
       '@fontsource/inter':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/jacquard-12':
         specifier: ^5.2.8
         version: 5.2.8
       '@fontsource/jetbrains-mono':
         specifier: ^5.2.8
         version: 5.2.8
+      '@fontsource/vt323':
+        specifier: ^5.2.7
+        version: 5.2.7
       '@tauri-apps/api':
         specifier: ^2
         version: 2.11.0
@@ -290,11 +299,20 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@fontsource/bitter@5.2.10':
+    resolution: {integrity: sha512-oqQgWAp+lgoGX7iFbVSbTkKyz0k8EK8+bLdUKDTqGTjW0HqrCue70v4jwbZvyNV/3DZol/b/L/WpdXfuQXKBUg==}
+
   '@fontsource/inter@5.2.8':
     resolution: {integrity: sha512-P6r5WnJoKiNVV+zvW2xM13gNdFhAEpQ9dQJHt3naLvfg+LkF2ldgSLiF4T41lf1SQCM9QmkqPTn4TH568IRagg==}
 
+  '@fontsource/jacquard-12@5.2.8':
+    resolution: {integrity: sha512-Mbs9CR1UMst2lCpK2uFx86nvJtrgCjCxsQZy8Qmtf8ppL2StqbXA9Lr04iVj734o58m6+ftoeHENhU2uAJmt/g==}
+
   '@fontsource/jetbrains-mono@5.2.8':
     resolution: {integrity: sha512-6w8/SG4kqvIMu7xd7wt6x3idn1Qux3p9N62s6G3rfldOUYHpWcc2FKrqf+Vo44jRvqWj2oAtTHrZXEP23oSKwQ==}
+
+  '@fontsource/vt323@5.2.7':
+    resolution: {integrity: sha512-8JTMM23vMhQxin9Cn/ijty8cNwXW4INrln0VAJ2227Rz0CVfkzM3qr3l/CqudZJ6BXCnbCGUTdf2ym3cTNex8A==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -944,9 +962,15 @@ snapshots:
   '@esbuild/win32-x64@0.27.7':
     optional: true
 
+  '@fontsource/bitter@5.2.10': {}
+
   '@fontsource/inter@5.2.8': {}
 
+  '@fontsource/jacquard-12@5.2.8': {}
+
   '@fontsource/jetbrains-mono@5.2.8': {}
+
+  '@fontsource/vt323@5.2.7': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
