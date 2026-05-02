@@ -15,6 +15,8 @@ import {
   Search,
   ShieldCheck,
   Target,
+  Trash2,
+  CheckCircle2,
 } from "lucide-react";
 import "./App.css";
 
@@ -43,7 +45,30 @@ type GhPullRequest = {
   author: string;
   created_at: string;
 };
-type Tab = "projects" | "audit" | "prs";
+type CleanupItem = {
+  category: string;
+  path: string;
+  bytes: number;
+  mtime: number;
+};
+type CleanupResult = {
+  deleted: number;
+  failed: number;
+  freed_bytes: number;
+  errors: string[];
+};
+type Tab = "projects" | "audit" | "prs" | "cleanup";
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function formatDate(unix: number): string {
+  return new Date(unix * 1000).toISOString().slice(0, 10);
+}
 
 function projectName(path: string): string {
   const parts = path.replace(/\\/g, "/").split("/").filter(Boolean);
@@ -404,6 +429,139 @@ function PrsView() {
   );
 }
 
+function CleanupView() {
+  const [plan, setPlan] = useState<CleanupItem[]>([]);
+  const [olderThan, setOlderThan] = useState(30);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<CleanupResult | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
+  async function refresh(days: number) {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await invoke<CleanupItem[]>("cleanup_plan", { olderThanDays: days });
+      setPlan(res);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { refresh(olderThan); }, [olderThan]);
+
+  async function applyCleanup() {
+    setError(null);
+    try {
+      const res = await invoke<CleanupResult>("cleanup_apply", {
+        paths: plan.map((i) => i.path),
+      });
+      setResult(res);
+      setConfirming(false);
+      refresh(olderThan);
+    } catch (e) {
+      setError(String(e));
+      setConfirming(false);
+    }
+  }
+
+  const totalBytes = plan.reduce((s, i) => s + i.bytes, 0);
+  const grouped: Record<string, CleanupItem[]> = {};
+  for (const i of plan) (grouped[i.category] ||= []).push(i);
+  const cats = Object.keys(grouped).sort();
+
+  return (
+    <>
+      <div className="view-bar">
+        <div className="summary">
+          <strong>{plan.length}</strong> items <span className="dim">·</span>
+          <strong>{formatBytes(totalBytes)}</strong> reclaimable
+        </div>
+        <div className="filters">
+          <label className="select-wrap">
+            <select
+              value={olderThan}
+              onChange={(e) => setOlderThan(Number(e.currentTarget.value))}
+            >
+              <option value={7}>Older than 7d</option>
+              <option value={14}>Older than 14d</option>
+              <option value={30}>Older than 30d</option>
+              <option value={60}>Older than 60d</option>
+              <option value={90}>Older than 90d</option>
+            </select>
+          </label>
+          <button className="ghost icon-btn" onClick={() => refresh(olderThan)} title="Re-scan">
+            <RefreshCw size={14} className={loading ? "spinning" : ""} />
+          </button>
+          {plan.length > 0 && !confirming && (
+            <button className="danger" onClick={() => setConfirming(true)}>
+              <Trash2 size={14} /> Delete all
+            </button>
+          )}
+          {confirming && (
+            <>
+              <button className="ghost" onClick={() => setConfirming(false)}>Cancel</button>
+              <button className="danger" onClick={applyCleanup}>Confirm delete</button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {error && <div className="error">{error}</div>}
+      {result && (
+        <div className="result">
+          <CheckCircle2 size={16} />
+          Cleaned <strong>{result.deleted}</strong> items, freed <strong>{formatBytes(result.freed_bytes)}</strong>
+          {result.failed > 0 && <span> · {result.failed} failed</span>}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="state">Scanning disk…</div>
+      ) : plan.length === 0 ? (
+        <div className="state">
+          <CheckCircle2 size={32} className="state-icon" />
+          Nothing to clean. Disk feliz.
+        </div>
+      ) : (
+        <div className="cleanup-categories">
+          {cats.map((cat) => {
+            const items = grouped[cat];
+            const sum = items.reduce((s, i) => s + i.bytes, 0);
+            return (
+              <section key={cat} className="cleanup-cat">
+                <header>
+                  <span className="cleanup-cat-name">{cat}</span>
+                  <span className="cleanup-cat-meta">
+                    {items.length} · {formatBytes(sum)}
+                  </span>
+                </header>
+                <ul>
+                  {items.slice(0, 8).map((i) => (
+                    <li key={i.path}>
+                      <span className="cleanup-date">{formatDate(i.mtime)}</span>
+                      <span className="cleanup-size">{formatBytes(i.bytes)}</span>
+                      <span className="cleanup-name" title={i.path}>
+                        {i.path.split(/[\\/]/).pop()}
+                      </span>
+                    </li>
+                  ))}
+                  {items.length > 8 && (
+                    <li className="cleanup-more">… and {items.length - 8} more</li>
+                  )}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
 function App() {
   const [tab, setTab] = useState<Tab>("projects");
   const [windowDays, setWindowDays] = useState(14);
@@ -437,6 +595,13 @@ function App() {
             <GitPullRequest size={14} />
             PRs
           </button>
+          <button
+            className={"tab" + (tab === "cleanup" ? " active" : "")}
+            onClick={() => setTab("cleanup")}
+          >
+            <Trash2 size={14} />
+            Cleanup
+          </button>
         </nav>
       </header>
 
@@ -447,6 +612,7 @@ function App() {
           )}
           {tab === "audit" && <AuditView />}
           {tab === "prs" && <PrsView />}
+          {tab === "cleanup" && <CleanupView />}
         </div>
       </main>
     </div>

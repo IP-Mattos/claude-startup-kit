@@ -130,6 +130,180 @@ fn scan_projects(window_days: u64) -> Vec<Project> {
 }
 
 #[derive(Serialize, Clone)]
+pub struct CleanupItem {
+    pub category: String,
+    pub path: String,
+    pub bytes: u64,
+    pub mtime: u64,
+}
+
+fn dir_size(dir: &Path) -> u64 {
+    let mut total = 0u64;
+    let Ok(entries) = fs::read_dir(dir) else {
+        return 0;
+    };
+    for e in entries.flatten() {
+        let meta = match e.metadata() {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
+        if meta.is_dir() {
+            total += dir_size(&e.path());
+        } else {
+            total += meta.len();
+        }
+    }
+    total
+}
+
+fn mtime_unix(meta: &fs::Metadata) -> u64 {
+    meta.modified()
+        .ok()
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+#[tauri::command]
+fn cleanup_plan(older_than_days: u64) -> Vec<CleanupItem> {
+    let Some(home) = dirs_home() else {
+        return vec![];
+    };
+    let claude_dir = home.join(".claude");
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let cutoff = now.saturating_sub(older_than_days * 86_400);
+    let mut plan = Vec::new();
+
+    // 1. Logs (skip the active startup-kit.log)
+    let logs_dir = claude_dir.join("logs");
+    if let Ok(entries) = fs::read_dir(&logs_dir) {
+        for e in entries.flatten() {
+            let path = e.path();
+            if !path.is_file() {
+                continue;
+            }
+            if path.file_name().and_then(|s| s.to_str()) == Some("startup-kit.log") {
+                continue;
+            }
+            let Ok(meta) = e.metadata() else { continue };
+            let mtime = mtime_unix(&meta);
+            if mtime < cutoff {
+                plan.push(CleanupItem {
+                    category: "logs".to_string(),
+                    path: path.to_string_lossy().to_string(),
+                    bytes: meta.len(),
+                    mtime,
+                });
+            }
+        }
+    }
+
+    // 2. Backups (directories older than cutoff)
+    let backups_dir = claude_dir.join("backups");
+    if let Ok(entries) = fs::read_dir(&backups_dir) {
+        for e in entries.flatten() {
+            let path = e.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let Ok(meta) = e.metadata() else { continue };
+            let mtime = mtime_unix(&meta);
+            if mtime < cutoff {
+                plan.push(CleanupItem {
+                    category: "backups".to_string(),
+                    path: path.to_string_lossy().to_string(),
+                    bytes: dir_size(&path),
+                    mtime,
+                });
+            }
+        }
+    }
+
+    // 3. Old project JSONLs
+    let projects_dir = claude_dir.join("projects");
+    if let Ok(entries) = fs::read_dir(&projects_dir) {
+        for e in entries.flatten() {
+            let pdir = e.path();
+            if !pdir.is_dir() {
+                continue;
+            }
+            let Ok(jsonls) = fs::read_dir(&pdir) else { continue };
+            for jentry in jsonls.flatten() {
+                let p = jentry.path();
+                if p.extension().and_then(|s| s.to_str()) != Some("jsonl") {
+                    continue;
+                }
+                let Ok(meta) = jentry.metadata() else { continue };
+                let mtime = mtime_unix(&meta);
+                if mtime < cutoff {
+                    plan.push(CleanupItem {
+                        category: "projects".to_string(),
+                        path: p.to_string_lossy().to_string(),
+                        bytes: meta.len(),
+                        mtime,
+                    });
+                }
+            }
+        }
+    }
+
+    plan.sort_by(|a, b| a.mtime.cmp(&b.mtime));
+    plan
+}
+
+#[derive(Serialize)]
+pub struct CleanupResult {
+    pub deleted: u32,
+    pub failed: u32,
+    pub freed_bytes: u64,
+    pub errors: Vec<String>,
+}
+
+#[tauri::command]
+fn cleanup_apply(paths: Vec<String>) -> CleanupResult {
+    let mut deleted = 0u32;
+    let mut failed = 0u32;
+    let mut freed = 0u64;
+    let mut errors = Vec::new();
+    for s in paths {
+        let p = Path::new(&s);
+        if !p.exists() {
+            continue;
+        }
+        let Ok(meta) = fs::metadata(p) else {
+            failed += 1;
+            errors.push(format!("metadata: {s}"));
+            continue;
+        };
+        let bytes = if meta.is_dir() { dir_size(p) } else { meta.len() };
+        let res = if meta.is_dir() {
+            fs::remove_dir_all(p)
+        } else {
+            fs::remove_file(p)
+        };
+        match res {
+            Ok(_) => {
+                deleted += 1;
+                freed += bytes;
+            }
+            Err(e) => {
+                failed += 1;
+                errors.push(format!("{s}: {e}"));
+            }
+        }
+    }
+    CleanupResult {
+        deleted,
+        failed,
+        freed_bytes: freed,
+        errors,
+    }
+}
+
+#[derive(Serialize, Clone)]
 pub struct GhPullRequest {
     pub title: String,
     pub url: String,
@@ -459,6 +633,8 @@ pub fn run() {
             engram_project_goal,
             run_audit,
             github_review_queue,
+            cleanup_plan,
+            cleanup_apply,
             open_in_vscode,
             open_path_in_explorer,
             open_url
