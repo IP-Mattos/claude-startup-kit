@@ -29,4 +29,34 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+
+  // Build optimizations for Tauri (Edge WebView2 / Chromium on Windows,
+  // WKWebView on macOS, WebKitGTK on Linux — all support modern ES).
+  build: {
+    target: "es2022",
+    minify: "esbuild",
+    cssCodeSplit: true,
+    sourcemap: false,
+    assetsInlineLimit: 4096,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/scheduler/")) {
+            return "vendor-react";
+          }
+          if (id.includes("/@tauri-apps/")) {
+            return "vendor-tauri";
+          }
+          if (id.includes("/lucide-react/")) {
+            return "vendor-icons";
+          }
+          if (id.includes("/@fontsource/")) {
+            return "vendor-fonts";
+          }
+          return undefined;
+        },
+      },
+    },
+  },
 }));
