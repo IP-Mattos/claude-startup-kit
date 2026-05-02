@@ -129,6 +129,73 @@ fn scan_projects(window_days: u64) -> Vec<Project> {
     out
 }
 
+#[derive(Serialize, Clone)]
+pub struct AuditFinding {
+    pub level: String,
+    pub category: String,
+    pub title: String,
+    pub detail: String,
+}
+
+#[tauri::command]
+fn run_audit() -> Result<Vec<AuditFinding>, String> {
+    let script = dirs_home()
+        .map(|h| h.join(".claude").join("scripts").join("claude-audit.ps1"))
+        .ok_or_else(|| "no home directory".to_string())?;
+    if !script.exists() {
+        return Err(format!("audit script not found at {}", script.display()));
+    }
+    let output = Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            &script.to_string_lossy(),
+            "-Json",
+            "-NoNetwork",
+        ])
+        .output()
+        .map_err(|e| format!("failed to run audit: {e}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "audit exited with status {}",
+            output.status.code().unwrap_or(-1)
+        ));
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    // PowerShell JSON uses PascalCase fields; deserialize into a generic Value first.
+    let raw: serde_json::Value =
+        serde_json::from_str(text.trim()).map_err(|e| format!("audit JSON parse: {e}"))?;
+    let arr = raw.as_array().ok_or("audit output is not an array")?;
+    let findings = arr
+        .iter()
+        .map(|item| AuditFinding {
+            level: item
+                .get("Level")
+                .and_then(|v| v.as_str())
+                .unwrap_or("INFO")
+                .to_string(),
+            category: item
+                .get("Category")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            title: item
+                .get("Title")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            detail: item
+                .get("Detail")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+        })
+        .collect();
+    Ok(findings)
+}
+
 #[tauri::command]
 fn engram_known_projects() -> Vec<String> {
     let Ok(output) = Command::new("engram").args(["projects", "list"]).output() else {
@@ -310,6 +377,7 @@ pub fn run() {
             git_last_commit,
             engram_known_projects,
             engram_project_goal,
+            run_audit,
             open_in_vscode,
             open_path_in_explorer
         ])
