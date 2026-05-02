@@ -1,5 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import {
+  Activity,
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
+  Folder,
+  FolderOpen,
+  GitBranch,
+  GitPullRequest,
+  Info,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Target,
+} from "lucide-react";
 import "./App.css";
 
 type Project = {
@@ -8,21 +24,18 @@ type Project = {
   days_ago: number;
   last_date: string;
 };
-
 type GitInfo = {
   hash: string;
   ago: string;
   author: string;
   subject: string;
 };
-
 type AuditFinding = {
   level: "OK" | "INFO" | "WARN" | "CRIT";
   category: string;
   title: string;
   detail: string;
 };
-
 type GhPullRequest = {
   title: string;
   url: string;
@@ -30,7 +43,6 @@ type GhPullRequest = {
   author: string;
   created_at: string;
 };
-
 type Tab = "projects" | "audit" | "prs";
 
 function projectName(path: string): string {
@@ -44,12 +56,19 @@ function activityLabel(daysAgo: number): string {
   return `${daysAgo}d ago`;
 }
 
-function ProjectsView({ windowDays, setWindowDays }: { windowDays: number; setWindowDays: (n: number) => void }) {
+function ProjectsView({
+  windowDays,
+  setWindowDays,
+}: {
+  windowDays: number;
+  setWindowDays: (n: number) => void;
+}) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [gitInfo, setGitInfo] = useState<Record<string, GitInfo | null>>({});
   const [goals, setGoals] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   async function refresh(days: number) {
     setLoading(true);
@@ -57,6 +76,7 @@ function ProjectsView({ windowDays, setWindowDays }: { windowDays: number; setWi
     try {
       const res = await invoke<Project[]>("scan_projects", { windowDays: days });
       setProjects(res);
+      setLoading(false);
       const known = await invoke<string[]>("engram_known_projects").catch(() => [] as string[]);
       const enrich = await Promise.all(
         res.map(async (p) => {
@@ -71,7 +91,6 @@ function ProjectsView({ windowDays, setWindowDays }: { windowDays: number; setWi
       setGoals(Object.fromEntries(enrich.map(([k, , goal]) => [k, goal])));
     } catch (e) {
       setError(String(e));
-    } finally {
       setLoading(false);
     }
   }
@@ -81,66 +100,86 @@ function ProjectsView({ windowDays, setWindowDays }: { windowDays: number; setWi
   }, [windowDays]);
 
   async function openCode(path: string) {
-    try {
-      await invoke("open_in_vscode", { path });
-    } catch (e) {
-      setError(String(e));
-    }
+    try { await invoke("open_in_vscode", { path }); } catch (e) { setError(String(e)); }
+  }
+  async function openExplorer(path: string) {
+    try { await invoke("open_path_in_explorer", { path }); } catch (e) { setError(String(e)); }
   }
 
-  async function openExplorer(path: string) {
-    try {
-      await invoke("open_path_in_explorer", { path });
-    } catch (e) {
-      setError(String(e));
-    }
-  }
+  const filtered = useMemo(() => {
+    if (!query.trim()) return projects;
+    const q = query.toLowerCase();
+    return projects.filter((p) =>
+      projectName(p.path).toLowerCase().includes(q) ||
+      p.path.toLowerCase().includes(q) ||
+      (goals[p.path] ?? "").toLowerCase().includes(q)
+    );
+  }, [projects, query, goals]);
 
   const todayCount = projects.filter((p) => p.days_ago <= 1).length;
 
   return (
     <>
       <div className="view-bar">
-        <div className="summary">
-          <span><strong>{projects.length}</strong> active projects</span>
-          <span className="dim">·</span>
-          <span><strong>{todayCount}</strong> touched today</span>
+        <div className="search">
+          <Search size={14} />
+          <input
+            placeholder="Search projects, paths, goals…"
+            value={query}
+            onChange={(e) => setQuery(e.currentTarget.value)}
+          />
         </div>
         <div className="filters">
-          <label>
-            Last
-            <select value={windowDays} onChange={(e) => setWindowDays(Number(e.currentTarget.value))}>
-              <option value={1}>24h</option>
-              <option value={7}>7d</option>
-              <option value={14}>14d</option>
-              <option value={30}>30d</option>
+          <span className="summary">
+            <strong>{projects.length}</strong> active <span className="dim">·</span>
+            <strong>{todayCount}</strong> today
+          </span>
+          <label className="select-wrap">
+            <select
+              value={windowDays}
+              onChange={(e) => setWindowDays(Number(e.currentTarget.value))}
+            >
+              <option value={1}>Last 24h</option>
+              <option value={7}>Last 7d</option>
+              <option value={14}>Last 14d</option>
+              <option value={30}>Last 30d</option>
             </select>
           </label>
-          <button className="ghost" onClick={() => refresh(windowDays)}>Refresh</button>
+          <button className="ghost icon-btn" onClick={() => refresh(windowDays)} title="Refresh">
+            <RefreshCw size={14} className={loading ? "spinning" : ""} />
+          </button>
         </div>
       </div>
 
       {error && <div className="error">{error}</div>}
 
       {loading ? (
-        <div className="state">Scanning…</div>
-      ) : projects.length === 0 ? (
-        <div className="state">No active projects in the last {windowDays} days.</div>
+        <ProjectsSkeleton />
+      ) : filtered.length === 0 ? (
+        <div className="state">
+          {projects.length === 0
+            ? `No active projects in the last ${windowDays} days.`
+            : `No matches for "${query}".`}
+        </div>
       ) : (
         <ul className="projects">
-          {projects.map((p) => (
+          {filtered.map((p) => (
             <li key={p.path} className="project">
               <div className="project-main">
-                <div className="project-name">{projectName(p.path)}</div>
+                <div className="project-name">
+                  <FolderOpen size={16} className="project-icon" />
+                  {projectName(p.path)}
+                </div>
                 <div className="project-path">{p.path}</div>
                 {goals[p.path] && (
-                  <div className="project-goal">
-                    <span className="goal-label">Goal</span>
+                  <div className="project-line">
+                    <Target size={12} className="line-icon goal-icon" />
                     <span className="goal-text">{goals[p.path]}</span>
                   </div>
                 )}
                 {gitInfo[p.path] && (
-                  <div className="project-git">
+                  <div className="project-line">
+                    <GitBranch size={12} className="line-icon" />
                     <span className="git-hash">{gitInfo[p.path]!.hash}</span>
                     <span className="git-subject">{gitInfo[p.path]!.subject}</span>
                     <span className="git-ago">· {gitInfo[p.path]!.ago}</span>
@@ -148,12 +187,16 @@ function ProjectsView({ windowDays, setWindowDays }: { windowDays: number; setWi
                 )}
               </div>
               <div className="project-meta">
-                <span className="badge">{activityLabel(p.days_ago)}</span>
+                <span className={`badge ${p.days_ago <= 1 ? "badge-fresh" : ""}`}>
+                  {activityLabel(p.days_ago)}
+                </span>
                 <span className="date">{p.last_date}</span>
               </div>
               <div className="project-actions">
                 <button onClick={() => openCode(p.path)}>Open in VS Code</button>
-                <button className="ghost" onClick={() => openExplorer(p.path)}>Explorer</button>
+                <button className="ghost" onClick={() => openExplorer(p.path)} title="Open in Explorer">
+                  <Folder size={14} />
+                </button>
               </div>
             </li>
           ))}
@@ -163,10 +206,27 @@ function ProjectsView({ windowDays, setWindowDays }: { windowDays: number; setWi
   );
 }
 
+function ProjectsSkeleton() {
+  return (
+    <ul className="projects">
+      {[0, 1, 2, 3].map((i) => (
+        <li key={i} className="project skeleton">
+          <div className="project-main">
+            <div className="sk-line" style={{ width: "40%", height: 16 }} />
+            <div className="sk-line" style={{ width: "70%", height: 12, marginTop: 6 }} />
+            <div className="sk-line" style={{ width: "55%", height: 12, marginTop: 8 }} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function AuditView() {
   const [findings, setFindings] = useState<AuditFinding[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   async function run() {
     setLoading(true);
@@ -190,48 +250,77 @@ function AuditView() {
   };
 
   const grouped: Record<string, AuditFinding[]> = {};
-  for (const f of findings) {
-    (grouped[f.category] ||= []).push(f);
-  }
+  for (const f of findings) (grouped[f.category] ||= []).push(f);
   const categories = Object.keys(grouped).sort();
 
   return (
     <>
       <div className="view-bar">
         <div className="audit-summary">
-          <span className={"audit-pill crit" + (counts.crit ? " active" : "")}>{counts.crit} CRIT</span>
-          <span className={"audit-pill warn" + (counts.warn ? " active" : "")}>{counts.warn} WARN</span>
-          <span className={"audit-pill info" + (counts.info ? " active" : "")}>{counts.info} INFO</span>
+          <span className={"audit-pill crit" + (counts.crit ? " active" : "")}>
+            <AlertTriangle size={12} /> {counts.crit} crit
+          </span>
+          <span className={"audit-pill warn" + (counts.warn ? " active" : "")}>
+            <AlertTriangle size={12} /> {counts.warn} warn
+          </span>
+          <span className={"audit-pill info" + (counts.info ? " active" : "")}>
+            <Info size={12} /> {counts.info} info
+          </span>
         </div>
         <div className="filters">
-          <button className="ghost" onClick={run}>Re-run</button>
+          <button className="ghost icon-btn" onClick={run} title="Re-run audit">
+            <RefreshCw size={14} className={loading ? "spinning" : ""} />
+          </button>
         </div>
       </div>
 
       {error && <div className="error">{error}</div>}
 
       {loading ? (
-        <div className="state">Running audit…</div>
+        <div className="state">
+          <ShieldCheck size={32} className="state-icon spinning" />
+          Running audit…
+        </div>
       ) : findings.length === 0 ? (
         <div className="state">No findings.</div>
       ) : (
         <div className="audit-categories">
-          {categories.map((cat) => (
-            <section key={cat} className="audit-category">
-              <h3>{cat}</h3>
-              <ul>
-                {grouped[cat].map((f, i) => (
-                  <li key={i} className={"audit-finding lvl-" + f.level.toLowerCase()}>
-                    <span className={"audit-level lvl-" + f.level.toLowerCase()}>{f.level}</span>
-                    <div className="audit-body">
-                      <div className="audit-title">{f.title}</div>
-                      {f.detail && <div className="audit-detail">{f.detail}</div>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+          {categories.map((cat) => {
+            const isCollapsed = collapsed[cat];
+            const catCounts = {
+              crit: grouped[cat].filter((f) => f.level === "CRIT").length,
+              warn: grouped[cat].filter((f) => f.level === "WARN").length,
+            };
+            return (
+              <section key={cat} className="audit-category">
+                <button
+                  className="audit-category-header"
+                  onClick={() => setCollapsed((c) => ({ ...c, [cat]: !c[cat] }))}
+                >
+                  {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                  <span>{cat}</span>
+                  <span className="audit-cat-count">
+                    {grouped[cat].length}
+                    {catCounts.crit > 0 && <span className="dot dot-crit" />}
+                    {catCounts.warn > 0 && <span className="dot dot-warn" />}
+                  </span>
+                </button>
+                {!isCollapsed && (
+                  <ul>
+                    {grouped[cat].map((f, i) => (
+                      <li key={i} className={"audit-finding lvl-" + f.level.toLowerCase()}>
+                        <span className={"audit-level lvl-" + f.level.toLowerCase()}>{f.level}</span>
+                        <div className="audit-body">
+                          <div className="audit-title">{f.title}</div>
+                          {f.detail && <div className="audit-detail">{f.detail}</div>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
     </>
@@ -266,25 +355,36 @@ function PrsView() {
     <>
       <div className="view-bar">
         <div className="summary">
-          <span><strong>{prs.length}</strong> awaiting your review</span>
+          <strong>{prs.length}</strong> awaiting your review
         </div>
         <div className="filters">
-          <button className="ghost" onClick={load}>Refresh</button>
+          <button className="ghost icon-btn" onClick={load} title="Refresh">
+            <RefreshCw size={14} className={loading ? "spinning" : ""} />
+          </button>
         </div>
       </div>
 
       {error && <div className="error">{error}</div>}
 
       {loading ? (
-        <div className="state">Querying GitHub…</div>
+        <div className="state">
+          <GitPullRequest size={32} className="state-icon" />
+          Querying GitHub…
+        </div>
       ) : prs.length === 0 ? (
-        <div className="state">No PRs requesting your review. Inbox zero, hermano.</div>
+        <div className="state">
+          <ShieldCheck size={32} className="state-icon" />
+          No PRs requesting your review. Inbox zero, hermano.
+        </div>
       ) : (
         <ul className="prs">
           {prs.map((pr) => (
             <li key={pr.url} className="pr">
               <div className="pr-main">
-                <div className="pr-title">{pr.title}</div>
+                <div className="pr-title">
+                  <GitPullRequest size={14} className="pr-icon" />
+                  {pr.title}
+                </div>
                 <div className="pr-meta">
                   <span className="pr-repo">{pr.repository}</span>
                   <span className="dim">·</span>
@@ -293,7 +393,9 @@ function PrsView() {
                   <span>{pr.created_at.slice(0, 10)}</span>
                 </div>
               </div>
-              <button onClick={() => open(pr.url)}>Open</button>
+              <button onClick={() => open(pr.url)}>
+                Open <ExternalLink size={12} />
+              </button>
             </li>
           ))}
         </ul>
@@ -307,7 +409,7 @@ function App() {
   const [windowDays, setWindowDays] = useState(14);
 
   return (
-    <main className="container">
+    <div className="app">
       <header className="topbar">
         <div className="brand">
           <span className="logo-dot" />
@@ -318,29 +420,36 @@ function App() {
             className={"tab" + (tab === "projects" ? " active" : "")}
             onClick={() => setTab("projects")}
           >
+            <FolderOpen size={14} />
             Projects
           </button>
           <button
             className={"tab" + (tab === "audit" ? " active" : "")}
             onClick={() => setTab("audit")}
           >
+            <Activity size={14} />
             Audit
           </button>
           <button
             className={"tab" + (tab === "prs" ? " active" : "")}
             onClick={() => setTab("prs")}
           >
+            <GitPullRequest size={14} />
             PRs
           </button>
         </nav>
       </header>
 
-      {tab === "projects" && (
-        <ProjectsView windowDays={windowDays} setWindowDays={setWindowDays} />
-      )}
-      {tab === "audit" && <AuditView />}
-      {tab === "prs" && <PrsView />}
-    </main>
+      <main className="container">
+        <div key={tab} className="tab-content">
+          {tab === "projects" && (
+            <ProjectsView windowDays={windowDays} setWindowDays={setWindowDays} />
+          )}
+          {tab === "audit" && <AuditView />}
+          {tab === "prs" && <PrsView />}
+        </div>
+      </main>
+    </div>
   );
 }
 
