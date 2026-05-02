@@ -23,7 +23,15 @@ type AuditFinding = {
   detail: string;
 };
 
-type Tab = "projects" | "audit";
+type GhPullRequest = {
+  title: string;
+  url: string;
+  repository: string;
+  author: string;
+  created_at: string;
+};
+
+type Tab = "projects" | "audit" | "prs";
 
 function projectName(path: string): string {
   const parts = path.replace(/\\/g, "/").split("/").filter(Boolean);
@@ -230,6 +238,70 @@ function AuditView() {
   );
 }
 
+function PrsView() {
+  const [prs, setPrs] = useState<GhPullRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await invoke<GhPullRequest[]>("github_review_queue", { limit: 20 });
+      setPrs(res);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function open(url: string) {
+    try { await invoke("open_url", { url }); } catch (e) { setError(String(e)); }
+  }
+
+  return (
+    <>
+      <div className="view-bar">
+        <div className="summary">
+          <span><strong>{prs.length}</strong> awaiting your review</span>
+        </div>
+        <div className="filters">
+          <button className="ghost" onClick={load}>Refresh</button>
+        </div>
+      </div>
+
+      {error && <div className="error">{error}</div>}
+
+      {loading ? (
+        <div className="state">Querying GitHub…</div>
+      ) : prs.length === 0 ? (
+        <div className="state">No PRs requesting your review. Inbox zero, hermano.</div>
+      ) : (
+        <ul className="prs">
+          {prs.map((pr) => (
+            <li key={pr.url} className="pr">
+              <div className="pr-main">
+                <div className="pr-title">{pr.title}</div>
+                <div className="pr-meta">
+                  <span className="pr-repo">{pr.repository}</span>
+                  <span className="dim">·</span>
+                  <span>by {pr.author}</span>
+                  <span className="dim">·</span>
+                  <span>{pr.created_at.slice(0, 10)}</span>
+                </div>
+              </div>
+              <button onClick={() => open(pr.url)}>Open</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}
+
 function App() {
   const [tab, setTab] = useState<Tab>("projects");
   const [windowDays, setWindowDays] = useState(14);
@@ -254,14 +326,20 @@ function App() {
           >
             Audit
           </button>
+          <button
+            className={"tab" + (tab === "prs" ? " active" : "")}
+            onClick={() => setTab("prs")}
+          >
+            PRs
+          </button>
         </nav>
       </header>
 
-      {tab === "projects" ? (
+      {tab === "projects" && (
         <ProjectsView windowDays={windowDays} setWindowDays={setWindowDays} />
-      ) : (
-        <AuditView />
       )}
+      {tab === "audit" && <AuditView />}
+      {tab === "prs" && <PrsView />}
     </main>
   );
 }

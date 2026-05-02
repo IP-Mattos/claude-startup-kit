@@ -130,6 +130,86 @@ fn scan_projects(window_days: u64) -> Vec<Project> {
 }
 
 #[derive(Serialize, Clone)]
+pub struct GhPullRequest {
+    pub title: String,
+    pub url: String,
+    pub repository: String,
+    pub author: String,
+    pub created_at: String,
+}
+
+#[tauri::command]
+fn github_review_queue(limit: u32) -> Result<Vec<GhPullRequest>, String> {
+    let limit_str = limit.to_string();
+    let output = Command::new("gh")
+        .args([
+            "search",
+            "prs",
+            "--review-requested=@me",
+            "--state=open",
+            "--limit",
+            &limit_str,
+            "--json",
+            "title,url,repository,author,createdAt",
+        ])
+        .output()
+        .map_err(|e| format!("gh not available: {e}"))?;
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if stderr.contains("authentication required") || stderr.contains("not logged into") {
+            return Err("gh not authenticated — run 'gh auth login'".to_string());
+        }
+        return Err(format!("gh failed: {}", stderr.trim()));
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    let raw: serde_json::Value =
+        serde_json::from_str(text.trim()).map_err(|e| format!("gh JSON parse: {e}"))?;
+    let arr = raw.as_array().ok_or("gh output is not an array")?;
+    let prs = arr
+        .iter()
+        .map(|item| GhPullRequest {
+            title: item
+                .get("title")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            url: item
+                .get("url")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            repository: item
+                .get("repository")
+                .and_then(|r| r.get("nameWithOwner").or_else(|| r.get("name")))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            author: item
+                .get("author")
+                .and_then(|a| a.get("login"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            created_at: item
+                .get("createdAt")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+        })
+        .collect();
+    Ok(prs)
+}
+
+#[tauri::command]
+fn open_url(url: String) -> Result<(), String> {
+    Command::new("cmd")
+        .args(["/c", "start", "", &url])
+        .spawn()
+        .map_err(|e| format!("failed to open url: {e}"))?;
+    Ok(())
+}
+
+#[derive(Serialize, Clone)]
 pub struct AuditFinding {
     pub level: String,
     pub category: String,
@@ -378,8 +458,10 @@ pub fn run() {
             engram_known_projects,
             engram_project_goal,
             run_audit,
+            github_review_queue,
             open_in_vscode,
-            open_path_in_explorer
+            open_path_in_explorer,
+            open_url
         ])
         .setup(|app| {
             let show_i = MenuItem::with_id(app, "show", "Show window", true, None::<&str>)?;
