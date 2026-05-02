@@ -1,4 +1,5 @@
-:root {
+:root,
+[data-theme="default"] {
   --bg: #0b0d12;
   --bg-elev: #14171f;
   --bg-elev-2: #1a1e28;
@@ -19,6 +20,101 @@
   --warn-dim: rgba(255, 193, 100, 0.12);
   --crit: #ff7a7a;
   --crit-dim: rgba(255, 122, 122, 0.12);
+}
+
+[data-theme="dracula"] {
+  --bg: #14151c;
+  --bg-elev: #1e1f29;
+  --bg-elev-2: #282a36;
+  --bg-hover: #313444;
+  --border: #353749;
+  --border-strong: #44475a;
+  --text: #f8f8f2;
+  --text-dim: #a8a9bc;
+  --text-muted: #6272a4;
+  --accent: #8be9fd;
+  --accent-dim: rgba(139, 233, 253, 0.15);
+  --accent-hover: #aef0fc;
+  --pink: #bd93f9;
+  --pink-dim: rgba(189, 147, 249, 0.18);
+  --green: #50fa7b;
+  --green-dim: rgba(80, 250, 123, 0.12);
+  --warn: #f1fa8c;
+  --warn-dim: rgba(241, 250, 140, 0.12);
+  --crit: #ff5555;
+  --crit-dim: rgba(255, 85, 85, 0.14);
+}
+
+[data-theme="nord"] {
+  --bg: #1c2129;
+  --bg-elev: #242a35;
+  --bg-elev-2: #2e3440;
+  --bg-hover: #3b4252;
+  --border: #404554;
+  --border-strong: #4c566a;
+  --text: #eceff4;
+  --text-dim: #a3b1c2;
+  --text-muted: #6c7689;
+  --accent: #88c0d0;
+  --accent-dim: rgba(136, 192, 208, 0.18);
+  --accent-hover: #a8d0dc;
+  --pink: #b48ead;
+  --pink-dim: rgba(180, 142, 173, 0.18);
+  --green: #a3be8c;
+  --green-dim: rgba(163, 190, 140, 0.15);
+  --warn: #ebcb8b;
+  --warn-dim: rgba(235, 203, 139, 0.15);
+  --crit: #bf616a;
+  --crit-dim: rgba(191, 97, 106, 0.18);
+}
+
+[data-theme="solarized"] {
+  --bg: #002b36;
+  --bg-elev: #073642;
+  --bg-elev-2: #0a4956;
+  --bg-hover: #105463;
+  --border: #1d5563;
+  --border-strong: #2a6b7c;
+  --text: #fdf6e3;
+  --text-dim: #93a1a1;
+  --text-muted: #657b83;
+  --accent: #2aa198;
+  --accent-dim: rgba(42, 161, 152, 0.18);
+  --accent-hover: #3cbeb4;
+  --pink: #d33682;
+  --pink-dim: rgba(211, 54, 130, 0.18);
+  --green: #859900;
+  --green-dim: rgba(133, 153, 0, 0.15);
+  --warn: #b58900;
+  --warn-dim: rgba(181, 137, 0, 0.18);
+  --crit: #dc322f;
+  --crit-dim: rgba(220, 50, 47, 0.18);
+}
+
+[data-theme="monochrome"] {
+  --bg: #0a0a0a;
+  --bg-elev: #141414;
+  --bg-elev-2: #1c1c1c;
+  --bg-hover: #242424;
+  --border: #2a2a2a;
+  --border-strong: #3a3a3a;
+  --text: #f0f0f0;
+  --text-dim: #a0a0a0;
+  --text-muted: #606060;
+  --accent: #d0d0d0;
+  --accent-dim: rgba(208, 208, 208, 0.15);
+  --accent-hover: #f0f0f0;
+  --pink: #b0b0b0;
+  --pink-dim: rgba(176, 176, 176, 0.15);
+  --green: #c0c0c0;
+  --green-dim: rgba(192, 192, 192, 0.12);
+  --warn: #c0c0c0;
+  --warn-dim: rgba(192, 192, 192, 0.12);
+  --crit: #d0d0d0;
+  --crit-dim: rgba(208, 208, 208, 0.15);
+}
+
+:root {
   --radius: 10px;
   --radius-sm: 6px;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -29,6 +125,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
 
 * {
   box-sizing: border-box;
@@ -648,6 +745,61 @@ button.icon-btn {
   color: var(--accent);
   font-size: 11.5px;
 }
+
+/* ===== Theme picker ===== */
+.theme-picker {
+  position: relative;
+}
+.theme-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: var(--shadow-md);
+  z-index: 20;
+}
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  color: var(--text);
+  border: none;
+  padding: 7px 10px;
+  border-radius: 5px;
+  font-size: 13px;
+  text-align: left;
+  text-transform: capitalize;
+  cursor: pointer;
+  font-weight: 500;
+}
+.theme-option:hover {
+  background: var(--bg-hover);
+}
+.theme-option.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 600;
+}
+.theme-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.theme-default { background: linear-gradient(135deg, #64c8ff, #ff64c8); }
+.theme-dracula { background: linear-gradient(135deg, #8be9fd, #bd93f9); }
+.theme-nord { background: linear-gradient(135deg, #88c0d0, #b48ead); }
+.theme-solarized { background: linear-gradient(135deg, #2aa198, #d33682); }
+.theme-monochrome { background: linear-gradient(135deg, #d0d0d0, #606060); }
 
 /* ===== Cleanup ===== */
 button.danger {

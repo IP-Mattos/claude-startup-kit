@@ -11,6 +11,7 @@ import {
   GitBranch,
   GitPullRequest,
   Info,
+  Palette,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -562,9 +563,53 @@ function CleanupView() {
   );
 }
 
+const THEMES = ["default", "dracula", "nord", "solarized", "monochrome"] as const;
+type Theme = typeof THEMES[number];
+
+function ThemePicker({ theme, onChange }: { theme: Theme; onChange: (t: Theme) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="theme-picker">
+      <button
+        className="ghost icon-btn"
+        onClick={() => setOpen((o) => !o)}
+        title="Theme"
+      >
+        <Palette size={14} />
+      </button>
+      {open && (
+        <div className="theme-menu" onMouseLeave={() => setOpen(false)}>
+          {THEMES.map((t) => (
+            <button
+              key={t}
+              className={"theme-option" + (t === theme ? " active" : "")}
+              onClick={() => {
+                onChange(t);
+                setOpen(false);
+              }}
+            >
+              <span className={`theme-swatch theme-${t}`} />
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [tab, setTab] = useState<Tab>("projects");
   const [windowDays, setWindowDays] = useState(14);
+  const [theme, setTheme] = useState<Theme>(() => {
+    const saved = localStorage.getItem("csk-theme");
+    return (saved && THEMES.includes(saved as Theme) ? saved : "default") as Theme;
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("csk-theme", theme);
+  }, [theme]);
 
   return (
     <div className="app">
@@ -603,6 +648,7 @@ function App() {
             Cleanup
           </button>
         </nav>
+        <ThemePicker theme={theme} onChange={setTheme} />
       </header>
 
       <main className="container">
