@@ -30,6 +30,7 @@ function activityLabel(daysAgo: number): string {
 function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [gitInfo, setGitInfo] = useState<Record<string, GitInfo | null>>({});
+  const [goals, setGoals] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [windowDays, setWindowDays] = useState(14);
@@ -40,17 +41,18 @@ function App() {
     try {
       const res = await invoke<Project[]>("scan_projects", { windowDays: days });
       setProjects(res);
-      const entries = await Promise.all(
+      const known = await invoke<string[]>("engram_known_projects").catch(() => [] as string[]);
+      const enrich = await Promise.all(
         res.map(async (p) => {
-          try {
-            const g = await invoke<GitInfo | null>("git_last_commit", { path: p.path });
-            return [p.path, g] as const;
-          } catch {
-            return [p.path, null] as const;
-          }
+          const [git, goal] = await Promise.all([
+            invoke<GitInfo | null>("git_last_commit", { path: p.path }).catch(() => null),
+            invoke<string | null>("engram_project_goal", { path: p.path, known }).catch(() => null),
+          ]);
+          return [p.path, git, goal] as const;
         })
       );
-      setGitInfo(Object.fromEntries(entries));
+      setGitInfo(Object.fromEntries(enrich.map(([k, g]) => [k, g])));
+      setGoals(Object.fromEntries(enrich.map(([k, , goal]) => [k, goal])));
     } catch (e) {
       setError(String(e));
     } finally {
@@ -131,6 +133,12 @@ function App() {
               <div className="project-main">
                 <div className="project-name">{projectName(p.path)}</div>
                 <div className="project-path">{p.path}</div>
+                {goals[p.path] && (
+                  <div className="project-goal">
+                    <span className="goal-label">Goal</span>
+                    <span className="goal-text">{goals[p.path]}</span>
+                  </div>
+                )}
                 {gitInfo[p.path] && (
                   <div className="project-git">
                     <span className="git-hash">{gitInfo[p.path]!.hash}</span>

@@ -129,6 +129,108 @@ fn scan_projects(window_days: u64) -> Vec<Project> {
     out
 }
 
+#[tauri::command]
+fn engram_known_projects() -> Vec<String> {
+    let Ok(output) = Command::new("engram").args(["projects", "list"]).output() else {
+        return vec![];
+    };
+    if !output.status.success() {
+        return vec![];
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    let mut names = Vec::new();
+    for line in text.lines() {
+        let t = line.trim();
+        if t.is_empty() || t.starts_with(['-', '=', '#']) {
+            continue;
+        }
+        // Capture the leading identifier-like token.
+        let token: String = t
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-' || *c == '.')
+            .collect();
+        if token.len() >= 1 && token.chars().next().unwrap().is_ascii_alphanumeric() {
+            let lc = token.to_lowercase();
+            if !names.contains(&lc) {
+                names.push(lc);
+            }
+        }
+    }
+    names
+}
+
+fn resolve_engram_project(leaf: &str, known: &[String]) -> String {
+    let needle = leaf.to_lowercase();
+    if known.iter().any(|n| n == &needle) {
+        return needle;
+    }
+    if let Some(p) = known
+        .iter()
+        .find(|n| n.starts_with(&needle) || needle.starts_with(n.as_str()))
+    {
+        return p.clone();
+    }
+    if let Some(c) = known
+        .iter()
+        .find(|n| n.contains(&needle) || needle.contains(n.as_str()))
+    {
+        return c.clone();
+    }
+    needle
+}
+
+#[tauri::command]
+fn engram_project_goal(path: String, known: Vec<String>) -> Option<String> {
+    let leaf = Path::new(&path).file_name()?.to_str()?.to_string();
+    if leaf.is_empty() {
+        return None;
+    }
+    let project_name = resolve_engram_project(&leaf, &known);
+    let output = Command::new("engram")
+        .args([
+            "search",
+            "session summary",
+            "--project",
+            &project_name,
+            "--type",
+            "session_summary",
+            "--limit",
+            "1",
+        ])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&output.stdout).to_string();
+    extract_goal(&text)
+}
+
+fn extract_goal(text: &str) -> Option<String> {
+    let lower = text.to_lowercase();
+    let needle = "## goal";
+    let pos = lower.find(needle)?;
+    let after = &text[pos + needle.len()..];
+    for line in after.lines().skip(1) {
+        let t = line.trim();
+        if t.is_empty() {
+            continue;
+        }
+        if t.starts_with('#') {
+            return None;
+        }
+        let trimmed = if t.chars().count() > 110 {
+            let mut s: String = t.chars().take(109).collect();
+            s.push('…');
+            s
+        } else {
+            t.to_string()
+        };
+        return Some(trimmed);
+    }
+    None
+}
+
 #[derive(Serialize, Clone)]
 pub struct GitInfo {
     pub hash: String,
@@ -206,6 +308,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             scan_projects,
             git_last_commit,
+            engram_known_projects,
+            engram_project_goal,
             open_in_vscode,
             open_path_in_explorer
         ])
