@@ -1,10 +1,12 @@
 use chrono::{DateTime, Local, Utc};
+use once_cell::sync::Lazy;
 use serde::Serialize;
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::Mutex;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use tauri::{
     menu::{Menu, MenuItem},
@@ -75,8 +77,22 @@ fn first_cwd_in_jsonls(paths: &[PathBuf]) -> Option<String> {
     None
 }
 
-#[tauri::command]
-fn scan_projects(window_days: u64) -> Vec<Project> {
+/// Strip the Windows `\\?\` extended-length prefix that fs::canonicalize
+/// returns on Windows, so the path round-trips cleanly through the IPC layer
+/// and back into git/explorer/etc.
+fn strip_unc_prefix(p: PathBuf) -> PathBuf {
+    let s = p.to_string_lossy().to_string();
+    if let Some(stripped) = s.strip_prefix(r"\\?\") {
+        // Don't strip if it's an actual UNC share (\\?\UNC\server\share).
+        if stripped.starts_with("UNC\\") {
+            return p;
+        }
+        return PathBuf::from(stripped);
+    }
+    p
+}
+
+fn scan_projects_blocking(window_days: u64) -> Vec<Project> {
     let Some(root) = claude_projects_dir() else {
         return vec![];
     };
@@ -111,15 +127,23 @@ fn scan_projects(window_days: u64) -> Vec<Project> {
         let Some(cwd) = first_cwd_in_jsonls(&jsonls) else {
             continue;
         };
-        if !Path::new(&cwd).is_dir() {
+        // Canonicalize: handles relative paths and \\?\ UNC prefixes coming
+        // from older JSONL entries. Fall back to the raw cwd if canonicalize
+        // fails (e.g. directory was removed but the JSONL still references it).
+        let canonical = match fs::canonicalize(&cwd) {
+            Ok(c) => strip_unc_prefix(c),
+            Err(_) => PathBuf::from(&cwd),
+        };
+        if !canonical.is_dir() {
             continue;
         }
+        let canonical_str = canonical.to_string_lossy().to_string();
         let days_ago = (now.saturating_sub(mtime)) / 86_400;
         let last_date = DateTime::<Utc>::from_timestamp(mtime as i64, 0)
             .map(|d| d.with_timezone(&Local).format("%Y-%m-%d").to_string())
             .unwrap_or_default();
         out.push(Project {
-            path: cwd,
+            path: canonical_str,
             mtime,
             days_ago,
             last_date,
@@ -127,6 +151,13 @@ fn scan_projects(window_days: u64) -> Vec<Project> {
     }
     out.sort_by(|a, b| b.mtime.cmp(&a.mtime));
     out
+}
+
+#[tauri::command]
+async fn scan_projects(window_days: u64) -> Vec<Project> {
+    tokio::task::spawn_blocking(move || scan_projects_blocking(window_days))
+        .await
+        .unwrap_or_default()
 }
 
 #[derive(Serialize, Clone)]
@@ -164,8 +195,7 @@ fn mtime_unix(meta: &fs::Metadata) -> u64 {
         .unwrap_or(0)
 }
 
-#[tauri::command]
-fn cleanup_plan(older_than_days: u64) -> Vec<CleanupItem> {
+fn cleanup_plan_blocking(older_than_days: u64) -> Vec<CleanupItem> {
     let Some(home) = dirs_home() else {
         return vec![];
     };
@@ -230,7 +260,9 @@ fn cleanup_plan(older_than_days: u64) -> Vec<CleanupItem> {
             if !pdir.is_dir() {
                 continue;
             }
-            let Ok(jsonls) = fs::read_dir(&pdir) else { continue };
+            let Ok(jsonls) = fs::read_dir(&pdir) else {
+                continue;
+            };
             for jentry in jsonls.flatten() {
                 let p = jentry.path();
                 if p.extension().and_then(|s| s.to_str()) != Some("jsonl") {
@@ -254,6 +286,13 @@ fn cleanup_plan(older_than_days: u64) -> Vec<CleanupItem> {
     plan
 }
 
+#[tauri::command]
+async fn cleanup_plan(older_than_days: u64) -> Vec<CleanupItem> {
+    tokio::task::spawn_blocking(move || cleanup_plan_blocking(older_than_days))
+        .await
+        .unwrap_or_default()
+}
+
 #[derive(Serialize)]
 pub struct CleanupResult {
     pub deleted: u32,
@@ -268,21 +307,73 @@ fn cleanup_apply(paths: Vec<String>) -> CleanupResult {
     let mut failed = 0u32;
     let mut freed = 0u64;
     let mut errors = Vec::new();
+    // Confine deletions to ~/.claude/{logs,backups,projects} to prevent a
+    // malicious renderer from passing arbitrary paths via IPC.
+    let claude_root = match dirs_home() {
+        Some(h) => h.join(".claude"),
+        None => {
+            errors.push("home directory not resolvable".to_string());
+            return CleanupResult {
+                deleted: 0,
+                failed: 1,
+                freed_bytes: 0,
+                errors,
+            };
+        }
+    };
+    // Pre-canonicalize the allowed roots so symlink shenanigans inside the
+    // candidate path can't escape (e.g. a symlink under ~/.claude/logs that
+    // points to C:\Windows). Canonicalize resolves all symlinks on Windows.
+    let allowed_subdirs = ["logs", "backups", "projects"];
+    let allowed_roots: Vec<PathBuf> = allowed_subdirs
+        .iter()
+        .filter_map(|sub| fs::canonicalize(claude_root.join(sub)).ok())
+        .collect();
+
     for s in paths {
         let p = Path::new(&s);
         if !p.exists() {
             continue;
         }
-        let Ok(meta) = fs::metadata(p) else {
+        // Path confinement: must canonicalize INTO one of the allowed roots.
+        let canonical = match p.canonicalize() {
+            Ok(c) => c,
+            Err(e) => {
+                failed += 1;
+                errors.push(format!("canonicalize {s}: {e}"));
+                continue;
+            }
+        };
+        let within = allowed_roots
+            .iter()
+            .any(|root| canonical.starts_with(root));
+        if !within {
+            failed += 1;
+            errors.push(format!("refused (outside ~/.claude/): {s}"));
+            continue;
+        }
+        // Use symlink_metadata to avoid following a symlink to compute size or
+        // delete the target instead of the link itself.
+        let Ok(meta) = fs::symlink_metadata(&canonical) else {
             failed += 1;
             errors.push(format!("metadata: {s}"));
             continue;
         };
-        let bytes = if meta.is_dir() { dir_size(p) } else { meta.len() };
-        let res = if meta.is_dir() {
-            fs::remove_dir_all(p)
+        // Refuse to follow symlinks at all — delete only real files/dirs.
+        if meta.file_type().is_symlink() {
+            failed += 1;
+            errors.push(format!("refused (symlink): {s}"));
+            continue;
+        }
+        let bytes = if meta.is_dir() {
+            dir_size(&canonical)
         } else {
-            fs::remove_file(p)
+            meta.len()
+        };
+        let res = if meta.is_dir() {
+            fs::remove_dir_all(&canonical)
+        } else {
+            fs::remove_file(&canonical)
         };
         match res {
             Ok(_) => {
@@ -312,8 +403,7 @@ pub struct GhPullRequest {
     pub created_at: String,
 }
 
-#[tauri::command]
-fn github_review_queue(limit: u32) -> Result<Vec<GhPullRequest>, String> {
+fn github_review_queue_blocking(limit: u32) -> Result<Vec<GhPullRequest>, String> {
     let limit_str = limit.to_string();
     let output = Command::new("gh")
         .args([
@@ -336,8 +426,12 @@ fn github_review_queue(limit: u32) -> Result<Vec<GhPullRequest>, String> {
         return Err(format!("gh failed: {}", stderr.trim()));
     }
     let text = String::from_utf8_lossy(&output.stdout);
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return Ok(Vec::new());
+    }
     let raw: serde_json::Value =
-        serde_json::from_str(text.trim()).map_err(|e| format!("gh JSON parse: {e}"))?;
+        serde_json::from_str(trimmed).map_err(|e| format!("gh JSON parse: {e}"))?;
     let arr = raw.as_array().ok_or("gh output is not an array")?;
     let prs = arr
         .iter()
@@ -375,9 +469,29 @@ fn github_review_queue(limit: u32) -> Result<Vec<GhPullRequest>, String> {
 }
 
 #[tauri::command]
+async fn github_review_queue(limit: u32) -> Result<Vec<GhPullRequest>, String> {
+    // 15s timeout: gh is normally subsecond; if it's stalling on auth or
+    // network, surface that to the UI instead of hanging the panel forever.
+    let fut = tokio::task::spawn_blocking(move || github_review_queue_blocking(limit));
+    match tokio::time::timeout(Duration::from_secs(15), fut).await {
+        Ok(Ok(res)) => res,
+        Ok(Err(join_err)) => Err(format!("gh task join error: {join_err}")),
+        Err(_) => Err("gh timed out after 15s".to_string()),
+    }
+}
+
+#[tauri::command]
 fn open_url(url: String) -> Result<(), String> {
-    Command::new("cmd")
-        .args(["/c", "start", "", &url])
+    // Strict scheme allowlist — no file://, javascript:, ftp:, data:, etc.
+    let lc = url.trim().to_lowercase();
+    let ok = lc.starts_with("http://") || lc.starts_with("https://");
+    if !ok {
+        return Err("only http(s) URLs are allowed".to_string());
+    }
+    // rundll32 doesn't re-interpret the URL string the way cmd.exe does
+    // (avoids `&` becoming a command separator on PR query-string URLs).
+    Command::new("rundll32")
+        .args(["url.dll,FileProtocolHandler", &url])
         .spawn()
         .map_err(|e| format!("failed to open url: {e}"))?;
     Ok(())
@@ -391,8 +505,7 @@ pub struct AuditFinding {
     pub detail: String,
 }
 
-#[tauri::command]
-fn run_audit() -> Result<Vec<AuditFinding>, String> {
+fn run_audit_blocking() -> Result<Vec<AuditFinding>, String> {
     let script = dirs_home()
         .map(|h| h.join(".claude").join("scripts").join("claude-audit.ps1"))
         .ok_or_else(|| "no home directory".to_string())?;
@@ -418,9 +531,13 @@ fn run_audit() -> Result<Vec<AuditFinding>, String> {
         ));
     }
     let text = String::from_utf8_lossy(&output.stdout);
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return Ok(Vec::new());
+    }
     // PowerShell JSON uses PascalCase fields; deserialize into a generic Value first.
     let raw: serde_json::Value =
-        serde_json::from_str(text.trim()).map_err(|e| format!("audit JSON parse: {e}"))?;
+        serde_json::from_str(trimmed).map_err(|e| format!("audit JSON parse: {e}"))?;
     let arr = raw.as_array().ok_or("audit output is not an array")?;
     let findings = arr
         .iter()
@@ -451,7 +568,25 @@ fn run_audit() -> Result<Vec<AuditFinding>, String> {
 }
 
 #[tauri::command]
-fn engram_known_projects() -> Vec<String> {
+async fn run_audit() -> Result<Vec<AuditFinding>, String> {
+    tokio::task::spawn_blocking(run_audit_blocking)
+        .await
+        .map_err(|e| format!("audit task join error: {e}"))?
+}
+
+// ---------- engram known-projects cache (5-minute TTL) ----------
+
+struct KnownProjectsCache {
+    value: Vec<String>,
+    fetched_at: Instant,
+}
+
+static KNOWN_PROJECTS_CACHE: Lazy<Mutex<Option<KnownProjectsCache>>> =
+    Lazy::new(|| Mutex::new(None));
+
+const KNOWN_PROJECTS_TTL: Duration = Duration::from_secs(5 * 60);
+
+fn fetch_known_projects_uncached() -> Vec<String> {
     let Ok(output) = Command::new("engram").args(["projects", "list"]).output() else {
         return vec![];
     };
@@ -470,14 +605,49 @@ fn engram_known_projects() -> Vec<String> {
             .chars()
             .take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-' || *c == '.')
             .collect();
-        if token.len() >= 1 && token.chars().next().unwrap().is_ascii_alphanumeric() {
-            let lc = token.to_lowercase();
-            if !names.contains(&lc) {
-                names.push(lc);
-            }
+        if token.is_empty() {
+            continue;
+        }
+        // Skip purely-numeric tokens (line numbers, counts) and tokens whose
+        // first char isn't alphanumeric.
+        let Some(first) = token.chars().next() else {
+            continue;
+        };
+        if !first.is_ascii_alphanumeric() {
+            continue;
+        }
+        if token.chars().all(|c| c.is_ascii_digit()) {
+            continue;
+        }
+        let lc = token.to_lowercase();
+        if !names.contains(&lc) {
+            names.push(lc);
         }
     }
     names
+}
+
+fn known_projects_cached() -> Vec<String> {
+    {
+        let guard = KNOWN_PROJECTS_CACHE.lock().unwrap();
+        if let Some(entry) = guard.as_ref() {
+            if entry.fetched_at.elapsed() < KNOWN_PROJECTS_TTL {
+                return entry.value.clone();
+            }
+        }
+    }
+    let fresh = fetch_known_projects_uncached();
+    let mut guard = KNOWN_PROJECTS_CACHE.lock().unwrap();
+    *guard = Some(KnownProjectsCache {
+        value: fresh.clone(),
+        fetched_at: Instant::now(),
+    });
+    fresh
+}
+
+#[tauri::command]
+fn engram_known_projects() -> Vec<String> {
+    known_projects_cached()
 }
 
 fn resolve_engram_project(leaf: &str, known: &[String]) -> String {
@@ -500,13 +670,12 @@ fn resolve_engram_project(leaf: &str, known: &[String]) -> String {
     needle
 }
 
-#[tauri::command]
-fn engram_project_goal(path: String, known: Vec<String>) -> Option<String> {
-    let leaf = Path::new(&path).file_name()?.to_str()?.to_string();
+fn engram_project_goal_blocking(path: &str, known: &[String]) -> Option<String> {
+    let leaf = Path::new(path).file_name()?.to_str()?.to_string();
     if leaf.is_empty() {
         return None;
     }
-    let project_name = resolve_engram_project(&leaf, &known);
+    let project_name = resolve_engram_project(&leaf, known);
     let output = Command::new("engram")
         .args([
             "search",
@@ -525,6 +694,11 @@ fn engram_project_goal(path: String, known: Vec<String>) -> Option<String> {
     }
     let text = String::from_utf8_lossy(&output.stdout).to_string();
     extract_goal(&text)
+}
+
+#[tauri::command]
+fn engram_project_goal(path: String, known: Vec<String>) -> Option<String> {
+    engram_project_goal_blocking(&path, &known)
 }
 
 fn extract_goal(text: &str) -> Option<String> {
@@ -560,9 +734,8 @@ pub struct GitInfo {
     pub subject: String,
 }
 
-#[tauri::command]
-fn git_last_commit(path: String) -> Option<GitInfo> {
-    let project = Path::new(&path);
+fn git_last_commit_blocking(path: &str) -> Option<GitInfo> {
+    let project = Path::new(path);
     if !project.is_dir() {
         return None;
     }
@@ -570,7 +743,7 @@ fn git_last_commit(path: String) -> Option<GitInfo> {
         return None;
     }
     let output = Command::new("git")
-        .args(["-C", &path, "log", "-1", "--pretty=format:%h|%cr|%an|%s"])
+        .args(["-C", path, "log", "-1", "--pretty=format:%h|%cr|%an|%s"])
         .output()
         .ok()?;
     if !output.status.success() {
@@ -593,15 +766,55 @@ fn git_last_commit(path: String) -> Option<GitInfo> {
 }
 
 #[tauri::command]
-fn open_in_vscode(path: String) -> Result<(), String> {
-    // Use code.cmd explicitly so cmd.exe doesn't pick the MSYS wrapper.
-    let status = Command::new("cmd")
-        .args(["/c", "code.cmd", &path])
-        .status()
-        .map_err(|e| format!("failed to launch VS Code: {e}"))?;
-    if !status.success() {
-        return Err(format!("code.cmd exited with status {status}"));
+fn git_last_commit(path: String) -> Option<GitInfo> {
+    git_last_commit_blocking(&path)
+}
+
+// ---------- batched enrichment ----------
+
+#[derive(Serialize, Clone)]
+pub struct EnrichedProject {
+    pub path: String,
+    pub git: Option<GitInfo>,
+    pub goal: Option<String>,
+}
+
+#[tauri::command]
+async fn enrich_projects(paths: Vec<String>) -> Vec<EnrichedProject> {
+    // Resolve known engram projects ONCE for the whole batch (cached for 5min).
+    let known = tokio::task::spawn_blocking(known_projects_cached)
+        .await
+        .unwrap_or_default();
+
+    // Fan out: each path runs git+engram in parallel inside spawn_blocking.
+    let mut handles = Vec::with_capacity(paths.len());
+    for path in paths {
+        let known_clone = known.clone();
+        handles.push(tokio::task::spawn_blocking(move || {
+            let git = git_last_commit_blocking(&path);
+            let goal = engram_project_goal_blocking(&path, &known_clone);
+            EnrichedProject { path, git, goal }
+        }));
     }
+
+    let mut out = Vec::with_capacity(handles.len());
+    for h in handles {
+        if let Ok(item) = h.await {
+            out.push(item);
+        }
+    }
+    out
+}
+
+#[tauri::command]
+fn open_in_vscode(path: String) -> Result<(), String> {
+    // Direct invocation of code.cmd. Path is passed as a single argv entry,
+    // so Rust's Windows arg quoter handles spaces. .spawn() returns immediately
+    // (no UI block); we don't wait for VS Code to exit.
+    Command::new("code.cmd")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| format!("failed to launch VS Code: {e}"))?;
     Ok(())
 }
 
@@ -631,6 +844,7 @@ pub fn run() {
             git_last_commit,
             engram_known_projects,
             engram_project_goal,
+            enrich_projects,
             run_audit,
             github_review_queue,
             cleanup_plan,
@@ -640,12 +854,15 @@ pub fn run() {
             open_url
         ])
         .setup(|app| {
-            let show_i = MenuItem::with_id(app, "show", "Show window", true, None::<&str>)?;
-            let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let show_i = MenuItem::with_id(app, "show", "Mostrar ventana", true, None::<&str>)?;
+            let quit_i = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
 
-            let _tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+            let mut tray_builder = TrayIconBuilder::new();
+            if let Some(icon) = app.default_window_icon() {
+                tray_builder = tray_builder.icon(icon.clone());
+            }
+            let _tray = tray_builder
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
