@@ -1,6 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="kawaii">
   <head>
+    <script>
+      // Apply saved theme synchronously to avoid FOUC.
+      // Validate against current theme list — old names from previous
+      // versions (fantasy/terminal/bios/...) would otherwise leave the
+      // app with no palette and a black-on-black render.
+      try {
+        var THEMES = ["kawaii","lunar","glitch","berserk","ink","occult","grid","gameboy","gba","foxmi","newsprint"];
+        var t = localStorage.getItem("csk-theme");
+        if (!t || THEMES.indexOf(t) === -1) {
+          t = "kawaii";
+          localStorage.setItem("csk-theme", t);
+        }
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "kawaii");
+      }
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -1,0 +1,729 @@
+/* ===== Theme: Berserk (Brutalist — Matrix green on absolute black) ===== */
+/* Extreme contrast. Dark manga industrial. Halftone illustrations.
+   Thick stencil borders. Big "WARNING" energy. NO greys.
+   Speech bubbles with manga-punch ► triangle on the left. */
+
+[data-theme="berserk"] {
+  /* Palette — pure black + matrix green, with caution yellow & alert red */
+  --bg: #000000;
+  --bg-elev: #000000;
+  --bg-elev-2: #020a04;
+  --bg-hover: #00200d;
+  --border: #00FF41;
+  --border-strong: #00FF41;
+  --text: #00FF41;
+  --text-dim: #00FF41;
+  --text-muted: #00b32d;
+  --accent: #00FF41;
+  --accent-dim: rgba(0, 255, 65, 0.18);
+  --accent-hover: #5cff85;
+  --pink: #FFCC00;
+  --pink-dim: rgba(255, 204, 0, 0.18);
+  --green: #00FF41;
+  --green-dim: rgba(0, 255, 65, 0.18);
+  --warn: #FFCC00;
+  --warn-dim: rgba(255, 204, 0, 0.22);
+  --crit: #FF3030;
+  --crit-dim: rgba(255, 48, 48, 0.28);
+
+  /* Fonts — Bitter 700 display+body, VT323 mono */
+  --font-display: "Bitter", Georgia, serif;
+  --font-body: "Bitter", Georgia, serif;
+  --font-mono: "VT323", ui-monospace, monospace;
+  --letter-display: 0.18em;
+  --decor-corner: var(--accent);
+}
+
+/* ===== Atmosphere — halftone dot grid + green CRT vignette ===== */
+[data-theme="berserk"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image:
+    radial-gradient(circle, rgba(0, 255, 65, 0.18) 1px, transparent 1.4px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.85) 100%);
+  background-size: 6px 6px, 100% 100%;
+  background-position: 0 0, center;
+  opacity: 0.55;
+  mix-blend-mode: screen;
+}
+
+/* Noise grain overlay */
+[data-theme="berserk"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 1  0 0 0 0 0.25  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.35'/></svg>");
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+}
+
+[data-theme="berserk"] body {
+  background: #000000;
+  color: #00FF41;
+  font-family: var(--font-body);
+  font-weight: 700;
+}
+
+/* Aggressive uppercase headings */
+[data-theme="berserk"] h1,
+[data-theme="berserk"] h2,
+[data-theme="berserk"] h3,
+[data-theme="berserk"] h4,
+[data-theme="berserk"] h5,
+[data-theme="berserk"] h6 {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  color: #00FF41;
+}
+
+/* ===== Titlebar — sparse green dots on absolute black ===== */
+[data-theme="berserk"] .titlebar {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(0, 255, 65, 0.18) 0.6px, transparent 1px) 0 0 / 5px 5px,
+    #000000;
+  border-bottom: 2px solid #00FF41;
+  border-radius: 0;
+  color: #00FF41;
+}
+[data-theme="berserk"] .titlebar-title {
+  color: #00FF41;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: calc(15px * var(--font-scale));
+}
+[data-theme="berserk"] .emblem { color: #00FF41; filter: none; }
+[data-theme="berserk"] .window-controls .wc {
+  color: #00FF41;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(0, 255, 65, 0.18) 0.6px, transparent 1px) 0 0 / 5px 5px,
+    #000000;
+}
+[data-theme="berserk"] .window-controls .wc:hover {
+  background: #00FF41;
+  color: #000000;
+}
+[data-theme="berserk"] .window-controls .wc-close:hover {
+  background: var(--crit);
+  color: #ffffff;
+}
+
+/* ===== Topbar (tab strip) — same subtle dot pattern ===== */
+[data-theme="berserk"] .topbar {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(0, 255, 65, 0.18) 0.6px, transparent 1px) 0 0 / 5px 5px,
+    #000000;
+  border-bottom: 2px solid #00FF41;
+  padding: 10px 20px;
+}
+[data-theme="berserk"] .ornament {
+  color: #00FF41;
+  opacity: 0.8;
+}
+
+/* ===== Tabs — inverted blocks. Active inverts (green bg + black text + glow). ===== */
+[data-theme="berserk"] .tabs {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 6px;
+}
+
+[data-theme="berserk"] .tab {
+  background: transparent;
+  color: #00FF41;
+  border: 3px solid #00FF41;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: calc(12px * var(--font-scale));
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: background 0.1s linear, color 0.1s linear, box-shadow 0.1s linear;
+}
+
+[data-theme="berserk"] .tab:hover:not(.active) {
+  background: transparent;
+  color: #5cff85;
+  box-shadow: inset 6px 0 0 0 #00FF41;
+}
+
+[data-theme="berserk"] .tab.active,
+[data-theme="berserk"] .tab[aria-selected="true"] {
+  background: #00FF41;
+  color: #000000;
+  border-color: #00FF41;
+  box-shadow: 0 0 0 2px #000000, 0 0 12px rgba(0, 255, 65, 0.65);
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+}
+
+/* Theme picker icon button — stencil match */
+[data-theme="berserk"] .theme-picker .ghost {
+  background: #000000;
+  color: #00FF41;
+  border: 2px solid #00FF41;
+  border-radius: 0;
+}
+[data-theme="berserk"] .theme-picker .ghost:hover {
+  background: #00FF41;
+  color: #000000;
+}
+
+/* ===== Container ===== */
+[data-theme="berserk"] .container { background: var(--bg); }
+
+/* ===== View bar ===== */
+[data-theme="berserk"] .summary {
+  color: var(--text-muted);
+  font-size: calc(14px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+}
+[data-theme="berserk"] .summary strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ===== Companion stage — bigger frame, big stencil title ===== */
+[data-theme="berserk"] .companion-stage {
+  grid-template-columns: 380px 1fr;
+  gap: 32px;
+}
+[data-theme="berserk"] .companion-portrait {
+  background: #000000;
+  border: 3px solid #00FF41;
+  border-radius: 0;
+  padding: 18px 18px 14px;
+  box-shadow:
+    inset 0 0 0 2px #000000,
+    inset 0 0 0 5px #00FF41,
+    0 0 18px rgba(0, 255, 65, 0.35);
+}
+[data-theme="berserk"] .companion-frame {
+  border: 3px solid #00FF41;
+  border-radius: 0;
+  filter: drop-shadow(0 0 14px rgba(0, 255, 65, 0.55));
+  background: #000000;
+  position: relative;
+  overflow: hidden;
+  max-width: none;
+  width: 100%;
+  box-shadow:
+    inset 0 0 0 2px #000,
+    inset 0 0 0 4px #00FF41;
+}
+[data-theme="berserk"] .companion-name {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 8px;
+}
+[data-theme="berserk"] .companion-name .hex-id { display: none; }
+[data-theme="berserk"] .companion-title {
+  color: #00FF41;
+  font-family: var(--font-display);
+  font-size: calc(28px * var(--font-scale));
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  text-shadow:
+    0 0 10px rgba(0, 255, 65, 0.65),
+    0 0 22px rgba(0, 255, 65, 0.35);
+}
+
+/* ===== Avatar treatment — Matrix duotone + halftone ===== */
+[data-theme="berserk"] .companion-avatar,
+[data-theme="berserk"] .companion-frame img {
+  filter: grayscale(1) contrast(2.4) brightness(0.78);
+}
+[data-theme="berserk"] .companion-tint {
+  position: absolute;
+  inset: 0;
+  background: #00FF41;
+  mix-blend-mode: multiply;
+  opacity: 0.85;
+  pointer-events: none;
+}
+[data-theme="berserk"] .companion-scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #000 1px, transparent 1.6px);
+  background-size: 5px 5px;
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+}
+
+/* Diagonal hazard-tape stripe across top-left corner (PRESERVED signature) */
+[data-theme="berserk"] .companion-frame::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: -30px;
+  width: 110px;
+  height: 18px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #FFCC00 0 10px,
+    #000 10px 20px
+  );
+  transform: rotate(-45deg);
+  transform-origin: top left;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* WARNING corner badge (PRESERVED signature) */
+[data-theme="berserk"] .companion-frame::after {
+  content: "!";
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  background: #FF3030;
+  color: #000;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: calc(14px * var(--font-scale, 1));
+  line-height: 18px;
+  text-align: center;
+  border: 1px solid #000;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ===== Speech bubbles — matte black with manga punch ► on the left ===== */
+[data-theme="berserk"] .bubble {
+  background: #000000;
+  color: #00FF41;
+  border: 3px solid #00FF41;
+  border-radius: 0;
+  padding: 14px 18px 14px 50px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: calc(15px * var(--font-scale));
+  line-height: 1.5;
+  position: relative;
+  box-shadow: inset 0 0 0 1px #000000, 4px 4px 0 #00FF41;
+  transition: box-shadow 0.12s linear, transform 0.12s linear;
+}
+[data-theme="berserk"] .bubble:hover {
+  box-shadow: inset 4px 0 0 0 #00FF41, 4px 4px 0 #00FF41;
+}
+[data-theme="berserk"] .bubble strong {
+  color: #5cff85;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* Manga punch ► triangle on the left edge */
+[data-theme="berserk"] .bubble::before {
+  content: "\25BA"; /* ► */
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-size: calc(30px * var(--font-scale));
+  color: #00FF41;
+  line-height: 1;
+  border: none;
+  background: none;
+  width: auto;
+  height: auto;
+  text-shadow: 0 0 8px rgba(0, 255, 65, 0.65);
+}
+[data-theme="berserk"] .bubble::after { display: none; }
+
+[data-theme="berserk"] .bubble-warn {
+  border-color: #FFCC00;
+  box-shadow: inset 0 0 0 1px #000000, 4px 4px 0 #FFCC00;
+}
+[data-theme="berserk"] .bubble-warn::before { color: #FFCC00; text-shadow: 0 0 8px rgba(255, 204, 0, 0.65); }
+[data-theme="berserk"] .bubble-praise {
+  border-color: #5cff85;
+  box-shadow: inset 0 0 0 1px #000000, 4px 4px 0 #5cff85;
+}
+[data-theme="berserk"] .bubble-praise::before { color: #5cff85; }
+
+/* ===== Action chips — green outline rectangle + tape-stripe accent ===== */
+[data-theme="berserk"] .action-chip {
+  background: #000000;
+  color: #00FF41;
+  border: 2px solid #00FF41;
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-size: calc(13px * var(--font-scale));
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 4px 10px 4px 14px;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.08s linear, color 0.08s linear, transform 0.08s linear;
+}
+[data-theme="berserk"] .action-chip::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #FFCC00 0 4px,
+    #000 4px 8px
+  );
+  pointer-events: none;
+}
+[data-theme="berserk"] .action-chip:hover {
+  background: #00FF41;
+  color: #000000;
+  transform: translate(-1px, -1px);
+}
+
+/* ===== Cards — black bg, 3px green border, hover inset green left bar ===== */
+[data-theme="berserk"] .project,
+[data-theme="berserk"] .pr,
+[data-theme="berserk"] .audit-finding,
+[data-theme="berserk"] .cleanup-cat,
+[data-theme="berserk"] .quick-card {
+  background: #000000;
+  color: #00FF41;
+  border: 3px solid #00FF41;
+  border-radius: 0;
+  padding: 14px;
+  position: relative;
+  transition: box-shadow 0.12s linear, transform 0.12s linear;
+}
+[data-theme="berserk"] .project:hover,
+[data-theme="berserk"] .pr:hover,
+[data-theme="berserk"] .audit-finding:hover,
+[data-theme="berserk"] .quick-card:hover {
+  box-shadow: inset 4px 0 0 0 #00FF41;
+  transform: translate(-1px, -1px);
+}
+
+/* Big stencil titles — ALL CAPS, ultra-wide tracking */
+[data-theme="berserk"] .project-name,
+[data-theme="berserk"] .pr-title,
+[data-theme="berserk"] .quick-card-name,
+[data-theme="berserk"] .audit-category-header {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  color: #00FF41;
+  font-size: calc(18px * var(--font-scale));
+  font-family: var(--font-display);
+}
+[data-theme="berserk"] .project-icon,
+[data-theme="berserk"] .quick-card-name svg { color: #00FF41; }
+[data-theme="berserk"] .project-path,
+[data-theme="berserk"] .quick-card-goal { color: var(--text-muted); }
+[data-theme="berserk"] .quick-card-goal { font-style: normal; }
+[data-theme="berserk"] .git-subject { color: #00FF41; }
+[data-theme="berserk"] .git-hash {
+  background: #00FF41;
+  color: #000000;
+  border: 2px solid #00FF41;
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+[data-theme="berserk"] .git-ago { color: var(--text-muted); }
+
+/* ===== Buttons — stencil. Black bg + 2px green border + green caps text → hover inverts ===== */
+[data-theme="berserk"] button {
+  background: #000000;
+  color: #00FF41;
+  border: 2px solid #00FF41;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.08s linear, color 0.08s linear, transform 0.08s linear;
+}
+[data-theme="berserk"] button:hover {
+  background: #00FF41;
+  color: #000000;
+  transform: translate(-1px, -1px);
+}
+[data-theme="berserk"] button:active {
+  transform: translate(0, 0);
+}
+[data-theme="berserk"] button.ghost {
+  background: #000000;
+  color: #00FF41;
+  border: 2px solid #00FF41;
+}
+[data-theme="berserk"] button.ghost:hover {
+  background: #00FF41;
+  color: #000000;
+}
+[data-theme="berserk"] button.danger {
+  background: #000000;
+  color: var(--crit);
+  border-color: var(--crit);
+}
+[data-theme="berserk"] button.danger:hover {
+  background: var(--crit);
+  color: #ffffff;
+}
+
+/* ===== Badges & crit alert blocks — preserve red CRIT prominence ===== */
+[data-theme="berserk"] .badge {
+  background: transparent;
+  color: #00FF41;
+  border: 2px solid #00FF41;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  padding: 2px 8px;
+}
+[data-theme="berserk"] .badge-fresh {
+  background: #00FF41;
+  color: #000000;
+}
+[data-theme="berserk"] .hex-id {
+  background: transparent;
+  color: #00FF41;
+  border: 2px solid #00FF41;
+  border-radius: 0;
+}
+
+[data-theme="berserk"] .audit-level.lvl-crit {
+  background: #FF3030;
+  color: #ffffff;
+  border: 2px solid #FF3030;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  padding: 2px 8px;
+}
+
+/* Dramatic crit findings — RED prominence preserved */
+[data-theme="berserk"] .audit-finding.lvl-crit {
+  border: 5px solid #FF3030;
+  box-shadow: 0 0 0 2px #000000, 0 0 0 7px #FF3030;
+  background: #000000;
+}
+[data-theme="berserk"] .audit-finding.lvl-crit:hover {
+  box-shadow: 0 0 0 2px #000000, 0 0 0 7px #FF3030, inset 4px 0 0 0 #FF3030;
+}
+
+/* WARN tape stripes (PRESERVED signature) */
+[data-theme="berserk"] .audit-finding.lvl-warn {
+  border: 3px solid #FFCC00;
+  position: relative;
+  overflow: hidden;
+}
+[data-theme="berserk"] .audit-finding.lvl-warn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #FFCC00 0 16px,
+    #000000 16px 32px
+  );
+  pointer-events: none;
+}
+[data-theme="berserk"] .audit-finding.lvl-warn:hover {
+  box-shadow: inset 4px 0 0 0 #FFCC00;
+}
+[data-theme="berserk"] .audit-level.lvl-warn {
+  background: #FFCC00;
+  color: #000000;
+  border-radius: 0;
+}
+[data-theme="berserk"] .audit-level {
+  background: #00FF41;
+  color: #000000;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-weight: 700;
+}
+[data-theme="berserk"] .audit-title {
+  color: #00FF41;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: calc(15px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+[data-theme="berserk"] .audit-detail {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: calc(13px * var(--font-scale));
+}
+[data-theme="berserk"] .audit-cat-count {
+  background: #000000;
+  color: #00FF41;
+  border: 2px solid #00FF41;
+  border-radius: 0;
+}
+
+/* [!] prefix on active crit pill */
+[data-theme="berserk"] .audit-pill.crit.active::before {
+  content: "[!] ";
+  color: #FF3030;
+  font-weight: 700;
+}
+
+/* ===== ASCII-style decorative dividers ===== */
+[data-theme="berserk"] .divider-line {
+  background: #00FF41;
+  height: 2px;
+  border: 0;
+  border-radius: 0;
+  opacity: 1;
+}
+
+/* ===== PR & cleanup specifics ===== */
+[data-theme="berserk"] .pr-meta { color: var(--text-muted); }
+[data-theme="berserk"] .pr-repo { color: #00FF41; }
+[data-theme="berserk"] .cleanup-cat header {
+  background: #00FF41;
+  color: #000000;
+  border-bottom: 3px solid #00FF41;
+}
+[data-theme="berserk"] .cleanup-cat-name {
+  color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+}
+[data-theme="berserk"] .cleanup-cat-meta { color: #002a0d; }
+[data-theme="berserk"] .cleanup-cat li {
+  color: #00FF41;
+  border-bottom-color: rgba(0, 255, 65, 0.25);
+}
+[data-theme="berserk"] .cleanup-date { color: var(--text-muted); }
+
+/* ===== Quick projects panel ===== */
+[data-theme="berserk"] .quick-projects { border-top: 3px solid #00FF41; }
+[data-theme="berserk"] .quick-projects-head h3 {
+  color: #00FF41;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  font-size: calc(20px * var(--font-scale));
+}
+
+/* ===== Status bar — sparse green dots ===== */
+[data-theme="berserk"] .statusbar {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(0, 255, 65, 0.18) 0.6px, transparent 1px) 0 0 / 5px 5px,
+    #000000;
+  color: #00FF41;
+  border-top: 2px solid #00FF41;
+  font-family: var(--font-mono);
+  letter-spacing: 0.12em;
+}
+[data-theme="berserk"] .sb-mono { color: #00FF41; }
+[data-theme="berserk"] .sb-dim { color: var(--text-muted); }
+[data-theme="berserk"] .sb-glyph { color: #00FF41; }
+[data-theme="berserk"] .sb-clock {
+  color: #00FF41;
+  text-shadow: 0 0 8px rgba(0, 255, 65, 0.5);
+}
+
+/* ===== Theme picker menu ===== */
+[data-theme="berserk"] .theme-menu {
+  background: #000000;
+  border: 3px solid #00FF41;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #00FF41;
+}
+[data-theme="berserk"] .theme-option {
+  color: #00FF41;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-weight: 700;
+}
+[data-theme="berserk"] .theme-option:hover { background: var(--bg-hover); color: #5cff85; }
+[data-theme="berserk"] .theme-option.active { background: #00FF41; color: #000000; }
+
+/* ===== Search input ===== */
+[data-theme="berserk"] .search {
+  background: #000000;
+  border: 2px solid #00FF41;
+  border-radius: 0;
+}
+[data-theme="berserk"] .search input {
+  color: #00FF41;
+  font-family: var(--font-mono);
+}
+[data-theme="berserk"] .search input::placeholder { color: var(--text-muted); }
+[data-theme="berserk"] .select-wrap select {
+  background: #000000;
+  color: #00FF41;
+  border: 2px solid #00FF41;
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+/* ===== Polish: focus, selection, skeleton, state ===== */
+[data-theme="berserk"] ::selection {
+  background: #00FF41;
+  color: #000000;
+}
+
+[data-theme="berserk"] .tab:focus-visible,
+[data-theme="berserk"] button:focus-visible,
+[data-theme="berserk"] .search input:focus-visible,
+[data-theme="berserk"] input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Scrollbar */
+[data-theme="berserk"] ::-webkit-scrollbar-track { background: #000000; }
+[data-theme="berserk"] ::-webkit-scrollbar-thumb {
+  background: #00FF41;
+  border: 3px solid #000000;
+  border-radius: 0;
+}
+[data-theme="berserk"] ::-webkit-scrollbar-thumb:hover { background: #5cff85; }
+
+[data-theme="berserk"] .sk-line {
+  background: linear-gradient(90deg, #000 0%, var(--accent-dim) 50%, #000 100%);
+  background-size: 200% 100%;
+  animation: berserk-skeleton 1.4s steps(8) infinite;
+  border: 2px solid var(--accent);
+}
+@keyframes berserk-skeleton {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+[data-theme="berserk"] .state {
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  font-style: normal;
+}

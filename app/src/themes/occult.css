@@ -1,0 +1,739 @@
+/* ============================================================
+   OCCULT — Occult Terminal: Linux dark rice with ritual elements
+   Pentagram watermark, blood-red accents, neofetch-style blocks,
+   halo'd avatar. Bitter serif + VT323 mono.
+   ============================================================ */
+
+[data-theme="occult"] {
+  /* Palette */
+  --bg: #0e0a0a;
+  --bg-elev: #140d0d;
+  --bg-elev-2: #1c1313;
+  --bg-hover: #241818;
+  --border: #3a1414;
+  --border-strong: #8b1a1a;
+  --text: #f0e8e0;
+  --text-dim: #b8a89a;
+  --text-muted: #6a5e58;
+  --accent: #d32f2f;
+  --accent-dim: #8b1a1a;
+  --accent-hover: #ff5252;
+  --pink: #b15a8a;
+  --pink-dim: #6e3a55;
+  --green: #6b8e6b;
+  --green-dim: #3e5440;
+  --warn: #c9a227;
+  --warn-dim: #7a611a;
+  --crit: #d32f2f;
+  --crit-dim: #5a0d0d;
+  --violet: #6a3a8a;
+
+  /* Typography */
+  --font-display: "Bitter", Georgia, serif;
+  --font-body: "Bitter", Georgia, serif;
+  --font-mono: "VT323", "Courier New", monospace;
+  --letter-display: 0.06em;
+  --decor-corner: #8b1a1a;
+}
+
+/* ----- Atmosphere: pentagram watermark + warm vignette ----- */
+[data-theme="occult"] body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  position: relative;
+  overflow-x: hidden;
+}
+
+[data-theme="occult"] body::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 90vmin;
+  height: 90vmin;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><circle cx='100' cy='100' r='95' fill='none' stroke='%23d32f2f' stroke-width='1.2'/><circle cx='100' cy='100' r='80' fill='none' stroke='%23d32f2f' stroke-width='0.8'/><polygon points='100,12 120.6,154.5 5.5,66.3 194.5,66.3 79.4,154.5' fill='none' stroke='%23d32f2f' stroke-width='1.2'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  animation: occult-rotate 60s linear infinite;
+}
+
+[data-theme="occult"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(40, 8, 8, 0.45) 80%,
+    rgba(20, 4, 4, 0.85) 100%
+  );
+}
+
+@keyframes occult-rotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+[data-theme="occult"] #root,
+[data-theme="occult"] main,
+[data-theme="occult"] .app { position: relative; z-index: 1; }
+
+/* ===== Titlebar — subtle blood-red dot pattern on near-black ===== */
+[data-theme="occult"] .titlebar {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(211, 47, 47, 0.18) 0.6px, transparent 1px) 0 0 / 5px 5px,
+    #0e0a0a;
+  border-bottom: 1px solid var(--accent);
+  color: var(--text);
+  box-shadow: 0 6px 22px -8px rgba(211, 47, 47, 0.45);
+}
+[data-theme="occult"] .titlebar-title {
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: calc(15px * var(--font-scale));
+}
+[data-theme="occult"] .emblem { color: var(--accent); }
+[data-theme="occult"] .window-controls .wc {
+  color: var(--accent);
+  background:
+    radial-gradient(circle at 1px 1px, rgba(211, 47, 47, 0.18) 0.6px, transparent 1px) 0 0 / 5px 5px,
+    #0e0a0a;
+}
+[data-theme="occult"] .window-controls .wc:hover {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(211, 47, 47, 0.55);
+}
+[data-theme="occult"] .window-controls .wc-close:hover {
+  background: var(--crit);
+  color: #ffffff;
+}
+
+/* ===== Topbar (tab strip) — same subtle dot pattern ===== */
+[data-theme="occult"] .topbar {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(211, 47, 47, 0.18) 0.6px, transparent 1px) 0 0 / 5px 5px,
+    #0e0a0a;
+  border-bottom: 1px solid var(--accent);
+  padding: 10px 20px;
+}
+[data-theme="occult"] .ornament {
+  color: var(--accent);
+  opacity: 0.8;
+}
+[data-theme="occult"] .tabs {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 6px;
+}
+
+/* ===== Tabs — solid block treatment ===== */
+[data-theme="occult"] .tab {
+  background: var(--bg-elev);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  padding: 8px 18px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: calc(12px * var(--font-scale));
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.18s ease, border-color 0.15s ease;
+}
+[data-theme="occult"] .tab:hover:not(.active) {
+  color: var(--accent-hover);
+  border-color: var(--accent-hover);
+  box-shadow: 0 0 14px rgba(211, 47, 47, 0.35);
+}
+[data-theme="occult"] .tab.active {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 18px rgba(211, 47, 47, 0.55);
+}
+
+/* Theme picker icon button */
+[data-theme="occult"] .theme-picker .ghost {
+  background: var(--bg-elev);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+[data-theme="occult"] .theme-picker .ghost:hover {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(211, 47, 47, 0.55);
+}
+
+/* ===== Container ===== */
+[data-theme="occult"] .container {
+  background: var(--bg);
+}
+
+/* ===== View bar ===== */
+[data-theme="occult"] .summary {
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-size: calc(14px * var(--font-scale));
+  letter-spacing: 0.05em;
+}
+[data-theme="occult"] .summary strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ===== Companion stage — bigger avatar frame ===== */
+[data-theme="occult"] .companion-stage {
+  grid-template-columns: 380px 1fr;
+  gap: 32px;
+}
+[data-theme="occult"] .companion-portrait {
+  position: relative;
+  background: #000000;
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  padding: 18px 18px 14px;
+  box-shadow:
+    0 0 24px rgba(211, 47, 47, 0.35),
+    0 0 60px rgba(139, 26, 26, 0.25),
+    inset 0 0 30px rgba(0, 0, 0, 0.7);
+}
+[data-theme="occult"] .companion-portrait::after {
+  content: "⛧";
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  color: var(--accent);
+  font-size: 14px;
+  opacity: 0.6;
+  text-shadow: 0 0 8px rgba(211, 47, 47, 0.7);
+  pointer-events: none;
+}
+[data-theme="occult"] .companion-name {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+[data-theme="occult"] .companion-name .hex-id { display: none; }
+[data-theme="occult"] .companion-title {
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: calc(28px * var(--font-scale));
+  letter-spacing: 0.06em;
+  text-transform: none;
+  text-shadow:
+    0 0 10px rgba(211, 47, 47, 0.55),
+    0 0 22px rgba(211, 47, 47, 0.25);
+}
+
+/* ===== Companion frame — blood-red border + dark glow halo ===== */
+[data-theme="occult"] .companion-frame {
+  position: relative;
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  background: #000000;
+  max-width: none;
+  width: 100%;
+  overflow: hidden;
+  box-shadow:
+    0 0 32px rgba(211, 47, 47, 0.55),
+    0 0 64px rgba(211, 47, 47, 0.35),
+    0 0 120px rgba(139, 26, 26, 0.25),
+    inset 0 0 30px rgba(0, 0, 0, 0.7);
+  animation: occult-pulse 5s ease-in-out infinite;
+}
+[data-theme="occult"] .companion-frame::after {
+  content: "⛧";
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  color: var(--accent);
+  font-size: 22px;
+  text-shadow:
+    0 0 6px rgba(211,47,47,0.95),
+    0 0 14px rgba(211,47,47,0.7);
+  z-index: 3;
+  pointer-events: none;
+  animation: occult-stamp-flicker 6s ease-in-out infinite;
+}
+[data-theme="occult"] .companion-frame::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><circle cx='100' cy='100' r='95' fill='none' stroke='%23d32f2f' stroke-width='1'/><polygon points='100,12 120.6,154.5 5.5,66.3 194.5,66.3 79.4,154.5' fill='none' stroke='%23d32f2f' stroke-width='0.8'/></svg>");
+  background-size: cover;
+  opacity: 0.10;
+  z-index: 2;
+}
+
+/* Avatar duotone */
+[data-theme="occult"] .companion-avatar {
+  filter: contrast(1.45) saturate(0.4) brightness(0.78);
+}
+[data-theme="occult"] .companion-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(211,47,47,0.7) 0%, rgba(80,5,5,0.85) 100%);
+  mix-blend-mode: multiply;
+  opacity: 0.95;
+}
+[data-theme="occult"] .companion-scan {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(40, 0, 0, 0.55) 80%,
+    rgba(0, 0, 0, 0.95) 100%
+  );
+  mix-blend-mode: multiply;
+}
+
+@keyframes occult-pulse {
+  0%, 100% { box-shadow: 0 0 32px rgba(211,47,47,0.55), 0 0 64px rgba(211,47,47,0.35), inset 0 0 30px rgba(0,0,0,0.7); }
+  50%      { box-shadow: 0 0 50px rgba(211,47,47,0.8),  0 0 110px rgba(211,47,47,0.5), inset 0 0 30px rgba(0,0,0,0.7); }
+}
+@keyframes occult-stamp-flicker {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+/* ===== Speech bubbles — dark elev with ritual pentagram bracket ===== */
+[data-theme="occult"] .bubble {
+  position: relative;
+  background: var(--bg-elev);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  padding: 14px 18px 14px 44px;
+  font-family: var(--font-body);
+  font-size: calc(15px * var(--font-scale));
+  line-height: 1.5;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    inset 0 0 18px rgba(211, 47, 47, 0.06);
+}
+[data-theme="occult"] .bubble strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+/* Ritual pentagram glyph on the left edge */
+[data-theme="occult"] .bubble::before {
+  content: "⛧";
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-size: calc(30px * var(--font-scale));
+  color: var(--accent);
+  line-height: 1;
+  border: none;
+  background: none;
+  width: auto;
+  height: auto;
+  text-shadow:
+    0 0 8px rgba(211, 47, 47, 0.7),
+    0 0 16px rgba(211, 47, 47, 0.35);
+}
+[data-theme="occult"] .bubble::after { display: none; }
+[data-theme="occult"] .bubble-warn {
+  border-color: var(--warn);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    inset 0 0 18px rgba(201, 162, 39, 0.08);
+}
+[data-theme="occult"] .bubble-warn::before { color: var(--warn); text-shadow: 0 0 8px rgba(201, 162, 39, 0.6); }
+[data-theme="occult"] .bubble-praise {
+  border-color: var(--green);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    inset 0 0 18px rgba(107, 142, 107, 0.08);
+}
+[data-theme="occult"] .bubble-praise::before { color: var(--green); text-shadow: 0 0 8px rgba(107, 142, 107, 0.6); }
+
+/* ===== Action chips — outlined red rectangle, hover-fill ===== */
+[data-theme="occult"] .action-chip {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: calc(13px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  padding: 4px 10px;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+[data-theme="occult"] .action-chip:hover {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 0 18px rgba(211, 47, 47, 0.55);
+}
+
+/* ===== Cards (.project / .pr / .audit-finding / .cleanup-cat / .quick-card) ===== */
+[data-theme="occult"] .project,
+[data-theme="occult"] .pr,
+[data-theme="occult"] .audit-finding,
+[data-theme="occult"] .cleanup-cat,
+[data-theme="occult"] .quick-card {
+  background: var(--bg-elev);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    inset 0 0 18px rgba(211, 47, 47, 0.06);
+  position: relative;
+  transition: border-color 0.18s ease, box-shadow 0.22s ease, transform 0.18s ease;
+}
+[data-theme="occult"] .project:hover,
+[data-theme="occult"] .pr:hover,
+[data-theme="occult"] .audit-finding:hover,
+[data-theme="occult"] .quick-card:hover {
+  border-color: var(--accent-hover);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 28px rgba(211, 47, 47, 0.5);
+}
+
+[data-theme="occult"] .project-name,
+[data-theme="occult"] .pr-title,
+[data-theme="occult"] .quick-card-name,
+[data-theme="occult"] .companion-title,
+[data-theme="occult"] .audit-category-header {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+[data-theme="occult"] .project-name {
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(211, 47, 47, 0.35);
+}
+[data-theme="occult"] .pr-title,
+[data-theme="occult"] .quick-card-name {
+  color: var(--text);
+}
+[data-theme="occult"] .project-icon,
+[data-theme="occult"] .quick-card-name svg {
+  filter: drop-shadow(0 0 4px var(--accent));
+  color: var(--accent);
+}
+[data-theme="occult"] .project-path,
+[data-theme="occult"] .quick-card-goal {
+  color: var(--text-dim);
+}
+[data-theme="occult"] .quick-card-goal { font-style: italic; }
+[data-theme="occult"] .git-subject { color: var(--text); }
+[data-theme="occult"] .git-hash {
+  background: #000000;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+[data-theme="occult"] .git-ago { color: var(--text-muted); }
+
+/* ===== Badges & pills ===== */
+[data-theme="occult"] .badge,
+[data-theme="occult"] .audit-pill {
+  background: #000000;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  font-size: 0.75em;
+  padding: 2px 8px;
+}
+[data-theme="occult"] .badge-fresh {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+[data-theme="occult"] .hex-id {
+  background: #000000;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  padding: 1px 6px;
+}
+[data-theme="occult"] .project .hex-id::before,
+[data-theme="occult"] .pr .hex-id::before,
+[data-theme="occult"] .bubble .hex-id::before {
+  content: "ARCANE-";
+  color: var(--accent-dim);
+  margin-right: 2px;
+}
+
+/* ===== Buttons — outlined red, hover-fill with glow ===== */
+[data-theme="occult"] button {
+  background: transparent;
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+[data-theme="occult"] button:hover {
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 0 18px rgba(211, 47, 47, 0.55);
+}
+[data-theme="occult"] button.ghost {
+  background: var(--bg-elev);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+[data-theme="occult"] button.ghost:hover {
+  background: var(--accent);
+  color: #ffffff;
+}
+[data-theme="occult"] button.danger {
+  background: var(--crit);
+  color: #ffffff;
+  border-color: var(--crit);
+}
+
+/* ===== Quick projects panel ===== */
+[data-theme="occult"] .quick-projects {
+  border-top: 1px solid var(--accent);
+}
+[data-theme="occult"] .quick-projects-head h3 {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  font-size: calc(20px * var(--font-scale));
+}
+
+/* ===== Audit findings ===== */
+[data-theme="occult"] .audit-category-header {
+  color: var(--text);
+  border-bottom-color: var(--border-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+[data-theme="occult"] .audit-cat-count {
+  background: #000000;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+[data-theme="occult"] .audit-finding.lvl-crit {
+  background: linear-gradient(
+    180deg,
+    rgba(211, 47, 47, 0.22) 0%,
+    rgba(139, 26, 26, 0.32) 100%
+  );
+  border-color: var(--accent-hover);
+  color: #ffeaea;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 22px rgba(211, 47, 47, 0.45);
+}
+[data-theme="occult"] .audit-finding.lvl-warn {
+  border-color: var(--warn);
+}
+[data-theme="occult"] .audit-level {
+  background: var(--bg-elev);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+[data-theme="occult"] .audit-level.lvl-crit { background: var(--crit); color: #ffffff; border-color: var(--crit); }
+[data-theme="occult"] .audit-level.lvl-warn { background: var(--warn); color: #1a0e00; border-color: var(--warn); }
+[data-theme="occult"] .audit-title {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: calc(15px * var(--font-scale));
+}
+[data-theme="occult"] .audit-detail {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: calc(13px * var(--font-scale));
+}
+
+/* ===== PR & cleanup specifics ===== */
+[data-theme="occult"] .pr-meta { color: var(--text-muted); }
+[data-theme="occult"] .pr-repo { color: var(--accent); }
+[data-theme="occult"] .cleanup-cat header {
+  background: #000000;
+  color: var(--accent);
+  border-bottom: 1px solid var(--accent);
+}
+[data-theme="occult"] .cleanup-cat-name { color: var(--accent); font-style: italic; font-weight: 700; }
+[data-theme="occult"] .cleanup-cat-meta { color: var(--text-dim); }
+[data-theme="occult"] .cleanup-cat li { color: var(--text); border-bottom-color: rgba(211, 47, 47, 0.12); }
+[data-theme="occult"] .cleanup-date { color: var(--text-muted); }
+
+/* ===== Divider label ===== */
+[data-theme="occult"] .divider-label {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--text-dim);
+}
+[data-theme="occult"] .divider-label::before {
+  content: "⛧ ";
+  color: var(--accent);
+  margin-right: 6px;
+}
+[data-theme="occult"] .divider-label::after {
+  content: " ✦";
+  color: var(--accent);
+  margin-left: 6px;
+}
+
+/* ===== Status bar — subtle dot pattern matching headers ===== */
+[data-theme="occult"] .statusbar {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(211, 47, 47, 0.18) 0.6px, transparent 1px) 0 0 / 5px 5px,
+    #0e0a0a;
+  color: var(--text);
+  border-top: 1px solid var(--accent);
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+}
+[data-theme="occult"] .sb-mono { color: var(--accent); }
+[data-theme="occult"] .sb-dim { color: var(--text-muted); }
+[data-theme="occult"] .sb-glyph { color: var(--accent); }
+[data-theme="occult"] .sb-clock { color: var(--accent); text-shadow: 0 0 6px rgba(211, 47, 47, 0.5); }
+
+/* ===== Theme picker menu ===== */
+[data-theme="occult"] .theme-menu {
+  background: var(--bg-elev);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  box-shadow: 0 0 22px rgba(211, 47, 47, 0.35);
+}
+[data-theme="occult"] .theme-option {
+  color: var(--text);
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--font-display);
+  font-style: italic;
+}
+[data-theme="occult"] .theme-option:hover { background: var(--bg-hover); color: var(--accent); }
+[data-theme="occult"] .theme-option.active { background: var(--accent); color: #ffffff; }
+
+/* ===== Search input ===== */
+[data-theme="occult"] .search {
+  background: var(--bg-elev);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+}
+[data-theme="occult"] .search input { color: var(--text); font-family: var(--font-mono); }
+[data-theme="occult"] .search input::placeholder { color: var(--text-muted); }
+[data-theme="occult"] .select-wrap select {
+  background: var(--bg-elev);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+}
+
+/* ===== Mono surfaces ===== */
+[data-theme="occult"] code,
+[data-theme="occult"] pre,
+[data-theme="occult"] .mono {
+  font-family: var(--font-mono);
+  color: var(--accent);
+  background: #000000;
+}
+
+/* ===== Selection ===== */
+[data-theme="occult"] ::selection {
+  background: var(--accent-dim);
+  color: var(--text);
+}
+
+/* ===== Focus ===== */
+[data-theme="occult"] .tab:focus-visible,
+[data-theme="occult"] button:focus-visible,
+[data-theme="occult"] .search input:focus-visible,
+[data-theme="occult"] input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ===== Scrollbar ===== */
+[data-theme="occult"] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+[data-theme="occult"] ::-webkit-scrollbar-track { background: var(--bg); }
+[data-theme="occult"] ::-webkit-scrollbar-thumb {
+  background: var(--accent-dim);
+  border: 2px solid var(--bg);
+  border-radius: 0;
+}
+[data-theme="occult"] ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* ===== Skeleton ===== */
+[data-theme="occult"] .sk-line {
+  background: linear-gradient(90deg, var(--bg-elev) 0%, var(--accent-dim) 50%, var(--bg-elev) 100%);
+  background-size: 200% 100%;
+  animation: occult-skeleton 1.6s ease-in-out infinite;
+  border: 1px solid var(--border);
+}
+@keyframes occult-skeleton {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===== State / loading ===== */
+[data-theme="occult"] .state {
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  font-style: italic;
+  letter-spacing: 0.08em;
+}
