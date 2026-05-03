@@ -41,6 +41,11 @@ export default defineConfig(async () => ({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // V3 theme CSS — split each theme into its own chunk so dynamic
+          // imports from lib/themes load only what's needed.
+          const themeMatch = id.match(/[/\\]src[/\\]v3[/\\]themes[/\\]([^/\\]+)\.css$/);
+          if (themeMatch) return `theme-${themeMatch[1]}`;
+
           if (!id.includes("node_modules")) return undefined;
           if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/scheduler/")) {
             return "vendor-react";

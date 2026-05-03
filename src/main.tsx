@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import AppV3 from "./v3/AppV3";
+import { isV3Theme, loadV3Theme } from "./lib/themes";
 
 // V1 is legacy — only loaded via console backdoor `cskLayout("v1")`.
 // Lazy import keeps it out of the V3 default bundle.
@@ -53,18 +54,19 @@ if (layout === "v3") {
   // Remove v1 data-theme so kawaii/dracula/etc. global rules don't bleed into v3.
   document.documentElement.removeAttribute("data-theme");
   document.body.classList.add("v3-layout");
-  // Apply saved v3 theme (light/dark/dracula/nord/tokyo/gruvbox).
-  const V3_THEMES = ["light", "dark", "dracula", "nord", "tokyo", "gruvbox"];
+  // Lazy-load just the active theme stylesheet. Light is the implicit default
+  // (its tokens are baked into AppV3.css fallbacks) but we still load its CSS
+  // so the override rules apply.
   let v3Theme = "light";
   try {
     const saved = localStorage.getItem("csk-theme-v3");
-    if (saved && V3_THEMES.includes(saved)) v3Theme = saved;
+    if (saved && isV3Theme(saved)) v3Theme = saved;
   } catch {
     /* ignore */
   }
-  if (v3Theme !== "light") {
-    document.body.setAttribute("data-theme-v3", v3Theme);
-  }
+  // Fire-and-forget; React renders immediately and the stylesheet attaches
+  // a tick later. Brief unstyled flash on cold load is acceptable.
+  void loadV3Theme(v3Theme);
 }
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(

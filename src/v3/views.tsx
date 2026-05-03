@@ -33,6 +33,9 @@ import {
   projectName,
 } from "../lib/format";
 import { enrichProjects } from "../lib/enrichProjects";
+import { isV3Theme, loadV3Theme } from "../lib/themes";
+import type { V3Theme } from "../lib/themes";
+import { parseAuditFindings } from "../lib/audit";
 
 const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -158,7 +161,7 @@ export function ProjectsViewV3() {
         />
       </div>
 
-      {error && <div className="v3-error">{error}</div>}
+      {error && <div className="v3-error" role="alert" aria-live="assertive">{error}</div>}
 
       {loading ? (
         <div className="v3-empty">Loading projects…</div>
@@ -319,7 +322,7 @@ export function PrsViewV3() {
         />
       </div>
 
-      {error && <div className="v3-error">{error}</div>}
+      {error && <div className="v3-error" role="alert" aria-live="assertive">{error}</div>}
 
       {loading ? (
         <div className="v3-empty">Loading pull requests…</div>
@@ -396,7 +399,8 @@ export function AuditViewV3() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    invoke<AuditFinding[]>("run_audit")
+    invoke<unknown>("run_audit")
+      .then(parseAuditFindings)
       .then((res) => !cancelled && setFindings(res))
       .catch((e) => !cancelled && setError(friendlyErrorEn(e)))
       .finally(() => !cancelled && setLoading(false));
@@ -474,7 +478,7 @@ export function AuditViewV3() {
         />
       </div>
 
-      {error && <div className="v3-error">{error}</div>}
+      {error && <div className="v3-error" role="alert" aria-live="assertive">{error}</div>}
 
       {loading ? (
         <div className="v3-empty">Running audit…</div>
@@ -643,7 +647,7 @@ export function CleanupViewV3() {
       </header>
 
       {result && (
-        <div className="v3-success">
+        <div className="v3-success" role="status" aria-live="polite">
           <Check size={14} strokeWidth={2.4} />
           <span>
             Deleted <strong>{result.deleted}</strong> item
@@ -654,7 +658,7 @@ export function CleanupViewV3() {
         </div>
       )}
 
-      {error && <div className="v3-error">{error}</div>}
+      {error && <div className="v3-error" role="alert" aria-live="assertive">{error}</div>}
 
       {loading ? (
         <div className="v3-empty">Scanning workspace…</div>
@@ -799,7 +803,11 @@ export function CompanionsViewV3({
                   </button>
                 )}
                 <p className="v3-form-hint">PNG, JPG or WebP — up to 2 MB.</p>
-                {imgError && <p className="v3-form-error">{imgError}</p>}
+                {imgError && (
+                  <p className="v3-form-error" role="alert" aria-live="polite">
+                    {imgError}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -812,14 +820,9 @@ export function CompanionsViewV3({
 // =====================================================================
 // SettingsView
 // =====================================================================
-type V3Theme =
-  | "light" | "dark" | "dracula" | "nord" | "tokyo" | "gruvbox"
-  | "kawaii" | "gameboy" | "grid" | "mono" | "solarized-dark"
-  | "retro-os" | "hud" | "petrick" | "army-cream" | "army-mauve"
-  | "y2k" | "pulse" | "akira" | "alacritty" | "crimson-arch"
-  | "aesthetic-arch" | "pixel-kit" | "kill-switch" | "arcade-portal"
-  | "lilac-os" | "moon-zine" | "deepweb";
-
+// V3Theme + V3_THEME_ORDER live in lib/themes — single source of truth.
+// V3_THEMES below carries the visual catalog (swatches + labels) used by the
+// theme picker grid; its `id` field is constrained to V3Theme for safety.
 const V3_THEMES: { id: V3Theme; label: string; swatch: string[] }[] = [
   // Core defaults
   { id: "light",          label: "Light",         swatch: ["#F8F9FB", "#FFFFFF", "#ED7B26"] },
@@ -854,11 +857,7 @@ const V3_THEMES: { id: V3Theme; label: string; swatch: string[] }[] = [
 ];
 
 function applyV3Theme(theme: V3Theme) {
-  if (theme === "light") {
-    document.body.removeAttribute("data-theme-v3");
-  } else {
-    document.body.setAttribute("data-theme-v3", theme);
-  }
+  void loadV3Theme(theme);
   try {
     localStorage.setItem("csk-theme-v3", theme);
   } catch {
@@ -868,8 +867,8 @@ function applyV3Theme(theme: V3Theme) {
 
 function readV3Theme(): V3Theme {
   try {
-    const saved = localStorage.getItem("csk-theme-v3") as V3Theme | null;
-    if (saved && V3_THEMES.some((t) => t.id === saved)) return saved;
+    const saved = localStorage.getItem("csk-theme-v3");
+    if (saved && isV3Theme(saved)) return saved;
   } catch {
     /* ignore */
   }

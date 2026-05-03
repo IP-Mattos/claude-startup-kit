@@ -4,36 +4,9 @@
    All scoped under `.appv3` so it never bleeds into v1.
    ========================================================================= */
 
-/* @import rules MUST come before any other CSS rules per spec. */
-@import url("./themes/light.css");
-@import url("./themes/dark.css");
-@import url("./themes/dracula.css");
-@import url("./themes/nord.css");
-@import url("./themes/tokyo.css");
-@import url("./themes/gruvbox.css");
-/* === Ported from V1 — 22 additional palettes === */
-@import url("./themes/kawaii.css");
-@import url("./themes/gameboy.css");
-@import url("./themes/grid.css");
-@import url("./themes/mono.css");
-@import url("./themes/solarized-dark.css");
-@import url("./themes/retro-os.css");
-@import url("./themes/hud.css");
-@import url("./themes/petrick.css");
-@import url("./themes/army-cream.css");
-@import url("./themes/army-mauve.css");
-@import url("./themes/y2k.css");
-@import url("./themes/pulse.css");
-@import url("./themes/akira.css");
-@import url("./themes/alacritty.css");
-@import url("./themes/crimson-arch.css");
-@import url("./themes/aesthetic-arch.css");
-@import url("./themes/pixel-kit.css");
-@import url("./themes/kill-switch.css");
-@import url("./themes/arcade-portal.css");
-@import url("./themes/lilac-os.css");
-@import url("./themes/moon-zine.css");
-@import url("./themes/deepweb.css");
+/* Themes are NOT imported here — they're loaded on demand by lib/themes.ts
+   (see loadV3Theme). Keeps the initial bundle small and lazy-loads only the
+   active theme on first paint, plus any new theme on switch. */
 
 /* When the layout is v3, neutralize the v1 body so its theme palette
    (kawaii lavender, dracula purple, etc.) doesn't show through.
@@ -388,6 +361,41 @@ body.v3-layout #root {
   min-width: 0;
 }
 
+/* Fetch error banner — surfaces backend failures (per-source) so empty
+   states don't masquerade as success. Sticks above the view content. */
+.v3-fetch-banner {
+  margin: 16px 24px 0;
+  padding: 10px 14px;
+  background: var(--v3-warn-tint);
+  border: 1px solid var(--v3-warn);
+  border-radius: var(--v3-radius);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--v3-text);
+}
+.v3-fetch-banner-body { flex: 1; min-width: 0; }
+.v3-fetch-banner-body strong { color: var(--v3-text); }
+.v3-fetch-banner-source { color: var(--v3-text-2); font-weight: 500; }
+.v3-fetch-banner-retry {
+  flex-shrink: 0;
+  background: var(--v3-warn);
+  color: #1C1917;
+  border: 1px solid var(--v3-warn);
+  border-radius: var(--v3-radius-sm);
+  padding: 6px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font: inherit;
+}
+.v3-fetch-banner-retry:hover { filter: brightness(0.95); }
+.v3-fetch-banner-retry:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 2px;
+}
+
 .v3-view {
   padding: 28px 32px 48px;
   display: flex;
@@ -539,7 +547,9 @@ body.v3-layout #root {
 .v3-link {
   background: transparent;
   border: 0;
-  color: #2563EB;
+  /* Themes can override --v3-link; default is the brand accent so the link
+     is always visible regardless of background. */
+  color: var(--v3-link, var(--v3-accent));
   font-size: 13px;
   font-weight: 500;
   padding: 0;

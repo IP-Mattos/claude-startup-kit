@@ -67,6 +67,7 @@ body[data-theme-v3="nord"] .appv3 .v3-side-link.active {
   background: rgba(136, 192, 208, 0.12);
   color: #88C0D0;
   font-weight: 600;
+  box-shadow: inset 2px 0 0 #88C0D0;
 }
 body[data-theme-v3="nord"] .appv3 .v3-side-link.active svg {
   color: #88C0D0;

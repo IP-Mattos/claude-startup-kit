@@ -8,6 +8,9 @@ import type {
   ProjectEnrichment,
 } from "../types";
 import { activityLabelEn, projectName, friendlyErrorEn, prNumberFromUrl } from "../lib/format";
+import { parseAuditFindings } from "../lib/audit";
+import { nextV3Theme, loadV3Theme, readV3ThemeFromBody } from "../lib/themes";
+import type { V3Theme } from "../lib/themes";
 import { enrichProjects } from "../lib/enrichProjects";
 import {
   ProjectsViewV3,
@@ -47,7 +50,6 @@ import {
   ShieldCheck,
   Sparkles,
   Square,
-  Terminal,
   Trash2,
   X,
 } from "lucide-react";
@@ -476,10 +478,6 @@ function CompanionWidget({
           <Sparkles size={13} strokeWidth={2} />
           Run Smart Audit
         </button>
-        <button className="v3-btn-ghost">
-          <Terminal size={13} strokeWidth={2} />
-          Open Command Center
-        </button>
       </div>
     </section>
   );
@@ -776,36 +774,13 @@ function pickGreeting(): string {
 }
 
 // V3 themes — must match the keys in AppV3.css and views.tsx picker.
-type V3Theme =
-  | "light" | "dark" | "dracula" | "nord" | "tokyo" | "gruvbox"
-  | "kawaii" | "gameboy" | "grid" | "mono" | "solarized-dark"
-  | "retro-os" | "hud" | "petrick" | "army-cream" | "army-mauve"
-  | "y2k" | "pulse" | "akira" | "alacritty" | "crimson-arch"
-  | "aesthetic-arch" | "pixel-kit" | "kill-switch" | "arcade-portal"
-  | "lilac-os" | "moon-zine" | "deepweb";
-
-const V3_THEME_ORDER: ReadonlyArray<V3Theme> = [
-  "light", "dark", "dracula", "nord", "tokyo", "gruvbox",
-  "kawaii", "gameboy", "grid", "mono", "solarized-dark",
-  "retro-os", "hud", "petrick", "army-cream", "army-mauve",
-  "y2k", "pulse", "akira", "alacritty", "crimson-arch",
-  "aesthetic-arch", "pixel-kit", "kill-switch", "arcade-portal",
-  "lilac-os", "moon-zine", "deepweb",
-];
-
 function applyV3ThemeToBody(theme: V3Theme) {
-  if (theme === "light") document.body.removeAttribute("data-theme-v3");
-  else document.body.setAttribute("data-theme-v3", theme);
+  void loadV3Theme(theme);
   try {
     localStorage.setItem("csk-theme-v3", theme);
   } catch {
     /* ignore */
   }
-}
-
-function readV3ThemeFromBody(): V3Theme {
-  const attr = document.body.getAttribute("data-theme-v3") as V3Theme | null;
-  return (attr && V3_THEME_ORDER.includes(attr) ? attr : "light");
 }
 
 // Tab order matches sidebar (7 entries → Ctrl+1..7).
@@ -830,6 +805,9 @@ export default function AppV3() {
   const [lastScanAt, setLastScanAt] = useState<number | null>(null);
   const [lastScanTick, setLastScanTick] = useState(0); // forces re-render of "X ago"
   const [refreshNonce, setRefreshNonce] = useState(0);
+  // Per-source fetch errors — surfaced via the retry banner so backend
+  // failures stop masquerading as empty states.
+  const [fetchErrors, setFetchErrors] = useState<{ source: string; msg: string }[]>([]);
 
   // Companion config — owned here so the right-panel widget updates live when
   // the user edits their companion in the Companions view. Persistence to
@@ -866,16 +844,29 @@ export default function AppV3() {
     }
     let cancelled = false;
     setLoading(true);
+    setFetchErrors([]);
     (async () => {
+      // Capture per-source errors as they happen; the banner reads from this.
+      const errors: { source: string; msg: string }[] = [];
+      const trap =
+        <T,>(source: string, fallback: T) =>
+        (e: unknown): T => {
+          errors.push({ source, msg: friendlyErrorEn(e) });
+          return fallback;
+        };
       try {
         const [projectsP, knownP, findingsP, prsP] = [
           invoke<Project[]>("scan_projects", { windowDays: 14 }).catch(
-            () => [] as Project[]
+            trap<Project[]>("Projects", [])
           ),
-          invoke<string[]>("engram_known_projects").catch(() => [] as string[]),
-          invoke<AuditFinding[]>("run_audit").catch(() => [] as AuditFinding[]),
+          invoke<string[]>("engram_known_projects").catch(
+            trap<string[]>("Engram", [])
+          ),
+          invoke<unknown>("run_audit")
+            .then(parseAuditFindings)
+            .catch(trap<AuditFinding[]>("Audit", [])),
           invoke<GhPullRequest[]>("github_review_queue", { limit: 20 }).catch(
-            () => [] as GhPullRequest[]
+            trap<GhPullRequest[]>("Pull requests", [])
           ),
         ];
         const [projectsRes, known, findingsRes, prsRes] = await Promise.all([
@@ -888,7 +879,7 @@ export default function AppV3() {
         const enrichment: Record<string, ProjectEnrichment> = await enrichProjects(
           projectsRes,
           known
-        ).catch(() => ({}));
+        ).catch(trap<Record<string, ProjectEnrichment>>("Project enrichment", {}));
         if (cancelled) return;
         const goalMap: Record<string, string | null> = {};
         for (const p of projectsRes) {
@@ -899,8 +890,15 @@ export default function AppV3() {
         setFindings(findingsRes);
         setGoals(goalMap);
         setLastScanAt(Date.now());
+        setFetchErrors(errors);
       } catch (e) {
         console.error("AppV3 fetch failed", friendlyErrorEn(e));
+        if (!cancelled) {
+          setFetchErrors([
+            ...errors,
+            { source: "Workspace", msg: friendlyErrorEn(e) },
+          ]);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -947,10 +945,7 @@ export default function AppV3() {
   const handleRunAudit = () => setRefreshNonce((n) => n + 1);
 
   const handleCycleTheme = () => {
-    const current = readV3ThemeFromBody();
-    const idx = V3_THEME_ORDER.indexOf(current);
-    const next = V3_THEME_ORDER[(idx + 1) % V3_THEME_ORDER.length];
-    applyV3ThemeToBody(next);
+    applyV3ThemeToBody(nextV3Theme(readV3ThemeFromBody()));
   };
 
   // Keyboard shortcuts
@@ -1002,6 +997,28 @@ export default function AppV3() {
           onRunAudit={handleRunAudit}
         />
         <main className="appv3-content">
+          {fetchErrors.length > 0 && (
+            <div className="v3-fetch-banner" role="alert" aria-live="polite">
+              <div className="v3-fetch-banner-body">
+                <strong>Some data failed to load.</strong>{" "}
+                <span>
+                  {fetchErrors.map((e, i) => (
+                    <span key={e.source}>
+                      {i > 0 ? " · " : ""}
+                      <span className="v3-fetch-banner-source">{e.source}</span>: {e.msg}
+                    </span>
+                  ))}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="v3-fetch-banner-retry"
+                onClick={handleRunAudit}
+              >
+                Retry
+              </button>
+            </div>
+          )}
           {tab === "overview" && (
             <OverviewView
               greeting={`${pickGreeting()}.`}
