@@ -523,92 +523,94 @@ function CompanionWidget({
 }
 
 // ===== Workspace card (second slot of the right panel) =====
-// Visual pulse of the workspace as bars. Stays distinct from the stat
-// cards on Overview (those carry the raw counts) — here we show *health*
-// at a glance, audit cleanliness, and weekly activity intensity.
-function WorkspaceCard({
-  health,
-  critCount,
-  warnCount,
-  projectsThisWeek,
-}: {
-  health: number;
-  critCount: number;
-  warnCount: number;
-  projectsThisWeek: number;
-}) {
+// Surfaces the four signals the user wanted at a glance: skills usage,
+// engram memory volume, and the two version pins. Distinct from Overview
+// (which carries project / pr / finding counts) — this card is about the
+// *tooling state* of the machine.
+interface WorkspaceSummary {
+  app_version: string;
+  gentle_ai_version: string | null;
+  engram_sessions: number | null;
+  engram_observations: number | null;
+  skills_total: number;
+  skills_used: number;
+}
+
+function WorkspaceCard() {
   const { t } = useT();
-  // Activity bar treats 14 active projects in 14 days as a full bar — that's
-  // a heavy week. Anything beyond is clamped to 100% so we don't break the
-  // layout. The denominator can move later without touching CSS.
-  const activityPct = Math.min(100, Math.round((projectsThisWeek / 14) * 100));
-  // Audit cleanliness: 100% with no findings, falls 4pt per crit + 1pt per
-  // warn, mirroring the System Status health formula. Two views of the same
-  // data is intentional — one is text, one is a bar — so the user can read
-  // at a glance from either spot.
-  const cleanliness = Math.max(0, 100 - critCount * 4 - warnCount);
+  const [summary, setSummary] = useState<WorkspaceSummary | null>(null);
+  useEffect(() => {
+    if (!IS_TAURI) return;
+    let cancelled = false;
+    invoke<WorkspaceSummary>("workspace_summary")
+      .then((s) => {
+        if (!cancelled) setSummary(s);
+      })
+      .catch(() => {
+        /* card stays in skeleton state — non-fatal for the UI */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const skillsPct = summary
+    ? summary.skills_total === 0
+      ? 0
+      : Math.round((summary.skills_used / summary.skills_total) * 100)
+    : 0;
+  const dash = "—";
+
   return (
     <section className="v3-workspace-card">
       <header className="v3-workspace-head">
         <h3 className="v3-workspace-title">{t("workspace.title")}</h3>
       </header>
-      <div className="v3-workspace-bars">
-        <WorkspaceBar
-          label={t("workspace.health")}
-          value={`${health}%`}
-          pct={health}
-          tone={health >= 90 ? "ok" : health >= 70 ? "warn" : "crit"}
-        />
-        <WorkspaceBar
-          label={t("workspace.audit")}
-          value={`${cleanliness}%`}
-          pct={cleanliness}
-          tone={
-            cleanliness >= 90 ? "ok" : cleanliness >= 70 ? "warn" : "crit"
-          }
-        />
-        <WorkspaceBar
-          label={t("workspace.activity")}
-          value={`${projectsThisWeek}`}
-          pct={activityPct}
-          tone="accent"
-        />
+      <div className="v3-workspace-section">
+        <div className="v3-workspace-row">
+          <span className="v3-workspace-row-label">{t("workspace.skills")}</span>
+          <span className="v3-workspace-row-value">
+            {summary ? `${summary.skills_used} / ${summary.skills_total}` : dash}
+          </span>
+        </div>
+        <div
+          className="v3-workspace-bar-track"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={skillsPct}
+          aria-label={t("workspace.skills")}
+        >
+          <div
+            className="v3-workspace-bar-fill v3-workspace-bar-fill-accent"
+            style={{ width: `${skillsPct}%` }}
+          />
+        </div>
+        <div className="v3-workspace-row">
+          <span className="v3-workspace-row-label">{t("workspace.engram")}</span>
+          <span className="v3-workspace-row-value">
+            {summary?.engram_observations != null
+              ? t("workspace.engram_obs", { n: summary.engram_observations })
+              : dash}
+          </span>
+        </div>
+      </div>
+      <div className="v3-workspace-divider" aria-hidden="true" />
+      <div className="v3-workspace-section">
+        <div className="v3-workspace-row">
+          <span className="v3-workspace-row-label">{t("workspace.app")}</span>
+          <span className="v3-workspace-row-value v3-workspace-version">
+            v{summary?.app_version ?? dash}
+          </span>
+        </div>
+        <div className="v3-workspace-row">
+          <span className="v3-workspace-row-label">{t("workspace.gentle_ai")}</span>
+          <span className="v3-workspace-row-value v3-workspace-version">
+            {summary?.gentle_ai_version ? `v${summary.gentle_ai_version}` : dash}
+          </span>
+        </div>
       </div>
     </section>
-  );
-}
-
-function WorkspaceBar({
-  label,
-  value,
-  pct,
-  tone,
-}: {
-  label: string;
-  value: string;
-  pct: number;
-  tone: "ok" | "warn" | "crit" | "accent";
-}) {
-  return (
-    <div className="v3-workspace-bar">
-      <div className="v3-workspace-bar-row">
-        <span className="v3-workspace-bar-label">{label}</span>
-        <span className="v3-workspace-bar-value">{value}</span>
-      </div>
-      <div
-        className="v3-workspace-bar-track"
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={pct}
-        aria-label={`${label}: ${value}`}
-      >
-        <div
-          className={`v3-workspace-bar-fill v3-workspace-bar-fill-${tone}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
   );
 }
 
@@ -1041,10 +1043,6 @@ export default function AppV3() {
     const today = projects.find((p) => p.days_ago <= 1);
     return today ? today.path : null;
   }, [projects]);
-  const projectsThisWeek = useMemo(
-    () => projects.filter((p) => p.days_ago <= 7).length,
-    [projects]
-  );
 
   const handleOpenProject = (path: string) => {
     if (!IS_TAURI) return;
@@ -1240,12 +1238,7 @@ export default function AppV3() {
             onJump={setTab}
             onOpenProject={handleOpenProject}
           />
-          <WorkspaceCard
-            health={stats.health}
-            critCount={stats.crit}
-            warnCount={stats.warn}
-            projectsThisWeek={projectsThisWeek}
-          />
+          <WorkspaceCard />
         </aside>
       </div>
       <StatusBarV3 />

@@ -92,9 +92,11 @@ const STRINGS = {
   "companion.stat_scan": { en: "Last scan", es: "Último scan" },
   // Workspace card (sits under the companion in the right panel)
   "workspace.title": { en: "Workspace", es: "Workspace" },
-  "workspace.health": { en: "Health", es: "Salud" },
-  "workspace.audit": { en: "Audit", es: "Auditoría" },
-  "workspace.activity": { en: "Activity", es: "Actividad" },
+  "workspace.skills": { en: "Skills used", es: "Skills usadas" },
+  "workspace.engram": { en: "Engram memory", es: "Memoria Engram" },
+  "workspace.engram_obs": { en: "{n} obs", es: "{n} obs" },
+  "workspace.app": { en: "App", es: "App" },
+  "workspace.gentle_ai": { en: "gentle-ai", es: "gentle-ai" },
   // Contextual action buttons (one is shown, picked by current state)
   "companion.action_review_audit": { en: "Review audit", es: "Ver auditoría" },
   "companion.action_open_prs": { en: "Open PRs", es: "Ver PRs" },

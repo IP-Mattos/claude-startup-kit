@@ -1406,6 +1406,103 @@ async fn check_gentle_ai_update() -> Result<UpdateStatus, String> {
     })
 }
 
+// ─── Workspace summary ───────────────────────────────────────────────────
+//
+// Powers the right-panel Workspace card. Returns the four signals the user
+// wanted in one round trip: app version, gentle-ai version, engram memory
+// stats, and skill utilization (skills with any recorded usage in the last
+// 7 days vs the total skills installed). Unreachable sources degrade to
+// `None` instead of erroring so the card always renders.
+
+#[derive(Serialize, Clone)]
+pub struct WorkspaceSummary {
+    pub app_version: String,
+    pub gentle_ai_version: Option<String>,
+    pub engram_sessions: Option<u32>,
+    pub engram_observations: Option<u32>,
+    pub skills_total: u32,
+    pub skills_used: u32,
+}
+
+// `engram stats` prints lines like:
+//   Engram Memory Stats
+//     Sessions:     20
+//     Observations: 421
+// We grep for those two labels and pull the first integer that follows.
+fn read_engram_stats() -> (Option<u32>, Option<u32>) {
+    let out = match Command::new("engram").arg("stats").output() {
+        Ok(o) if o.status.success() => o,
+        _ => return (None, None),
+    };
+    let text = String::from_utf8_lossy(&out.stdout);
+    let extract = |label: &str| -> Option<u32> {
+        text.lines()
+            .find(|l| l.trim_start().starts_with(label))
+            .and_then(|line| {
+                line.split_whitespace()
+                    .filter_map(|tok| tok.parse::<u32>().ok())
+                    .next()
+            })
+    };
+    (extract("Sessions:"), extract("Observations:"))
+}
+
+#[tauri::command]
+async fn workspace_summary() -> Result<WorkspaceSummary, String> {
+    tokio::task::spawn_blocking(|| -> Result<WorkspaceSummary, String> {
+        let app_version = env!("CARGO_PKG_VERSION").to_string();
+        let gentle_ai_version = {
+            let v = read_gentle_ai_version();
+            if v.is_empty() {
+                None
+            } else {
+                Some(v)
+            }
+        };
+        let (engram_sessions, engram_observations) = read_engram_stats();
+
+        // Skills: enumerate folders under ~/.claude/skills/, then run the
+        // shared count_skill_usage so the card and the Claude tab agree.
+        let mut skills_total: u32 = 0;
+        let mut skill_names: Vec<String> = Vec::new();
+        if let Some(dir) = claude_skills_dir() {
+            if let Ok(entries) = fs::read_dir(&dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if !path.is_dir() {
+                        continue;
+                    }
+                    let name = match path.file_name().and_then(|s| s.to_str()) {
+                        Some(s) => s.to_string(),
+                        None => continue,
+                    };
+                    if name.starts_with('_') {
+                        continue;
+                    }
+                    let skill_md = path.join("SKILL.md");
+                    let body = fs::read_to_string(&skill_md).unwrap_or_default();
+                    let (fm_name, _) = parse_skill_frontmatter(&body);
+                    skills_total = skills_total.saturating_add(1);
+                    skill_names.push(if fm_name.is_empty() { name } else { fm_name });
+                }
+            }
+        }
+        let counts = count_skill_usage(&skill_names);
+        let skills_used = counts.values().filter(|&&v| v > 0).count() as u32;
+
+        Ok(WorkspaceSummary {
+            app_version,
+            gentle_ai_version,
+            engram_sessions,
+            engram_observations,
+            skills_total,
+            skills_used,
+        })
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 #[tauri::command]
 async fn apply_gentle_ai_update() -> Result<String, String> {
     // Mirrors the legacy SessionStart hook: irm <installer> | iex via
@@ -1455,6 +1552,7 @@ pub fn run() {
             check_app_update,
             check_gentle_ai_update,
             apply_gentle_ai_update,
+            workspace_summary,
             list_claude_skills,
             count_claude_skill_usage,
             list_mcp_servers,
