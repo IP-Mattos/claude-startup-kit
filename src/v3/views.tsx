@@ -824,36 +824,8 @@ export function CompanionsViewV3({
 // V3_THEMES below carries the visual catalog (swatches + labels) used by the
 // theme picker grid; its `id` field is constrained to V3Theme for safety.
 const V3_THEMES: { id: V3Theme; label: string; swatch: string[] }[] = [
-  // Core defaults
-  { id: "light",          label: "Light",         swatch: ["#F8F9FB", "#FFFFFF", "#ED7B26"] },
-  { id: "dark",           label: "Dark",          swatch: ["#0F172A", "#1E293B", "#ED7B26"] },
-  { id: "dracula",        label: "Dracula",       swatch: ["#282A36", "#343746", "#BD93F9"] },
-  { id: "nord",           label: "Nord",          swatch: ["#2E3440", "#3B4252", "#88C0D0"] },
-  { id: "tokyo",          label: "Tokyo Night",   swatch: ["#1A1B26", "#24283B", "#7AA2F7"] },
-  { id: "gruvbox",        label: "Gruvbox",       swatch: ["#282828", "#3C3836", "#FE8019"] },
-  // Ported from V1
-  { id: "kawaii",         label: "Kawaii",        swatch: ["#F3E5F5", "#FAEFFB", "#EC4899"] },
-  { id: "gameboy",        label: "Gameboy",       swatch: ["#2A2E1F", "#3A3D2E", "#D8B850"] },
-  { id: "grid",           label: "Grid",          swatch: ["#1E1E2E", "#313244", "#CBA6F7"] },
-  { id: "mono",           label: "Mono",          swatch: ["#FFFFFF", "#FAFAFA", "#000000"] },
-  { id: "solarized-dark", label: "Solarized",     swatch: ["#002B36", "#073642", "#2AA198"] },
-  { id: "retro-os",       label: "Retro OS",      swatch: ["#F5F7FA", "#FFFFFF", "#0078D7"] },
-  { id: "hud",            label: "HUD",           swatch: ["#0A0E14", "#11161E", "#7ADADA"] },
-  { id: "petrick",        label: "Petrick",       swatch: ["#D4D0C8", "#C0C0C0", "#000080"] },
-  { id: "army-cream",     label: "Army Cream",    swatch: ["#EDE5D0", "#1C1A1A", "#A99CC0"] },
-  { id: "army-mauve",     label: "Army Mauve",    swatch: ["#C5B6D4", "#0A0A0A", "#8B6FB8"] },
-  { id: "y2k",            label: "Y2K",           swatch: ["#1A0A2A", "#2A1238", "#FF5FC8"] },
-  { id: "pulse",          label: "Pulse",         swatch: ["#2D23A8", "#3526C0", "#7FFF7F"] },
-  { id: "akira",          label: "Akira",         swatch: ["#000000", "#0A0A0A", "#5CE65C"] },
-  { id: "alacritty",      label: "Alacritty",     swatch: ["#1A1612", "#221C17", "#E8A050"] },
-  { id: "crimson-arch",   label: "Crimson Arch",  swatch: ["#0A0A0A", "#161616", "#E63946"] },
-  { id: "aesthetic-arch", label: "Aesthetic",     swatch: ["#B5A5D4", "#1A1B2E", "#C8B8E0"] },
-  { id: "pixel-kit",      label: "Pixel Kit",     swatch: ["#000000", "#0C0C0C", "#E8DFC8"] },
-  { id: "kill-switch",    label: "Kill Switch",   swatch: ["#000000", "#0A0A0A", "#FFFFFF"] },
-  { id: "arcade-portal",  label: "Arcade",        swatch: ["#1C1815", "#261F1A", "#F5E6C8"] },
-  { id: "lilac-os",       label: "Lilac OS",      swatch: ["#D9D2ED", "#ECE5F5", "#9C84C8"] },
-  { id: "moon-zine",      label: "Moon Zine",     swatch: ["#1A0D2E", "#251544", "#C8A8FF"] },
-  { id: "deepweb",        label: "Deepweb",       swatch: ["#0A1428", "#14223E", "#5FA8FF"] },
+  { id: "light", label: "Light", swatch: ["#F8F9FB", "#FFFFFF", "#ED7B26"] },
+  { id: "dark",  label: "Dark",  swatch: ["#0F172A", "#1E293B", "#ED7B26"] },
 ];
 
 function applyV3Theme(theme: V3Theme) {

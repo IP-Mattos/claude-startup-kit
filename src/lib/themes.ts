@@ -2,36 +2,7 @@
 // shortcut) and views.tsx (theme picker grid) consume this; without it the
 // two files drift and a new theme breaks the cycle order.
 
-export const V3_THEME_ORDER = [
-  "light",
-  "dark",
-  "dracula",
-  "nord",
-  "tokyo",
-  "gruvbox",
-  "kawaii",
-  "gameboy",
-  "grid",
-  "mono",
-  "solarized-dark",
-  "retro-os",
-  "hud",
-  "petrick",
-  "army-cream",
-  "army-mauve",
-  "y2k",
-  "pulse",
-  "akira",
-  "alacritty",
-  "crimson-arch",
-  "aesthetic-arch",
-  "pixel-kit",
-  "kill-switch",
-  "arcade-portal",
-  "lilac-os",
-  "moon-zine",
-  "deepweb",
-] as const;
+export const V3_THEME_ORDER = ["light", "dark"] as const;
 
 export type V3Theme = (typeof V3_THEME_ORDER)[number];
 
