@@ -139,12 +139,13 @@ body.v3-layout #root {
   color: var(--v3-accent);
 }
 .v3-topbar-tab.active::after {
-  /* Bottom-edge pin so the active tab anchors to the row beneath. */
+  /* Sit on the topbar's 1px bottom border so the underline reads as flush
+     with the row beneath instead of floating one pixel above it. */
   content: "";
   position: absolute;
   left: 8px;
   right: 8px;
-  bottom: 0;
+  bottom: -1px;
   height: 2px;
   background: var(--v3-accent);
   border-radius: 1px 1px 0 0;
