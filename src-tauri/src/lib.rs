@@ -1310,24 +1310,26 @@ fn version_is_newer(latest: &str, current: &str) -> bool {
 }
 
 async fn fetch_latest_release(repo: &str) -> Result<GhRelease, String> {
-    let url = format!("https://api.github.com/repos/{repo}/releases/latest");
-    let client = reqwest::Client::builder()
-        .user_agent("claude-startup-kit-updater/0.1")
-        .timeout(Duration::from_secs(10))
-        .build()
-        .map_err(|e| format!("http client: {e}"))?;
-    let resp = client
-        .get(&url)
-        .header("Accept", "application/vnd.github+json")
-        .send()
-        .await
-        .map_err(|e| format!("github api: {e}"))?;
-    if !resp.status().is_success() {
-        return Err(format!("github api status {}", resp.status()));
+    // Use the gh CLI's authenticated API channel instead of an anonymous
+    // HTTP fetch. Anonymous requests share a tight 60/hour rate limit per
+    // IP and routinely 403 when other tools on the machine (engram itself,
+    // for example) have already burned the budget. Authenticated calls get
+    // 5000/hour, which is effectively unlimited for our use case.
+    let endpoint = format!("repos/{repo}/releases/latest");
+    let out = tokio::task::spawn_blocking(move || -> Result<std::process::Output, String> {
+        Command::new("gh")
+            .args(["api", &endpoint, "-H", "Accept: application/vnd.github+json"])
+            .output()
+            .map_err(|e| format!("spawn gh: {e}"))
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))??;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        return Err(format!("gh api {repo}: {stderr}").trim().to_string());
     }
-    resp.json::<GhRelease>()
-        .await
-        .map_err(|e| format!("github json: {e}"))
+    serde_json::from_slice::<GhRelease>(&out.stdout)
+        .map_err(|e| format!("parse release json: {e}"))
 }
 
 #[tauri::command]
