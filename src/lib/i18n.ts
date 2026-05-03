@@ -88,12 +88,13 @@ const STRINGS = {
     en: "You've been working on {project} today. Audit's clean.",
     es: "Estuviste trabajando en {project} hoy. Sin hallazgos críticos.",
   },
-  // Stats strip below the avatar
-  "companion.stat_health": { en: "Health", es: "Salud" },
-  "companion.stat_week": { en: "This week", es: "Esta semana" },
-  "companion.stat_today": { en: "Today", es: "Hoy" },
+  // Last-scan label inside the companion footer
   "companion.stat_scan": { en: "Last scan", es: "Último scan" },
-  "companion.stat_today_none": { en: "—", es: "—" },
+  // Workspace card (sits under the companion in the right panel)
+  "workspace.title": { en: "Workspace", es: "Workspace" },
+  "workspace.health": { en: "Health", es: "Salud" },
+  "workspace.audit": { en: "Audit", es: "Auditoría" },
+  "workspace.activity": { en: "Activity", es: "Actividad" },
   // Contextual action buttons (one is shown, picked by current state)
   "companion.action_review_audit": { en: "Review audit", es: "Ver auditoría" },
   "companion.action_open_prs": { en: "Open PRs", es: "Ver PRs" },

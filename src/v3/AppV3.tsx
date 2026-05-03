@@ -428,8 +428,6 @@ function CompanionWidget({
   prCount,
   todayProject,
   todayProjectPath,
-  health,
-  projectsThisWeek,
   lastScanAgo,
   onJump,
   onOpenProject,
@@ -441,8 +439,6 @@ function CompanionWidget({
   prCount: number;
   todayProject: string | null;
   todayProjectPath: string | null;
-  health: number;
-  projectsThisWeek: number;
   lastScanAgo: string;
   onJump: (tab: V3Tab) => void;
   onOpenProject: (path: string) => void;
@@ -513,25 +509,6 @@ function CompanionWidget({
           <img src={avatarSrc} alt="" draggable={false} />
         </div>
       </div>
-      <div className="v3-companion-stats">
-        <div className="v3-companion-stat">
-          <div className="v3-companion-stat-label">{t("companion.stat_health")}</div>
-          <div className="v3-companion-stat-value">{health}%</div>
-        </div>
-        <div className="v3-companion-stat">
-          <div className="v3-companion-stat-label">{t("companion.stat_week")}</div>
-          <div className="v3-companion-stat-value">{projectsThisWeek}</div>
-        </div>
-        <div className="v3-companion-stat">
-          <div className="v3-companion-stat-label">{t("companion.stat_today")}</div>
-          <div
-            className="v3-companion-stat-value v3-companion-stat-value-text"
-            title={todayProject ?? undefined}
-          >
-            {todayProject ?? t("companion.stat_today_none")}
-          </div>
-        </div>
-      </div>
       <div className="v3-companion-message">{message}</div>
       <div className="v3-companion-foot">
         <span className="v3-companion-scan">
@@ -542,6 +519,96 @@ function CompanionWidget({
         </button>
       </div>
     </section>
+  );
+}
+
+// ===== Workspace card (second slot of the right panel) =====
+// Visual pulse of the workspace as bars. Stays distinct from the stat
+// cards on Overview (those carry the raw counts) — here we show *health*
+// at a glance, audit cleanliness, and weekly activity intensity.
+function WorkspaceCard({
+  health,
+  critCount,
+  warnCount,
+  projectsThisWeek,
+}: {
+  health: number;
+  critCount: number;
+  warnCount: number;
+  projectsThisWeek: number;
+}) {
+  const { t } = useT();
+  // Activity bar treats 14 active projects in 14 days as a full bar — that's
+  // a heavy week. Anything beyond is clamped to 100% so we don't break the
+  // layout. The denominator can move later without touching CSS.
+  const activityPct = Math.min(100, Math.round((projectsThisWeek / 14) * 100));
+  // Audit cleanliness: 100% with no findings, falls 4pt per crit + 1pt per
+  // warn, mirroring the System Status health formula. Two views of the same
+  // data is intentional — one is text, one is a bar — so the user can read
+  // at a glance from either spot.
+  const cleanliness = Math.max(0, 100 - critCount * 4 - warnCount);
+  return (
+    <section className="v3-workspace-card">
+      <header className="v3-workspace-head">
+        <h3 className="v3-workspace-title">{t("workspace.title")}</h3>
+      </header>
+      <div className="v3-workspace-bars">
+        <WorkspaceBar
+          label={t("workspace.health")}
+          value={`${health}%`}
+          pct={health}
+          tone={health >= 90 ? "ok" : health >= 70 ? "warn" : "crit"}
+        />
+        <WorkspaceBar
+          label={t("workspace.audit")}
+          value={`${cleanliness}%`}
+          pct={cleanliness}
+          tone={
+            cleanliness >= 90 ? "ok" : cleanliness >= 70 ? "warn" : "crit"
+          }
+        />
+        <WorkspaceBar
+          label={t("workspace.activity")}
+          value={`${projectsThisWeek}`}
+          pct={activityPct}
+          tone="accent"
+        />
+      </div>
+    </section>
+  );
+}
+
+function WorkspaceBar({
+  label,
+  value,
+  pct,
+  tone,
+}: {
+  label: string;
+  value: string;
+  pct: number;
+  tone: "ok" | "warn" | "crit" | "accent";
+}) {
+  return (
+    <div className="v3-workspace-bar">
+      <div className="v3-workspace-bar-row">
+        <span className="v3-workspace-bar-label">{label}</span>
+        <span className="v3-workspace-bar-value">{value}</span>
+      </div>
+      <div
+        className="v3-workspace-bar-track"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+        aria-label={`${label}: ${value}`}
+      >
+        <div
+          className={`v3-workspace-bar-fill v3-workspace-bar-fill-${tone}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -1169,11 +1236,15 @@ export default function AppV3() {
             prCount={prs.length}
             todayProject={todayProject}
             todayProjectPath={todayProjectPath}
-            health={stats.health}
-            projectsThisWeek={projectsThisWeek}
             lastScanAgo={agoLabel(lastScanAt, t)}
             onJump={setTab}
             onOpenProject={handleOpenProject}
+          />
+          <WorkspaceCard
+            health={stats.health}
+            critCount={stats.crit}
+            warnCount={stats.warn}
+            projectsThisWeek={projectsThisWeek}
           />
         </aside>
       </div>
