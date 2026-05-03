@@ -448,16 +448,31 @@ function CompanionWidget({
   onOpenProject: (path: string) => void;
 }) {
   const { t } = useT();
-  const message =
+  // The message keys for has_crits/has_warns/has_prs include a {n} that
+  // should pop visually. We replace the first run of digits with a styled
+  // span so the rest of the sentence stays plain — keeps i18n simple while
+  // still drawing the eye to the number.
+  const rawMessage =
     critCount > 0
-      ? t("companion.has_crits")
+      ? t("companion.has_crits", { n: critCount })
       : warnCount > 0
-      ? t("companion.has_warns")
+      ? t("companion.has_warns", { n: warnCount })
       : prCount > 0
-      ? t("companion.has_prs")
+      ? t("companion.has_prs", { n: prCount })
       : todayProject
       ? t("companion.today", { project: todayProject })
       : t("companion.idle");
+  const message: React.ReactNode = (() => {
+    const m = rawMessage.match(/^(.*?)(\d+)(.*)$/s);
+    if (!m) return rawMessage;
+    return (
+      <>
+        {m[1]}
+        <strong className="v3-companion-emph">{m[2]}</strong>
+        {m[3]}
+      </>
+    );
+  })();
 
   // Pick the single most relevant action for the current state. Priority
   // matches the message above so the headline + button always agree.

@@ -68,11 +68,26 @@ const STRINGS = {
   // Companion widget — single-line nudge, never the same data the System
   // Status card already shows.
   "companion.online": { en: "Online", es: "En línea" },
-  "companion.idle": { en: "Ready when you need me.", es: "Listo cuando lo necesites." },
-  "companion.has_crits": { en: "Critical issues to review.", es: "Hay cosas críticas para revisar." },
-  "companion.has_warns": { en: "Some warnings to look at.", es: "Hay advertencias para mirar." },
-  "companion.has_prs": { en: "PRs awaiting your review.", es: "PRs esperando tu review." },
-  "companion.today": { en: "Working on {project} today.", es: "Estás en {project} hoy." },
+  "companion.idle": {
+    en: "I've reviewed your workspace. Nothing critical to flag right now.",
+    es: "Revisé tu workspace. Nada crítico para marcar ahora.",
+  },
+  "companion.has_crits": {
+    en: "I've analyzed your workspace. There are {n} critical issues that should be addressed.",
+    es: "Analicé tu workspace. Hay {n} problemas críticos que deberías revisar.",
+  },
+  "companion.has_warns": {
+    en: "Audit clean on critical. {n} warnings you can address when you have time.",
+    es: "Sin críticos. {n} advertencias para mirar cuando tengas un rato.",
+  },
+  "companion.has_prs": {
+    en: "Workspace healthy. {n} pull requests waiting for your review.",
+    es: "Workspace sano. Hay {n} pull requests esperando tu review.",
+  },
+  "companion.today": {
+    en: "You've been working on {project} today. Audit's clean.",
+    es: "Estuviste trabajando en {project} hoy. Sin hallazgos críticos.",
+  },
   // Stats strip below the avatar
   "companion.stat_health": { en: "Health", es: "Salud" },
   "companion.stat_week": { en: "This week", es: "Esta semana" },

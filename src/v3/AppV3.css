@@ -1044,7 +1044,8 @@ body.v3-layout #root {
   min-height: 0;
 }
 
-/* Companion widget */
+/* Companion widget — fills the full height of the right panel so the
+   mascot has presence and the layout doesn't trail off into empty bg. */
 .v3-companion-widget {
   background: var(--v3-surface);
   border: 1px solid var(--v3-border);
@@ -1052,8 +1053,10 @@ body.v3-layout #root {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   box-shadow: var(--v3-shadow-1);
+  flex: 1;
+  min-height: 0;
 }
 .v3-companion-head {
   display: flex;
@@ -1073,32 +1076,49 @@ body.v3-layout #root {
   color: var(--v3-success);
   font-weight: 500;
 }
+/* Stage is the flex grower — gives the mascot room to breathe and lets the
+   widget fill any remaining vertical space gracefully. */
 .v3-companion-stage {
+  flex: 1;
   display: flex;
   justify-content: center;
-  padding: 6px;
-  background: linear-gradient(180deg, var(--v3-accent-tint) 0%, transparent 70%);
+  align-items: center;
+  padding: 12px 6px;
+  min-height: 180px;
+  background: radial-gradient(
+    ellipse 80% 70% at 50% 50%,
+    var(--v3-accent-tint) 0%,
+    transparent 70%
+  );
   border-radius: var(--v3-radius);
 }
 .v3-companion-avatar {
-  width: 140px;
-  height: 140px;
+  width: 100%;
+  max-width: 200px;
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Limit growth so the avatar stays balanced on tall screens. */
+  max-height: 220px;
 }
 .v3-companion-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
+/* Bordered message box — quotes the line so the assistant feels like it's
+   actually telling you something instead of being plain page copy. */
 .v3-companion-message {
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--v3-text-2);
-  padding: 4px 4px 0;
+  padding: 12px 14px;
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius);
 }
 .v3-companion-emph {
   color: var(--v3-accent);
