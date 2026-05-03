@@ -99,7 +99,10 @@ body.v3-layout #root {
    topbar carries the meta tabs (Claude / Companion / Settings). */
 .v3-topbar {
   display: grid;
-  grid-template-columns: auto auto 1fr auto;
+  /* Brand column matches the sidebar width below so the vertical divider
+     (brand → nav) lines up exactly with the sidebar → content divider in
+     the body grid. Adjusted in the responsive override below. */
+  grid-template-columns: 220px auto 1fr auto;
   align-items: stretch;
   height: 38px;
   background: var(--v3-surface);
@@ -160,9 +163,10 @@ body.v3-layout #root {
   display: flex;
   align-items: center;
   gap: 8px;
-  /* Wider right padding separates the brand block from the topbar nav. */
-  padding: 0 56px 0 14px;
+  padding: 0 14px;
   min-width: 0;
+  /* Visual continuation of the sidebar's right border. */
+  border-right: 1px solid var(--v3-border);
 }
 .v3-brand-mark {
   width: 18px;
@@ -232,6 +236,8 @@ body.v3-layout #root {
 .appv3-body > * { min-height: 0; }
 @media (max-width: 1180px) {
   .appv3-body { grid-template-columns: 200px minmax(0, 1fr) 260px; }
+  /* Keep the topbar brand column locked to the sidebar width. */
+  .v3-topbar { grid-template-columns: 200px auto 1fr auto; }
 }
 
 /* ========== Sidebar ========== */
