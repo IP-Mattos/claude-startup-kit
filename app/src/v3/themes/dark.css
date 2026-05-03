@@ -1,0 +1,201 @@
+/* =============================================================
+   V3 Theme: DARK
+   Identity: warm orange on slate. Developer-friendly dark.
+   Reference moods: GitHub Dark Dimmed, Linear Dark, Raycast Dark.
+   ============================================================= */
+
+/* Body background: soft radial glow at top so the slate reads
+   slightly luminous rather than flat black. */
+body.v3-layout[data-theme-v3="dark"] {
+  background: #0F172A;
+}
+
+body[data-theme-v3="dark"] .appv3 {
+  /* ── Surface ─────────────────────────────────────────────── */
+  --v3-bg:           #0F172A;
+  --v3-surface:      #1E293B;
+  --v3-surface-2:    #273344;
+  --v3-hover:        #2D3F55;         /* slightly more blue-tinted than border */
+  --v3-border:       #334155;
+  --v3-border-strong: #475569;
+
+  /* ── Type ────────────────────────────────────────────────── */
+  /* text-3 (#94A3B8) vs surface (#1E293B) ≈ 5.4:1 — passes AA */
+  --v3-text:   #F1F5F9;              /* Slate-100 — NOT pure white */
+  --v3-text-2: #CBD5E1;              /* Slate-300 */
+  --v3-text-3: #94A3B8;              /* Slate-400 — 5.4:1 on surface */
+  --v3-text-4: #64748B;              /* Slate-500 — decorative/dim only */
+
+  /* ── Accent ──────────────────────────────────────────────── */
+  --v3-accent:       #ED7B26;
+  --v3-accent-hover: #D86A1F;
+  --v3-accent-tint:  rgba(237, 123, 38, 0.14);  /* tighter opacity on dark */
+  --v3-accent-soft:  rgba(237, 123, 38, 0.18);
+
+  /* ── Semantic ────────────────────────────────────────────── */
+  --v3-success:      #10B981;
+  --v3-success-tint: rgba(16, 185, 129, 0.15);
+  --v3-warn:         #FBBF24;                    /* Amber-400 — brighter than light's F59E0B for dark legibility */
+  --v3-warn-tint:    rgba(251, 191, 36, 0.16);
+  --v3-info:         #FCD34D;
+  --v3-crit:         #F87171;                    /* Red-400 — lighter for dark bg */
+  --v3-crit-tint:    rgba(248, 113, 113, 0.15);
+
+  /* ── Shadows — diffuse, never chunky ────────────────────── */
+  --v3-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.30);
+  --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.40), 0 1px 2px rgba(0, 0, 0, 0.25);
+  --v3-shadow-3: 0 6px 24px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.30);
+}
+
+/* ── Body background: soft radial glow at the top ─────────── */
+/* Creates the impression of ambient light from above — characteristic
+   of GitHub Dark Dimmed / Linear Dark. Very subtle. */
+body.v3-layout[data-theme-v3="dark"] .appv3 {
+  background: radial-gradient(ellipse 120% 40% at 50% 0%, #1E293B 0%, #0F172A 60%);
+}
+
+/* ── Content area: barely-visible top-edge brightness overlay ─ */
+/* A 1% white gradient at the very top edge suggests soft daylight.
+   Gives the content canvas a premium, slightly glowing feel. */
+body[data-theme-v3="dark"] .appv3-content {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.012) 0px, transparent 48px),
+              var(--v3-bg);
+}
+
+/* ── Topbar: hairline gradient on bottom border ─────────────── */
+/* The border-bottom on the topbar gets a faint warm-to-cool gradient
+   so it feels alive rather than a flat gray line. */
+body[data-theme-v3="dark"] .v3-topbar {
+  border-bottom-color: transparent;
+  box-shadow: 0 1px 0 0 #334155,
+              inset 0 -1px 0 0 rgba(237, 123, 38, 0.08);
+}
+
+/* ── Stat cards: accent ring on hover ───────────────────────── */
+/* The warm ring against cool slate is the dark theme's signature move. */
+body[data-theme-v3="dark"] .v3-stat-card:hover {
+  box-shadow: var(--v3-shadow-2),
+              0 0 0 1px var(--v3-border-strong),
+              0 0 0 3px var(--v3-accent-soft);
+  border-color: rgba(237, 123, 38, 0.30);
+}
+
+/* ── Rows: accent border highlight on hover ─────────────────── */
+body[data-theme-v3="dark"] .v3-row:hover {
+  border-color: rgba(237, 123, 38, 0.30);
+  box-shadow: var(--v3-shadow-2);
+}
+
+/* ── Sidebar active link: inner accent glow ─────────────────── */
+body[data-theme-v3="dark"] .v3-side-link.active {
+  box-shadow: inset 2px 0 0 #ED7B26;
+}
+
+/* ── Companion stage: warm radial to soften the avatar area ─── */
+body[data-theme-v3="dark"] .v3-companion-stage {
+  background: radial-gradient(ellipse 90% 80% at 50% 100%,
+    rgba(237, 123, 38, 0.12) 0%,
+    rgba(237, 123, 38, 0.04) 50%,
+    transparent 100%);
+}
+
+/* ── Focus visible: premium outline glow ────────────────────── */
+body[data-theme-v3="dark"] .appv3 button:focus-visible,
+body[data-theme-v3="dark"] .appv3 a:focus-visible,
+body[data-theme-v3="dark"] .appv3 input:focus-visible,
+body[data-theme-v3="dark"] .appv3 select:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(237, 123, 38, 0.18);
+}
+
+/* ── Stat icon tints ─────────────────────────────────────────── */
+/* Purple works great on dark slate at C4B5FD — Violet-300, good contrast. */
+body[data-theme-v3="dark"] .v3-stat-icon-orange {
+  background: rgba(237, 123, 38, 0.16);
+  color: #ED7B26;
+}
+body[data-theme-v3="dark"] .v3-stat-icon-purple {
+  background: rgba(167, 139, 250, 0.16);
+  color: #C4B5FD;                     /* Violet-300 — warm-cool contrast on slate */
+}
+body[data-theme-v3="dark"] .v3-stat-icon-amber {
+  background: rgba(251, 191, 36, 0.16);
+  color: #FBBF24;                     /* matches --v3-warn upgrade */
+}
+body[data-theme-v3="dark"] .v3-stat-icon-green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34D399;                     /* Emerald-400 — brighter for dark bg */
+}
+
+/* ── PR review pill ──────────────────────────────────────────── */
+body[data-theme-v3="dark"] .v3-pr-pill-review {
+  background: rgba(167, 139, 250, 0.18);
+  color: #C4B5FD;
+}
+
+/* ── PR row icon (purple) ────────────────────────────────────── */
+body[data-theme-v3="dark"] .v3-row-pr .v3-row-icon {
+  background: rgba(167, 139, 250, 0.16);
+  color: #C4B5FD;
+}
+
+/* ── Audit alert banner ──────────────────────────────────────── */
+/* #FBBF24 on rgba(251,191,36,0.16) over #1E293B: effective bg is
+   roughly #252F1E — warm dark. #FBBF24 contrast ≈ 9:1. Clear. */
+body[data-theme-v3="dark"] .v3-audit-foot {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #FBBF24;
+}
+body[data-theme-v3="dark"] .v3-audit-foot .v3-chev {
+  color: #FBBF24;
+}
+
+/* ── Audit findings: dark-adapted backgrounds ───────────────── */
+body[data-theme-v3="dark"] .v3-finding-crit {
+  border-color: rgba(248, 113, 113, 0.30);
+  background: rgba(248, 113, 113, 0.08);
+}
+body[data-theme-v3="dark"] .v3-finding-warn {
+  border-color: rgba(251, 191, 36, 0.30);
+  background: rgba(251, 191, 36, 0.08);
+}
+body[data-theme-v3="dark"] .v3-finding-info {
+  border-color: rgba(96, 165, 250, 0.25);
+  background: rgba(96, 165, 250, 0.07);
+}
+body[data-theme-v3="dark"] .v3-finding-ok {
+  border-color: rgba(52, 211, 153, 0.25);
+  background: rgba(52, 211, 153, 0.07);
+}
+
+/* ── Success / error banners ─────────────────────────────────── */
+body[data-theme-v3="dark"] .v3-error {
+  background: rgba(248, 113, 113, 0.10);
+  border-color: rgba(248, 113, 113, 0.30);
+  color: #FCA5A5;
+}
+body[data-theme-v3="dark"] .v3-success {
+  background: rgba(52, 211, 153, 0.10);
+  border-color: rgba(52, 211, 153, 0.28);
+  color: #6EE7B7;
+}
+
+/* ── Chip.active inverts cleanly on dark ─────────────────────── */
+body[data-theme-v3="dark"] .v3-chip.active {
+  background: var(--v3-text);
+  border-color: var(--v3-text);
+  color: var(--v3-surface);
+}
+
+/* ── Scrollbar thumbs: slate-tinted ─────────────────────────── */
+body[data-theme-v3="dark"] .appv3 ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+body[data-theme-v3="dark"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+  background-clip: content-box;
+}

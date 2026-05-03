@@ -1,0 +1,618 @@
+/* ===== Theme: Kill Switch (Cyberpunk HUD — pure black, sharp white, RED as warning only) ===== */
+/* Inspired by the "Cyberpunk Collection — Foxmi" hackers guide aesthetic.
+   Pure black body + HUD grid lines. Sharp white outlines. Angular pixel type.
+   Red (#ff2030) is SEMANTIC ONLY — kill-switch danger, never decorative.
+   Chevron ">>" is the signature decor. Chunky 4px box-shadows. Zero radius everywhere. */
+
+[data-theme="kill-switch"] {
+  /* Palette — black/white with surgical red */
+  --bg: #000000;                           /* pure black body */
+  --bg-elev: #0a0a0a;                      /* elevated surfaces */
+  --bg-elev-2: #161616;                    /* double-elevated */
+  --bg-hover: #1f1f1f;                     /* hover state */
+  --border: #ffffff;                       /* sharp white — primary structural */
+  --border-strong: #ffffff;
+  --text: #ffffff;                         /* sharp white text */
+  --text-dim: #b0b0b0;                     /* dimmed */
+  --text-muted: #707070;                   /* muted (~4.7:1 vs #000 — OK) */
+  --accent: #ffffff;
+  --accent-dim: rgba(255, 255, 255, 0.15);
+  --accent-hover: #f0f0f0;
+  --pink: #ff5060;                         /* warning rose */
+  --pink-dim: rgba(255, 80, 96, 0.18);
+  --green: #00ff7f;                        /* terminal green — used VERY sparingly */
+  --green-dim: rgba(0, 255, 127, 0.15);
+  --warn: #ffaa30;                         /* warning amber */
+  --warn-dim: rgba(255, 170, 48, 0.18);
+  --crit: #ff2030;                         /* KILL SWITCH red */
+  --crit-dim: rgba(255, 32, 48, 0.20);
+
+  /* Fonts — VT323 display (angular pixel), Bitter body (refined contrast) */
+  --font-display: "VT323", ui-monospace, monospace;
+  --font-body: "Bitter", system-ui, sans-serif;
+  --font-mono: "VT323", ui-monospace, monospace;
+  --letter-display: 0.10em;
+  --decor-corner: #ffffff;
+}
+
+[data-theme="kill-switch"] {
+  image-rendering: auto;
+}
+
+/* ===== Atmosphere — HUD angular grid on pure black ===== */
+[data-theme="kill-switch"] body::before {
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 39px, rgba(255, 255, 255, 0.04) 39px 40px),
+    repeating-linear-gradient(90deg, transparent 0 39px, rgba(255, 255, 255, 0.04) 39px 40px);
+  opacity: 1;
+}
+[data-theme="kill-switch"] body::after {
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.6) 100%);
+}
+
+/* ===== Titlebar — black + 2px solid white bottom + KILL SWITCH red dot ===== */
+[data-theme="kill-switch"] .titlebar {
+  background: #000000;
+  border-bottom: 2px solid #ffffff;
+  color: #ffffff;
+}
+[data-theme="kill-switch"] .titlebar-title {
+  color: #ffffff;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: calc(15px * var(--font-scale));
+}
+/* Red ■ square: kill-switch emblem */
+[data-theme="kill-switch"] .emblem {
+  color: #ff2030;
+  filter: none;
+}
+[data-theme="kill-switch"] .window-controls .wc {
+  color: #ffffff;
+  background: #000000;
+  border: 1.5px solid #ffffff;
+  border-radius: 0;
+}
+[data-theme="kill-switch"] .window-controls .wc:hover {
+  background: #ffffff;
+  color: #000000;
+}
+[data-theme="kill-switch"] .window-controls .wc-close:hover {
+  background: #ff2030;
+  color: #ffffff;
+  border-color: #ff2030;
+}
+
+/* ===== Topbar (tab strip) — black + white bottom border ===== */
+[data-theme="kill-switch"] .topbar {
+  background: #000000;
+  border-bottom: 2px solid #ffffff;
+  padding: 10px 20px;
+}
+[data-theme="kill-switch"] .ornament {
+  color: #ffffff;
+  opacity: 0.5;
+}
+[data-theme="kill-switch"] .tabs {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 4px;
+}
+
+/* Tabs — transparent inactive, 2px white box outline active + ">>" chevron signature */
+[data-theme="kill-switch"] .tab {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 6px 18px;
+  border-radius: 0;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: var(--font-display);
+  font-size: calc(13px * var(--font-scale));
+  border: 2px solid transparent;
+  transition: color 80ms ease, border-color 80ms ease;
+  position: relative;
+}
+[data-theme="kill-switch"] .tab:hover {
+  color: #ffffff;
+  background: #0a0a0a;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+[data-theme="kill-switch"] .tab.active {
+  background: #000000;
+  color: #ffffff;
+  font-weight: 700;
+  border: 2px solid #ffffff;       /* all 4 sides — the "thick box outline" active state */
+  letter-spacing: 0.18em;
+}
+/* ">>" chevron prefix for active tab — signature decor */
+[data-theme="kill-switch"] .tab.active::before {
+  content: ">>";
+  position: absolute;
+  left: -22px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #ffffff;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+/* Theme picker icon button */
+[data-theme="kill-switch"] .theme-picker .ghost {
+  background: #000000;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 0;
+}
+[data-theme="kill-switch"] .theme-picker .ghost:hover {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* ===== Container ===== */
+[data-theme="kill-switch"] .container {
+  background: var(--bg);
+}
+
+/* ===== View bar ===== */
+[data-theme="kill-switch"] .summary {
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-size: calc(14px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+[data-theme="kill-switch"] .summary strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ===== Companion stage ===== */
+[data-theme="kill-switch"] .companion-stage {
+  grid-template-columns: 380px 1fr;
+  gap: 32px;
+}
+[data-theme="kill-switch"] .companion-portrait {
+  background: #0a0a0a;
+  border: 2px solid #ffffff;
+  border-radius: 0;
+  padding: 18px 18px 14px;
+  box-shadow: 4px 4px 0 #ffffff;
+}
+[data-theme="kill-switch"] .companion-frame {
+  border: 2px solid #ffffff;
+  border-radius: 0;
+  background: #000000;
+  max-width: none;
+  width: 100%;
+}
+[data-theme="kill-switch"] .companion-name {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 8px;
+}
+[data-theme="kill-switch"] .companion-name .hex-id { display: none; }
+[data-theme="kill-switch"] .companion-title {
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: calc(28px * var(--font-scale));
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 400;
+  text-shadow: none;
+}
+
+/* ===== Avatar treatment — high contrast monochrome ===== */
+[data-theme="kill-switch"] .companion-avatar {
+  filter: grayscale(1) contrast(1.6) brightness(1.05);
+  image-rendering: auto;
+}
+[data-theme="kill-switch"] .companion-tint {
+  background: #ffffff;
+  mix-blend-mode: overlay;
+  opacity: 0.05;
+}
+[data-theme="kill-switch"] .companion-scan {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 1px, rgba(255, 255, 255, 0.04) 1px 2px),
+    repeating-linear-gradient(90deg, transparent 0 1px, rgba(255, 255, 255, 0.02) 1px 2px);
+  opacity: 1;
+  mix-blend-mode: screen;
+}
+
+/* ===== Speech bubbles — black with sharp white border + ">>" left decor ===== */
+[data-theme="kill-switch"] .bubble {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 0;
+  padding: 14px 18px 14px 32px;
+  font-family: var(--font-body);
+  font-size: calc(14px * var(--font-scale));
+  line-height: 1.6;
+  box-shadow: 4px 4px 0 #ffffff;
+  position: relative;
+}
+[data-theme="kill-switch"] .bubble strong {
+  color: #ffffff;
+  font-weight: 700;
+  text-decoration: none;
+}
+/* ">>" left-side chevron — replaces manga bracket */
+[data-theme="kill-switch"] .bubble::before {
+  content: ">>";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: calc(16px * var(--font-scale));
+  color: #ffffff;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  border: none;
+  background: none;
+  width: auto;
+  height: auto;
+}
+[data-theme="kill-switch"] .bubble::after { display: none; }
+[data-theme="kill-switch"] .bubble-warn {
+  background: #0d0800;
+  border-color: var(--warn);
+  box-shadow: 4px 4px 0 var(--warn);
+}
+[data-theme="kill-switch"] .bubble-warn::before { color: var(--warn); }
+[data-theme="kill-switch"] .bubble-praise {
+  background: #001a0d;
+  border-color: #00ff7f;
+  box-shadow: 4px 4px 0 rgba(0, 255, 127, 0.4);
+}
+[data-theme="kill-switch"] .bubble-praise::before { color: #00ff7f; }
+
+/* ===== Action chips ===== */
+[data-theme="kill-switch"] .action-chip {
+  background: #000000;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-size: calc(12px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 4px 10px;
+  box-shadow: 2px 2px 0 rgba(255, 255, 255, 0.3);
+}
+[data-theme="kill-switch"] .action-chip:hover {
+  background: #ffffff;
+  color: #000000;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 #ffffff;
+}
+
+/* ===== Cards — black + 2px white border + chunky shadow + ">>" corner decor ===== */
+[data-theme="kill-switch"] .project,
+[data-theme="kill-switch"] .pr,
+[data-theme="kill-switch"] .audit-finding,
+[data-theme="kill-switch"] .cleanup-cat,
+[data-theme="kill-switch"] .quick-card {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #ffffff;
+  position: relative;
+}
+/* ">>" chevron at top-right of each card — the signature HUD mark */
+[data-theme="kill-switch"] .project::before,
+[data-theme="kill-switch"] .pr::before,
+[data-theme="kill-switch"] .quick-card::before {
+  content: ">>";
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: -0.05em;
+  line-height: 1;
+  pointer-events: none;
+}
+[data-theme="kill-switch"] .project:hover,
+[data-theme="kill-switch"] .pr:hover,
+[data-theme="kill-switch"] .quick-card:hover {
+  background: #0f0f0f;
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #ffffff;
+  border-color: #ffffff;
+}
+[data-theme="kill-switch"] .project:hover::before,
+[data-theme="kill-switch"] .pr:hover::before,
+[data-theme="kill-switch"] .quick-card:hover::before {
+  color: rgba(255, 255, 255, 0.8);
+}
+[data-theme="kill-switch"] .project-name,
+[data-theme="kill-switch"] .pr-title,
+[data-theme="kill-switch"] .quick-card-name {
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: calc(18px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  font-weight: 400;
+}
+[data-theme="kill-switch"] .project-icon,
+[data-theme="kill-switch"] .quick-card-name svg {
+  color: #ffffff;
+}
+[data-theme="kill-switch"] .project-path,
+[data-theme="kill-switch"] .quick-card-goal {
+  color: var(--text-muted);
+}
+[data-theme="kill-switch"] .quick-card-goal { font-style: normal; }
+[data-theme="kill-switch"] .git-subject { color: #ffffff; }
+[data-theme="kill-switch"] .git-hash {
+  background: #161616;
+  color: var(--text-dim);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+[data-theme="kill-switch"] .git-ago { color: var(--text-muted); }
+
+/* ===== Badges & pills ===== */
+[data-theme="kill-switch"] .badge {
+  background: transparent;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+[data-theme="kill-switch"] .badge-fresh {
+  background: #ffffff;
+  color: #000000;
+}
+[data-theme="kill-switch"] .hex-id {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+
+/* ===== Buttons — white bg + black text + uppercase + wide spacing ===== */
+[data-theme="kill-switch"] button {
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid #ffffff;
+  border-radius: 0;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  box-shadow: 4px 4px 0 #4a4a4a;
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+[data-theme="kill-switch"] button:hover {
+  background: #f0f0f0;
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #4a4a4a;
+}
+[data-theme="kill-switch"] button:active {
+  transform: translate(0, 0);
+  box-shadow: 1px 1px 0 #4a4a4a;
+}
+[data-theme="kill-switch"] button.ghost {
+  background: #000000;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 4px 4px 0 rgba(255, 255, 255, 0.25);
+}
+[data-theme="kill-switch"] button.ghost:hover {
+  background: #0f0f0f;
+  box-shadow: 6px 6px 0 rgba(255, 255, 255, 0.3);
+}
+/* KILL SWITCH button — the ONLY saturated red element */
+[data-theme="kill-switch"] button.danger {
+  background: #ff2030;
+  color: #ffffff;
+  border-color: #ff2030;
+  box-shadow: 4px 4px 0 rgba(255, 32, 48, 0.5);
+}
+[data-theme="kill-switch"] button.danger:hover {
+  background: #e01020;
+  box-shadow: 6px 6px 0 rgba(255, 32, 48, 0.6);
+}
+
+/* ===== Quick projects panel ===== */
+[data-theme="kill-switch"] .quick-projects {
+  border-top: 2px solid #ffffff;
+}
+[data-theme="kill-switch"] .quick-projects-head h3 {
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 400;
+  font-family: var(--font-display);
+  font-size: calc(20px * var(--font-scale));
+}
+
+/* ===== Audit findings ===== */
+[data-theme="kill-switch"] .audit-category-header {
+  color: var(--text);
+  border-bottom-color: rgba(255, 255, 255, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-family: var(--font-display);
+}
+[data-theme="kill-switch"] .audit-cat-count {
+  background: #161616;
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+/* crit — 4px red left border + dark red-tinted bg */
+[data-theme="kill-switch"] .audit-finding.lvl-crit {
+  background: #1a0508;
+  border-color: rgba(255, 255, 255, 0.4);
+  border-left: 4px solid #ff2030;
+  box-shadow: 4px 4px 0 rgba(255, 32, 48, 0.3);
+}
+/* warn — 4px amber left border + dark amber-tinted bg */
+[data-theme="kill-switch"] .audit-finding.lvl-warn {
+  background: #120d00;
+  border-color: rgba(255, 255, 255, 0.3);
+  border-left: 4px solid var(--warn);
+}
+[data-theme="kill-switch"] .audit-level {
+  background: #161616;
+  color: #ffffff;
+  border-radius: 0;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+}
+[data-theme="kill-switch"] .audit-level.lvl-crit {
+  background: #ff2030;
+  color: #ffffff;
+}
+[data-theme="kill-switch"] .audit-level.lvl-warn {
+  background: var(--warn);
+  color: #000000;
+}
+[data-theme="kill-switch"] .audit-title {
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: calc(15px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+[data-theme="kill-switch"] .audit-detail {
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: calc(13px * var(--font-scale));
+}
+
+/* ===== PR & cleanup specifics ===== */
+[data-theme="kill-switch"] .pr-meta { color: var(--text-muted); }
+[data-theme="kill-switch"] .pr-repo { color: var(--text-dim); }
+[data-theme="kill-switch"] .cleanup-cat header {
+  background: #161616;
+  color: #ffffff;
+  border-bottom: 2px solid #ffffff;
+}
+[data-theme="kill-switch"] .cleanup-cat-name { color: #ffffff; font-family: var(--font-display); text-transform: uppercase; }
+[data-theme="kill-switch"] .cleanup-cat-meta { color: var(--text-muted); }
+[data-theme="kill-switch"] .cleanup-cat li {
+  color: #ffffff;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+  font-family: var(--font-body);
+}
+[data-theme="kill-switch"] .cleanup-date { color: var(--text-muted); }
+
+/* ===== Status bar — black + 2px top white border + ">>" separators ===== */
+[data-theme="kill-switch"] .statusbar {
+  background: #000000;
+  color: #ffffff;
+  border-top: 2px solid #ffffff;
+  font-family: var(--font-display);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+[data-theme="kill-switch"] .sb-mono { color: #ffffff; font-family: var(--font-mono); }
+[data-theme="kill-switch"] .sb-dim { color: var(--text-muted); }
+[data-theme="kill-switch"] .sb-glyph { color: #ffffff; }
+[data-theme="kill-switch"] .sb-clock { color: var(--text-dim); text-shadow: none; }
+
+/* ===== Theme picker menu ===== */
+[data-theme="kill-switch"] .theme-menu {
+  background: #0a0a0a;
+  border: 2px solid #ffffff;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #ffffff;
+}
+[data-theme="kill-switch"] .theme-option {
+  color: #ffffff;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  font-family: var(--font-display);
+}
+[data-theme="kill-switch"] .theme-option:hover { background: #1f1f1f; }
+[data-theme="kill-switch"] .theme-option.active {
+  background: #ffffff;
+  color: #000000;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  outline: 2px solid #ffffff;
+}
+
+/* ===== Search input ===== */
+[data-theme="kill-switch"] .search {
+  background: #0a0a0a;
+  border: 2px solid #ffffff;
+  border-radius: 0;
+}
+[data-theme="kill-switch"] .search input {
+  color: #ffffff;
+  font-family: var(--font-body);
+}
+[data-theme="kill-switch"] .search input::placeholder { color: var(--text-muted); }
+[data-theme="kill-switch"] .select-wrap select {
+  background: #0a0a0a;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 0;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ===== Selection — white on black ===== */
+[data-theme="kill-switch"] ::selection {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* ===== Scrollbar — white thumb, no red ===== */
+[data-theme="kill-switch"] ::-webkit-scrollbar-track { background: #000000; }
+[data-theme="kill-switch"] ::-webkit-scrollbar-thumb {
+  background: #ffffff;
+  border: 2px solid transparent;
+  border-radius: 0;
+}
+[data-theme="kill-switch"] ::-webkit-scrollbar-thumb:hover { background: #f0f0f0; }
+
+/* ===== Skeleton ===== */
+[data-theme="kill-switch"] .sk-line {
+  background: linear-gradient(90deg, #161616, #2a2a2a, #161616);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ===== State / loading ===== */
+[data-theme="kill-switch"] .state {
+  color: var(--text-muted);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-style: normal;
+}
+
+/* ===== MANDATORY: Focus-visible — red outline for danger feel ===== */
+[data-theme="kill-switch"] .tab:focus-visible,
+[data-theme="kill-switch"] button:focus-visible,
+[data-theme="kill-switch"] .search input:focus-visible,
+[data-theme="kill-switch"] .theme-option:focus-visible,
+[data-theme="kill-switch"] input:focus-visible,
+[data-theme="kill-switch"] select:focus-visible {
+  outline: 3px solid #ff2030;
+  outline-offset: 2px;
+}

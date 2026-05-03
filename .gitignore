@@ -24,3 +24,15 @@ desktop.ini
 # Local-only test scripts you might add
 demo-*.ps1
 toast-*.ps1
+
+# Claude Code session state (per-machine)
+.claude/
+
+# Tauri / Node build artifacts
+node_modules/
+dist/
+**/target/
+*.local
+
+# Tauri auto-generated
+src-tauri/gen/

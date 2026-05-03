@@ -1,0 +1,148 @@
+/* =============================================================
+   V3 Theme: NORD
+   Identity: arctic, calibrated, ergonomic. Frost cyan + Snow Storm + Polar Night.
+   Reference: https://www.nordtheme.com — Sven Greb's official palette.
+   Mood: quiet, desaturated, professional. Never vibrant. Aurora = severity only.
+   ============================================================= */
+
+/* Body background — fills the Tauri window chrome behind .appv3 */
+body.v3-layout[data-theme-v3="nord"] {
+  background: #2E3440;
+}
+
+/* ── Design tokens ─────────────────────────────────────────── */
+body[data-theme-v3="nord"] .appv3 {
+  /* Polar Night surfaces */
+  --v3-bg:            #2E3440;   /* nord0 — deepest bg */
+  --v3-surface:       #3B4252;   /* nord1 — card/panel bg */
+  --v3-surface-2:     #434C5E;   /* nord2 — nested bg */
+  --v3-hover:         #4C566A;   /* nord3 — hover state */
+
+  /* Borders — Nord is about SUBTLE separation, not hard edges */
+  --v3-border:        rgba(76, 86, 106, 0.55);   /* nord3 @ 55% — barely there */
+  --v3-border-strong: rgba(76, 86, 106, 0.90);   /* nord3 @ 90% — noticeable but still soft */
+
+  /* Snow Storm text */
+  --v3-text:   #ECEFF4;   /* nord6 — headings, primary */
+  --v3-text-2: #D8DEE9;   /* nord4 — body text */
+  --v3-text-3: #9DA9BC;   /* custom mid — verified ≥4.5:1 on #2E3440 (~5.1:1) */
+  --v3-text-4: #616E88;   /* muted / timestamps */
+
+  /* Frost accent — #88C0D0 (Frost cyan, nord8) */
+  --v3-accent:       #88C0D0;
+  --v3-accent-hover: #9ACFDE;
+  --v3-accent-tint:  rgba(136, 192, 208, 0.15);   /* frost bg tint — restrained */
+  --v3-accent-soft:  rgba(136, 192, 208, 0.08);   /* ring glow — very faint */
+
+  /* Aurora severity palette */
+  --v3-success:      #A3BE8C;                      /* aurora green */
+  --v3-success-tint: rgba(163, 190, 140, 0.15);
+  --v3-warn:         #EBCB8B;                      /* aurora yellow */
+  --v3-warn-tint:    rgba(235, 203, 139, 0.14);
+  --v3-info:         #81A1C1;                      /* frost sky, nord9 */
+  --v3-crit:         #BF616A;                      /* aurora red */
+  --v3-crit-tint:    rgba(191, 97, 106, 0.15);
+
+  /* Shadows — Nord is quiet. Lower alpha, more diffuse than other dark themes. */
+  --v3-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.20);
+  --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
+  --v3-shadow-3: 0 6px 20px rgba(0, 0, 0, 0.30), 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+/* ── Decorative body atmosphere ────────────────────────────── */
+/* Barely-visible frost aurora glow at the top of the window */
+body.v3-layout[data-theme-v3="nord"] .appv3 {
+  background-image:
+    radial-gradient(ellipse at top, rgba(136, 192, 208, 0.04) 0%, transparent 60%);
+}
+
+/* ── Active tab indicator — frost cyan bottom border ────────── */
+body[data-theme-v3="nord"] .appv3 .v3-topbar-tab.active {
+  border-bottom-color: #88C0D0;
+  color: #ECEFF4;
+}
+
+/* ── Sidebar active nav link — frost tint ───────────────────── */
+body[data-theme-v3="nord"] .appv3 .v3-side-link.active {
+  background: rgba(136, 192, 208, 0.12);
+  color: #88C0D0;
+  font-weight: 600;
+}
+body[data-theme-v3="nord"] .appv3 .v3-side-link.active svg {
+  color: #88C0D0;
+}
+
+/* ── Stat card hover — frost ring ───────────────────────────── */
+body[data-theme-v3="nord"] .appv3 .v3-stat-card:hover {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(136, 192, 208, 0.18);
+}
+
+/* ── Stat icon tints — calm Nord palette ────────────────────── */
+/* orange slot → frost cyan */
+body[data-theme-v3="nord"] .appv3 .v3-stat-icon-orange {
+  background: rgba(136, 192, 208, 0.15);
+  color: #88C0D0;
+}
+/* purple slot → aurora purple */
+body[data-theme-v3="nord"] .appv3 .v3-stat-icon-purple {
+  background: rgba(180, 142, 173, 0.15);
+  color: #B48EAD;
+}
+/* amber slot → aurora yellow */
+body[data-theme-v3="nord"] .appv3 .v3-stat-icon-amber {
+  background: rgba(235, 203, 139, 0.14);
+  color: #EBCB8B;
+}
+/* green slot → aurora green */
+body[data-theme-v3="nord"] .appv3 .v3-stat-icon-green {
+  background: rgba(163, 190, 140, 0.15);
+  color: #A3BE8C;
+}
+
+/* ── PR review pill — aurora purple ────────────────────────── */
+body[data-theme-v3="nord"] .appv3 .v3-pr-pill-review {
+  background: rgba(180, 142, 173, 0.18);
+  color: #B48EAD;
+}
+
+/* ── PR row icon — frost tint (overrides .v3-row-pr purple) ── */
+body[data-theme-v3="nord"] .appv3 .v3-row-pr .v3-row-icon {
+  background: rgba(136, 192, 208, 0.15);
+  color: #88C0D0;
+}
+
+/* ── Companion stage — frost radial backing ─────────────────── */
+body[data-theme-v3="nord"] .appv3 .v3-companion-stage {
+  background: radial-gradient(ellipse at center top, rgba(136, 192, 208, 0.12) 0%, transparent 65%);
+}
+
+/* ── Companion widget border — frost gradient at low opacity ── */
+body[data-theme-v3="nord"] .appv3 .v3-companion-widget {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.20),
+    inset 0 0 0 1px rgba(136, 192, 208, 0.10);
+}
+
+/* ── Audit alert banner — aurora yellow legibility ──────────── */
+/* #EBCB8B on rgba(235,203,139,0.14) blended over #3B4252:
+   effective bg ≈ #3F4B5A, text #EBCB8B ≈ 6.2:1 — passes AA large & normal */
+body[data-theme-v3="nord"] .appv3 .v3-audit-foot {
+  background: var(--v3-warn-tint);
+  border-color: rgba(235, 203, 139, 0.40);
+  color: #EBCB8B;
+}
+body[data-theme-v3="nord"] .appv3 .v3-audit-foot .v3-chev {
+  color: #EBCB8B;
+}
+
+/* ── Scrollbar — frost-tinted thumb ─────────────────────────── */
+body[data-theme-v3="nord"] .appv3 ::-webkit-scrollbar-thumb {
+  background: rgba(136, 192, 208, 0.20);
+  background-clip: content-box;
+}
+body[data-theme-v3="nord"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: rgba(136, 192, 208, 0.35);
+  background-clip: content-box;
+}

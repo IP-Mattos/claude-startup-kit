@@ -1,0 +1,674 @@
+/* ===== Theme: Petrick (Pure Windows 95/98 GUI) ===== */
+/* Inspired by a Win9x "Instagram.exe" chrome mockup.
+   Classic silver-gray panels, 3D bevels, blue gradient titlebars.
+   MS Sans Serif vibes via Bitter. Pure 1996. No radius. No noise.
+   THE BEVEL IS LAW. */
+
+[data-theme="petrick"] {
+  /* Palette — Win9x silver/teal */
+  --bg: #008080;               /* classic Win95 desktop teal */
+  --bg-elev: #c0c0c0;          /* Win95 silver — window/card surface */
+  --bg-elev-2: #d4d0c8;        /* slightly warmer gray for inactive areas */
+  --bg-hover: #dfdcd5;         /* hover silver */
+  --border: #ffffff;           /* top/left bevel highlight */
+  --border-strong: #404040;    /* bottom/right bevel shadow */
+  --text: #000000;
+  --text-dim: #404040;
+  --text-muted: #5a5a5a;
+  --accent: #000080;           /* titlebar blue */
+  --accent-dim: rgba(16, 132, 208, 0.2);
+  --accent-hover: #1084d0;
+  --pink: #c000c0;
+  --pink-dim: rgba(192, 0, 192, 0.2);
+  --green: #008000;
+  --green-dim: rgba(0, 128, 0, 0.2);
+  --warn: #808000;
+  --warn-dim: rgba(128, 128, 0, 0.2);
+  --crit: #800000;
+  --crit-dim: rgba(128, 0, 0, 0.2);
+
+  /* Fonts — Bitter as closest MS Sans substitute we ship */
+  --font-display: "Bitter", "Tahoma", "MS Sans Serif", system-ui, sans-serif;
+  --font-body: "Bitter", "Tahoma", system-ui, sans-serif;
+  --font-mono: "VT323", "Courier New", ui-monospace, monospace;
+  --letter-display: 0;         /* Win9x is tight — no spacing */
+  --decor-corner: #808080;
+}
+
+[data-theme="petrick"] {
+  image-rendering: pixelated;
+}
+
+/* ===== Atmosphere — flat teal desktop, subtle dither ===== */
+/* No noise, no scanlines — pure Win95 flat desktop.
+   A very faint tiled SVG dither nods to Win9x desktop patterns. */
+[data-theme="petrick"] body::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4'><rect width='1' height='1' x='0' y='0' fill='%23ffffff'/><rect width='1' height='1' x='2' y='2' fill='%23ffffff'/></svg>");
+  background-size: 4px 4px;
+  opacity: 0.04;
+}
+[data-theme="petrick"] body::after {
+  background: none;
+}
+
+/* ===== Titlebar — Win95 blue gradient, white text ===== */
+[data-theme="petrick"] .titlebar {
+  background: linear-gradient(90deg, #000080 0%, #1084d0 100%);
+  border-bottom: 2px solid #404040;
+  color: #ffffff;
+}
+[data-theme="petrick"] .titlebar-title {
+  color: #ffffff;
+  text-transform: none;           /* Win9x uses normal case */
+  letter-spacing: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+[data-theme="petrick"] .emblem { color: #ffffff; filter: none; }
+
+/* Window controls — 16x14 outset-bevel boxes */
+[data-theme="petrick"] .window-controls .wc {
+  color: #000000;
+  background: #c0c0c0;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  width: 16px;
+  height: 14px;
+  border-radius: 0;
+}
+[data-theme="petrick"] .window-controls .wc:hover {
+  background: #d4d0c8;
+  color: #000000;
+}
+/* Active / pressed state — inset bevel */
+[data-theme="petrick"] .window-controls .wc:active {
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+}
+[data-theme="petrick"] .window-controls .wc-close:hover {
+  background: #800000;
+  color: #ffffff;
+}
+
+/* ===== Topbar (tab strip) ===== */
+[data-theme="petrick"] .topbar {
+  background: #c0c0c0;
+  border-bottom: 1px solid #808080;
+  padding: 6px 16px 0;
+}
+[data-theme="petrick"] .ornament {
+  color: #404040;
+  opacity: 1;
+}
+[data-theme="petrick"] .tabs {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 2px;
+}
+
+/* Tabs — Win9x classic tab strip */
+[data-theme="petrick"] .tab {
+  background: #a8a8a8;
+  color: #000000;
+  padding: 4px 14px;
+  border-radius: 0;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 12px;
+  font-weight: 400;
+  /* inactive tabs: no top highlight, sunken feel */
+  border-top: 2px solid #808080;
+  border-left: 2px solid #808080;
+  border-right: 2px solid #404040;
+  border-bottom: none;
+  transition: background 60ms, color 60ms;
+  position: relative;
+  top: 1px;
+}
+[data-theme="petrick"] .tab:hover {
+  background: #c0c0c0;
+  color: #000000;
+}
+/* Active tab — pops up, outset bevel, bottom border invisible (joins panel) */
+[data-theme="petrick"] .tab.active {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #c0c0c0;  /* invisible — merges with container */
+  box-shadow: none;
+  font-weight: 700;
+  top: 0;
+  z-index: 1;
+}
+
+/* Theme picker ghost button */
+[data-theme="petrick"] .theme-picker .ghost {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  border-radius: 0;
+}
+[data-theme="petrick"] .theme-picker .ghost:hover {
+  background: #d4d0c8;
+}
+
+/* ===== Container ===== */
+[data-theme="petrick"] .container {
+  background: #c0c0c0;
+}
+
+/* ===== Summary / view header ===== */
+[data-theme="petrick"] .summary {
+  color: #404040;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+[data-theme="petrick"] .summary strong {
+  color: #000080;
+  font-weight: 700;
+}
+
+/* ===== Companion stage ===== */
+[data-theme="petrick"] .companion-stage {
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+}
+/* Companion portrait — sunken inset panel */
+[data-theme="petrick"] .companion-portrait {
+  background: #c0c0c0;
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  border-radius: 0;
+  padding: 12px 12px 8px;
+}
+[data-theme="petrick"] .companion-frame {
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  border-radius: 0;
+  background: #c0c0c0;
+  max-width: none;
+  width: 100%;
+}
+[data-theme="petrick"] .companion-name {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 6px;
+}
+[data-theme="petrick"] .companion-name .hex-id { display: none; }
+[data-theme="petrick"] .companion-title {
+  color: #000000;
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+/* Avatar — desaturate slightly for silver-era feel */
+[data-theme="petrick"] .companion-avatar {
+  filter: grayscale(0.2) contrast(1.05);
+  image-rendering: pixelated;
+}
+[data-theme="petrick"] .companion-tint {
+  background: #c0c0c0;
+  mix-blend-mode: multiply;
+  opacity: 0.08;
+}
+[data-theme="petrick"] .companion-scan {
+  /* No scanlines — Win9x is sharp pixels */
+  background: none;
+  opacity: 0;
+}
+
+/* ===== Speech bubbles — inset panel, Win9x info-box style ===== */
+[data-theme="petrick"] .bubble {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  border-radius: 0;
+  padding: 12px 16px 12px 36px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.5;
+}
+[data-theme="petrick"] .bubble strong {
+  color: #000080;
+  font-weight: 700;
+  text-decoration: none;
+}
+/* Win9x info 'i' icon pseudo-element — replaces '{' bracket */
+[data-theme="petrick"] .bubble::before {
+  content: "i";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: "Times New Roman", serif;
+  font-size: 14px;
+  font-weight: 700;
+  font-style: italic;
+  color: #ffffff;
+  background: #000080;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 50%;
+  border: none;
+}
+[data-theme="petrick"] .bubble::after { display: none; }
+/* Warn bubble — yellow Win9x warning */
+[data-theme="petrick"] .bubble-warn {
+  background: #ffffe0;
+  border-top: 2px solid #808000;
+  border-left: 2px solid #808000;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+}
+[data-theme="petrick"] .bubble-warn::before {
+  content: "!";
+  background: #808000;
+  color: #ffffff;
+  font-style: normal;
+}
+/* Praise bubble — Win9x green */
+[data-theme="petrick"] .bubble-praise {
+  background: #e0ffe0;
+  border-top: 2px solid #008000;
+  border-left: 2px solid #008000;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+}
+[data-theme="petrick"] .bubble-praise::before {
+  content: "✓";
+  background: #008000;
+  color: #ffffff;
+  font-style: normal;
+  font-size: 11px;
+}
+
+/* ===== Action chips ===== */
+[data-theme="petrick"] .action-chip {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  border-radius: 0;
+  font-family: var(--font-body);
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 3px 8px;
+}
+[data-theme="petrick"] .action-chip:hover {
+  background: #d4d0c8;
+  color: #000000;
+  transform: none;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+}
+
+/* ===== Cards — sunken inset panels ===== */
+[data-theme="petrick"] .project,
+[data-theme="petrick"] .pr,
+[data-theme="petrick"] .audit-finding,
+[data-theme="petrick"] .cleanup-cat,
+[data-theme="petrick"] .quick-card {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  border-radius: 0;
+}
+[data-theme="petrick"] .project:hover,
+[data-theme="petrick"] .pr:hover,
+[data-theme="petrick"] .quick-card:hover {
+  background: #dfdcd5;
+  /* On hover — outset (raised) bevel to show it's clickable */
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  transform: none;
+}
+[data-theme="petrick"] .project-name,
+[data-theme="petrick"] .pr-title,
+[data-theme="petrick"] .quick-card-name {
+  color: #000000;
+  font-family: var(--font-display);
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+[data-theme="petrick"] .project-icon,
+[data-theme="petrick"] .quick-card-name svg {
+  color: #000080;
+}
+[data-theme="petrick"] .project-path,
+[data-theme="petrick"] .quick-card-goal {
+  color: #404040;
+}
+[data-theme="petrick"] .quick-card-goal { font-style: normal; }
+[data-theme="petrick"] .git-subject { color: #000000; }
+[data-theme="petrick"] .git-hash {
+  background: #000080;
+  color: #ffffff;
+  border-color: #000080;
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+[data-theme="petrick"] .git-ago { color: #808080; }
+
+/* ===== Badges & pills — tiny inset boxes ===== */
+[data-theme="petrick"] .badge {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 1px solid #404040;
+  border-left: 1px solid #404040;
+  border-right: 1px solid #ffffff;
+  border-bottom: 1px solid #ffffff;
+  border-radius: 0;
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+[data-theme="petrick"] .badge-fresh {
+  background: #000080;
+  color: #ffffff;
+  border-color: #000080;
+}
+[data-theme="petrick"] .hex-id {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 1px solid #404040;
+  border-left: 1px solid #404040;
+  border-right: 1px solid #ffffff;
+  border-bottom: 1px solid #ffffff;
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+
+/* ===== Buttons — outset bevel (Win9x standard) ===== */
+[data-theme="petrick"] button {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  border-radius: 0;
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: 0;
+  transition: none;
+}
+[data-theme="petrick"] button:hover {
+  background: #d4d0c8;
+  transform: none;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+}
+/* Pressed — inset bevel */
+[data-theme="petrick"] button:active {
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  transform: none;
+}
+[data-theme="petrick"] button.ghost {
+  background: #d4d0c8;
+  color: #000000;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+}
+[data-theme="petrick"] button.ghost:hover {
+  background: #dfdcd5;
+}
+[data-theme="petrick"] button.danger {
+  background: #800000;
+  color: #ffffff;
+  border-top: 2px solid #ff4040;
+  border-left: 2px solid #ff4040;
+  border-right: 2px solid #400000;
+  border-bottom: 2px solid #400000;
+  box-shadow: inset -1px -1px 0 #600000, inset 1px 1px 0 #c04040;
+}
+
+/* ===== Quick projects panel ===== */
+[data-theme="petrick"] .quick-projects {
+  border-top: 2px solid #404040;
+}
+[data-theme="petrick"] .quick-projects-head h3 {
+  color: #000000;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* ===== Audit findings ===== */
+[data-theme="petrick"] .audit-category-header {
+  color: #000000;
+  border-bottom-color: #808080;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+[data-theme="petrick"] .audit-cat-count {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 1px solid #404040;
+  border-left: 1px solid #404040;
+  border-right: 1px solid #ffffff;
+  border-bottom: 1px solid #ffffff;
+  border-radius: 0;
+}
+/* lvl-crit — red tinted inset panel */
+[data-theme="petrick"] .audit-finding.lvl-crit {
+  background: #ffe0e0;
+  border-top: 2px solid #800000;
+  border-left: 2px solid #800000;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #c08080;
+}
+/* lvl-warn — yellow tinted inset panel */
+[data-theme="petrick"] .audit-finding.lvl-warn {
+  background: #ffffe0;
+  border-top: 2px solid #808000;
+  border-left: 2px solid #808000;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #c0c080;
+}
+[data-theme="petrick"] .audit-level {
+  background: #000080;
+  color: #ffffff;
+  border-radius: 0;
+  font-family: var(--font-body);
+  font-size: 11px;
+}
+[data-theme="petrick"] .audit-level.lvl-crit { background: #800000; color: #ffffff; }
+[data-theme="petrick"] .audit-level.lvl-warn { background: #808000; color: #000000; }
+[data-theme="petrick"] .audit-title { color: #000000; font-family: var(--font-body); font-size: 12px; font-weight: 700; }
+[data-theme="petrick"] .audit-detail { color: #404040; font-family: var(--font-mono); font-size: 13px; }
+
+/* ===== PR & cleanup specifics ===== */
+[data-theme="petrick"] .pr-meta { color: #404040; }
+[data-theme="petrick"] .pr-repo { color: #000000; font-weight: 700; }
+[data-theme="petrick"] .cleanup-cat header {
+  background: #000080;
+  color: #ffffff;
+  border-bottom: 1px solid #404040;
+}
+[data-theme="petrick"] .cleanup-cat-name { color: #ffffff; font-weight: 700; }
+[data-theme="petrick"] .cleanup-cat-meta { color: #c0d0e0; }
+[data-theme="petrick"] .cleanup-cat li { color: #000000; border-bottom-color: rgba(0, 0, 0, 0.1); }
+[data-theme="petrick"] .cleanup-date { color: #808080; font-family: var(--font-mono); }
+
+/* ===== Status bar — sunken inset strip ===== */
+[data-theme="petrick"] .statusbar {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 1px solid #808080;
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}
+[data-theme="petrick"] .sb-mono {
+  color: #000000;
+  font-family: var(--font-mono);
+  /* Individual status fields are tiny sunken panels */
+  border-top: 1px solid #404040;
+  border-left: 1px solid #404040;
+  border-right: 1px solid #ffffff;
+  border-bottom: 1px solid #ffffff;
+  padding: 0 4px;
+}
+[data-theme="petrick"] .sb-dim { color: #808080; }
+[data-theme="petrick"] .sb-glyph { color: #000080; }
+[data-theme="petrick"] .sb-clock { color: #000000; text-shadow: none; font-family: var(--font-mono); }
+
+/* ===== Theme picker menu ===== */
+[data-theme="petrick"] .theme-menu {
+  background: #c0c0c0;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  border-radius: 0;
+}
+[data-theme="petrick"] .theme-option {
+  color: #000000;
+  border-radius: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+[data-theme="petrick"] .theme-option:hover { background: #000080; color: #ffffff; }
+[data-theme="petrick"] .theme-option.active { background: #000080; color: #ffffff; font-weight: 700; }
+
+/* ===== Search input — sunken text field ===== */
+[data-theme="petrick"] .search {
+  background: #ffffff;
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  border-radius: 0;
+}
+[data-theme="petrick"] .search input {
+  color: #000000;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+[data-theme="petrick"] .search input::placeholder { color: #808080; }
+[data-theme="petrick"] .select-wrap select {
+  background: #ffffff;
+  color: #000000;
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  border-radius: 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+
+/* ===== Selection — Win95 blue highlight ===== */
+[data-theme="petrick"] ::selection {
+  background: #000080;
+  color: #ffffff;
+}
+
+/* ===== Scrollbar — outset bevel thumb ===== */
+[data-theme="petrick"] ::-webkit-scrollbar-track {
+  background: #dfdfdf;
+  border-top: 1px solid #404040;
+  border-left: 1px solid #404040;
+}
+[data-theme="petrick"] ::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  border-radius: 0;
+}
+[data-theme="petrick"] ::-webkit-scrollbar-thumb:hover { background: #d4d0c8; }
+
+/* ===== Skeleton loader — blue accent chunk on silver track ===== */
+[data-theme="petrick"] .sk-line {
+  background: linear-gradient(90deg, #c0c0c0, #000080 40%, #1084d0 60%, #c0c0c0);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-top: 1px solid #404040;
+  border-left: 1px solid #404040;
+  border-right: 1px solid #ffffff;
+  border-bottom: 1px solid #ffffff;
+  border-radius: 0;
+}
+
+/* ===== State / loading text ===== */
+[data-theme="petrick"] .state {
+  color: #404040;
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: normal;
+  font-size: 12px;
+}
+
+/* ===== Focus-visible — keyboard accessibility (WCAG 2.4.7) ===== */
+/* Classic Win9x focus indicator: dotted inset outline */
+[data-theme="petrick"] .tab:focus-visible,
+[data-theme="petrick"] button:focus-visible,
+[data-theme="petrick"] .search input:focus-visible,
+[data-theme="petrick"] .theme-option:focus-visible,
+[data-theme="petrick"] input:focus-visible,
+[data-theme="petrick"] select:focus-visible {
+  outline: 1px dotted #000000;
+  outline-offset: -4px;
+}

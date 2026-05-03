@@ -13,7 +13,7 @@
   --border-strong: #2a2e1f;  /* solid olive */
   --text: #ece5cf;           /* cream text on olive bg */
   --text-dim: #a8a085;       /* faded cream */
-  --text-muted: #5e5840;     /* muted olive-cream */
+  --text-muted: #8a8260;     /* muted olive-cream — bumped for AA */
   --accent: #ece5cf;
   --accent-dim: rgba(236, 229, 207, 0.18);
   --accent-hover: #fff7e0;

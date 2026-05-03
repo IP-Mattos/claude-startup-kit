@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fontsource/bitter": "^5.2.10",
+    "@fontsource/inter": "^5.2.8",
     "@fontsource/jacquard-12": "^5.2.8",
     "@fontsource/vt323": "^5.2.7",
     "@tauri-apps/api": "^2",

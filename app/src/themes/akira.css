@@ -1,0 +1,572 @@
+/* ===== Theme: Akira (Dark Manga Zine — pure black + phosphor green, blackletter headlines) ===== */
+/* Pure black substrate + phosphor green phosphor type. Gothic blackletter titles, halftone
+   dot overlay on every card, scanline body, manga-occult zine energy. Zero radius everywhere. */
+
+[data-theme="akira"] {
+  /* Palette — phosphor green on pure black */
+  --bg: #000000;
+  --bg-elev: #0a0a0a;
+  --bg-elev-2: #141414;
+  --bg-hover: #1c1c1c;
+  --border: #2a2a2a;
+  --border-strong: #5ce65c;
+  --text: #5ce65c;             /* phosphor green — primary text */
+  --text-dim: #3fb33f;
+  --text-muted: #2a8a2a;       /* ≥4.5:1 vs #000 — ~5.4:1, OK */
+  --accent: #5ce65c;
+  --accent-dim: rgba(92, 230, 92, 0.18);
+  --accent-hover: #88ff88;
+  --pink: #d4f09a;             /* greenish-yellow warm secondary */
+  --pink-dim: rgba(212, 240, 154, 0.18);
+  --green: #88ff88;            /* brighter accent */
+  --green-dim: rgba(136, 255, 136, 0.18);
+  --warn: #b8e62a;             /* acid green-yellow */
+  --warn-dim: rgba(184, 230, 42, 0.18);
+  --crit: #5ce65c;             /* no red — green everything, differ via weight/uppercase */
+  --crit-dim: rgba(92, 230, 92, 0.30);
+
+  /* Fonts — blackletter display + slab serif body + VT323 mono */
+  --font-display: "Jacquard 12", "Bitter", serif;
+  --font-body: "Bitter", system-ui, serif;
+  --font-mono: "VT323", ui-monospace, monospace;
+  --letter-display: 0.06em;
+  --decor-corner: #5ce65c;
+}
+
+[data-theme="akira"] {
+  image-rendering: pixelated;
+}
+
+/* ===== Atmosphere — scanlines + SVG noise grain ===== */
+[data-theme="akira"] body::before {
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>"),
+    repeating-linear-gradient(0deg, transparent 0 2px, rgba(92, 230, 92, 0.03) 2px 3px);
+  opacity: 1;
+}
+[data-theme="akira"] body::after {
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.7) 100%);
+}
+
+/* ===== Titlebar — black + 1px green bottom border + blackletter title ===== */
+[data-theme="akira"] .titlebar {
+  background: #000000;
+  border-bottom: 1px solid #5ce65c;
+  color: #5ce65c;
+}
+[data-theme="akira"] .titlebar-title {
+  color: #5ce65c;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  font-size: calc(15px * var(--font-scale));
+}
+[data-theme="akira"] .emblem { color: #5ce65c; filter: none; }
+[data-theme="akira"] .window-controls .wc {
+  color: #5ce65c;
+  background: #000000;
+  border: 1px solid #5ce65c;
+  border-radius: 0;
+}
+[data-theme="akira"] .window-controls .wc:hover {
+  background: #5ce65c;
+  color: #000000;
+  box-shadow: 0 0 8px rgba(92, 230, 92, 0.5);
+}
+[data-theme="akira"] .window-controls .wc-close:hover {
+  background: #5ce65c;
+  color: #000000;
+}
+
+/* ===== Topbar (tab strip) — black + green bottom border ===== */
+[data-theme="akira"] .topbar {
+  background: #000000;
+  border-bottom: 1px solid #5ce65c;
+  padding: 10px 20px;
+}
+[data-theme="akira"] .ornament {
+  color: #3fb33f;
+  opacity: 0.8;
+}
+[data-theme="akira"] .tabs {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 6px;
+}
+
+/* Tabs — inactive: transparent + dim green; active: 2px green bottom + glow + bold */
+[data-theme="akira"] .tab {
+  background: transparent;
+  color: #3fb33f;
+  padding: 8px 18px;
+  border-radius: 0;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-size: calc(12px * var(--font-scale));
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: color 100ms ease, border-color 100ms ease, text-shadow 100ms ease;
+}
+[data-theme="akira"] .tab:hover {
+  color: #5ce65c;
+  text-shadow: 0 0 8px rgba(92, 230, 92, 0.5);
+}
+[data-theme="akira"] .tab.active {
+  color: #5ce65c;
+  font-weight: 700;
+  border-bottom: 2px solid #5ce65c;
+  text-shadow: 0 0 6px rgba(92, 230, 92, 0.5);
+}
+
+/* Theme picker icon button */
+[data-theme="akira"] .theme-picker .ghost {
+  background: transparent;
+  color: #5ce65c;
+  border: 1px solid #2a2a2a;
+  border-radius: 0;
+}
+[data-theme="akira"] .theme-picker .ghost:hover {
+  border-color: #5ce65c;
+  box-shadow: 0 0 8px rgba(92, 230, 92, 0.4);
+}
+
+/* ===== Container ===== */
+[data-theme="akira"] .container {
+  background: var(--bg);
+}
+
+/* ===== View bar — summary text ===== */
+[data-theme="akira"] .summary {
+  color: var(--text-dim);
+  font-size: calc(14px * var(--font-scale));
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+}
+[data-theme="akira"] .summary strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ===== Companion stage ===== */
+[data-theme="akira"] .companion-stage {
+  grid-template-columns: 380px 1fr;
+  gap: 32px;
+}
+[data-theme="akira"] .companion-portrait {
+  background: #0a0a0a;
+  border: 1px solid #5ce65c;
+  border-radius: 0;
+  padding: 18px 18px 14px;
+  box-shadow: 0 0 20px rgba(92, 230, 92, 0.15);
+  position: relative;
+}
+[data-theme="akira"] .companion-portrait::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(92, 230, 92, 0.06) 1px, transparent 1.2px);
+  background-size: 4px 4px;
+  pointer-events: none;
+}
+[data-theme="akira"] .companion-frame {
+  border: 1px solid #2a2a2a;
+  border-radius: 0;
+  background: #000000;
+  max-width: none;
+  width: 100%;
+}
+[data-theme="akira"] .companion-name {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 8px;
+}
+[data-theme="akira"] .companion-name .hex-id { display: none; }
+[data-theme="akira"] .companion-title {
+  color: #5ce65c;
+  font-family: var(--font-display);
+  font-size: calc(28px * var(--font-scale));
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 400;
+  text-shadow: 0 0 12px rgba(92, 230, 92, 0.4);
+}
+
+/* ===== Avatar treatment — heavy duotone green ===== */
+[data-theme="akira"] .companion-avatar {
+  filter: grayscale(1) sepia(1) hue-rotate(70deg) saturate(3) brightness(0.8) contrast(1.6);
+  image-rendering: pixelated;
+}
+[data-theme="akira"] .companion-tint {
+  background: #5ce65c;
+  mix-blend-mode: color;
+  opacity: 0.08;
+}
+[data-theme="akira"] .companion-scan {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 2px, rgba(92, 230, 92, 0.04) 2px 3px);
+  opacity: 1;
+  mix-blend-mode: screen;
+}
+
+/* ===== Speech bubbles — black bg + green border + ❖ diamond left glyph ===== */
+[data-theme="akira"] .bubble {
+  background: #0a0a0a;
+  color: #5ce65c;
+  border: 1px solid #2a2a2a;
+  border-radius: 0;
+  padding: 14px 18px 14px 28px;
+  font-family: var(--font-body);
+  font-size: calc(15px * var(--font-scale));
+  line-height: 1.5;
+  position: relative;
+}
+/* Halftone overlay on bubbles */
+[data-theme="akira"] .bubble::before {
+  content: "❖";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-size: calc(20px * var(--font-scale));
+  color: #5ce65c;
+  line-height: 1;
+  border: none;
+  background: none;
+  width: auto;
+  height: auto;
+  pointer-events: none;
+}
+[data-theme="akira"] .bubble::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(92, 230, 92, 0.06) 1px, transparent 1.2px);
+  background-size: 4px 4px;
+  pointer-events: none;
+  display: block;
+}
+[data-theme="akira"] .bubble strong {
+  color: #88ff88;
+  font-weight: 700;
+}
+[data-theme="akira"] .bubble-warn {
+  border-color: var(--warn);
+  background: #0d0f00;
+}
+[data-theme="akira"] .bubble-warn::before { color: var(--warn); }
+[data-theme="akira"] .bubble-praise {
+  border-color: #88ff88;
+  background: #001a00;
+}
+[data-theme="akira"] .bubble-praise::before { color: #88ff88; }
+
+/* ===== Action chips inside bubbles ===== */
+[data-theme="akira"] .action-chip {
+  background: #000000;
+  color: #5ce65c;
+  border: 1px solid #5ce65c;
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-size: calc(13px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  box-shadow: none;
+}
+[data-theme="akira"] .action-chip:hover {
+  background: #5ce65c;
+  color: #000000;
+  box-shadow: 0 0 12px rgba(92, 230, 92, 0.5);
+  transform: none;
+}
+
+/* ===== Cards — halftone dot overlay (SIGNATURE) ===== */
+[data-theme="akira"] .project,
+[data-theme="akira"] .pr,
+[data-theme="akira"] .audit-finding,
+[data-theme="akira"] .cleanup-cat,
+[data-theme="akira"] .quick-card {
+  background: #0a0a0a;
+  color: #5ce65c;
+  border: 1px solid #2a2a2a;
+  border-radius: 0;
+  position: relative;
+  overflow: hidden;
+}
+/* Halftone overlay — manga print feel */
+[data-theme="akira"] .project::before,
+[data-theme="akira"] .pr::before,
+[data-theme="akira"] .audit-finding::before,
+[data-theme="akira"] .cleanup-cat::before,
+[data-theme="akira"] .quick-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(92, 230, 92, 0.08) 1px, transparent 1.2px);
+  background-size: 4px 4px;
+  background-position: 0 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+  transition: opacity 150ms ease;
+}
+[data-theme="akira"] .project:hover::before,
+[data-theme="akira"] .pr:hover::before,
+[data-theme="akira"] .quick-card:hover::before {
+  opacity: 1.8; /* denser on hover — handled via border + shadow below */
+}
+[data-theme="akira"] .project:hover,
+[data-theme="akira"] .pr:hover,
+[data-theme="akira"] .quick-card:hover {
+  border-color: #5ce65c;
+  box-shadow: 0 0 16px rgba(92, 230, 92, 0.2);
+}
+[data-theme="akira"] .project-name,
+[data-theme="akira"] .pr-title,
+[data-theme="akira"] .quick-card-name {
+  color: #5ce65c;
+  font-family: var(--font-display);
+  font-size: calc(18px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 400;
+}
+[data-theme="akira"] .project-icon,
+[data-theme="akira"] .quick-card-name svg {
+  color: #5ce65c;
+}
+[data-theme="akira"] .project-path,
+[data-theme="akira"] .quick-card-goal {
+  color: #2a8a2a;
+}
+[data-theme="akira"] .quick-card-goal { font-style: normal; }
+[data-theme="akira"] .git-subject { color: #5ce65c; }
+[data-theme="akira"] .git-hash {
+  background: #0a0a0a;
+  color: #5ce65c;
+  border: 1px solid #2a2a2a;
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+[data-theme="akira"] .git-ago { color: #2a8a2a; }
+
+/* ===== Badges & pills ===== */
+[data-theme="akira"] .badge {
+  background: transparent;
+  color: #5ce65c;
+  border: 1px solid #2a2a2a;
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.10em;
+}
+[data-theme="akira"] .badge-fresh {
+  background: #5ce65c;
+  color: #000000;
+  border-color: #5ce65c;
+}
+[data-theme="akira"] .hex-id {
+  background: transparent;
+  color: #3fb33f;
+  border: 1px solid #2a2a2a;
+  border-radius: 0;
+}
+
+/* ===== Buttons ===== */
+[data-theme="akira"] button {
+  background: #5ce65c;
+  color: #000000;
+  border: none;
+  border-radius: 0;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  box-shadow: none;
+  transition: box-shadow 80ms ease;
+}
+[data-theme="akira"] button:hover {
+  background: #88ff88;
+  box-shadow: 0 0 16px rgba(92, 230, 92, 0.6);
+}
+[data-theme="akira"] button:active {
+  background: #3fb33f;
+  box-shadow: none;
+}
+[data-theme="akira"] button.ghost {
+  background: #000000;
+  color: #5ce65c;
+  border: 2px solid #5ce65c;
+}
+[data-theme="akira"] button.ghost:hover {
+  box-shadow: 0 0 12px rgba(92, 230, 92, 0.5);
+}
+[data-theme="akira"] button.danger {
+  background: #5ce65c;
+  color: #000000;
+  border: 2px dashed #000000;          /* dashed border + strike = robust non-color cue */
+  text-decoration: line-through;
+}
+
+/* ===== Quick projects panel ===== */
+[data-theme="akira"] .quick-projects {
+  border-top: 1px solid #2a2a2a;
+}
+[data-theme="akira"] .quick-projects-head h3 {
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  font-weight: 400;
+  font-size: calc(20px * var(--font-scale));
+  font-family: var(--font-display);
+}
+
+/* ===== Audit findings ===== */
+[data-theme="akira"] .audit-category-header {
+  color: var(--text);
+  border-bottom-color: #2a2a2a;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-family: var(--font-display);
+}
+[data-theme="akira"] .audit-cat-count {
+  background: #0a0a0a;
+  color: #5ce65c;
+  border: 1px solid #2a2a2a;
+  border-radius: 0;
+}
+/* crit: 4px solid green left border + deep green tint */
+[data-theme="akira"] .audit-finding.lvl-crit {
+  background: #1a3a1a;
+  border-left: 4px solid #5ce65c;
+}
+/* warn: 4px dashed green left border — stroke pattern, not color */
+[data-theme="akira"] .audit-finding.lvl-warn {
+  background: #1a3a1a;
+  border-left: 4px dashed var(--warn);
+}
+[data-theme="akira"] .audit-level {
+  background: #2a2a2a;
+  color: #5ce65c;
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+[data-theme="akira"] .audit-level.lvl-crit { background: #5ce65c; color: #000; }
+[data-theme="akira"] .audit-level.lvl-warn { background: var(--warn); color: #000; }
+[data-theme="akira"] .audit-title { color: #5ce65c; font-family: var(--font-display); font-size: calc(15px * var(--font-scale)); }
+[data-theme="akira"] .audit-detail { color: #2a8a2a; font-family: var(--font-mono); font-size: calc(13px * var(--font-scale)); }
+
+/* ===== PR & cleanup specifics ===== */
+[data-theme="akira"] .pr-meta { color: #2a8a2a; }
+[data-theme="akira"] .pr-repo { color: #3fb33f; }
+[data-theme="akira"] .cleanup-cat header {
+  background: #0a0a0a;
+  color: #5ce65c;
+  border-bottom: 1px solid #2a2a2a;
+}
+[data-theme="akira"] .cleanup-cat-name { color: #5ce65c; font-family: var(--font-display); }
+[data-theme="akira"] .cleanup-cat-meta { color: #3fb33f; }
+[data-theme="akira"] .cleanup-cat li { color: #5ce65c; border-bottom-color: rgba(92, 230, 92, 0.1); }
+[data-theme="akira"] .cleanup-date { color: #2a8a2a; }
+
+/* ===== Status bar — black + 1px green top border + blackletter clock ===== */
+[data-theme="akira"] .statusbar {
+  background: #000000;
+  color: #5ce65c;
+  border-top: 1px solid #5ce65c;
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+}
+[data-theme="akira"] .sb-mono { color: #5ce65c; font-family: var(--font-mono); }
+[data-theme="akira"] .sb-dim { color: #2a8a2a; }
+[data-theme="akira"] .sb-glyph { color: #3fb33f; }
+[data-theme="akira"] .sb-clock {
+  color: #5ce65c;
+  font-family: var(--font-display);
+  text-shadow: 0 0 6px rgba(92, 230, 92, 0.5);
+}
+
+/* ===== Theme picker menu ===== */
+[data-theme="akira"] .theme-menu {
+  background: #0a0a0a;
+  border: 1px solid #5ce65c;
+  border-radius: 0;
+  box-shadow: 0 0 20px rgba(92, 230, 92, 0.2);
+}
+[data-theme="akira"] .theme-option {
+  color: #5ce65c;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--font-display);
+}
+[data-theme="akira"] .theme-option:hover { background: #141414; }
+[data-theme="akira"] .theme-option.active {
+  background: #5ce65c;
+  color: #000000;
+  font-weight: 700;
+}
+
+/* ===== Search input ===== */
+[data-theme="akira"] .search {
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  border-radius: 0;
+}
+[data-theme="akira"] .search input { color: #5ce65c; background: transparent; }
+[data-theme="akira"] .search input::placeholder { color: #2a8a2a; }
+[data-theme="akira"] .select-wrap select {
+  background: #0a0a0a;
+  color: #5ce65c;
+  border: 1px solid #2a2a2a;
+  border-radius: 0;
+  font-family: var(--font-display);
+}
+
+/* ===== Selection — green-on-black ===== */
+[data-theme="akira"] ::selection {
+  background: #5ce65c;
+  color: #000000;
+}
+
+/* ===== Scrollbar — green thumb with black border ===== */
+[data-theme="akira"] ::-webkit-scrollbar-track { background: #000000; }
+[data-theme="akira"] ::-webkit-scrollbar-thumb {
+  background: #5ce65c;
+  border: 3px solid #000000;
+  border-radius: 0;
+}
+[data-theme="akira"] ::-webkit-scrollbar-thumb:hover {
+  background: #88ff88;
+  box-shadow: 0 0 8px rgba(92, 230, 92, 0.6);
+}
+
+/* ===== Skeleton ===== */
+[data-theme="akira"] .sk-line {
+  background: linear-gradient(90deg, #0a0a0a, #1c1c1c, #0a0a0a);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ===== State / loading ===== */
+[data-theme="akira"] .state {
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  font-style: normal;
+}
+
+/* ===== focus-visible — mandatory accessibility ===== */
+[data-theme="akira"] .tab:focus-visible,
+[data-theme="akira"] button:focus-visible,
+[data-theme="akira"] .search input:focus-visible,
+[data-theme="akira"] .theme-option:focus-visible,
+[data-theme="akira"] input:focus-visible,
+[data-theme="akira"] select:focus-visible {
+  outline: 2px solid #5ce65c;
+  outline-offset: 2px;
+  box-shadow: 0 0 16px rgba(92, 230, 92, 0.6);
+}

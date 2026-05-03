@@ -1,0 +1,304 @@
+/* =============================================================
+   V3 Theme: ARMY-CREAM
+   Identity: BTS Army stream-guide — warm cream body, deep
+   charcoal cards, lavender connectors. ZINE-y, technical-but-
+   friendly. INVERTED contrast: surface is DARKER than bg.
+   Palette: cream #EDE5D0 · charcoal #1C1A1A · lavender #A99CC0
+            rust #D04030 · mustard #C8A868 · sage #A8B89C
+   ============================================================= */
+
+/* ── Body background ────────────────────────────────────────── */
+body.v3-layout[data-theme-v3="army-cream"] {
+  background: #EDE5D0;
+}
+
+/* ── Token definitions ──────────────────────────────────────── */
+body[data-theme-v3="army-cream"] .appv3 {
+  /* INVERTED: bg = warm cream paper, surface = deep charcoal card */
+  --v3-bg:            #EDE5D0;   /* warm cream — the body/page */
+  --v3-surface:       #1C1A1A;   /* deep charcoal — DARKER than bg */
+  --v3-surface-2:     #26221F;   /* slightly lifted charcoal */
+  --v3-hover:         #2E2826;   /* hover state on dark card */
+  --v3-border:        #3A3530;   /* charcoal border */
+  --v3-border-strong: #4A4540;   /* stronger charcoal divider */
+
+  /* Text on dark surface (#1C1A1A) — cream reads well at ~11:1 */
+  --v3-text:          #EDE5D0;   /* cream — primary text ON dark surface */
+  --v3-text-2:        #D5C4A1;   /* warm parchment — body text */
+  --v3-text-3:        #8A8278;   /* muted warm grey — meta/labels */
+  --v3-text-4:        #5A5248;   /* dimmed — ghost/disabled */
+
+  /* Accent: lavender connector */
+  --v3-accent:        #A99CC0;   /* lavender */
+  --v3-accent-hover:  #BCAED1;   /* lighter lavender on hover */
+  --v3-accent-tint:   rgba(169, 156, 192, 0.18);
+  --v3-accent-soft:   rgba(169, 156, 192, 0.12);
+
+  /* Semantic */
+  --v3-success:       #A8B89C;   /* sage */
+  --v3-success-tint:  rgba(168, 184, 156, 0.18);
+  --v3-warn:          #C8A868;   /* mustard */
+  --v3-warn-tint:     rgba(200, 168, 104, 0.18);
+  --v3-info:          #A99CC0;   /* lavender doubles as info */
+  --v3-crit:          #D04030;   /* rust */
+  --v3-crit-tint:     rgba(208, 64, 48, 0.18);
+
+  /* Elevation — warm-tinted, stronger because surface is dark */
+  --v3-shadow-1: 0 1px 3px rgba(28, 26, 26, 0.30);
+  --v3-shadow-2: 0 2px 8px rgba(28, 26, 26, 0.35), 0 1px 2px rgba(28, 26, 26, 0.20);
+  --v3-shadow-3: 0 6px 20px rgba(28, 26, 26, 0.45), 0 2px 6px rgba(28, 26, 26, 0.25);
+}
+
+/* ── Signature: paper grain on body viewport ─────────────────
+   Very subtle fractalNoise SVG at 4% opacity — the cream body
+   reads as actual paper at close range, invisible at distance.
+   Scoped to .appv3-content only; sidebar/panels stay clean.
+──────────────────────────────────────────────────────────────── */
+body[data-theme-v3="army-cream"] .appv3 .appv3-content {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Stat icon tints — lavender / rose / butter / sage
+   INVERTED context: icons sit ON the charcoal surface,
+   so tints need to be readable against #1C1A1A, not cream.
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="army-cream"] .v3-stat-icon-orange {
+  /* lavender slot — primary brand color */
+  background: rgba(169, 156, 192, 0.20);
+  color: #A99CC0;
+}
+body[data-theme-v3="army-cream"] .v3-stat-icon-purple {
+  /* warm rose slot */
+  background: rgba(216, 168, 176, 0.20);
+  color: #D8A8B0;
+}
+body[data-theme-v3="army-cream"] .v3-stat-icon-amber {
+  /* butter/mustard slot */
+  background: rgba(200, 168, 104, 0.20);
+  color: #C8A868;
+}
+body[data-theme-v3="army-cream"] .v3-stat-icon-green {
+  /* sage slot */
+  background: rgba(168, 184, 156, 0.20);
+  color: #A8B89C;
+}
+
+/* ── Stat card hover: lavender ring ─────────────────────────── */
+body[data-theme-v3="army-cream"] .v3-stat-card:hover {
+  box-shadow: var(--v3-shadow-2), 0 0 0 1px rgba(169, 156, 192, 0.40);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Topbar — cream bg, charcoal border (surface-inverted chrome)
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="army-cream"] .appv3 .v3-topbar {
+  background: #EDE5D0;
+  border-bottom-color: #3A3530;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-brand-name {
+  color: #1C1A1A;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-topbar-tab {
+  color: #5A5248;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-topbar-tab:hover {
+  color: #1C1A1A;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-topbar-tab.active {
+  color: #1C1A1A;
+  border-bottom-color: var(--v3-accent);
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-wc {
+  color: #5A5248;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-wc:hover {
+  background: rgba(28, 26, 26, 0.08);
+  color: #1C1A1A;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Sidebar — cream bg + charcoal border (same chrome inversion)
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="army-cream"] .appv3 .v3-sidebar {
+  background: #EDE5D0;
+  border-right-color: #3A3530;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-sidebar-logo {
+  border-bottom-color: #3A3530;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-sidebar-logo-line1 {
+  color: #1C1A1A;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-sidebar-logo-line2 {
+  color: #5A5248;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-side-link {
+  color: #5A5248;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-side-link:hover {
+  background: rgba(28, 26, 26, 0.07);
+  color: #1C1A1A;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-side-link.active {
+  background: rgba(169, 156, 192, 0.16);
+  color: #1C1A1A;
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 #A99CC0;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-side-link.active svg {
+  color: #A99CC0;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-system-status {
+  background: rgba(28, 26, 26, 0.06);
+  border-color: #3A3530;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-system-status-title { color: #1C1A1A; }
+body[data-theme-v3="army-cream"] .appv3 .v3-system-status-row   { color: #5A5248; }
+body[data-theme-v3="army-cream"] .appv3 .v3-system-status-meta  { color: #8A8278; }
+
+/* ═══════════════════════════════════════════════════════════
+   Content area bg — plain cream (grain handled by ::before)
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="army-cream"] .appv3 .appv3-content {
+  background-color: #EDE5D0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Companion widget — lavender stage gradient on dark surface
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="army-cream"] .appv3 .v3-companion-widget {
+  background: linear-gradient(
+    160deg,
+    rgba(169, 156, 192, 0.08) 0%,
+    rgba(168, 184, 156, 0.04) 40%,
+    var(--v3-surface) 60%
+  );
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-companion-stage {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(169, 156, 192, 0.18) 0%,
+    rgba(200, 168, 104, 0.06) 45%,
+    transparent 70%
+  );
+}
+
+/* ── List row hover — lavender border ───────────────────────── */
+body[data-theme-v3="army-cream"] .appv3 .v3-row:hover {
+  border-color: rgba(169, 156, 192, 0.50);
+  box-shadow: var(--v3-shadow-2), 0 0 0 1px rgba(169, 156, 192, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PR pill — lavender "review" tint
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="army-cream"] .appv3 .v3-pr-pill-review {
+  background: rgba(169, 156, 192, 0.22);
+  color: #BCAED1;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-row-pr .v3-row-icon {
+  background: rgba(169, 156, 192, 0.18);
+  color: #A99CC0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Audit footer warning banner — mustard on dark card
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="army-cream"] .appv3 .v3-audit-foot {
+  background: rgba(200, 168, 104, 0.14);
+  border-color: rgba(200, 168, 104, 0.45);
+  color: #C8A868;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-audit-foot .v3-chev {
+  color: #C8A868;
+}
+
+/* ── Audit finding backgrounds — dark-surface adapted ───────── */
+body[data-theme-v3="army-cream"] .appv3 .v3-finding-crit {
+  border-color: rgba(208, 64, 48, 0.38);
+  background: rgba(208, 64, 48, 0.07);
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-finding-warn {
+  border-color: rgba(200, 168, 104, 0.38);
+  background: rgba(200, 168, 104, 0.07);
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-finding-info {
+  border-color: rgba(169, 156, 192, 0.35);
+  background: rgba(169, 156, 192, 0.06);
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-finding-ok {
+  border-color: rgba(168, 184, 156, 0.35);
+  background: rgba(168, 184, 156, 0.06);
+}
+
+/* ── Error / success banners — dark-surface adapted ─────────── */
+body[data-theme-v3="army-cream"] .appv3 .v3-error {
+  background: rgba(208, 64, 48, 0.10);
+  border-color: rgba(208, 64, 48, 0.42);
+  color: #E07060;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-success {
+  background: rgba(168, 184, 156, 0.10);
+  border-color: rgba(168, 184, 156, 0.38);
+  color: #A8B89C;
+}
+
+/* ── pct pills ───────────────────────────────────────────────── */
+body[data-theme-v3="army-cream"] .appv3 .v3-pct-green {
+  background: rgba(168, 184, 156, 0.18);
+  color: #A8B89C;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-pct-amber {
+  background: rgba(200, 168, 104, 0.18);
+  color: #C8A868;
+}
+
+/* ── Chip active states ──────────────────────────────────────── */
+body[data-theme-v3="army-cream"] .appv3 .v3-chip-warn.active {
+  background: #C8A868;
+  border-color: #C8A868;
+  color: #1C1A1A;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-chip-info.active {
+  background: #A99CC0;
+  border-color: #A99CC0;
+  color: #1C1A1A;
+}
+
+/* ── Status bar — cream chrome ───────────────────────────────── */
+body[data-theme-v3="army-cream"] .appv3 .v3-statusbar {
+  background: #EDE5D0;
+  border-top-color: #3A3530;
+  color: #5A5248;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-statusbar-version { color: #1C1A1A; }
+
+/* ── Right panel — cream bg matching body ────────────────────── */
+body[data-theme-v3="army-cream"] .appv3 .appv3-rightpanel {
+  background: #EDE5D0;
+  border-left-color: #3A3530;
+}
+
+/* ── "View all" links — lavender ─────────────────────────────── */
+body[data-theme-v3="army-cream"] .appv3 .v3-link {
+  color: #A99CC0;
+}
+body[data-theme-v3="army-cream"] .appv3 .v3-link:hover {
+  color: #BCAED1;
+  text-decoration: underline;
+}
+
+/* ── Scrollbar — cream track, charcoal thumb ─────────────────── */
+body[data-theme-v3="army-cream"] .appv3 ::-webkit-scrollbar-thumb {
+  background: #3A3530;
+  border-radius: 4px;
+  border: 2px solid #EDE5D0;
+  background-clip: content-box;
+}
+body[data-theme-v3="army-cream"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: #A99CC0;
+  background-clip: content-box;
+}

@@ -40,11 +40,21 @@ const TABS: ReadonlyArray<Tab> = ["companion", "projects", "audit", "prs", "clea
 
 function App() {
   const [tab, setTab] = useState<Tab>("companion");
-  const [windowDays, setWindowDays] = useState(14);
+  const [windowDays, setWindowDays] = useState<number>(() => {
+    const saved = parseInt(localStorage.getItem("csk-window-days") ?? "", 10);
+    return Number.isFinite(saved) && saved > 0 && saved <= 365 ? saved : 14;
+  });
   const [statusCount, setStatusCount] = useState(0);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem("csk-theme");
     return (saved && THEMES.includes(saved as Theme) ? saved : "kawaii") as Theme;
+  });
+  const [companionName, setCompanionName] = useState<string>(() => {
+    return localStorage.getItem("csk-companion-name") ?? "Compañera";
+  });
+  const [companionImage, setCompanionImage] = useState<string | null>(() => {
+    return localStorage.getItem("csk-companion-image");
   });
 
   // Per-tab refresh nonces — bumping triggers re-fetch in the corresponding view.
@@ -62,6 +72,27 @@ function App() {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("csk-theme", theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem("csk-companion-name", companionName);
+  }, [companionName]);
+
+  useEffect(() => {
+    if (companionImage) {
+      try {
+        localStorage.setItem("csk-companion-image", companionImage);
+      } catch {
+        // Storage full — clear and ignore
+        localStorage.removeItem("csk-companion-image");
+      }
+    } else {
+      localStorage.removeItem("csk-companion-image");
+    }
+  }, [companionImage]);
+
+  useEffect(() => {
+    localStorage.setItem("csk-window-days", String(windowDays));
+  }, [windowDays]);
 
   const refreshCurrent = useCallback((target: Tab) => {
     setRefreshNonces((prev) => ({ ...prev, [target]: prev[target] + 1 }));
@@ -97,6 +128,12 @@ function App() {
           refreshCurrent(current);
           return current;
         });
+        return;
+      }
+      // Ctrl/Cmd + , opens Preferences (matches macOS app convention)
+      if (e.key === ",") {
+        e.preventDefault();
+        setPrefsOpen(true);
         return;
       }
     };
@@ -146,7 +183,16 @@ function App() {
             Limpieza
           </button>
         </nav>
-        <ThemePicker theme={theme} onChange={setTheme} />
+        <ThemePicker
+          theme={theme}
+          onChange={setTheme}
+          companionName={companionName}
+          onCompanionNameChange={setCompanionName}
+          companionImage={companionImage}
+          onCompanionImageChange={setCompanionImage}
+          open={prefsOpen}
+          onOpenChange={setPrefsOpen}
+        />
         <Ornament />
       </header>
 
@@ -159,6 +205,8 @@ function App() {
                 onCount={setStatusCount}
                 refreshNonce={refreshNonces.companion}
                 theme={theme}
+                companionName={companionName}
+                companionImage={companionImage}
               />
             )}
             {tab === "projects" && (

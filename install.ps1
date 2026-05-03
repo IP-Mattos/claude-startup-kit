@@ -27,6 +27,13 @@ function Write-Warn($msg) { Write-Host "[warn] $msg" -ForegroundColor Yellow }
 function Write-Err($msg)  { Write-Host "[err ] $msg" -ForegroundColor Red }
 function Write-Plan($msg) { Write-Host "[plan] $msg" -ForegroundColor Magenta }
 
+# Windows PowerShell 5.1's `-Encoding utf8` writes a BOM. Tools that read
+# settings.json / CLAUDE.md don't expect one, so write BOM-less UTF-8 here.
+function Write-Utf8NoBom([string]$Path, [string]$Content) {
+    $enc = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($Path, $Content, $enc)
+}
+
 $prefix = if ($DryRun) { "[DRY-RUN] " } else { "" }
 
 Write-Host ""
@@ -160,7 +167,7 @@ if (-not $DryRun -and (Test-Path $userConfigPath) -and (Test-Path (Join-Path $re
             Write-Ok "Auto-detected repo path: $repoRoot"
         }
         if ($needsWrite) {
-            $userCfgRaw | ConvertTo-Json -Depth 20 | Set-Content -Path $userConfigPath -Encoding utf8
+            Write-Utf8NoBom $userConfigPath ($userCfgRaw | ConvertTo-Json -Depth 20)
         }
     } catch {
         Write-Warn "Could not auto-set selfUpdate.repoPath: $($_.Exception.Message)"
@@ -195,7 +202,11 @@ if (-not $DryRun) { Write-Ok "UTF-8 BOM ensured on .ps1 files" }
 
 # ---------- 4. Merge SessionStart hooks into settings.json ----------
 $settingsPath = Join-Path $claudeDir "settings.json"
-$bashUserHome = ($env:USERPROFILE -replace '\\', '/').Replace('C:', '/c')
+# Convert Windows path → Git Bash path: any drive letter (C:, D:, …) becomes /c, /d, …
+$bashUserHome = ($env:USERPROFILE -replace '\\', '/')
+if ($bashUserHome -match '^([A-Za-z]):(.*)$') {
+    $bashUserHome = '/' + $matches[1].ToLower() + $matches[2]
+}
 $hookCheck = "bash $bashUserHome/.claude/scripts/check-gentle-ai.sh"
 $hookBrief = "bash $bashUserHome/.claude/scripts/daily-brief.sh"
 
@@ -260,7 +271,7 @@ if (-not $DryRun) {
         Write-Err "Generated settings.json is invalid — aborting write. Backup at $backupDir"
         exit 3
     }
-    $newJson | Set-Content -Path $settingsPath -Encoding utf8
+    Write-Utf8NoBom $settingsPath $newJson
     Write-Ok "settings.json written (validated)"
 }
 
@@ -294,7 +305,7 @@ foreach ($m in $blockMatches) {
     }
 }
 if ($appended -and -not $DryRun) {
-    Set-Content -Path $claudeMdPath -Value $claudeMdRaw -Encoding utf8
+    Write-Utf8NoBom $claudeMdPath $claudeMdRaw
 }
 
 # ---------- 6. Install Startup folder shortcut ----------

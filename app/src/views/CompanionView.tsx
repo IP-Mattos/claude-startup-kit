@@ -115,9 +115,15 @@ const AVATAR_BY_THEME: Partial<Record<Theme, string>> = {
   gameboy: "/GameBoySia.png",
 };
 
-function CompanionAvatar({ theme }: { theme: Theme }) {
+function CompanionAvatar({
+  theme,
+  customImage,
+}: {
+  theme: Theme;
+  customImage: string | null;
+}) {
   const [errored, setErrored] = useState(false);
-  const src = AVATAR_BY_THEME[theme] ?? "/Sia2.webp";
+  const src = customImage ?? AVATAR_BY_THEME[theme] ?? "/Sia2.webp";
   if (errored) {
     return (
       <div className="companion-frame">
@@ -290,6 +296,8 @@ export type CompanionViewProps = {
   onCount: (n: number) => void;
   refreshNonce: number;
   theme: Theme;
+  companionName: string;
+  companionImage: string | null;
 };
 
 export default function CompanionView({
@@ -297,6 +305,8 @@ export default function CompanionView({
   onCount,
   refreshNonce,
   theme,
+  companionName,
+  companionImage,
 }: CompanionViewProps) {
   const [insights, setInsights] = useState<Insight[]>([]);
   const [topProjects, setTopProjects] = useState<Project[]>([]);
@@ -355,7 +365,7 @@ export default function CompanionView({
       <div className="view-bar">
         <div className="summary">
           <Sparkles size={14} className="goal-icon" />
-          <strong>Compañera</strong>
+          <strong>{companionName}</strong>
           <span className="dim">
             · {insights.length} insights · {topProjects.length} proyectos
           </span>
@@ -370,10 +380,10 @@ export default function CompanionView({
       <div className="companion-stage">
         <div className="companion-portrait">
           <FrameCorners />
-          <CompanionAvatar theme={theme} />
+          <CompanionAvatar theme={theme} customImage={companionImage} />
           <div className="companion-name">
-            <span className="hex-id">0x{hexId("companion")}</span>
-            <span className="companion-title">Compañera</span>
+            <span className="hex-id">0x{hexId(companionName || "companion")}</span>
+            <span className="companion-title">{companionName}</span>
           </div>
         </div>
 

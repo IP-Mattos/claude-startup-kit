@@ -1,0 +1,230 @@
+/* =============================================================
+   V3 Theme: DRACULA
+   Identity: official Dracula palette — purple/pink/cyan.
+   Reference moods: Dracula Pro, Zed Dark, kawaii dev.
+   Palette source: https://draculatheme.com/contribute
+     bg #282A36 · cur-line #44475A · fg #F8F8F2
+     comment #6272A4 · cyan #8BE9FD · green #50FA7B
+     orange #FFB86C · pink #FF79C6 · purple #BD93F9
+     red #FF5555 · yellow #F1FA8C
+   ============================================================= */
+
+body.v3-layout[data-theme-v3="dracula"] {
+  background: #282A36;
+}
+
+body[data-theme-v3="dracula"] .appv3 {
+  /* ── Surface scale ─────────────────────────────────────── */
+  --v3-bg:            #282A36;   /* Dracula Background */
+  --v3-surface:       #343746;   /* slightly lifted (~current-line mix) */
+  --v3-surface-2:     #44475A;   /* Dracula Current Line */
+  --v3-hover:         #4D5066;   /* current-line + 6% brightness */
+  --v3-border:        #44475A;   /* current line — subtle separation */
+  --v3-border-strong: #6272A4;   /* Dracula Comment — visible dividers */
+
+  /* ── Text scale ─────────────────────────────────────────
+     Contrast check vs #282A36 bg:
+       #F8F8F2 → ~17.8:1  ✓ (AAA)
+       #C8CAD8 → ~10.2:1  ✓ (AAA)
+       #94A3B0 →  ~5.3:1  ✓ (AA)
+       #6272A4 →  ~3.5:1  — AA-large only; intentional for ghost/disabled
+  ─────────────────────────────────────────────────────── */
+  --v3-text:          #F8F8F2;   /* Dracula Foreground */
+  --v3-text-2:        #C8CAD8;   /* slightly desaturated fg — body text */
+  --v3-text-3:        #94A3B0;   /* muted — labels, meta (~5.3:1) */
+  --v3-text-4:        #6272A4;   /* Dracula Comment — ghost/disabled */
+
+  /* ── Accent: purple ────────────────────────────────────── */
+  --v3-accent:        #BD93F9;   /* Dracula Purple */
+  --v3-accent-hover:  #D4B8FF;   /* brightened purple hover */
+  --v3-accent-tint:   rgba(189, 147, 249, 0.16);
+  --v3-accent-soft:   rgba(189, 147, 249, 0.10);
+
+  /* ── Semantic ───────────────────────────────────────────── */
+  --v3-success:       #50FA7B;   /* Dracula Green */
+  --v3-success-tint:  rgba(80, 250, 123, 0.15);
+  --v3-warn:          #FFB86C;   /* Dracula Orange */
+  --v3-warn-tint:     rgba(255, 184, 108, 0.16);
+  --v3-info:          #8BE9FD;   /* Dracula Cyan */
+  --v3-crit:          #FF5555;   /* Dracula Red */
+  --v3-crit-tint:     rgba(255, 85, 85, 0.16);
+
+  /* ── Elevation ──────────────────────────────────────────── */
+  --v3-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.40), 0 1px 2px rgba(0, 0, 0, 0.25);
+  --v3-shadow-3: 0 6px 20px rgba(0, 0, 0, 0.50), 0 2px 6px rgba(0, 0, 0, 0.30);
+}
+
+/* ── Aurora: purple glow at top-right of the whole layout ── */
+body[data-theme-v3="dracula"] .appv3 {
+  background-image: radial-gradient(
+    ellipse at top right,
+    rgba(189, 147, 249, 0.05) 0%,
+    transparent 50%
+  );
+  background-attachment: fixed;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Stat icon tints
+   orange slot → Dracula orange (#FFB86C)
+   purple slot → Dracula PINK to avoid double-purple (#FF79C6)
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="dracula"] .v3-stat-icon-orange {
+  background: rgba(255, 184, 108, 0.18);
+  color: #FFB86C;
+}
+body[data-theme-v3="dracula"] .v3-stat-icon-purple {
+  background: rgba(255, 121, 198, 0.18);
+  color: #FF79C6;
+}
+body[data-theme-v3="dracula"] .v3-stat-icon-amber {
+  background: var(--v3-warn-tint);
+  color: var(--v3-warn);
+}
+body[data-theme-v3="dracula"] .v3-stat-icon-green {
+  background: var(--v3-success-tint);
+  color: var(--v3-success);
+}
+
+/* ── Stat card hover: faint purple ring ─────────────────── */
+body[data-theme-v3="dracula"] .v3-stat-card:hover {
+  box-shadow: var(--v3-shadow-2), 0 0 0 1px var(--v3-accent-soft);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Sidebar active link — soft purple/pink dual highlight
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="dracula"] .v3-side-link.active {
+  background: rgba(189, 147, 249, 0.14);
+  color: var(--v3-accent);
+  font-weight: 600;
+  /* inner-left glow: purple stripe */
+  box-shadow: inset 3px 0 0 #BD93F9,
+              inset 0 0 12px rgba(255, 121, 198, 0.06);
+  border-radius: var(--v3-radius-sm);
+}
+body[data-theme-v3="dracula"] .v3-side-link.active svg {
+  color: var(--v3-accent);
+}
+
+/* ── Active topbar tab — purple underline + pink shadow ─── */
+body[data-theme-v3="dracula"] .v3-topbar-tab.active {
+  border-bottom-color: var(--v3-accent);
+  box-shadow: 0 1px 6px rgba(255, 121, 198, 0.30);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Companion widget — purple→pink gradient header stage
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="dracula"] .v3-companion-widget {
+  background: linear-gradient(
+    160deg,
+    rgba(189, 147, 249, 0.06) 0%,
+    rgba(255, 121, 198, 0.03) 40%,
+    var(--v3-surface) 60%
+  );
+}
+
+body[data-theme-v3="dracula"] .v3-companion-stage {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(189, 147, 249, 0.18) 0%,
+    rgba(255, 121, 198, 0.08) 40%,
+    transparent 70%
+  );
+  border-radius: var(--v3-radius);
+}
+
+/* ── List row hover — purple border accent ──────────────── */
+body[data-theme-v3="dracula"] .v3-row:hover {
+  border-color: rgba(189, 147, 249, 0.50);
+  box-shadow: var(--v3-shadow-2), 0 0 0 1px rgba(189, 147, 249, 0.15);
+}
+
+/* ── "View all" links — Dracula Cyan (third brand color) ── */
+body[data-theme-v3="dracula"] .appv3 .v3-link {
+  color: #8BE9FD;
+}
+body[data-theme-v3="dracula"] .appv3 .v3-link:hover {
+  color: #A8EFFE;
+  text-decoration: underline;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PR review pill — Dracula Pink
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="dracula"] .v3-pr-pill-review {
+  background: rgba(255, 121, 198, 0.18);
+  color: #FF79C6;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Audit alert banner — orange harmonised on dark bg
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="dracula"] .v3-audit-foot {
+  background: rgba(255, 184, 108, 0.12);
+  border-color: rgba(255, 184, 108, 0.45);
+  color: #FFB86C;
+}
+body[data-theme-v3="dracula"] .v3-audit-foot .v3-chev {
+  color: #FFB86C;
+}
+
+/* ── Audit finding backgrounds — dark-adapted ──────────── */
+body[data-theme-v3="dracula"] .v3-finding-crit {
+  border-color: rgba(255, 85, 85, 0.35);
+  background: rgba(255, 85, 85, 0.06);
+}
+body[data-theme-v3="dracula"] .v3-finding-warn {
+  border-color: rgba(255, 184, 108, 0.35);
+  background: rgba(255, 184, 108, 0.06);
+}
+body[data-theme-v3="dracula"] .v3-finding-info {
+  border-color: rgba(139, 233, 253, 0.30);
+  background: rgba(139, 233, 253, 0.05);
+}
+body[data-theme-v3="dracula"] .v3-finding-ok {
+  border-color: rgba(80, 250, 123, 0.30);
+  background: rgba(80, 250, 123, 0.05);
+}
+
+/* ── Error / success banners — dark-adapted ─────────────── */
+body[data-theme-v3="dracula"] .appv3 .v3-error {
+  background: rgba(255, 85, 85, 0.10);
+  border-color: rgba(255, 85, 85, 0.40);
+  color: #FF8080;
+}
+body[data-theme-v3="dracula"] .appv3 .v3-success {
+  background: rgba(80, 250, 123, 0.10);
+  border-color: rgba(80, 250, 123, 0.35);
+  color: #50FA7B;
+}
+
+/* ── pct pills — dark-adapted ───────────────────────────── */
+body[data-theme-v3="dracula"] .v3-pct-green {
+  background: rgba(80, 250, 123, 0.15);
+  color: #50FA7B;
+}
+body[data-theme-v3="dracula"] .v3-pct-amber {
+  background: rgba(255, 184, 108, 0.16);
+  color: #FFB86C;
+}
+
+/* ── Chip active states — dark-adapted ──────────────────── */
+body[data-theme-v3="dracula"] .v3-chip-warn.active {
+  background: #FFB86C;
+  border-color: #FFB86C;
+  color: #282A36;
+}
+body[data-theme-v3="dracula"] .v3-chip-info.active {
+  background: #8BE9FD;
+  border-color: #8BE9FD;
+  color: #282A36;
+}
+
+/* ── PR row icon — pink tint to echo the pill ───────────── */
+body[data-theme-v3="dracula"] .v3-row-pr .v3-row-icon {
+  background: rgba(255, 121, 198, 0.16);
+  color: #FF79C6;
+}

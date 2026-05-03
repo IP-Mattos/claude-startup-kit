@@ -13,8 +13,8 @@
   --bg-inset: #181826;
   --text: #E8E6F0;
   --text-dim: #A8A6C0;
-  --text-mute: #6E6C88;
-  --text-muted: #6E6C88;
+  --text-mute: #9290b0;            /* legacy alias — kept for backward compat */
+  --text-muted: #9290b0;           /* bumped for AA (was #6E6C88 = 3.5:1) */
 
   /* Accents */
   --accent: #B2B1CF;
@@ -26,10 +26,10 @@
   --pink-dim: rgba(224, 170, 255, 0.18);
   --green: #A6E3A1;
   --green-dim: rgba(166, 227, 161, 0.18);
-  --warn: #F9E2AF;
-  --warn-dim: rgba(249, 226, 175, 0.18);
-  --crit: #F38BA8;
-  --crit-dim: rgba(243, 139, 168, 0.18);
+  --warn: #E5C890;                                    /* Catppuccin Frappé yellow — softer for lavender palette */
+  --warn-dim: rgba(229, 200, 144, 0.18);
+  --crit: #E78284;                                    /* Catppuccin Frappé red — softer for lavender palette */
+  --crit-dim: rgba(231, 130, 132, 0.18);
 
   /* Borders + shadows */
   --border: rgba(178, 177, 207, 0.12);

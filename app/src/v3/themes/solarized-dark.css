@@ -1,0 +1,228 @@
+/* =============================================================
+   V3 Theme: SOLARIZED DARK
+   Identity: Ethan Schoonover's calibrated palette — cyan on base03.
+   Palette source: https://ethanschoonover.com/solarized/
+     base03 #002B36 · base02 #073642 · base01 #586E75 · base00 #657B83
+     base0 #839496  · base1 #93A1A1  · base2 #EEE8D5  · base3 #FDF6E3
+     yellow #B58900 · orange #CB4B16 · red #DC322F · magenta #D33682
+     violet #6C71C4 · blue #268BD2   · cyan #2AA198  · green #859900
+   Philosophy: CALM. No gradients, no noise, no glows. Soft shadows only.
+   ============================================================= */
+
+body.v3-layout[data-theme-v3="solarized-dark"] {
+  background: #002B36;
+}
+
+body[data-theme-v3="solarized-dark"] .appv3 {
+  /* ── Surface ─────────────────────────────────────────────── */
+  --v3-bg:            #002B36;   /* base03 — deepest background */
+  --v3-surface:       #073642;   /* base02 — elevated surfaces */
+  --v3-surface-2:     #0A3F4D;   /* base02 lightened — nested surfaces */
+  --v3-hover:         #0C4D5C;   /* hover — slightly lifted base02 */
+  --v3-border:        #586E75;   /* base01 — subtle separation */
+  --v3-border-strong: #657B83;   /* base00 — stronger dividers */
+
+  /* ── Text ────────────────────────────────────────────────── */
+  /* base1 (#93A1A1) vs base03 (#002B36) ≈ 7.4:1 — passes AA/AAA    */
+  /* base0 (#839496) vs base03 (#002B36) ≈ 5.9:1 — passes AA        */
+  /* base00 (#657B83) vs base03 (#002B36) ≈ 3.9:1 — AA-large/meta   */
+  /* base01 (#586E75) vs base03 (#002B36) ≈ 3.1:1 — decorative only */
+  --v3-text:          #93A1A1;   /* base1 — main readable text */
+  --v3-text-2:        #839496;   /* base0 — body text */
+  --v3-text-3:        #657B83;   /* base00 — meta/labels */
+  --v3-text-4:        #586E75;   /* base01 — ghost/disabled */
+
+  /* ── Accent: cyan ────────────────────────────────────────── */
+  --v3-accent:        #2AA198;   /* Solarized Cyan */
+  --v3-accent-hover:  #3CB8AF;   /* cyan brightened */
+  --v3-accent-tint:   rgba(42, 161, 152, 0.14);
+  --v3-accent-soft:   rgba(42, 161, 152, 0.10);
+
+  /* ── Semantic ────────────────────────────────────────────── */
+  --v3-success:       #859900;   /* Solarized Green */
+  --v3-success-tint:  rgba(133, 153, 0, 0.15);
+  --v3-warn:          #B58900;   /* Solarized Yellow */
+  --v3-warn-tint:     rgba(181, 137, 0, 0.16);
+  --v3-info:          #268BD2;   /* Solarized Blue */
+  --v3-crit:          #DC322F;   /* Solarized Red */
+  --v3-crit-tint:     rgba(220, 50, 47, 0.15);
+
+  /* ── Shadows — soft only, no drama ─────────────────────── */
+  --v3-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.30);
+  --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.38), 0 1px 2px rgba(0, 0, 0, 0.22);
+  --v3-shadow-3: 0 4px 16px rgba(0, 0, 0, 0.50), 0 2px 6px rgba(0, 0, 0, 0.28);
+}
+
+/* ── No atmosphere — Solarized is intentionally calm ─────── */
+/* No gradients, no radial glows. Flat bg only. */
+
+/* ── Topbar: clean hairline border ──────────────────────── */
+body[data-theme-v3="solarized-dark"] .v3-topbar {
+  border-bottom-color: #586E75;
+  box-shadow: none;
+}
+
+/* ── Stat cards: cyan ring on hover ─────────────────────── */
+body[data-theme-v3="solarized-dark"] .v3-stat-card:hover {
+  box-shadow: var(--v3-shadow-2),
+              0 0 0 1px var(--v3-border-strong),
+              0 0 0 3px var(--v3-accent-soft);
+  border-color: rgba(42, 161, 152, 0.35);
+}
+
+/* ── Rows: cyan border highlight on hover ───────────────── */
+body[data-theme-v3="solarized-dark"] .v3-row:hover {
+  border-color: rgba(42, 161, 152, 0.40);
+  box-shadow: var(--v3-shadow-2);
+}
+
+/* ── Sidebar active link: cyan left stripe ──────────────── */
+body[data-theme-v3="solarized-dark"] .v3-side-link.active {
+  background: rgba(42, 161, 152, 0.14);
+  color: var(--v3-accent);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #2AA198;
+  border-radius: var(--v3-radius-sm);
+}
+body[data-theme-v3="solarized-dark"] .v3-side-link.active svg {
+  color: var(--v3-accent);
+}
+
+/* ── Active topbar tab — cyan underline ─────────────────── */
+body[data-theme-v3="solarized-dark"] .v3-topbar-tab.active {
+  border-bottom-color: var(--v3-accent);
+  box-shadow: none;
+}
+
+/* ── Focus visible: cyan outline, no glow ───────────────── */
+body[data-theme-v3="solarized-dark"] .appv3 button:focus-visible,
+body[data-theme-v3="solarized-dark"] .appv3 a:focus-visible,
+body[data-theme-v3="solarized-dark"] .appv3 input:focus-visible,
+body[data-theme-v3="solarized-dark"] .appv3 select:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Stat icon tints — Solarized aurora colors, one per slot
+   cyan  → projects (primary accent)
+   violet → PRs (cool complement to cyan)
+   yellow → warnings/audit
+   green  → success/health
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="solarized-dark"] .v3-stat-icon-orange {
+  background: rgba(42, 161, 152, 0.18);
+  color: #2AA198;                      /* cyan for primary project stat */
+}
+body[data-theme-v3="solarized-dark"] .v3-stat-icon-purple {
+  background: rgba(108, 113, 196, 0.18);
+  color: #6C71C4;                      /* violet */
+}
+body[data-theme-v3="solarized-dark"] .v3-stat-icon-amber {
+  background: rgba(181, 137, 0, 0.18);
+  color: #B58900;                      /* yellow */
+}
+body[data-theme-v3="solarized-dark"] .v3-stat-icon-green {
+  background: rgba(133, 153, 0, 0.18);
+  color: #859900;                      /* green */
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PR review pill — violet (Solarized Violet)
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="solarized-dark"] .v3-pr-pill-review {
+  background: rgba(108, 113, 196, 0.18);
+  color: #6C71C4;
+}
+
+/* ── PR row icon — violet to echo the pill ──────────────── */
+body[data-theme-v3="solarized-dark"] .v3-row-pr .v3-row-icon {
+  background: rgba(108, 113, 196, 0.16);
+  color: #6C71C4;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Audit alert banner — yellow on base02
+   #B58900 on rgba(181,137,0,0.14) over #073642 ≈ effective bg
+   is warm-dark; contrast of #B58900 on it ≈ 6:1. Clear.
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="solarized-dark"] .v3-audit-foot {
+  background: rgba(181, 137, 0, 0.12);
+  border-color: rgba(181, 137, 0, 0.40);
+  color: #B58900;
+}
+body[data-theme-v3="solarized-dark"] .v3-audit-foot .v3-chev {
+  color: #B58900;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Audit findings — Solarized semantic colors
+   crit → red  · warn → orange  · info → blue  · ok → green
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="solarized-dark"] .v3-finding-crit {
+  border-color: rgba(220, 50, 47, 0.35);
+  background: rgba(220, 50, 47, 0.07);
+}
+body[data-theme-v3="solarized-dark"] .v3-finding-warn {
+  border-color: rgba(203, 75, 22, 0.35);
+  background: rgba(203, 75, 22, 0.07);
+}
+body[data-theme-v3="solarized-dark"] .v3-finding-info {
+  border-color: rgba(38, 139, 210, 0.30);
+  background: rgba(38, 139, 210, 0.07);
+}
+body[data-theme-v3="solarized-dark"] .v3-finding-ok {
+  border-color: rgba(133, 153, 0, 0.30);
+  background: rgba(133, 153, 0, 0.07);
+}
+
+/* ── Error / success banners ─────────────────────────────── */
+body[data-theme-v3="solarized-dark"] .appv3 .v3-error {
+  background: rgba(220, 50, 47, 0.10);
+  border-color: rgba(220, 50, 47, 0.35);
+  color: #E06C69;
+}
+body[data-theme-v3="solarized-dark"] .appv3 .v3-success {
+  background: rgba(133, 153, 0, 0.10);
+  border-color: rgba(133, 153, 0, 0.32);
+  color: #A6C000;
+}
+
+/* ── pct pills — dark-adapted ───────────────────────────── */
+body[data-theme-v3="solarized-dark"] .v3-pct-green {
+  background: rgba(133, 153, 0, 0.16);
+  color: #A6C000;
+}
+body[data-theme-v3="solarized-dark"] .v3-pct-amber {
+  background: rgba(181, 137, 0, 0.16);
+  color: #B58900;
+}
+
+/* ── Chip active — dark-adapted ─────────────────────────── */
+body[data-theme-v3="solarized-dark"] .v3-chip.active {
+  background: var(--v3-text);
+  border-color: var(--v3-text);
+  color: var(--v3-surface);
+}
+body[data-theme-v3="solarized-dark"] .v3-chip-warn.active {
+  background: #B58900;
+  border-color: #B58900;
+  color: #002B36;
+}
+body[data-theme-v3="solarized-dark"] .v3-chip-info.active {
+  background: #268BD2;
+  border-color: #268BD2;
+  color: #002B36;
+}
+
+/* ── Scrollbar thumbs: base01-tinted ────────────────────── */
+body[data-theme-v3="solarized-dark"] .appv3 ::-webkit-scrollbar-thumb {
+  background: #586E75;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+body[data-theme-v3="solarized-dark"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: #657B83;
+  background-clip: content-box;
+}

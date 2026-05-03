@@ -1,0 +1,224 @@
+/* =============================================================
+   V3 Theme: GAMEBOY
+   Identity: olive + cream 1-bit duotone — Game Boy Pocket /
+   printed manga zine. Cream paper, dark olive ink. Subtle
+   nostalgia, not pastiche. Drops uppercase-everything,
+   chunky shadows, and the manga { bracket from v1.
+   ============================================================= */
+
+/* ── Body background ─────────────────────────────────────────── */
+body.v3-layout[data-theme-v3="gameboy"] {
+  background: #2A2E1F;
+}
+
+/* ── Design tokens ───────────────────────────────────────────── */
+body[data-theme-v3="gameboy"] .appv3 {
+  /* Surface — olive scale */
+  --v3-bg:            #2A2E1F;   /* dark olive body */
+  --v3-surface:       #333827;   /* lifted olive — cards, sidebar */
+  --v3-surface-2:     #3B4030;   /* slightly lighter — nested surfaces */
+  --v3-hover:         #444939;   /* hover olive */
+  --v3-border:        #484D39;   /* mid-olive — subtle */
+  --v3-border-strong: #5A6048;   /* stronger olive separator */
+
+  /* Type — cream scale
+     ECE5CF on #2A2E1F: relative luminance ~8.2:1 — passes AAA
+     C8C09A (text-3) on #2A2E1F: ~5.1:1 — passes AA */
+  --v3-text:   #ECE5CF;          /* cream — primary */
+  --v3-text-2: #D8D0B0;          /* slightly dimmer cream */
+  --v3-text-3: #C8C09A;          /* ≥4.5:1 on olive bg ✓ */
+  --v3-text-4: #9A9478;          /* decorative / dim only */
+
+  /* Accent — mustard */
+  --v3-accent:       #D8B850;    /* warm mustard */
+  --v3-accent-hover: #E8CC6A;    /* brighter on hover */
+  --v3-accent-tint:  rgba(216, 184, 80, 0.14);
+  --v3-accent-soft:  rgba(216, 184, 80, 0.09);
+
+  /* Semantic */
+  --v3-success:      #9AB870;    /* sage green */
+  --v3-success-tint: rgba(154, 184, 112, 0.16);
+  --v3-warn:         #D8B850;    /* mustard doubles as warn */
+  --v3-warn-tint:    rgba(216, 184, 80, 0.16);
+  --v3-info:         #A8B898;    /* desaturated olive-green */
+  --v3-crit:         #C85050;    /* muted brick */
+  --v3-crit-tint:    rgba(200, 80, 80, 0.16);
+
+  /* Shadows — olive-tinted, softer than gruvbox */
+  --v3-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.28);
+  --v3-shadow-3: 0 6px 20px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* ── App background: faint cream radial at top (signature) ──── */
+/* Reads as a warm ambient light from the top — like holding a
+   Game Boy Pocket up to a window. 0.05 keeps it subliminal. */
+body[data-theme-v3="gameboy"] .appv3 {
+  background: radial-gradient(ellipse 70% 45% at 50% 0%, rgba(236, 229, 207, 0.05) 0%, transparent 100%),
+              #2A2E1F;
+}
+
+/* ── Content area: paper grain at 2% ─────────────────────────── */
+body[data-theme-v3="gameboy"] .appv3-content {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+}
+
+/* ── Topbar: cream-olive hairline ─────────────────────────────── */
+body[data-theme-v3="gameboy"] .v3-topbar {
+  border-bottom-color: transparent;
+  box-shadow: 0 1px 0 0 #484D39,
+              inset 0 -1px 0 0 rgba(236, 229, 207, 0.04);
+}
+
+/* ── Active topbar tab: mustard underline ─────────────────────── */
+body[data-theme-v3="gameboy"] .v3-topbar-tab.active {
+  border-bottom-color: #D8B850;
+  box-shadow: 0 1px 8px rgba(216, 184, 80, 0.25);
+}
+
+/* ── Stat cards: mustard ring on hover ───────────────────────── */
+body[data-theme-v3="gameboy"] .appv3 .v3-stat-card {
+  transition-duration: 200ms;
+}
+body[data-theme-v3="gameboy"] .v3-stat-card:hover {
+  box-shadow: var(--v3-shadow-2),
+              0 0 0 1px rgba(216, 184, 80, 0.22),
+              0 0 0 3px rgba(216, 184, 80, 0.10);
+  border-color: rgba(216, 184, 80, 0.32);
+}
+
+/* ── Rows: cream-olive border on hover ───────────────────────── */
+body[data-theme-v3="gameboy"] .appv3 .v3-row {
+  transition-duration: 200ms;
+}
+body[data-theme-v3="gameboy"] .v3-row:hover {
+  border-color: rgba(216, 184, 80, 0.28);
+  box-shadow: var(--v3-shadow-2);
+}
+
+/* ── Sidebar active link: mustard fill + olive inset ─────────── */
+body[data-theme-v3="gameboy"] .v3-side-link.active {
+  background: rgba(216, 184, 80, 0.14);
+  color: #D8B850;
+  box-shadow: inset 3px 0 0 0 #D8B850;
+}
+body[data-theme-v3="gameboy"] .v3-side-link.active svg {
+  color: #D8B850;
+}
+
+/* ── Companion stage: faint cream radial backing ─────────────── */
+body[data-theme-v3="gameboy"] .v3-companion-stage {
+  background: radial-gradient(ellipse 90% 80% at 50% 100%,
+    rgba(236, 229, 207, 0.10) 0%,
+    rgba(216, 200, 160, 0.04) 55%,
+    transparent 100%);
+}
+
+/* ── Stat icon tints — cream/olive/mustard variants ──────────── */
+body[data-theme-v3="gameboy"] .v3-stat-icon-orange {
+  background: rgba(216, 184, 80, 0.18);   /* mustard — replaces orange */
+  color: #D8B850;
+}
+body[data-theme-v3="gameboy"] .v3-stat-icon-purple {
+  background: rgba(180, 160, 140, 0.20);  /* dusty rose-cream for purple slot */
+  color: #C8A87A;
+}
+body[data-theme-v3="gameboy"] .v3-stat-icon-amber {
+  background: rgba(236, 229, 207, 0.14);  /* pale cream for amber slot */
+  color: #D8D0B0;
+}
+body[data-theme-v3="gameboy"] .v3-stat-icon-green {
+  background: rgba(154, 184, 112, 0.18);  /* sage green */
+  color: #9AB870;
+}
+
+/* ── PR review pill ──────────────────────────────────────────── */
+/* Dusty sepia — warm, not cold violet */
+body[data-theme-v3="gameboy"] .v3-pr-pill-review {
+  background: rgba(200, 168, 120, 0.22);
+  color: #C8A87A;
+}
+
+/* ── PR row icon (purple slot → sepia) ──────────────────────── */
+body[data-theme-v3="gameboy"] .v3-row-pr .v3-row-icon {
+  background: rgba(200, 168, 120, 0.18);
+  color: #C8A87A;
+}
+
+/* ── "View all" links → sage green ──────────────────────────── */
+body[data-theme-v3="gameboy"] .v3-link {
+  color: #9AB870;
+}
+body[data-theme-v3="gameboy"] .v3-link:hover {
+  color: #B0D088;
+  text-decoration: underline;
+}
+
+/* ── Audit alert banner ──────────────────────────────────────── */
+body[data-theme-v3="gameboy"] .v3-audit-foot {
+  background: rgba(216, 184, 80, 0.12);
+  border-color: rgba(216, 184, 80, 0.38);
+  color: #D8B850;
+}
+body[data-theme-v3="gameboy"] .v3-audit-foot .v3-chev {
+  color: #D8B850;
+}
+
+/* ── Audit findings: olive-tinted ────────────────────────────── */
+body[data-theme-v3="gameboy"] .v3-finding-crit {
+  border-color: rgba(200, 80, 80, 0.28);
+  background: rgba(200, 80, 80, 0.07);
+}
+body[data-theme-v3="gameboy"] .v3-finding-warn {
+  border-color: rgba(216, 184, 80, 0.28);
+  background: rgba(216, 184, 80, 0.07);
+}
+body[data-theme-v3="gameboy"] .v3-finding-info {
+  border-color: rgba(168, 184, 152, 0.26);
+  background: rgba(168, 184, 152, 0.07);
+}
+body[data-theme-v3="gameboy"] .v3-finding-ok {
+  border-color: rgba(154, 184, 112, 0.26);
+  background: rgba(154, 184, 112, 0.07);
+}
+
+/* ── Success / error banners ─────────────────────────────────── */
+body[data-theme-v3="gameboy"] .v3-error {
+  background: rgba(200, 80, 80, 0.09);
+  border-color: rgba(200, 80, 80, 0.28);
+  color: #C85050;
+}
+body[data-theme-v3="gameboy"] .v3-success {
+  background: rgba(154, 184, 112, 0.09);
+  border-color: rgba(154, 184, 112, 0.28);
+  color: #9AB870;
+}
+
+/* ── Chip active: cream on olive ─────────────────────────────── */
+body[data-theme-v3="gameboy"] .v3-chip.active {
+  background: #ECE5CF;
+  border-color: #ECE5CF;
+  color: #2A2E1F;
+}
+
+/* ── Focus visible: mustard glow ────────────────────────────── */
+body[data-theme-v3="gameboy"] .appv3 button:focus-visible,
+body[data-theme-v3="gameboy"] .appv3 a:focus-visible,
+body[data-theme-v3="gameboy"] .appv3 input:focus-visible,
+body[data-theme-v3="gameboy"] .appv3 select:focus-visible {
+  outline: 2px solid #D8B850;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(216, 184, 80, 0.16);
+}
+
+/* ── Scrollbar thumbs: olive-tinted ─────────────────────────── */
+body[data-theme-v3="gameboy"] .appv3 ::-webkit-scrollbar-thumb {
+  background: #484D39;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+body[data-theme-v3="gameboy"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: #5A6048;
+  background-clip: content-box;
+}

@@ -1,0 +1,518 @@
+/* ===== Theme: Mono (Swiss Minimalism — pure black on white, zero color) ===== */
+/* Severe minimalism. Type-driven. Swiss design DNA.
+   States distinguished via weight, border-pattern (solid/dashed/dotted),
+   uppercase, and position — never by hue.
+   NO noise, NO scanlines, NO gradients. A single accent: pure black. */
+
+[data-theme="mono"] {
+  /* Palette — Pure Monochrome (LIGHT) */
+  --bg: #ffffff;
+  --bg-elev: #fafafa;
+  --bg-elev-2: #f0f0f0;
+  --bg-hover: #e8e8e8;
+  --border: #d0d0d0;
+  --border-strong: #000000;
+  --text: #000000;
+  --text-dim: #4a4a4a;
+  --text-muted: #6a6a6a;
+  --accent: #000000;
+  --accent-dim: rgba(0, 0, 0, 0.08);
+  --accent-hover: #2a2a2a;
+  --pink: #6a6a6a;
+  --pink-dim: rgba(106, 106, 106, 0.15);
+  --green: #4a4a4a;
+  --green-dim: rgba(74, 74, 74, 0.12);
+  --warn: #2a2a2a;
+  --warn-dim: rgba(42, 42, 42, 0.10);
+  --crit: #000000;
+  --crit-dim: rgba(0, 0, 0, 0.08);
+
+  /* Fonts — Bitter for body/display, VT323 for mono */
+  --font-display: "Bitter", system-ui, serif;
+  --font-body: "Bitter", system-ui, sans-serif;
+  --font-mono: "VT323", ui-monospace, monospace;
+  --letter-display: 0.02em;
+  --decor-corner: #000000;
+}
+
+[data-theme="mono"] {
+  image-rendering: auto;
+}
+
+/* ===== Atmosphere — NONE ===== */
+[data-theme="mono"] body::before {
+  background: none;
+  opacity: 0;
+}
+[data-theme="mono"] body::after {
+  background: none;
+  opacity: 0;
+}
+
+/* ===== Titlebar — white with 1px black bottom border ===== */
+[data-theme="mono"] .titlebar {
+  background: #ffffff;
+  border-bottom: 1px solid #000000;
+  color: #000000;
+}
+[data-theme="mono"] .titlebar-title {
+  color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: calc(13px * var(--font-scale));
+}
+[data-theme="mono"] .emblem { color: #000000; filter: none; }
+[data-theme="mono"] .window-controls .wc {
+  color: #000000;
+  background: #ffffff;
+}
+[data-theme="mono"] .window-controls .wc:hover {
+  background: #000000;
+  color: #ffffff;
+}
+[data-theme="mono"] .window-controls .wc-close:hover {
+  background: #000000;
+  color: #ffffff;
+}
+
+/* ===== Topbar (tab strip) — white with 1px black bottom border ===== */
+[data-theme="mono"] .topbar {
+  background: #ffffff;
+  border-bottom: 1px solid #000000;
+  padding: 10px 20px;
+}
+[data-theme="mono"] .ornament {
+  color: #000000;
+  opacity: 0.4;
+}
+[data-theme="mono"] .tabs {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 6px;
+}
+
+/* Tabs — flat, minimal underline for active state */
+[data-theme="mono"] .tab {
+  background: transparent;
+  color: #6a6a6a;
+  padding: 8px 18px;
+  border-radius: 0;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: calc(12px * var(--font-scale));
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: color 100ms ease, border-color 100ms ease;
+}
+[data-theme="mono"] .tab:hover {
+  background: transparent;
+  color: #000000;
+  border-bottom-color: #d0d0d0;
+}
+[data-theme="mono"] .tab.active {
+  background: transparent;
+  color: #000000;
+  border-bottom: 2px solid #000000;
+  box-shadow: none;
+}
+
+/* Theme picker icon button — ghost style */
+[data-theme="mono"] .theme-picker .ghost {
+  background: transparent;
+  color: #000000;
+  border: 1px solid #000000;
+}
+[data-theme="mono"] .theme-picker .ghost:hover {
+  background: #e8e8e8;
+}
+
+/* ===== Container ===== */
+[data-theme="mono"] .container {
+  background: var(--bg);
+}
+
+/* ===== View bar — dim text, uppercase ===== */
+[data-theme="mono"] .summary {
+  color: var(--text-dim);
+  font-size: calc(14px * var(--font-scale));
+  text-transform: lowercase;
+  letter-spacing: 0.03em;
+}
+[data-theme="mono"] .summary strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ===== Companion stage ===== */
+[data-theme="mono"] .companion-stage {
+  grid-template-columns: 380px 1fr;
+  gap: 32px;
+}
+[data-theme="mono"] .companion-portrait {
+  background: #fafafa;
+  border: 1px solid #000000;
+  border-radius: 0;
+  padding: 18px 18px 14px;
+  box-shadow: none;
+}
+[data-theme="mono"] .companion-frame {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: #ffffff;
+  max-width: none;
+  width: 100%;
+}
+[data-theme="mono"] .companion-name {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 8px;
+}
+[data-theme="mono"] .companion-name .hex-id { display: none; }
+[data-theme="mono"] .companion-title {
+  color: #000000;
+  font-family: var(--font-display);
+  font-size: calc(24px * var(--font-scale));
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+/* ===== Avatar treatment — high contrast grayscale, no pixel rendering ===== */
+[data-theme="mono"] .companion-avatar {
+  filter: grayscale(1) contrast(1.4) brightness(1.05);
+  image-rendering: auto;
+}
+[data-theme="mono"] .companion-tint {
+  background: #ffffff;
+  mix-blend-mode: lighten;
+  opacity: 0.08;
+}
+[data-theme="mono"] .companion-scan {
+  background: none;
+  opacity: 0;
+  mix-blend-mode: normal;
+}
+
+/* ===== Speech bubbles — white, 1px black border, solid left stripe ===== */
+[data-theme="mono"] .bubble {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #000000;
+  border-radius: 0;
+  padding: 14px 18px 14px 20px;
+  font-family: var(--font-display);
+  font-size: calc(15px * var(--font-scale));
+  line-height: 1.6;
+  box-shadow: none;
+  border-left: 4px solid #000000;
+}
+[data-theme="mono"] .bubble strong {
+  color: #000000;
+  font-weight: 700;
+  text-decoration: none;
+}
+/* Replace { bracket with a clean 2px solid left edge — already in border-left above.
+   ::before suppressed. */
+[data-theme="mono"] .bubble::before {
+  content: "";
+  display: none;
+}
+[data-theme="mono"] .bubble::after { display: none; }
+/* bubble-warn: light gray bg, dashed left stripe */
+[data-theme="mono"] .bubble-warn {
+  background: #f0f0f0;
+  border: 1px solid #000000;
+  border-left: 4px dashed #000000;
+  box-shadow: none;
+}
+[data-theme="mono"] .bubble-warn::before { display: none; }
+/* bubble-praise: light gray bg, dotted left stripe */
+[data-theme="mono"] .bubble-praise {
+  background: #f0f0f0;
+  border: 1px solid #000000;
+  border-left: 4px dotted #000000;
+  box-shadow: none;
+}
+[data-theme="mono"] .bubble-praise::before { display: none; }
+
+/* ===== Action chips inside bubbles ===== */
+[data-theme="mono"] .action-chip {
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-size: calc(12px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  box-shadow: none;
+}
+[data-theme="mono"] .action-chip:hover {
+  background: #2a2a2a;
+  color: #ffffff;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ===== Cards (.project / .pr / .audit-finding / .cleanup-cat / .quick-card) ===== */
+[data-theme="mono"] .project,
+[data-theme="mono"] .pr,
+[data-theme="mono"] .audit-finding,
+[data-theme="mono"] .cleanup-cat,
+[data-theme="mono"] .quick-card {
+  background: #fafafa;
+  color: #000000;
+  border: 1px solid #d0d0d0;
+  border-radius: 0;
+  box-shadow: none;
+}
+[data-theme="mono"] .project:hover,
+[data-theme="mono"] .pr:hover,
+[data-theme="mono"] .quick-card:hover {
+  background: #fafafa;
+  transform: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-color: #000000;
+}
+[data-theme="mono"] .project-name,
+[data-theme="mono"] .pr-title,
+[data-theme="mono"] .quick-card-name {
+  color: #000000;
+  font-family: var(--font-display);
+  font-size: calc(16px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+[data-theme="mono"] .project-icon,
+[data-theme="mono"] .quick-card-name svg {
+  color: #000000;
+}
+[data-theme="mono"] .project-path,
+[data-theme="mono"] .quick-card-goal {
+  color: #6a6a6a;
+}
+[data-theme="mono"] .quick-card-goal { font-style: normal; }
+[data-theme="mono"] .git-subject { color: #000000; }
+[data-theme="mono"] .git-hash {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+  border-radius: 0;
+}
+[data-theme="mono"] .git-ago { color: #6a6a6a; }
+
+/* ===== Badges & pills — outline only ===== */
+[data-theme="mono"] .badge {
+  background: transparent;
+  color: #000000;
+  border: 1px solid #000000;
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+[data-theme="mono"] .badge-fresh {
+  background: #000000;
+  color: #ffffff;
+}
+[data-theme="mono"] .hex-id {
+  background: transparent;
+  color: #000000;
+  border: 1px solid #000000;
+  border-radius: 0;
+}
+
+/* ===== Buttons — sharp black blocks ===== */
+[data-theme="mono"] button {
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 0;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  box-shadow: none;
+  transition: background 80ms ease;
+}
+[data-theme="mono"] button:hover {
+  background: #2a2a2a;
+  transform: none;
+  box-shadow: none;
+}
+[data-theme="mono"] button:active {
+  transform: none;
+  box-shadow: none;
+  background: #000000;
+}
+[data-theme="mono"] button.ghost {
+  background: transparent;
+  color: #000000;
+  border: 1px solid #000000;
+}
+[data-theme="mono"] button.ghost:hover {
+  background: #e8e8e8;
+}
+/* danger: same black, distinguish by uppercase + bold (already set globally) */
+[data-theme="mono"] button.danger {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ===== Quick projects panel ===== */
+[data-theme="mono"] .quick-projects {
+  border-top: 1px solid #000000;
+}
+[data-theme="mono"] .quick-projects-head h3 {
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  font-size: calc(18px * var(--font-scale));
+}
+
+/* ===== Audit findings ===== */
+[data-theme="mono"] .audit-category-header {
+  color: var(--text);
+  border-bottom-color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+}
+[data-theme="mono"] .audit-cat-count {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #000000;
+  border-radius: 0;
+}
+/* lvl-crit: solid 4px black left border */
+[data-theme="mono"] .audit-finding.lvl-crit {
+  background: #fafafa;
+  border-color: #d0d0d0;
+  border-left: 4px solid #000000;
+  box-shadow: none;
+}
+/* lvl-warn: dashed 4px black left border */
+[data-theme="mono"] .audit-finding.lvl-warn {
+  background: #fafafa;
+  border-color: #d0d0d0;
+  border-left: 4px dashed #000000;
+}
+[data-theme="mono"] .audit-level {
+  background: #000000;
+  color: #ffffff;
+  border-radius: 0;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+[data-theme="mono"] .audit-level.lvl-crit { background: #000000; color: #ffffff; }
+[data-theme="mono"] .audit-level.lvl-warn { background: #ffffff; color: #000000; border: 1px solid #000000; }
+[data-theme="mono"] .audit-title { color: #000000; font-family: var(--font-display); font-size: calc(15px * var(--font-scale)); font-weight: 700; }
+[data-theme="mono"] .audit-detail { color: #4a4a4a; font-family: var(--font-mono); font-size: calc(13px * var(--font-scale)); }
+
+/* ===== PR & cleanup specifics ===== */
+[data-theme="mono"] .pr-meta { color: #6a6a6a; }
+[data-theme="mono"] .pr-repo { color: #000000; }
+[data-theme="mono"] .cleanup-cat header {
+  background: #000000;
+  color: #ffffff;
+  border-bottom-color: #000000;
+}
+[data-theme="mono"] .cleanup-cat-name { color: #ffffff; }
+[data-theme="mono"] .cleanup-cat-meta { color: #d0d0d0; }
+[data-theme="mono"] .cleanup-cat li { color: #000000; border-bottom-color: rgba(0, 0, 0, 0.08); }
+[data-theme="mono"] .cleanup-date { color: #6a6a6a; }
+
+/* ===== Status bar — white with 1px top black border ===== */
+[data-theme="mono"] .statusbar {
+  background: #ffffff;
+  color: #000000;
+  border-top: 1px solid #000000;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+}
+[data-theme="mono"] .sb-mono { color: #000000; }
+[data-theme="mono"] .sb-dim { color: #6a6a6a; }
+[data-theme="mono"] .sb-glyph { color: #000000; }
+[data-theme="mono"] .sb-clock { color: #000000; text-shadow: none; }
+
+/* ===== Theme picker menu ===== */
+[data-theme="mono"] .theme-menu {
+  background: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 0;
+  box-shadow: none;
+}
+[data-theme="mono"] .theme-option {
+  color: #000000;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+[data-theme="mono"] .theme-option:hover { background: #e8e8e8; }
+[data-theme="mono"] .theme-option.active { background: #000000; color: #ffffff; }
+
+/* ===== Search input ===== */
+[data-theme="mono"] .search {
+  background: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 0;
+}
+[data-theme="mono"] .search input { color: #000000; }
+[data-theme="mono"] .search input::placeholder { color: #6a6a6a; }
+[data-theme="mono"] .select-wrap select {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #000000;
+  border-radius: 0;
+  font-family: var(--font-display);
+}
+
+/* ===== Selection — black bg + white text ===== */
+[data-theme="mono"] ::selection {
+  background: #000000;
+  color: #ffffff;
+}
+
+/* ===== Scrollbar — black thumb ===== */
+[data-theme="mono"] ::-webkit-scrollbar-track { background: var(--bg); }
+[data-theme="mono"] ::-webkit-scrollbar-thumb {
+  background: #000000;
+  border: 3px solid var(--bg);
+  border-radius: 0;
+}
+[data-theme="mono"] ::-webkit-scrollbar-thumb:hover { background: #000000; }
+
+/* ===== Skeleton ===== */
+[data-theme="mono"] .sk-line {
+  background: linear-gradient(90deg, #e8e8e8, #f0f0f0, #e8e8e8);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ===== State / loading ===== */
+[data-theme="mono"] .state {
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-style: normal;
+}
+
+/* ===== Focus-visible — mandatory accessibility block ===== */
+[data-theme="mono"] .tab:focus-visible,
+[data-theme="mono"] button:focus-visible,
+[data-theme="mono"] .search input:focus-visible,
+[data-theme="mono"] .theme-option:focus-visible,
+[data-theme="mono"] input:focus-visible,
+[data-theme="mono"] select:focus-visible {
+  outline: 2px solid #000000;
+  outline-offset: 2px;
+}

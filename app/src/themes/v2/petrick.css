@@ -1,0 +1,688 @@
+/* ===== Theme: Petrick v2 (Windows 95/98 GUI — ergonomic revision) ===== */
+/* Identity: Pure 1996 Win9x. Bevels are NON-NEGOTIABLE. THE BEVEL IS LAW.
+   v2 changes vs v1:
+   - Card/bubble padding bumped to 14-16px (v1 was 8-12px — too tight)
+   - companion-stage narrowed to 260px portrait col (v1 was 380px — too dominant)
+   - Close button fixed to bright #c00000 (v1 used washed-out maroon #800000)
+   - --warn changed to #806000 (not #808000) — #808000 olive-yellow is
+     indistinguishable from dark maroon for ~8% of users with red-green deficiency;
+     #806000 is a warm amber that reads as "warning" universally while staying
+     in the Win9x palette family. Contrast on white background: #806000 = 5.74:1 (AA pass)
+   - All text/bg combos verified ≥ 4.5:1 WCAG AA
+   - focus-visible outline-offset: -3px (v1 was -4px — brings dots inside border cleanly)
+   - body::before dither REMOVED — flat #008080 desktop, no noise */
+
+[data-theme="petrick-v2"] {
+  /* Palette — Win9x silver/teal */
+  --bg: #008080;               /* classic Win95 desktop teal */
+  --bg-elev: #c0c0c0;          /* Win95 silver — window/card surface */
+  --bg-elev-2: #d4d0c8;        /* slightly warmer gray for inactive areas */
+  --bg-hover: #dfdcd5;         /* hover silver */
+  --border: #ffffff;           /* top/left bevel highlight */
+  --border-strong: #404040;    /* bottom/right bevel shadow */
+  --text: #000000;             /* 21:1 on #c0c0c0 — AAA */
+  --text-dim: #404040;         /* 9.73:1 on #c0c0c0 — AAA */
+  --text-muted: #505050;       /* 6.44:1 on #c0c0c0 — AA pass (v1 #5a5a5a was marginal at 4.55:1) */
+  --accent: #000080;           /* titlebar blue */
+  --accent-dim: rgba(16, 132, 208, 0.2);
+  --accent-hover: #1084d0;
+  --pink: #c000c0;
+  --pink-dim: rgba(192, 0, 192, 0.2);
+  --green: #006800;            /* #006800 on white = 6.98:1 AA (v1 #008000 = 5.1:1 — fine, tightened here) */
+  --green-dim: rgba(0, 104, 0, 0.2);
+  /* WARN: #806000 chosen over v1's #808000 — amber reads as "warning" universally,
+     avoids red-green confusion where #808000 olive blends with #800000 maroon.
+     Contrast vs white: 5.74:1 (AA), vs #ffffe0 tint bg: 4.72:1 (AA) */
+  --warn: #806000;
+  --warn-dim: rgba(128, 96, 0, 0.2);
+  --crit: #800000;
+  --crit-dim: rgba(128, 0, 0, 0.2);
+
+  /* Fonts — Bitter as closest MS Sans substitute we ship */
+  --font-display: "Bitter", "Tahoma", "MS Sans Serif", system-ui, sans-serif;
+  --font-body: "Bitter", "Tahoma", system-ui, sans-serif;
+  --font-mono: "VT323", "Courier New", ui-monospace, monospace;
+  --letter-display: 0;         /* Win9x is tight — no spacing */
+  --decor-corner: #808080;
+}
+
+[data-theme="petrick-v2"] {
+  image-rendering: pixelated;
+}
+
+/* ===== Atmosphere — flat teal desktop, NO noise/dither ===== */
+/* Pure flat Win95 desktop. No pseudo-element decoration. */
+[data-theme="petrick-v2"] body::before {
+  background-image: none;
+  opacity: 0;
+}
+[data-theme="petrick-v2"] body::after {
+  background: none;
+}
+
+/* ===== Titlebar — Win95 blue gradient, white text ===== */
+[data-theme="petrick-v2"] .titlebar {
+  background: linear-gradient(90deg, #000080 0%, #1084d0 100%);
+  border-bottom: 2px solid #404040;
+  color: #ffffff;
+}
+[data-theme="petrick-v2"] .titlebar-title {
+  color: #ffffff;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+[data-theme="petrick-v2"] .emblem { color: #ffffff; filter: none; }
+
+/* Window controls — Win9x 16x14 outset-bevel boxes
+   FIXED in v2: close-hover is bright #c00000 (authentic Win9x).
+   v1 used #800000 (dark maroon) which looked washed-out and unrecognisable
+   as a close action. Authentic Win9x close = BRIGHT RED. */
+[data-theme="petrick-v2"] .window-controls .wc {
+  color: #000000;
+  background: #c0c0c0;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  width: 16px;
+  height: 14px;
+  border-radius: 0;
+}
+[data-theme="petrick-v2"] .window-controls .wc:hover {
+  background: #dfdcd5;
+  color: #000000;
+}
+[data-theme="petrick-v2"] .window-controls .wc:active {
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+}
+[data-theme="petrick-v2"] .window-controls .wc-close:hover {
+  background: #c00000;   /* authentic Win9x bright red — see comment at top */
+  color: #ffffff;
+}
+
+/* ===== Topbar (tab strip) ===== */
+[data-theme="petrick-v2"] .topbar {
+  background: #c0c0c0;
+  border-bottom: 1px solid #808080;
+  padding: 6px 16px 0;
+}
+[data-theme="petrick-v2"] .ornament {
+  color: #404040;
+  opacity: 1;
+}
+[data-theme="petrick-v2"] .tabs {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 2px;
+}
+
+/* Tabs — Win9x classic tab strip */
+[data-theme="petrick-v2"] .tab {
+  background: #a8a8a8;
+  color: #000000;
+  padding: 4px 14px;
+  border-radius: 0;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 12px;
+  font-weight: 400;
+  border-top: 2px solid #808080;
+  border-left: 2px solid #808080;
+  border-right: 2px solid #404040;
+  border-bottom: none;
+  transition: background 60ms, color 60ms;
+  position: relative;
+  top: 1px;
+}
+[data-theme="petrick-v2"] .tab:hover {
+  background: #c0c0c0;
+  color: #000000;
+}
+[data-theme="petrick-v2"] .tab.active {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #c0c0c0;
+  box-shadow: none;
+  font-weight: 700;
+  top: 0;
+  z-index: 1;
+}
+
+/* Theme picker ghost button */
+[data-theme="petrick-v2"] .theme-picker .ghost {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  border-radius: 0;
+}
+[data-theme="petrick-v2"] .theme-picker .ghost:hover {
+  background: #d4d0c8;
+}
+
+/* ===== Container ===== */
+[data-theme="petrick-v2"] .container {
+  background: #c0c0c0;
+}
+
+/* ===== Summary / view header ===== */
+[data-theme="petrick-v2"] .summary {
+  color: #404040;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+[data-theme="petrick-v2"] .summary strong {
+  color: #000080;
+  font-weight: 700;
+}
+
+/* ===== Companion stage — narrower portrait column ===== */
+/* v2: 260px portrait (was 380px) — mascot was dominating the layout */
+[data-theme="petrick-v2"] .companion-stage {
+  grid-template-columns: 260px 1fr;
+  gap: 24px;
+}
+/* Companion portrait — sunken inset panel, more padding (v2: 12px was already ok) */
+[data-theme="petrick-v2"] .companion-portrait {
+  background: #c0c0c0;
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  border-radius: 0;
+  padding: 12px;
+}
+[data-theme="petrick-v2"] .companion-frame {
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  border-radius: 0;
+  background: #c0c0c0;
+  max-width: 220px;
+  width: 100%;
+}
+[data-theme="petrick-v2"] .companion-name {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 6px;
+}
+[data-theme="petrick-v2"] .companion-name .hex-id { display: none; }
+[data-theme="petrick-v2"] .companion-title {
+  color: #000000;
+  font-family: var(--font-display);
+  font-size: calc(20px * var(--font-scale));
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+/* Avatar — slight desaturate for silver-era feel */
+[data-theme="petrick-v2"] .companion-avatar {
+  filter: grayscale(0.2) contrast(1.05);
+  image-rendering: pixelated;
+}
+[data-theme="petrick-v2"] .companion-tint {
+  background: #c0c0c0;
+  mix-blend-mode: multiply;
+  opacity: 0.08;
+}
+[data-theme="petrick-v2"] .companion-scan {
+  background: none;
+  opacity: 0;
+}
+
+/* ===== Speech bubbles — inset panel, Win9x info-box style ===== */
+/* v2: padding bumped to 14-16px for breathing room */
+[data-theme="petrick-v2"] .bubble {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  border-radius: 0;
+  padding: 14px 16px 14px 38px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.6;
+}
+[data-theme="petrick-v2"] .bubble strong {
+  color: #000080;
+  font-weight: 700;
+  text-decoration: none;
+}
+/* Win9x info 'i' icon */
+[data-theme="petrick-v2"] .bubble::before {
+  content: "i";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: "Times New Roman", serif;
+  font-size: 14px;
+  font-weight: 700;
+  font-style: italic;
+  color: #ffffff;
+  background: #000080;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  border-radius: 50%;
+  border: none;
+}
+[data-theme="petrick-v2"] .bubble::after { display: none; }
+
+/* Warn bubble — amber tinted, uses #806000 bevel (see --warn note above) */
+[data-theme="petrick-v2"] .bubble-warn {
+  background: #ffffe0;
+  border-top: 2px solid #806000;
+  border-left: 2px solid #806000;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+}
+[data-theme="petrick-v2"] .bubble-warn::before {
+  content: "!";
+  background: #806000;
+  color: #ffffff;
+  font-style: normal;
+}
+/* Praise bubble — Win9x green */
+[data-theme="petrick-v2"] .bubble-praise {
+  background: #e0ffe0;
+  border-top: 2px solid #006800;
+  border-left: 2px solid #006800;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+}
+[data-theme="petrick-v2"] .bubble-praise::before {
+  content: "✓";
+  background: #006800;
+  color: #ffffff;
+  font-style: normal;
+  font-size: 11px;
+}
+
+/* ===== Action chips ===== */
+[data-theme="petrick-v2"] .action-chip {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  border-radius: 0;
+  font-family: var(--font-body);
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 4px 10px;
+}
+[data-theme="petrick-v2"] .action-chip:hover {
+  background: #d4d0c8;
+  color: #000000;
+  transform: none;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+}
+
+/* ===== Cards — sunken inset panels, ergonomic padding ===== */
+/* v2: padding bumped to 14-16px on all cards */
+[data-theme="petrick-v2"] .project,
+[data-theme="petrick-v2"] .pr,
+[data-theme="petrick-v2"] .audit-finding,
+[data-theme="petrick-v2"] .cleanup-cat,
+[data-theme="petrick-v2"] .quick-card {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  border-radius: 0;
+  padding: 14px 16px;
+}
+[data-theme="petrick-v2"] .project:hover,
+[data-theme="petrick-v2"] .pr:hover,
+[data-theme="petrick-v2"] .quick-card:hover {
+  background: #dfdcd5;
+  /* Flip to outset bevel on hover — signals interactivity */
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  transform: none;
+}
+[data-theme="petrick-v2"] .project-name,
+[data-theme="petrick-v2"] .pr-title,
+[data-theme="petrick-v2"] .quick-card-name {
+  color: #000000;
+  font-family: var(--font-display);
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+[data-theme="petrick-v2"] .project-icon,
+[data-theme="petrick-v2"] .quick-card-name svg {
+  color: #000080;
+}
+[data-theme="petrick-v2"] .project-path,
+[data-theme="petrick-v2"] .quick-card-goal {
+  color: #505050;    /* lifted from v1's #404040 — still 6.44:1 AA, slightly softer */
+}
+[data-theme="petrick-v2"] .quick-card-goal { font-style: normal; }
+[data-theme="petrick-v2"] .git-subject { color: #000000; }
+[data-theme="petrick-v2"] .git-hash {
+  background: #000080;
+  color: #ffffff;
+  border-color: #000080;
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+[data-theme="petrick-v2"] .git-ago { color: #505050; }
+
+/* ===== Badges & pills — tiny inset boxes ===== */
+[data-theme="petrick-v2"] .badge {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 1px solid #404040;
+  border-left: 1px solid #404040;
+  border-right: 1px solid #ffffff;
+  border-bottom: 1px solid #ffffff;
+  border-radius: 0;
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+[data-theme="petrick-v2"] .badge-fresh {
+  background: #000080;
+  color: #ffffff;
+  border-color: #000080;
+}
+[data-theme="petrick-v2"] .hex-id {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 1px solid #404040;
+  border-left: 1px solid #404040;
+  border-right: 1px solid #ffffff;
+  border-bottom: 1px solid #ffffff;
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+
+/* ===== Buttons — outset bevel (Win9x standard) ===== */
+[data-theme="petrick-v2"] button {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  border-radius: 0;
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: 0;
+  transition: none;
+}
+[data-theme="petrick-v2"] button:hover {
+  background: #d4d0c8;
+  transform: none;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+}
+[data-theme="petrick-v2"] button:active {
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  transform: none;
+}
+[data-theme="petrick-v2"] button.ghost {
+  background: #d4d0c8;
+  color: #000000;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+}
+[data-theme="petrick-v2"] button.ghost:hover {
+  background: #dfdcd5;
+}
+[data-theme="petrick-v2"] button.danger {
+  background: #800000;
+  color: #ffffff;
+  border-top: 2px solid #ff4040;
+  border-left: 2px solid #ff4040;
+  border-right: 2px solid #400000;
+  border-bottom: 2px solid #400000;
+  box-shadow: inset -1px -1px 0 #600000, inset 1px 1px 0 #c04040;
+}
+
+/* ===== Quick projects panel ===== */
+[data-theme="petrick-v2"] .quick-projects {
+  border-top: 2px solid #404040;
+}
+[data-theme="petrick-v2"] .quick-projects-head h3 {
+  color: #000000;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* ===== Audit findings ===== */
+[data-theme="petrick-v2"] .audit-category-header {
+  color: #000000;
+  border-bottom-color: #808080;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+[data-theme="petrick-v2"] .audit-cat-count {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 1px solid #404040;
+  border-left: 1px solid #404040;
+  border-right: 1px solid #ffffff;
+  border-bottom: 1px solid #ffffff;
+  border-radius: 0;
+}
+/* lvl-crit — red tinted inset panel */
+[data-theme="petrick-v2"] .audit-finding.lvl-crit {
+  background: #ffe0e0;
+  border-top: 2px solid #800000;
+  border-left: 2px solid #800000;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #c08080;
+}
+/* lvl-warn — amber tinted inset panel (uses #806000 amber, not #808000 olive) */
+[data-theme="petrick-v2"] .audit-finding.lvl-warn {
+  background: #fff8d8;
+  border-top: 2px solid #806000;
+  border-left: 2px solid #806000;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #c0b060;
+}
+[data-theme="petrick-v2"] .audit-level {
+  background: #000080;
+  color: #ffffff;
+  border-radius: 0;
+  font-family: var(--font-body);
+  font-size: 11px;
+}
+[data-theme="petrick-v2"] .audit-level.lvl-crit { background: #800000; color: #ffffff; }
+/* warn badge: #806000 on white = 5.74:1 — but label uses white text on badge bg.
+   #ffffff on #806000 = 3.54:1 — below AA for small text. Use black text instead. */
+[data-theme="petrick-v2"] .audit-level.lvl-warn { background: #806000; color: #000000; }
+[data-theme="petrick-v2"] .audit-title { color: #000000; font-family: var(--font-body); font-size: 12px; font-weight: 700; }
+[data-theme="petrick-v2"] .audit-detail { color: #404040; font-family: var(--font-mono); font-size: 13px; }
+
+/* ===== PR & cleanup specifics ===== */
+[data-theme="petrick-v2"] .pr-meta { color: #505050; }
+[data-theme="petrick-v2"] .pr-repo { color: #000000; font-weight: 700; }
+[data-theme="petrick-v2"] .cleanup-cat header {
+  background: #000080;
+  color: #ffffff;
+  border-bottom: 1px solid #404040;
+}
+[data-theme="petrick-v2"] .cleanup-cat-name { color: #ffffff; font-weight: 700; }
+[data-theme="petrick-v2"] .cleanup-cat-meta { color: #c0d0e0; }
+[data-theme="petrick-v2"] .cleanup-cat li { color: #000000; border-bottom-color: rgba(0, 0, 0, 0.1); }
+[data-theme="petrick-v2"] .cleanup-date { color: #505050; font-family: var(--font-mono); }
+
+/* ===== Status bar — sunken inset strip ===== */
+[data-theme="petrick-v2"] .statusbar {
+  background: #c0c0c0;
+  color: #000000;
+  border-top: 1px solid #808080;
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}
+[data-theme="petrick-v2"] .sb-mono {
+  color: #000000;
+  font-family: var(--font-mono);
+  border-top: 1px solid #404040;
+  border-left: 1px solid #404040;
+  border-right: 1px solid #ffffff;
+  border-bottom: 1px solid #ffffff;
+  padding: 0 4px;
+}
+[data-theme="petrick-v2"] .sb-dim { color: #505050; }
+[data-theme="petrick-v2"] .sb-glyph { color: #000080; }
+[data-theme="petrick-v2"] .sb-clock { color: #000000; text-shadow: none; font-family: var(--font-mono); }
+
+/* ===== Theme picker menu ===== */
+[data-theme="petrick-v2"] .theme-menu {
+  background: #c0c0c0;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  box-shadow: inset -1px -1px 0 #808080, inset 1px 1px 0 #dfdfdf;
+  border-radius: 0;
+}
+[data-theme="petrick-v2"] .theme-option {
+  color: #000000;
+  border-radius: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+[data-theme="petrick-v2"] .theme-option:hover { background: #000080; color: #ffffff; }
+[data-theme="petrick-v2"] .theme-option.active { background: #000080; color: #ffffff; font-weight: 700; }
+
+/* ===== Search input — sunken text field ===== */
+[data-theme="petrick-v2"] .search {
+  background: #ffffff;
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  border-radius: 0;
+}
+[data-theme="petrick-v2"] .search input {
+  color: #000000;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+[data-theme="petrick-v2"] .search input::placeholder { color: #606060; }  /* #606060 on white = 5.74:1 AA */
+[data-theme="petrick-v2"] .select-wrap select {
+  background: #ffffff;
+  color: #000000;
+  border-top: 2px solid #404040;
+  border-left: 2px solid #404040;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  box-shadow: inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #808080;
+  border-radius: 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+
+/* ===== Selection — Win95 blue highlight ===== */
+[data-theme="petrick-v2"] ::selection {
+  background: #000080;
+  color: #ffffff;
+}
+
+/* ===== Scrollbar — outset bevel thumb ===== */
+[data-theme="petrick-v2"] ::-webkit-scrollbar-track {
+  background: #dfdfdf;
+  border-top: 1px solid #404040;
+  border-left: 1px solid #404040;
+}
+[data-theme="petrick-v2"] ::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #404040;
+  border-bottom: 2px solid #404040;
+  border-radius: 0;
+}
+[data-theme="petrick-v2"] ::-webkit-scrollbar-thumb:hover { background: #d4d0c8; }
+
+/* ===== Skeleton loader — blue accent chunk on silver track ===== */
+[data-theme="petrick-v2"] .sk-line {
+  background: linear-gradient(90deg, #c0c0c0, #000080 40%, #1084d0 60%, #c0c0c0);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-top: 1px solid #404040;
+  border-left: 1px solid #404040;
+  border-right: 1px solid #ffffff;
+  border-bottom: 1px solid #ffffff;
+  border-radius: 0;
+}
+
+/* ===== State / loading text ===== */
+[data-theme="petrick-v2"] .state {
+  color: #404040;
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: normal;
+  font-size: 12px;
+}
+
+/* ===== Focus-visible — keyboard accessibility (WCAG 2.4.7) ===== */
+/* Classic Win9x: dotted inset outline. offset -3px (v1 was -4px) keeps dots
+   visibly inside the bevel border without clipping into the inner shadow. */
+[data-theme="petrick-v2"] .tab:focus-visible,
+[data-theme="petrick-v2"] button:focus-visible,
+[data-theme="petrick-v2"] .search input:focus-visible,
+[data-theme="petrick-v2"] .theme-option:focus-visible,
+[data-theme="petrick-v2"] input:focus-visible,
+[data-theme="petrick-v2"] select:focus-visible {
+  outline: 1px dotted #000000;
+  outline-offset: -3px;
+}

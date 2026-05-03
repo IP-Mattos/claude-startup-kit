@@ -1,0 +1,508 @@
+/* ===== Theme: Nord v2 (Arctic Refined — Polar Night + Frost cyan + Aurora accents) ===== */
+/* Official Nord palette, polished. Soft rounded cards, correct muted hierarchy,
+   gentle cold radial glow, ❄ snowflake on bubbles. NO scanlines, NO noise.
+   WCAG AA on all text/bg pairs. Smaller companion column (260px). */
+
+[data-theme="nord-v2"] {
+  /* Palette — official Nord, muted hierarchy corrected */
+  --bg: #2e3440;              /* nord0 — Polar Night darkest */
+  --bg-elev: #3b4252;         /* nord1 */
+  --bg-elev-2: #434c5e;       /* nord2 */
+  --bg-hover: #4c566a;        /* nord3 */
+  --border: #4c566a;          /* nord3 */
+  --border-strong: #81a1c1;   /* nord9 — Frost blue (stronger than text-dim) */
+  --text: #eceff4;            /* nord6 — brightest snow  ~14:1 on --bg */
+  --text-dim: #d8dee9;        /* nord4                   ~10:1 on --bg */
+  --text-muted: #7b8a9a;      /* custom — darkened mid so dim > muted always */
+  --accent: #88c0d0;          /* nord8 — Frost cyan       ~5.8:1 on --bg */
+  --accent-dim: rgba(136, 192, 208, 0.15);
+  --accent-hover: #9ecfde;
+  --pink: #b48ead;            /* nord15 — Aurora purple */
+  --pink-dim: rgba(180, 142, 173, 0.15);
+  --green: #a3be8c;           /* nord14 — Aurora green */
+  --green-dim: rgba(163, 190, 140, 0.15);
+  --warn: #ebcb8b;            /* nord13 — Aurora yellow */
+  --warn-dim: rgba(235, 203, 139, 0.15);
+  --crit: #bf616a;            /* nord11 — Aurora red */
+  --crit-dim: rgba(191, 97, 106, 0.15);
+
+  /* Fonts — Bitter (display/body) differs from VT323 (mono) for warmth vs. code */
+  --font-display: "Bitter", Georgia, serif;
+  --font-body: "Bitter", Georgia, serif;
+  --font-mono: "VT323", ui-monospace, monospace;
+  --letter-display: 0.02em;
+}
+
+[data-theme="nord-v2"] {
+  image-rendering: auto;
+}
+
+/* ===== Atmosphere — very faint cool radial glow at top ===== */
+[data-theme="nord-v2"] body::before {
+  background-image: radial-gradient(ellipse at top, rgba(136, 192, 208, 0.05) 0%, transparent 55%);
+  opacity: 1;
+}
+[data-theme="nord-v2"] body::after {
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.18) 100%);
+}
+
+/* ===== Titlebar ===== */
+[data-theme="nord-v2"] .titlebar {
+  background: #3b4252;
+  border-bottom: 1px solid #4c566a;
+  color: #eceff4;
+}
+[data-theme="nord-v2"] .titlebar-title {
+  color: #eceff4;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: calc(15px * var(--font-scale));
+}
+[data-theme="nord-v2"] .emblem { color: #88c0d0; filter: none; }
+/* Window controls — CRITICAL: transparent bg, semantic close hover */
+[data-theme="nord-v2"] .window-controls .wc {
+  color: var(--text-dim);
+  background: transparent;
+}
+[data-theme="nord-v2"] .window-controls .wc:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+[data-theme="nord-v2"] .window-controls .wc-close:hover {
+  background: var(--crit);
+  color: #ffffff;
+}
+
+/* ===== Topbar (tab strip) ===== */
+[data-theme="nord-v2"] .topbar {
+  background: #3b4252;
+  border-bottom: 1px solid #4c566a;
+  padding: 10px 20px;
+}
+[data-theme="nord-v2"] .ornament {
+  color: #88c0d0;
+  opacity: 0.75;
+}
+[data-theme="nord-v2"] .tabs {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 6px;
+}
+
+/* Tabs — rounded pills, frost cyan active */
+[data-theme="nord-v2"] .tab {
+  background: transparent;
+  color: #d8dee9;
+  padding: 8px 18px;
+  border-radius: 8px;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  font-size: calc(12px * var(--font-scale));
+  border: 1px solid transparent;
+  transition: background 120ms ease, color 120ms ease;
+}
+[data-theme="nord-v2"] .tab:hover {
+  background: #434c5e;
+  color: #eceff4;
+}
+[data-theme="nord-v2"] .tab.active {
+  background: #88c0d0;
+  color: #2e3440;
+  border-color: #88c0d0;
+  box-shadow: none;
+}
+
+/* Theme picker ghost button */
+[data-theme="nord-v2"] .theme-picker .ghost {
+  background: transparent;
+  color: #88c0d0;
+  border: 1px solid #88c0d0;
+}
+[data-theme="nord-v2"] .theme-picker .ghost:hover {
+  background: rgba(136, 192, 208, 0.12);
+}
+
+/* ===== Container ===== */
+[data-theme="nord-v2"] .container {
+  background: var(--bg);
+}
+
+/* ===== View bar — summary text ===== */
+[data-theme="nord-v2"] .summary {
+  color: var(--text-dim);
+  font-size: calc(14px * var(--font-scale));
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+[data-theme="nord-v2"] .summary strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ===== Companion stage — smaller (260px) per v2 mandate ===== */
+[data-theme="nord-v2"] .companion-stage {
+  grid-template-columns: 260px 1fr;
+  gap: 28px;
+}
+[data-theme="nord-v2"] .companion-portrait {
+  background: #3b4252;
+  border: 1px solid #4c566a;
+  border-radius: 10px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+[data-theme="nord-v2"] .companion-frame {
+  border: 1px solid #4c566a;
+  border-radius: 8px;
+  background: #3b4252;
+  max-width: 220px;
+  width: 100%;
+}
+[data-theme="nord-v2"] .companion-name {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 8px;
+}
+[data-theme="nord-v2"] .companion-name .hex-id { display: none; }
+[data-theme="nord-v2"] .companion-title {
+  color: #88c0d0;
+  font-family: var(--font-display);
+  font-size: calc(22px * var(--font-scale));
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(136, 192, 208, 0.25);
+}
+
+/* ===== Avatar treatment — soft cool desaturation ===== */
+[data-theme="nord-v2"] .companion-avatar {
+  filter: grayscale(0.25) brightness(0.97);
+  image-rendering: auto;
+}
+[data-theme="nord-v2"] .companion-tint {
+  background: #88c0d0;
+  mix-blend-mode: color;
+  opacity: 0.07;
+}
+[data-theme="nord-v2"] .companion-scan {
+  background: none;
+  opacity: 0;
+  mix-blend-mode: normal;
+}
+
+/* ===== Speech bubbles — nordic cards with ❄ snowflake glyph ===== */
+[data-theme="nord-v2"] .bubble {
+  background: #3b4252;
+  color: #eceff4;
+  border: 1px solid #4c566a;
+  border-radius: 10px;
+  padding: 14px 18px 14px 28px;
+  font-family: var(--font-body);
+  font-size: calc(15px * var(--font-scale));
+  line-height: 1.55;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+[data-theme="nord-v2"] .bubble strong {
+  color: #88c0d0;
+  font-weight: 600;
+  text-decoration: none;
+}
+/* Snowflake ❄ on left edge */
+[data-theme="nord-v2"] .bubble::before {
+  content: "❄";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-body);
+  font-size: calc(13px * var(--font-scale));
+  color: #88c0d0;
+  line-height: 1;
+  border: none;
+  background: none;
+  width: auto;
+  height: auto;
+  opacity: 0.7;
+}
+[data-theme="nord-v2"] .bubble::after { display: none; }
+[data-theme="nord-v2"] .bubble-warn {
+  background: rgba(235, 203, 139, 0.07);
+  border-color: #ebcb8b;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+[data-theme="nord-v2"] .bubble-warn::before { color: #ebcb8b; opacity: 0.85; }
+[data-theme="nord-v2"] .bubble-praise {
+  background: rgba(163, 190, 140, 0.07);
+  border-color: #a3be8c;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+[data-theme="nord-v2"] .bubble-praise::before { color: #a3be8c; opacity: 0.85; }
+
+/* ===== Action chips inside bubbles ===== */
+[data-theme="nord-v2"] .action-chip {
+  background: rgba(136, 192, 208, 0.12);
+  color: #88c0d0;
+  border: 1px solid #88c0d0;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: calc(13px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  box-shadow: none;
+}
+[data-theme="nord-v2"] .action-chip:hover {
+  background: #88c0d0;
+  color: #2e3440;
+  transform: none;
+  box-shadow: 0 2px 6px rgba(136, 192, 208, 0.22);
+}
+
+/* ===== Cards (.project / .pr / .audit-finding / .cleanup-cat / .quick-card) ===== */
+[data-theme="nord-v2"] .project,
+[data-theme="nord-v2"] .pr,
+[data-theme="nord-v2"] .audit-finding,
+[data-theme="nord-v2"] .cleanup-cat,
+[data-theme="nord-v2"] .quick-card {
+  background: #3b4252;
+  color: #eceff4;
+  border: 1px solid #4c566a;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+[data-theme="nord-v2"] .project:hover,
+[data-theme="nord-v2"] .pr:hover,
+[data-theme="nord-v2"] .quick-card:hover {
+  background: #434c5e;
+  transform: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  border-color: #88c0d0;
+}
+[data-theme="nord-v2"] .project-name,
+[data-theme="nord-v2"] .pr-title,
+[data-theme="nord-v2"] .quick-card-name {
+  color: #eceff4;
+  font-family: var(--font-display);
+  font-size: calc(18px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  font-weight: 600;
+}
+[data-theme="nord-v2"] .project-icon,
+[data-theme="nord-v2"] .quick-card-name svg {
+  color: #88c0d0;
+}
+[data-theme="nord-v2"] .project-path,
+[data-theme="nord-v2"] .quick-card-goal {
+  color: var(--text-muted);
+}
+[data-theme="nord-v2"] .quick-card-goal { font-style: normal; }
+[data-theme="nord-v2"] .git-subject { color: #d8dee9; }
+[data-theme="nord-v2"] .git-hash {
+  background: rgba(136, 192, 208, 0.10);
+  color: #88c0d0;
+  border-color: #4c566a;
+  border-radius: 4px;
+}
+[data-theme="nord-v2"] .git-ago { color: var(--text-muted); }
+
+/* ===== Badges & pills ===== */
+[data-theme="nord-v2"] .badge {
+  background: transparent;
+  color: #d8dee9;
+  border: 1px solid #4c566a;
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+[data-theme="nord-v2"] .badge-fresh {
+  background: rgba(136, 192, 208, 0.13);
+  color: #88c0d0;
+}
+[data-theme="nord-v2"] .hex-id {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid #4c566a;
+  border-radius: 4px;
+}
+
+/* ===== Buttons ===== */
+[data-theme="nord-v2"] button {
+  background: #88c0d0;
+  color: #2e3440;
+  border: 1px solid #88c0d0;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: none;
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+[data-theme="nord-v2"] button:hover {
+  background: #9ecfde;
+  transform: none;
+  box-shadow: 0 2px 8px rgba(136, 192, 208, 0.28);
+}
+[data-theme="nord-v2"] button:active {
+  transform: none;
+  box-shadow: none;
+}
+[data-theme="nord-v2"] button.ghost {
+  background: transparent;
+  color: #88c0d0;
+  border: 1px solid #88c0d0;
+}
+[data-theme="nord-v2"] button.ghost:hover {
+  background: rgba(136, 192, 208, 0.10);
+}
+[data-theme="nord-v2"] button.danger {
+  background: var(--crit);
+  color: #eceff4;
+  border-color: #bf616a;
+}
+
+/* ===== Quick projects panel ===== */
+[data-theme="nord-v2"] .quick-projects {
+  border-top: 1px solid #4c566a;
+}
+[data-theme="nord-v2"] .quick-projects-head h3 {
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  font-size: calc(20px * var(--font-scale));
+}
+
+/* ===== Audit findings ===== */
+[data-theme="nord-v2"] .audit-category-header {
+  color: var(--text);
+  border-bottom-color: var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+[data-theme="nord-v2"] .audit-cat-count {
+  background: rgba(136, 192, 208, 0.12);
+  color: #88c0d0;
+  border: 1px solid #4c566a;
+  border-radius: 4px;
+}
+[data-theme="nord-v2"] .audit-finding.lvl-crit {
+  background: rgba(191, 97, 106, 0.08);
+  border-color: var(--crit);
+  box-shadow: 0 2px 8px rgba(191, 97, 106, 0.14);
+}
+[data-theme="nord-v2"] .audit-finding.lvl-warn {
+  background: rgba(235, 203, 139, 0.06);
+  border-color: #ebcb8b;
+}
+[data-theme="nord-v2"] .audit-level {
+  background: #4c566a;
+  color: #eceff4;
+  border-radius: 4px;
+}
+[data-theme="nord-v2"] .audit-level.lvl-crit { background: var(--crit); color: #eceff4; }
+[data-theme="nord-v2"] .audit-level.lvl-warn { background: #ebcb8b; color: #2e3440; }
+[data-theme="nord-v2"] .audit-title { color: #eceff4; font-family: var(--font-body); font-size: calc(15px * var(--font-scale)); }
+[data-theme="nord-v2"] .audit-detail { color: var(--text-muted); font-family: var(--font-mono); font-size: calc(13px * var(--font-scale)); }
+
+/* ===== PR & cleanup specifics ===== */
+[data-theme="nord-v2"] .pr-meta { color: var(--text-muted); }
+[data-theme="nord-v2"] .pr-repo { color: #88c0d0; }
+[data-theme="nord-v2"] .cleanup-cat header {
+  background: #434c5e;
+  color: #eceff4;
+  border-bottom-color: #4c566a;
+}
+[data-theme="nord-v2"] .cleanup-cat-name { color: #eceff4; }
+[data-theme="nord-v2"] .cleanup-cat-meta { color: var(--text-muted); }
+[data-theme="nord-v2"] .cleanup-cat li { color: #d8dee9; border-bottom-color: rgba(76, 86, 106, 0.45); }
+[data-theme="nord-v2"] .cleanup-date { color: var(--text-muted); }
+
+/* ===== Status bar ===== */
+[data-theme="nord-v2"] .statusbar {
+  background: #3b4252;
+  color: #d8dee9;
+  border-top: 1px solid #4c566a;
+  font-family: var(--font-body);
+  letter-spacing: 0.025em;
+}
+[data-theme="nord-v2"] .sb-mono { color: #88c0d0; }
+[data-theme="nord-v2"] .sb-dim { color: var(--text-muted); }
+[data-theme="nord-v2"] .sb-glyph { color: #88c0d0; }
+[data-theme="nord-v2"] .sb-clock { color: #d8dee9; text-shadow: none; }
+
+/* ===== Theme picker menu ===== */
+[data-theme="nord-v2"] .theme-menu {
+  background: #3b4252;
+  border: 1px solid #4c566a;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.38);
+}
+[data-theme="nord-v2"] .theme-option {
+  color: #d8dee9;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+[data-theme="nord-v2"] .theme-option:hover { background: #434c5e; }
+[data-theme="nord-v2"] .theme-option.active { background: #88c0d0; color: #2e3440; }
+
+/* ===== Search input ===== */
+[data-theme="nord-v2"] .search {
+  background: #3b4252;
+  border: 1px solid #4c566a;
+  border-radius: 8px;
+}
+[data-theme="nord-v2"] .search input { color: #eceff4; }
+[data-theme="nord-v2"] .search input::placeholder { color: var(--text-muted); }
+[data-theme="nord-v2"] .select-wrap select {
+  background: #3b4252;
+  color: #eceff4;
+  border: 1px solid #4c566a;
+  border-radius: 8px;
+  font-family: var(--font-body);
+}
+
+/* ===== Selection ===== */
+[data-theme="nord-v2"] ::selection {
+  background: #88c0d0;
+  color: #2e3440;
+}
+
+/* ===== Scrollbar ===== */
+[data-theme="nord-v2"] ::-webkit-scrollbar-track { background: var(--bg); }
+[data-theme="nord-v2"] ::-webkit-scrollbar-thumb {
+  background: #4c566a;
+  border: 3px solid var(--bg);
+  border-radius: 4px;
+}
+[data-theme="nord-v2"] ::-webkit-scrollbar-thumb:hover { background: #88c0d0; }
+
+/* ===== Skeleton ===== */
+[data-theme="nord-v2"] .sk-line {
+  background: linear-gradient(90deg, #3b4252, #434c5e, #3b4252);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ===== State / loading ===== */
+[data-theme="nord-v2"] .state {
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-style: normal;
+}
+
+/* ===== Focus-visible ring — Frost cyan ===== */
+[data-theme="nord-v2"] .tab:focus-visible,
+[data-theme="nord-v2"] button:focus-visible,
+[data-theme="nord-v2"] .search input:focus-visible,
+[data-theme="nord-v2"] .theme-option:focus-visible,
+[data-theme="nord-v2"] input:focus-visible,
+[data-theme="nord-v2"] select:focus-visible {
+  outline: 2px solid #88c0d0;
+  outline-offset: 2px;
+}

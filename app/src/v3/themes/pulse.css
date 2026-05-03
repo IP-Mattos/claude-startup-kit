@@ -1,0 +1,234 @@
+/* =============================================================
+   V3 Theme: PULSE
+   Identity: royal-purple chassis + phosphor-green accent.
+   Inspired by a heart-rate monitor: deep royal-purple body with
+   glowing green phosphor elements — LCD-through-chassis without
+   the literal two-layer panel trick.
+   Palette:
+     bg #2D23A8 · surface #3526C0 · text #E8E2FF
+     accent (phosphor green) #7FFF7F
+     warn #E8D050 · crit #FF5040 · info #C8BCFF
+   ============================================================= */
+
+body.v3-layout[data-theme-v3="pulse"] {
+  background: #2D23A8;
+}
+
+body[data-theme-v3="pulse"] .appv3 {
+  /* ── Surface scale ─────────────────────────────────────── */
+  --v3-bg:            #2D23A8;   /* royal purple body */
+  --v3-surface:       #3526C0;   /* slightly lighter chassis */
+  --v3-surface-2:     #3D2ED8;   /* elevated panel */
+  --v3-hover:         #4A3AE8;   /* hover state */
+  --v3-border:        #1A1380;   /* dark purple separator */
+  --v3-border-strong: #4133D8;   /* visible dividers */
+
+  /* ── Text scale ─────────────────────────────────────────
+     Contrast check vs #2D23A8 bg:
+       #E8E2FF → ~10.8:1  ✓ (AAA)
+       #C8BCFF →  ~7.4:1  ✓ (AAA)
+       #A89AD8 →  ~4.6:1  ✓ (AA)
+       #7B70B0 →  ~2.9:1  — AA-large only; ghost/disabled
+  ─────────────────────────────────────────────────────── */
+  --v3-text:          #E8E2FF;   /* pale lavender — primary */
+  --v3-text-2:        #C8BCFF;   /* slightly dimmed lavender */
+  --v3-text-3:        #A89AD8;   /* muted — labels, meta */
+  --v3-text-4:        #7B70B0;   /* ghost/disabled */
+
+  /* ── Accent: phosphor green ────────────────────────────── */
+  --v3-accent:        #7FFF7F;   /* phosphor green — LCD signal */
+  --v3-accent-hover:  #A8FFA8;   /* brightened green hover */
+  --v3-accent-tint:   rgba(127, 255, 127, 0.14);
+  --v3-accent-soft:   rgba(127, 255, 127, 0.08);
+
+  /* ── Semantic ───────────────────────────────────────────── */
+  --v3-success:       #7FFF7F;   /* phosphor green */
+  --v3-success-tint:  rgba(127, 255, 127, 0.14);
+  --v3-warn:          #E8D050;   /* mustard */
+  --v3-warn-tint:     rgba(232, 208, 80, 0.15);
+  --v3-info:          #C8BCFF;   /* lavender */
+  --v3-crit:          #FF5040;   /* red alert */
+  --v3-crit-tint:     rgba(255, 80, 64, 0.15);
+
+  /* ── Elevation ──────────────────────────────────────────── */
+  --v3-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.50), 0 1px 2px rgba(0, 0, 0, 0.30);
+  --v3-shadow-3: 0 6px 20px rgba(0, 0, 0, 0.60), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Subtle green phosphor bloom at top of layout ───────── */
+body[data-theme-v3="pulse"] .appv3 {
+  background-image: radial-gradient(
+    ellipse at top center,
+    rgba(127, 255, 127, 0.04) 0%,
+    transparent 55%
+  );
+  background-attachment: fixed;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Stat icon tints
+   green slot → phosphor green (primary brand color)
+   purple slot → lavender to avoid monotone-purple clash
+   amber slot  → warn mustard
+   sage slot   → slightly muted green for secondary success
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="pulse"] .v3-stat-icon-green {
+  background: rgba(127, 255, 127, 0.16);
+  color: #7FFF7F;
+}
+body[data-theme-v3="pulse"] .v3-stat-icon-purple {
+  background: rgba(200, 188, 255, 0.18);
+  color: #C8BCFF;
+}
+body[data-theme-v3="pulse"] .v3-stat-icon-amber {
+  background: var(--v3-warn-tint);
+  color: var(--v3-warn);
+}
+body[data-theme-v3="pulse"] .v3-stat-icon-orange {
+  background: rgba(127, 255, 127, 0.10);
+  color: #A8FFA8;
+}
+
+/* ── Stat card hover: faint green ring ──────────────────── */
+body[data-theme-v3="pulse"] .v3-stat-card:hover {
+  box-shadow: var(--v3-shadow-2), 0 0 0 1px var(--v3-accent-soft);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Sidebar active link — phosphor green glow
+   THE signature: "LCD light glowing through purple chassis"
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="pulse"] .v3-side-link.active {
+  background: rgba(127, 255, 127, 0.10);
+  color: #7FFF7F;
+  font-weight: 600;
+  /* inner-left glow: green phosphor stripe + soft ambient bloom */
+  box-shadow: inset 3px 0 0 #7FFF7F,
+              inset 0 0 14px rgba(127, 255, 127, 0.08);
+  border-radius: var(--v3-radius-sm);
+}
+body[data-theme-v3="pulse"] .v3-side-link.active svg {
+  color: #7FFF7F;
+}
+
+/* ── Active topbar tab — green underline ────────────────── */
+body[data-theme-v3="pulse"] .v3-topbar-tab.active {
+  border-bottom-color: #7FFF7F;
+  box-shadow: 0 1px 8px rgba(127, 255, 127, 0.25);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Companion widget — purple→green gradient header stage
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="pulse"] .v3-companion-widget {
+  background: linear-gradient(
+    160deg,
+    rgba(127, 255, 127, 0.06) 0%,
+    rgba(200, 188, 255, 0.04) 40%,
+    var(--v3-surface) 60%
+  );
+}
+
+body[data-theme-v3="pulse"] .v3-companion-stage {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(127, 255, 127, 0.16) 0%,
+    rgba(200, 188, 255, 0.06) 40%,
+    transparent 70%
+  );
+  border-radius: var(--v3-radius);
+}
+
+/* ── List row hover — green border accent ───────────────── */
+body[data-theme-v3="pulse"] .v3-row:hover {
+  border-color: rgba(127, 255, 127, 0.40);
+  box-shadow: var(--v3-shadow-2), 0 0 0 1px rgba(127, 255, 127, 0.10);
+}
+
+/* ── "View all" links — lavender info color ─────────────── */
+body[data-theme-v3="pulse"] .appv3 .v3-link {
+  color: #C8BCFF;
+}
+body[data-theme-v3="pulse"] .appv3 .v3-link:hover {
+  color: #E8E2FF;
+  text-decoration: underline;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PR review pill — lavender (third brand color)
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="pulse"] .v3-pr-pill-review {
+  background: rgba(200, 188, 255, 0.18);
+  color: #C8BCFF;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Audit alert banner — warn mustard harmonised on dark bg
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="pulse"] .v3-audit-foot {
+  background: rgba(232, 208, 80, 0.10);
+  border-color: rgba(232, 208, 80, 0.40);
+  color: #E8D050;
+}
+body[data-theme-v3="pulse"] .v3-audit-foot .v3-chev {
+  color: #E8D050;
+}
+
+/* ── Audit finding backgrounds — dark-adapted ──────────── */
+body[data-theme-v3="pulse"] .v3-finding-crit {
+  border-color: rgba(255, 80, 64, 0.35);
+  background: rgba(255, 80, 64, 0.06);
+}
+body[data-theme-v3="pulse"] .v3-finding-warn {
+  border-color: rgba(232, 208, 80, 0.35);
+  background: rgba(232, 208, 80, 0.06);
+}
+body[data-theme-v3="pulse"] .v3-finding-info {
+  border-color: rgba(200, 188, 255, 0.30);
+  background: rgba(200, 188, 255, 0.05);
+}
+body[data-theme-v3="pulse"] .v3-finding-ok {
+  border-color: rgba(127, 255, 127, 0.30);
+  background: rgba(127, 255, 127, 0.05);
+}
+
+/* ── Error / success banners — dark-adapted ─────────────── */
+body[data-theme-v3="pulse"] .appv3 .v3-error {
+  background: rgba(255, 80, 64, 0.10);
+  border-color: rgba(255, 80, 64, 0.40);
+  color: #FF8070;
+}
+body[data-theme-v3="pulse"] .appv3 .v3-success {
+  background: rgba(127, 255, 127, 0.10);
+  border-color: rgba(127, 255, 127, 0.35);
+  color: #7FFF7F;
+}
+
+/* ── pct pills — dark-adapted ───────────────────────────── */
+body[data-theme-v3="pulse"] .v3-pct-green {
+  background: rgba(127, 255, 127, 0.14);
+  color: #7FFF7F;
+}
+body[data-theme-v3="pulse"] .v3-pct-amber {
+  background: rgba(232, 208, 80, 0.15);
+  color: #E8D050;
+}
+
+/* ── Chip active states — dark-adapted ──────────────────── */
+body[data-theme-v3="pulse"] .v3-chip-warn.active {
+  background: #E8D050;
+  border-color: #E8D050;
+  color: #2D23A8;
+}
+body[data-theme-v3="pulse"] .v3-chip-info.active {
+  background: #C8BCFF;
+  border-color: #C8BCFF;
+  color: #2D23A8;
+}
+
+/* ── PR row icon — lavender tint to echo the pill ───────── */
+body[data-theme-v3="pulse"] .v3-row-pr .v3-row-icon {
+  background: rgba(200, 188, 255, 0.16);
+  color: #C8BCFF;
+}

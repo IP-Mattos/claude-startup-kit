@@ -1,0 +1,226 @@
+/* =============================================================
+   V3 Theme: Y2K
+   Identity: Vaporwave Y2K — deep purple-pink dark bg, hot pink + cyan dual-accent.
+   Mood: neon club flyer, Windows 9x reborn, soft modern surfaces.
+   Palette:
+     bg #1A0A2A · surface #2A1238 · surface-2 #351545
+     hover #3E1A50 · border #3E1A4A · border-strong #5C2870
+     pink #FF5FC8 · cyan #00F0FF · text #F5E6FF
+   ============================================================= */
+
+body.v3-layout[data-theme-v3="y2k"] {
+  background: #1A0A2A;
+}
+
+body[data-theme-v3="y2k"] .appv3 {
+  /* ── Surface scale ─────────────────────────────────────── */
+  --v3-bg:            #1A0A2A;   /* deep purple-black */
+  --v3-surface:       #2A1238;   /* lifted surface */
+  --v3-surface-2:     #351545;   /* second elevation */
+  --v3-hover:         #3E1A50;   /* hover state */
+  --v3-border:        #3E1A4A;   /* subtle separation */
+  --v3-border-strong: #5C2870;   /* visible dividers */
+
+  /* ── Text scale ─────────────────────────────────────────
+     Contrast check vs #1A0A2A bg:
+       #F5E6FF → ~14.9:1  ✓ (AAA)
+       #CDB3E0 →  ~8.2:1  ✓ (AAA)
+       #9A7AB5 →  ~4.5:1  ✓ (AA)
+       #6A4E87 →  ~2.6:1  — AA-large only; intentional for ghost/disabled
+  ─────────────────────────────────────────────────────── */
+  --v3-text:          #F5E6FF;   /* near-white lavender */
+  --v3-text-2:        #CDB3E0;   /* body text */
+  --v3-text-3:        #9A7AB5;   /* labels, meta */
+  --v3-text-4:        #6A4E87;   /* ghost/disabled */
+
+  /* ── Accent: hot pink primary ──────────────────────────── */
+  --v3-accent:        #FF5FC8;   /* hot pink — AA on dark bg */
+  --v3-accent-hover:  #FF85D6;   /* brightened hover */
+  --v3-accent-tint:   rgba(255, 95, 200, 0.14);
+  --v3-accent-soft:   rgba(255, 95, 200, 0.09);
+
+  /* ── Semantic ───────────────────────────────────────────── */
+  --v3-success:       #39FFBA;   /* mint/teal — vaporwave-coherent */
+  --v3-success-tint:  rgba(57, 255, 186, 0.14);
+  --v3-warn:          #FFD166;   /* amber — readable on dark */
+  --v3-warn-tint:     rgba(255, 209, 102, 0.15);
+  --v3-info:          #00F0FF;   /* cyan — secondary brand accent */
+  --v3-crit:          #FF4D88;   /* neon red-pink */
+  --v3-crit-tint:     rgba(255, 77, 136, 0.15);
+
+  /* ── Elevation ──────────────────────────────────────────── */
+  --v3-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.50);
+  --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --v3-shadow-3: 0 6px 20px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.40);
+}
+
+/* ── Dual-radial signature: pink top-left + cyan bottom-right ── */
+body[data-theme-v3="y2k"] .appv3 {
+  background-image:
+    radial-gradient(ellipse at top left,    rgba(255, 95, 200, 0.05) 0%, transparent 48%),
+    radial-gradient(ellipse at bottom right, rgba(0, 240, 255, 0.04) 0%, transparent 48%);
+  background-attachment: fixed;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Stat icon tints — vaporwave palette
+   orange slot → amber (#FFD166)
+   purple slot → cyan (#00F0FF) — avoids double-pink
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="y2k"] .v3-stat-icon-orange {
+  background: rgba(255, 209, 102, 0.18);
+  color: #FFD166;
+}
+body[data-theme-v3="y2k"] .v3-stat-icon-purple {
+  background: rgba(0, 240, 255, 0.16);
+  color: #00F0FF;
+}
+body[data-theme-v3="y2k"] .v3-stat-icon-amber {
+  background: var(--v3-warn-tint);
+  color: var(--v3-warn);
+}
+body[data-theme-v3="y2k"] .v3-stat-icon-green {
+  background: var(--v3-success-tint);
+  color: var(--v3-success);
+}
+
+/* ── Stat card hover: faint pink ring ───────────────────── */
+body[data-theme-v3="y2k"] .v3-stat-card:hover {
+  box-shadow: var(--v3-shadow-2), 0 0 0 1px var(--v3-accent-soft);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Sidebar active link — pink fill + cyan inner stripe
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="y2k"] .v3-side-link.active {
+  background: rgba(255, 95, 200, 0.14);
+  color: var(--v3-accent);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #FF5FC8,
+              inset 0 0 12px rgba(0, 240, 255, 0.05);
+  border-radius: var(--v3-radius-sm);
+}
+body[data-theme-v3="y2k"] .v3-side-link.active svg {
+  color: var(--v3-accent);
+}
+
+/* ── Active topbar tab — pink underline + cyan shadow ────── */
+body[data-theme-v3="y2k"] .v3-topbar-tab.active {
+  border-bottom-color: var(--v3-accent);
+  box-shadow: 0 1px 6px rgba(0, 240, 255, 0.28);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Companion widget — pink→cyan gradient stage
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="y2k"] .v3-companion-widget {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 95, 200, 0.07) 0%,
+    rgba(0, 240, 255, 0.03) 40%,
+    var(--v3-surface) 60%
+  );
+}
+
+body[data-theme-v3="y2k"] .v3-companion-stage {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 95, 200, 0.18) 0%,
+    rgba(0, 240, 255, 0.07) 40%,
+    transparent 70%
+  );
+  border-radius: var(--v3-radius);
+}
+
+/* ── List row hover — cyan border accent ────────────────── */
+body[data-theme-v3="y2k"] .v3-row:hover {
+  border-color: rgba(0, 240, 255, 0.45);
+  box-shadow: var(--v3-shadow-2), 0 0 0 1px rgba(0, 240, 255, 0.12);
+}
+
+/* ── "View all" links — cyan ─────────────────────────────── */
+body[data-theme-v3="y2k"] .appv3 .v3-link {
+  color: #00F0FF;
+}
+body[data-theme-v3="y2k"] .appv3 .v3-link:hover {
+  color: #66F5FF;
+  text-decoration: underline;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PR review pill — magenta (cyan would clash with open pill)
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="y2k"] .v3-pr-pill-review {
+  background: rgba(255, 95, 200, 0.20);
+  color: #FF85D6;
+}
+
+/* ── PR row icon — pink tint ────────────────────────────── */
+body[data-theme-v3="y2k"] .v3-row-pr .v3-row-icon {
+  background: rgba(255, 95, 200, 0.16);
+  color: #FF5FC8;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Audit alert banner — amber on dark
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="y2k"] .v3-audit-foot {
+  background: rgba(255, 209, 102, 0.10);
+  border-color: rgba(255, 209, 102, 0.40);
+  color: #FFD166;
+}
+body[data-theme-v3="y2k"] .v3-audit-foot .v3-chev {
+  color: #FFD166;
+}
+
+/* ── Audit finding backgrounds — dark-adapted ──────────── */
+body[data-theme-v3="y2k"] .v3-finding-crit {
+  border-color: rgba(255, 77, 136, 0.38);
+  background: rgba(255, 77, 136, 0.07);
+}
+body[data-theme-v3="y2k"] .v3-finding-warn {
+  border-color: rgba(255, 209, 102, 0.35);
+  background: rgba(255, 209, 102, 0.06);
+}
+body[data-theme-v3="y2k"] .v3-finding-info {
+  border-color: rgba(0, 240, 255, 0.32);
+  background: rgba(0, 240, 255, 0.05);
+}
+body[data-theme-v3="y2k"] .v3-finding-ok {
+  border-color: rgba(57, 255, 186, 0.30);
+  background: rgba(57, 255, 186, 0.05);
+}
+
+/* ── Error / success banners ─────────────────────────────── */
+body[data-theme-v3="y2k"] .appv3 .v3-error {
+  background: rgba(255, 77, 136, 0.10);
+  border-color: rgba(255, 77, 136, 0.40);
+  color: #FF7DAD;
+}
+body[data-theme-v3="y2k"] .appv3 .v3-success {
+  background: rgba(57, 255, 186, 0.10);
+  border-color: rgba(57, 255, 186, 0.35);
+  color: #39FFBA;
+}
+
+/* ── pct pills ───────────────────────────────────────────── */
+body[data-theme-v3="y2k"] .v3-pct-green {
+  background: rgba(57, 255, 186, 0.15);
+  color: #39FFBA;
+}
+body[data-theme-v3="y2k"] .v3-pct-amber {
+  background: rgba(255, 209, 102, 0.16);
+  color: #FFD166;
+}
+
+/* ── Chip active states ──────────────────────────────────── */
+body[data-theme-v3="y2k"] .v3-chip-warn.active {
+  background: #FFD166;
+  border-color: #FFD166;
+  color: #1A0A2A;
+}
+body[data-theme-v3="y2k"] .v3-chip-info.active {
+  background: #00F0FF;
+  border-color: #00F0FF;
+  color: #1A0A2A;
+}

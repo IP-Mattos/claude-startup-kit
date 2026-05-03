@@ -1,0 +1,299 @@
+/* =============================================================
+   V3 Theme: MONO
+   Identity: Swiss minimalism — pure black on white, zero color.
+   Severity via STRIPE-PATTERN (solid/dashed/dotted) NOT hue.
+   ONE color exception: close button hover red.
+   Reference moods: Helvetica Neue era print, Swiss grid systems.
+   ============================================================= */
+
+body.v3-layout[data-theme-v3="mono"] {
+  background: #FFFFFF;
+}
+
+body[data-theme-v3="mono"] .appv3 {
+  /* ── Surface scale ─────────────────────────────────────── */
+  --v3-bg:            #FAFAFA;   /* body — barely-off-white */
+  --v3-surface:       #FFFFFF;   /* card surfaces — pure white */
+  --v3-surface-2:     #F5F5F5;   /* secondary surface */
+  --v3-hover:         #EBEBEB;   /* interaction feedback */
+  --v3-border:        #D4D4D4;   /* default borders */
+  --v3-border-strong: #A3A3A3;   /* visible dividers */
+
+  /* ── Text scale ─────────────────────────────────────────
+     All values on #FFFFFF or #FAFAFA — contrast check:
+       #000000 → 21:1   ✓ (AAA)
+       #1A1A1A → ~19:1  ✓ (AAA)
+       #525252 →  ~7:1  ✓ (AA)
+       #737373 → ~4.6:1 ✓ (AA floor)
+  ─────────────────────────────────────────────────────── */
+  --v3-text:          #000000;   /* primary — pure black */
+  --v3-text-2:        #1A1A1A;   /* near-black body text */
+  --v3-text-3:        #525252;   /* muted labels/meta */
+  --v3-text-4:        #737373;   /* ghost/disabled */
+
+  /* ── Accent: near-black ────────────────────────────────── */
+  --v3-accent:        #000000;
+  --v3-accent-hover:  #1A1A1A;
+  --v3-accent-tint:   #F0F0F0;
+  --v3-accent-soft:   rgba(0, 0, 0, 0.07);
+
+  /* ── Semantic — ALL grayscale; NO hue ──────────────────── */
+  --v3-success:       #525252;
+  --v3-success-tint:  #EBEBEB;
+  --v3-warn:          #1A1A1A;
+  --v3-warn-tint:     #F0F0F0;
+  --v3-info:          #737373;
+  --v3-crit:          #000000;
+  --v3-crit-tint:     #E8E8E8;
+
+  /* ── Elevation: paper-flat, minimal depth ──────────────── */
+  --v3-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --v3-shadow-2: 0 1px 4px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+  --v3-shadow-3: 0 4px 12px rgba(0, 0, 0, 0.10), 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Stat icon tints — ALL grayscale, differentiated by SHADE
+   orange slot → light mid-gray  (#D4D4D4 / #525252)
+   purple slot → darker mid-gray (#C0C0C0 / #3D3D3D)
+   amber slot  → near-white gray (#E8E8E8 / #737373)
+   green slot  → faint cool gray (#DEDEDE / #404040)
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="mono"] .v3-stat-icon-orange {
+  background: #D4D4D4;
+  color: #525252;
+}
+body[data-theme-v3="mono"] .v3-stat-icon-purple {
+  background: #C0C0C0;
+  color: #3D3D3D;
+}
+body[data-theme-v3="mono"] .v3-stat-icon-amber {
+  background: #E8E8E8;
+  color: #737373;
+}
+body[data-theme-v3="mono"] .v3-stat-icon-green {
+  background: #DEDEDE;
+  color: #404040;
+}
+
+/* ── Stat card hover: sharp black 1px ring, no shadow color ─ */
+body[data-theme-v3="mono"] .v3-stat-card:hover {
+  box-shadow: var(--v3-shadow-2), 0 0 0 1px #000000;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Sidebar active link — solid black left bar + inverted text
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="mono"] .v3-side-link.active {
+  background: #F0F0F0;
+  color: #000000;
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 #000000;
+  border-radius: 0;
+}
+body[data-theme-v3="mono"] .v3-side-link.active svg {
+  color: #000000;
+}
+
+/* ── Active topbar tab — solid black underline ──────────── */
+body[data-theme-v3="mono"] .v3-topbar-tab.active {
+  border-bottom-color: #000000;
+}
+
+/* ── Close button: the ONE color exception ──────────────── */
+body[data-theme-v3="mono"] .v3-wc-close:hover {
+  background: #DC2626;
+  color: #FFFFFF;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Companion widget — no gradient, flat white
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="mono"] .v3-companion-widget {
+  background: #FFFFFF;
+  border-color: #000000;
+  border-radius: 0;
+}
+
+body[data-theme-v3="mono"] .v3-companion-stage {
+  background: #F5F5F5;
+  border-radius: 0;
+}
+
+/* ── List row hover — black border emphasis ─────────────── */
+body[data-theme-v3="mono"] .v3-row:hover {
+  border-color: #000000;
+  box-shadow: var(--v3-shadow-1);
+}
+
+/* ── Links — underlined black, no color ─────────────────── */
+body[data-theme-v3="mono"] .appv3 .v3-link {
+  color: #000000;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+body[data-theme-v3="mono"] .appv3 .v3-link:hover {
+  color: #1A1A1A;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PR pill — monochrome: open = filled black, review = outline
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="mono"] .v3-pr-pill-open {
+  background: #000000;
+  color: #FFFFFF;
+}
+body[data-theme-v3="mono"] .v3-pr-pill-review {
+  background: transparent;
+  color: #000000;
+  border: 1px solid #000000;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Audit footer banner — flat gray; no warm color
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="mono"] .v3-audit-foot {
+  background: #F0F0F0;
+  border-color: #A3A3A3;
+  color: #1A1A1A;
+  box-shadow: none;
+}
+body[data-theme-v3="mono"] .v3-audit-foot .v3-chev {
+  color: #525252;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   STRIPE-PATTERN audit findings — severity without color
+   .v3-finding-crit → SOLID left border   (maximum severity)
+   .v3-finding-warn → DASHED left border  (caution)
+   .v3-finding-info → DOTTED left border  (informational)
+   .v3-finding-ok   → no left decoration  (resolved)
+   Background & border-color remain neutral gray throughout;
+   ONLY the border-left-style encodes severity.
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="mono"] .v3-finding-crit {
+  background: #FAFAFA;
+  border-color: #D4D4D4;
+  border-left: 4px solid #000000;   /* SOLID — critical */
+}
+body[data-theme-v3="mono"] .v3-finding-warn {
+  background: #FAFAFA;
+  border-color: #D4D4D4;
+  border-left: 4px dashed #000000;  /* DASHED — warning */
+}
+body[data-theme-v3="mono"] .v3-finding-info {
+  background: #FAFAFA;
+  border-color: #D4D4D4;
+  border-left: 4px dotted #000000;  /* DOTTED — info */
+}
+body[data-theme-v3="mono"] .v3-finding-ok {
+  background: #FAFAFA;
+  border-color: #D4D4D4;
+}
+
+/* Finding icons — grayscale only */
+body[data-theme-v3="mono"] .v3-finding-icon-crit {
+  background: #E8E8E8;
+  color: #000000;
+}
+body[data-theme-v3="mono"] .v3-finding-icon-warn {
+  background: #EBEBEB;
+  color: #1A1A1A;
+}
+body[data-theme-v3="mono"] .v3-finding-icon-info {
+  background: #F0F0F0;
+  color: #525252;
+}
+body[data-theme-v3="mono"] .v3-finding-icon-ok {
+  background: #F5F5F5;
+  color: #737373;
+}
+
+/* Level pills — inverted black/white; NO red/amber/blue */
+body[data-theme-v3="mono"] .v3-level-crit {
+  background: #000000;
+  color: #FFFFFF;
+}
+body[data-theme-v3="mono"] .v3-level-warn {
+  background: #1A1A1A;
+  color: #FFFFFF;
+}
+body[data-theme-v3="mono"] .v3-level-info {
+  background: #525252;
+  color: #FFFFFF;
+}
+body[data-theme-v3="mono"] .v3-level-ok {
+  background: transparent;
+  color: #737373;
+  border: 1px solid #D4D4D4;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Error / success banners — desaturated; pattern distinguishes
+   ═══════════════════════════════════════════════════════════ */
+body[data-theme-v3="mono"] .appv3 .v3-error {
+  background: #F5F5F5;
+  border-color: #A3A3A3;
+  color: #000000;
+  border-left: 4px solid #000000;
+}
+body[data-theme-v3="mono"] .appv3 .v3-success {
+  background: #F5F5F5;
+  border-color: #A3A3A3;
+  color: #525252;
+  border-left: 4px dotted #525252;
+}
+
+/* ── pct pills — flat gray tones ───────────────────────── */
+body[data-theme-v3="mono"] .v3-pct-green {
+  background: #EBEBEB;
+  color: #1A1A1A;
+}
+body[data-theme-v3="mono"] .v3-pct-amber {
+  background: #E0E0E0;
+  color: #525252;
+}
+
+/* ── Chip active states — pure black/white inversion ─────── */
+body[data-theme-v3="mono"] .v3-chip-crit.active {
+  background: #000000;
+  border-color: #000000;
+  color: #FFFFFF;
+}
+body[data-theme-v3="mono"] .v3-chip-warn.active {
+  background: #1A1A1A;
+  border-color: #1A1A1A;
+  color: #FFFFFF;
+}
+body[data-theme-v3="mono"] .v3-chip-info.active {
+  background: #525252;
+  border-color: #525252;
+  color: #FFFFFF;
+}
+
+/* ── PR row icon — neutral gray ─────────────────────────── */
+body[data-theme-v3="mono"] .v3-row-pr .v3-row-icon {
+  background: #EBEBEB;
+  color: #1A1A1A;
+}
+
+/* ── Scrollbar — black thumb, no color ─────────────────── */
+body[data-theme-v3="mono"] .appv3 ::-webkit-scrollbar-thumb {
+  background: #A3A3A3;
+  border-radius: 0;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+body[data-theme-v3="mono"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: #000000;
+  background-clip: content-box;
+}
+
+/* ── Focus visible — black ring, no accent color ────────── */
+body[data-theme-v3="mono"] .appv3 button:focus-visible,
+body[data-theme-v3="mono"] .appv3 a:focus-visible,
+body[data-theme-v3="mono"] .appv3 input:focus-visible,
+body[data-theme-v3="mono"] .appv3 select:focus-visible {
+  outline: 2px solid #000000;
+  outline-offset: 2px;
+}

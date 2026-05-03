@@ -1,0 +1,269 @@
+/* =============================================================
+   V3 Theme: AKIRA
+   Identity: pure black + phosphor green. Manga zine, cyberpunk.
+   Palette: #000000 bg · #0A0A0A surface · #5CE65C phosphor green
+   Signature: bright green glow on focus-visible + active states
+   ============================================================= */
+
+body.v3-layout[data-theme-v3="akira"] {
+  background: #000000;
+}
+
+body[data-theme-v3="akira"] .appv3 {
+  /* ── Surface ─────────────────────────────────────────────── */
+  --v3-bg:            #000000;
+  --v3-surface:       #0A0A0A;
+  --v3-surface-2:     #141414;
+  --v3-hover:         #1C1C1C;
+  --v3-border:        #1E1E1E;
+  --v3-border-strong: #2A2A2A;
+
+  /* ── Type ────────────────────────────────────────────────── */
+  /* #5CE65C on #000000 ≈ 10.8:1 (AAA) */
+  /* #3FB33F on #000000 ≈  5.7:1 (AA)  */
+  /* #2A8A2A on #000000 ≈  3.8:1 (AA large / decorative) */
+  --v3-text:          #5CE65C;   /* phosphor green — primary */
+  --v3-text-2:        #3FB33F;   /* mid green — body text */
+  --v3-text-3:        #2A8A2A;   /* dim green — labels, meta */
+  --v3-text-4:        #1F6B1F;   /* ghost — disabled only */
+
+  /* ── Accent ──────────────────────────────────────────────── */
+  --v3-accent:        #5CE65C;
+  --v3-accent-hover:  #88FF88;
+  --v3-accent-tint:   rgba(92, 230, 92, 0.12);
+  --v3-accent-soft:   rgba(92, 230, 92, 0.18);
+
+  /* ── Semantic (monochrome green — non-color cues for severity) */
+  --v3-success:       #88FF88;
+  --v3-success-tint:  rgba(136, 255, 136, 0.14);
+  --v3-warn:          #B8E62A;   /* acid yellow-green */
+  --v3-warn-tint:     rgba(184, 230, 42, 0.14);
+  --v3-info:          #5CE65C;
+  --v3-crit:          #5CE65C;   /* no red — heavier fill differentiates */
+  --v3-crit-tint:     rgba(92, 230, 92, 0.20);
+
+  /* ── Shadows — green-tinted black ───────────────────────── */
+  --v3-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.60);
+  --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.70), 0 0 0 1px rgba(92, 230, 92, 0.06);
+  --v3-shadow-3: 0 6px 24px rgba(0, 0, 0, 0.80), 0 0 0 1px rgba(92, 230, 92, 0.10);
+}
+
+/* ── Phosphor pulse: faint green radial at top ──────────── */
+body[data-theme-v3="akira"] .appv3 {
+  background-image: radial-gradient(
+    ellipse at top center,
+    rgba(92, 230, 92, 0.04) 0%,
+    transparent 55%
+  );
+  background-attachment: fixed;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Topbar — green bottom hairline
+   ───────────────────────────────────────────────────────────── */
+body[data-theme-v3="akira"] .v3-topbar {
+  border-bottom-color: transparent;
+  box-shadow: 0 1px 0 0 rgba(92, 230, 92, 0.25),
+              inset 0 -1px 0 0 rgba(92, 230, 92, 0.06);
+}
+
+body[data-theme-v3="akira"] .v3-topbar-tab.active {
+  border-bottom-color: var(--v3-accent);
+  box-shadow: 0 1px 8px rgba(92, 230, 92, 0.30);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Stat icon tints — all green-family, subtle variation
+   orange slot → default phosphor green
+   purple slot → pale yellow-green (#D4F09A) for warmth contrast
+   amber  slot → brighter green-yellow (#B8E62A)
+   green  slot → bright accent (#88FF88)
+   ───────────────────────────────────────────────────────────── */
+body[data-theme-v3="akira"] .v3-stat-icon-orange {
+  background: rgba(92, 230, 92, 0.14);
+  color: #5CE65C;
+}
+body[data-theme-v3="akira"] .v3-stat-icon-purple {
+  background: rgba(212, 240, 154, 0.14);
+  color: #D4F09A;
+}
+body[data-theme-v3="akira"] .v3-stat-icon-amber {
+  background: rgba(184, 230, 42, 0.14);
+  color: #B8E62A;
+}
+body[data-theme-v3="akira"] .v3-stat-icon-green {
+  background: rgba(136, 255, 136, 0.14);
+  color: #88FF88;
+}
+
+/* ── Stat card hover: green glow ring ───────────────────── */
+body[data-theme-v3="akira"] .v3-stat-card:hover {
+  box-shadow: var(--v3-shadow-2),
+              0 0 0 1px rgba(92, 230, 92, 0.25),
+              0 0 12px rgba(92, 230, 92, 0.10);
+  border-color: rgba(92, 230, 92, 0.30);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Sidebar — active link: green left stripe + soft tint
+   ───────────────────────────────────────────────────────────── */
+body[data-theme-v3="akira"] .v3-side-link.active {
+  background: rgba(92, 230, 92, 0.10);
+  color: var(--v3-accent);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #5CE65C,
+              inset 0 0 10px rgba(92, 230, 92, 0.04);
+  border-radius: var(--v3-radius-sm);
+}
+body[data-theme-v3="akira"] .v3-side-link.active svg {
+  color: var(--v3-accent);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Companion widget — green phosphor glow stage
+   ───────────────────────────────────────────────────────────── */
+body[data-theme-v3="akira"] .v3-companion-widget {
+  background: linear-gradient(
+    160deg,
+    rgba(92, 230, 92, 0.05) 0%,
+    rgba(92, 230, 92, 0.02) 40%,
+    var(--v3-surface) 60%
+  );
+}
+body[data-theme-v3="akira"] .v3-companion-stage {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(92, 230, 92, 0.14) 0%,
+    rgba(92, 230, 92, 0.05) 50%,
+    transparent 75%
+  );
+  border-radius: var(--v3-radius);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Row hover — green border + glow
+   ───────────────────────────────────────────────────────────── */
+body[data-theme-v3="akira"] .v3-row:hover {
+  border-color: rgba(92, 230, 92, 0.40);
+  box-shadow: var(--v3-shadow-2), 0 0 0 1px rgba(92, 230, 92, 0.12);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PR review pill — pale yellow-green (purple slot analogue)
+   ───────────────────────────────────────────────────────────── */
+body[data-theme-v3="akira"] .v3-pr-pill-review {
+  background: rgba(212, 240, 154, 0.16);
+  color: #D4F09A;
+}
+
+/* ── PR row icon ─────────────────────────────────────────── */
+body[data-theme-v3="akira"] .v3-row-pr .v3-row-icon {
+  background: rgba(212, 240, 154, 0.14);
+  color: #D4F09A;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Audit alert banner — monochrome green, phosphor feel
+   ───────────────────────────────────────────────────────────── */
+body[data-theme-v3="akira"] .v3-audit-foot {
+  background: rgba(92, 230, 92, 0.08);
+  border-color: rgba(92, 230, 92, 0.35);
+  color: #5CE65C;
+}
+body[data-theme-v3="akira"] .v3-audit-foot .v3-chev {
+  color: #5CE65C;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Audit findings — non-color severity cues (stripe pattern)
+   crit: stronger green fill + solid border
+   warn: dashed border
+   info: dotted border
+   ok:   default surface
+   ───────────────────────────────────────────────────────────── */
+body[data-theme-v3="akira"] .v3-finding-crit {
+  border-color: rgba(92, 230, 92, 0.50);
+  border-style: solid;
+  background: rgba(92, 230, 92, 0.10);
+}
+body[data-theme-v3="akira"] .v3-finding-warn {
+  border-color: rgba(184, 230, 42, 0.45);
+  border-style: dashed;
+  background: rgba(184, 230, 42, 0.06);
+}
+body[data-theme-v3="akira"] .v3-finding-info {
+  border-color: rgba(92, 230, 92, 0.30);
+  border-style: dotted;
+  background: rgba(92, 230, 92, 0.04);
+}
+body[data-theme-v3="akira"] .v3-finding-ok {
+  border-color: rgba(92, 230, 92, 0.18);
+  border-style: solid;
+  background: rgba(92, 230, 92, 0.03);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Error / success banners
+   ───────────────────────────────────────────────────────────── */
+body[data-theme-v3="akira"] .appv3 .v3-error {
+  background: rgba(92, 230, 92, 0.08);
+  border-color: rgba(92, 230, 92, 0.35);
+  color: #5CE65C;
+}
+body[data-theme-v3="akira"] .appv3 .v3-success {
+  background: rgba(136, 255, 136, 0.08);
+  border-color: rgba(136, 255, 136, 0.30);
+  color: #88FF88;
+}
+
+/* ── pct pills — dark-adapted ───────────────────────────── */
+body[data-theme-v3="akira"] .v3-pct-green {
+  background: rgba(92, 230, 92, 0.14);
+  color: #5CE65C;
+}
+body[data-theme-v3="akira"] .v3-pct-amber {
+  background: rgba(184, 230, 42, 0.14);
+  color: #B8E62A;
+}
+
+/* ── Chip active states ─────────────────────────────────── */
+body[data-theme-v3="akira"] .v3-chip.active {
+  background: #5CE65C;
+  border-color: #5CE65C;
+  color: #000000;
+}
+body[data-theme-v3="akira"] .v3-chip-warn.active {
+  background: #B8E62A;
+  border-color: #B8E62A;
+  color: #000000;
+}
+body[data-theme-v3="akira"] .v3-chip-info.active {
+  background: rgba(92, 230, 92, 0.20);
+  border-color: rgba(92, 230, 92, 0.50);
+  color: #5CE65C;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Focus visible — SIGNATURE: bright green glow (4px ring)
+   Close button hover: ONE color exception — red per V1 mono pattern
+   ───────────────────────────────────────────────────────────── */
+body[data-theme-v3="akira"] .appv3 button:focus-visible,
+body[data-theme-v3="akira"] .appv3 a:focus-visible,
+body[data-theme-v3="akira"] .appv3 input:focus-visible,
+body[data-theme-v3="akira"] .appv3 select:focus-visible {
+  outline: 2px solid #5CE65C;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(92, 230, 92, 0.40);
+}
+
+/* ── Scrollbar thumbs: phosphor green ───────────────────── */
+body[data-theme-v3="akira"] .appv3 ::-webkit-scrollbar-thumb {
+  background: rgba(92, 230, 92, 0.30);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+body[data-theme-v3="akira"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: rgba(92, 230, 92, 0.55);
+  background-clip: content-box;
+  box-shadow: 0 0 6px rgba(92, 230, 92, 0.40);
+}

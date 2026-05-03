@@ -1,0 +1,551 @@
+/* ===== Theme: Y2K (Vaporwave / Cyberpunk Y2K — neon pink + cyan + magenta clash) ===== */
+/* Hot pink gradient body, chunky 2px black borders, 4-6px offset cyan/magenta shadows.
+   Classic Mac OS 9 / Win 3.1 chrome recolored in neon. Hard corners, aggressive energy.
+   Kawaii ★ decor, pixel rendering, chunky glitch vibes. */
+
+[data-theme="y2k"] {
+  /* Palette — Y2K neon */
+  --bg: #ff66c4;                             /* hot pink body */
+  --bg-elev: #ffd6f0;                        /* pale pink for cards/bubbles */
+  --bg-elev-2: #e8b8de;                      /* slightly darker pale pink */
+  --bg-hover: #ffe6f5;                       /* hover pale pink */
+  --border: #000000;                         /* hard black */
+  --border-strong: #000000;                  /* hard black strong */
+  --text: #000000;                           /* black text */
+  --text-dim: #5a004a;                       /* deep magenta dim */
+  --text-muted: #a8588a;                     /* muted magenta */
+  --accent: #00f0ff;                         /* cyan neon */
+  --accent-dim: rgba(0, 240, 255, 0.25);
+  --accent-hover: #7fffff;                   /* lighter cyan */
+  --pink: #ff1493;                           /* hot magenta */
+  --pink-dim: rgba(255, 20, 147, 0.25);
+  --green: #7fffd4;                          /* vapor mint */
+  --green-dim: rgba(127, 255, 212, 0.25);
+  --warn: #e8c000;                           /* darker amber — was #ffff00, visually louder than crit */
+  --warn-dim: rgba(232, 192, 0, 0.25);
+  --crit: #ff003c;                           /* neon red */
+  --crit-dim: rgba(255, 0, 60, 0.25);
+
+  /* Fonts — pixel blackletter + Bitter + VT323 mono */
+  --font-display: "Jacquard 12", "Bitter", system-ui, serif;
+  --font-body: "Bitter", system-ui, sans-serif;
+  --font-mono: "VT323", ui-monospace, monospace;
+  --letter-display: 0.06em;
+  --decor-corner: #000000;
+}
+
+[data-theme="y2k"] {
+  image-rendering: pixelated;
+}
+
+/* ===== Body atmosphere — hot pink gradient + dithered checkerboard + scanlines ===== */
+[data-theme="y2k"] body {
+  background:
+    linear-gradient(135deg, #ff66c4 0%, #b266ff 50%, #66e0ff 100%);
+}
+/* Dithered checkerboard overlay */
+[data-theme="y2k"] body::before {
+  background-image:
+    repeating-conic-gradient(#ffffff 0 25%, transparent 0 50%) 0 0 / 12px 12px;
+  opacity: 0.08;
+}
+/* Subtle scanlines */
+[data-theme="y2k"] body::after {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 2px,
+    rgba(0, 0, 0, 0.04) 2px 3px
+  );
+}
+
+/* ===== Titlebar — Win 3.1 stripe pattern, inset title block ===== */
+[data-theme="y2k"] .titlebar {
+  background: repeating-linear-gradient(
+    180deg,
+    #ff1493 0 2px,
+    #ffffff 2px 3px,
+    #ff1493 3px 5px
+  );
+  border-bottom: 2px solid #000000;
+  color: #000000;
+}
+[data-theme="y2k"] .titlebar-title {
+  color: #000000;
+  background: #ffffff;
+  padding: 1px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: calc(13px * var(--font-scale));
+  font-weight: 700;
+  border: 1px solid #000000;
+}
+[data-theme="y2k"] .emblem { color: #000000; filter: none; }
+[data-theme="y2k"] .window-controls .wc {
+  color: #000000;
+  background: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 0;
+  font-weight: 700;
+}
+[data-theme="y2k"] .window-controls .wc:hover {
+  background: #ffe6f5;
+  color: #000000;
+}
+[data-theme="y2k"] .window-controls .wc-close:hover {
+  background: #ff003c;
+  color: #ffffff;
+}
+
+/* ===== Topbar (tab strip) — pale pink + hard black border ===== */
+[data-theme="y2k"] .topbar {
+  background: #ffd6f0;
+  border-bottom: 2px solid #000000;
+  padding: 10px 20px;
+}
+[data-theme="y2k"] .ornament {
+  color: #ff1493;
+  opacity: 1;
+}
+[data-theme="y2k"] .tabs {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 6px;
+}
+
+/* Tabs — chunky flat pill with cyan shadow; active inverts to cyan bg + pink shadow */
+[data-theme="y2k"] .tab {
+  background: #ffd6f0;
+  color: #000000;
+  padding: 8px 18px;
+  border-radius: 0;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-size: calc(12px * var(--font-scale));
+  border: 2px solid #000000;
+  box-shadow: 4px 4px 0 #00f0ff;
+  transition: background 100ms ease, color 100ms ease, box-shadow 80ms ease, transform 80ms ease;
+}
+[data-theme="y2k"] .tab:hover {
+  background: #ffe6f5;
+  box-shadow: 6px 6px 0 #00f0ff;
+  transform: translate(-1px, -1px);
+}
+[data-theme="y2k"] .tab.active {
+  background: #00f0ff;
+  color: #000000;
+  border-color: #000000;
+  box-shadow: 4px 4px 0 #ff1493;
+  transform: translate(0, 0);
+}
+
+/* Theme picker icon button */
+[data-theme="y2k"] .theme-picker .ghost {
+  background: #ffd6f0;
+  color: #000000;
+  border: 2px solid #000000;
+  box-shadow: 3px 3px 0 #00f0ff;
+}
+[data-theme="y2k"] .theme-picker .ghost:hover {
+  background: #ffe6f5;
+  box-shadow: 4px 4px 0 #ff1493;
+}
+
+/* ===== Container ===== */
+[data-theme="y2k"] .container {
+  background: var(--bg);
+}
+
+/* ===== View bar — dim magenta summary text ===== */
+[data-theme="y2k"] .summary {
+  color: var(--text-dim);
+  font-size: calc(14px * var(--font-scale));
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+}
+[data-theme="y2k"] .summary strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ===== Companion stage ===== */
+[data-theme="y2k"] .companion-stage {
+  grid-template-columns: 380px 1fr;
+  gap: 32px;
+}
+[data-theme="y2k"] .companion-portrait {
+  background: #ffd6f0;
+  border: 2px solid #000000;
+  border-radius: 0;
+  padding: 18px 18px 14px;
+  box-shadow: 6px 6px 0 #00f0ff;
+}
+[data-theme="y2k"] .companion-frame {
+  border: 2px solid #000000;
+  border-radius: 0;
+  background: #ffd6f0;
+  max-width: none;
+  width: 100%;
+}
+[data-theme="y2k"] .companion-name {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 8px;
+}
+[data-theme="y2k"] .companion-name .hex-id { display: none; }
+[data-theme="y2k"] .companion-title {
+  color: #000000;
+  font-family: var(--font-display);
+  font-size: calc(28px * var(--font-scale));
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 400;
+  text-shadow: 2px 2px 0 #ff1493, 4px 4px 0 #00f0ff;
+}
+
+/* ===== Avatar treatment — vaporwave contrast/saturation tint ===== */
+[data-theme="y2k"] .companion-avatar {
+  filter: contrast(1.4) saturate(1.6) hue-rotate(-15deg);
+  image-rendering: pixelated;
+}
+[data-theme="y2k"] .companion-tint {
+  background: #ff1493;
+  mix-blend-mode: difference;
+  opacity: 0.12;
+}
+[data-theme="y2k"] .companion-scan {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 1px, rgba(0, 240, 255, 0.10) 1px 2px),
+    repeating-linear-gradient(90deg, transparent 0 1px, rgba(255, 20, 147, 0.06) 1px 2px);
+  opacity: 1;
+  mix-blend-mode: screen;
+}
+
+/* ===== Speech bubbles — pale pink, hard black border, kawaii ★ decor ===== */
+[data-theme="y2k"] .bubble {
+  background: #ffd6f0;
+  color: #000000;
+  border: 2px solid #000000;
+  border-radius: 0;
+  padding: 14px 18px 14px 32px;
+  font-family: var(--font-display);
+  font-size: calc(15px * var(--font-scale));
+  line-height: 1.5;
+  box-shadow: 4px 4px 0 #00f0ff;
+}
+[data-theme="y2k"] .bubble strong {
+  color: #ff1493;
+  font-weight: 700;
+  text-decoration: none;
+}
+/* Kawaii ★ on the left edge instead of { bracket */
+[data-theme="y2k"] .bubble::before {
+  content: "★";
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: system-ui, sans-serif;
+  font-size: calc(20px * var(--font-scale));
+  color: #ff1493;
+  line-height: 1;
+  border: none;
+  background: none;
+  width: auto;
+  height: auto;
+}
+[data-theme="y2k"] .bubble::after { display: none; }
+[data-theme="y2k"] .bubble-warn {
+  background: #ffffe0;
+  border-color: #000000;
+  border-left: 3px solid #c8a000;
+  box-shadow: 4px 4px 0 #c8a000;
+}
+[data-theme="y2k"] .bubble-warn::before { color: #000000; }
+[data-theme="y2k"] .bubble-praise {
+  background: #d0fff0;
+  border-color: #000000;
+  border-left: 3px solid #7fffd4;
+  box-shadow: 4px 4px 0 #7fffd4;
+}
+[data-theme="y2k"] .bubble-praise::before { color: #006644; }
+
+/* ===== Action chips inside bubbles ===== */
+[data-theme="y2k"] .action-chip {
+  background: #ff1493;
+  color: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-size: calc(13px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  box-shadow: 2px 2px 0 #00f0ff;
+}
+[data-theme="y2k"] .action-chip:hover {
+  background: #00f0ff;
+  color: #000000;
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 #ff1493;
+}
+
+/* ===== Cards (.project / .pr / .audit-finding / .cleanup-cat / .quick-card) ===== */
+[data-theme="y2k"] .project,
+[data-theme="y2k"] .pr,
+[data-theme="y2k"] .audit-finding,
+[data-theme="y2k"] .cleanup-cat,
+[data-theme="y2k"] .quick-card {
+  background: #ffd6f0;
+  color: #000000;
+  border: 2px solid #000000;
+  border-radius: 0;
+  box-shadow: 6px 6px 0 #00f0ff;
+}
+[data-theme="y2k"] .project:hover,
+[data-theme="y2k"] .pr:hover,
+[data-theme="y2k"] .quick-card:hover {
+  background: #ffe6f5;
+  transform: translate(-3px, -3px);
+  box-shadow: 6px 6px 0 #ff1493;
+  border-color: #000000;
+}
+[data-theme="y2k"] .project-name,
+[data-theme="y2k"] .pr-title,
+[data-theme="y2k"] .quick-card-name {
+  color: #000000;
+  font-family: var(--font-display);
+  font-size: calc(18px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 400;
+}
+[data-theme="y2k"] .project-icon,
+[data-theme="y2k"] .quick-card-name svg {
+  color: #ff1493;
+}
+[data-theme="y2k"] .project-path,
+[data-theme="y2k"] .quick-card-goal {
+  color: #5a004a;
+}
+[data-theme="y2k"] .quick-card-goal { font-style: normal; }
+[data-theme="y2k"] .git-subject { color: #000000; }
+[data-theme="y2k"] .git-hash {
+  background: #00f0ff;
+  color: #000000;
+  border-color: #000000;
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+[data-theme="y2k"] .git-ago { color: #5a004a; }
+
+/* ===== Badges & pills — hard bordered, neon fill ===== */
+[data-theme="y2k"] .badge {
+  background: transparent;
+  color: #000000;
+  border: 2px solid #000000;
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.10em;
+}
+[data-theme="y2k"] .badge-fresh {
+  background: #ff1493;
+  color: #ffffff;
+  border-color: #000000;
+}
+[data-theme="y2k"] .hex-id {
+  background: #00f0ff;
+  color: #000000;
+  border: 2px solid #000000;
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+
+/* ===== Buttons — chunky offset shadow, hover shifts to magenta ===== */
+[data-theme="y2k"] button {
+  background: #ffd6f0;
+  color: #000000;
+  border: 2px solid #000000;
+  border-radius: 0;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  box-shadow: 4px 4px 0 #00f0ff;
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+[data-theme="y2k"] button:hover {
+  background: #ffe6f5;
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 #ff1493;
+}
+[data-theme="y2k"] button:active {
+  transform: translate(0, 0);
+  box-shadow: 1px 1px 0 #000000;
+}
+[data-theme="y2k"] button.ghost {
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+  box-shadow: 3px 3px 0 #00f0ff;
+}
+[data-theme="y2k"] button.ghost:hover {
+  background: #ffe6f5;
+  box-shadow: 4px 4px 0 #ff1493;
+}
+[data-theme="y2k"] button.danger {
+  background: #ff003c;
+  color: #ffffff;
+  border-color: #000000;
+  box-shadow: 4px 4px 0 #000000;
+}
+
+/* ===== Quick projects panel ===== */
+[data-theme="y2k"] .quick-projects {
+  border-top: 2px solid #000000;
+}
+[data-theme="y2k"] .quick-projects-head h3 {
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  font-weight: 400;
+  font-size: calc(20px * var(--font-scale));
+}
+
+/* ===== Audit findings ===== */
+[data-theme="y2k"] .audit-category-header {
+  color: var(--text);
+  border-bottom-color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+[data-theme="y2k"] .audit-cat-count {
+  background: #ff1493;
+  color: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 0;
+}
+[data-theme="y2k"] .audit-finding.lvl-crit {
+  background: #ffd6f0;
+  border-color: #ff003c;
+  border-left: 4px solid #ff003c;
+  box-shadow: 4px 4px 0 #ff003c;
+}
+[data-theme="y2k"] .audit-finding.lvl-warn {
+  background: #ffffe0;
+  border-color: #000000;
+  border-left: 4px solid #ffff00;
+}
+[data-theme="y2k"] .audit-level {
+  background: #000000;
+  color: #ffffff;
+  border-radius: 0;
+  font-family: var(--font-mono);
+}
+[data-theme="y2k"] .audit-level.lvl-crit { background: #ff003c; color: #ffffff; }
+[data-theme="y2k"] .audit-level.lvl-warn { background: #ffff00; color: #000000; }
+[data-theme="y2k"] .audit-title { color: #000000; font-family: var(--font-display); font-size: calc(15px * var(--font-scale)); }
+[data-theme="y2k"] .audit-detail { color: #5a004a; font-family: var(--font-mono); font-size: calc(13px * var(--font-scale)); }
+
+/* ===== PR & cleanup specifics ===== */
+[data-theme="y2k"] .pr-meta { color: #5a004a; }
+[data-theme="y2k"] .pr-repo { color: #000000; }
+[data-theme="y2k"] .cleanup-cat header {
+  background: #ff1493;
+  color: #ffffff;
+  border-bottom-color: #000000;
+}
+[data-theme="y2k"] .cleanup-cat-name { color: #ffffff; }
+[data-theme="y2k"] .cleanup-cat-meta { color: #ffd6f0; }
+[data-theme="y2k"] .cleanup-cat li { color: #000000; border-bottom-color: rgba(0, 0, 0, 0.12); }
+[data-theme="y2k"] .cleanup-date { color: #5a004a; }
+
+/* ===== Status bar — pale pink + 2px black top border, magenta clock glow ===== */
+[data-theme="y2k"] .statusbar {
+  background: #ffd6f0;
+  color: #000000;
+  border-top: 2px solid #000000;
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+}
+[data-theme="y2k"] .sb-mono { color: #000000; font-family: var(--font-mono); }
+[data-theme="y2k"] .sb-dim { color: #5a004a; }
+[data-theme="y2k"] .sb-glyph { color: #ff1493; }
+[data-theme="y2k"] .sb-clock {
+  color: #ff1493;
+  text-shadow: 0 0 4px #ff1493;
+}
+
+/* ===== Theme picker menu — pale pink, cyan shadow ===== */
+[data-theme="y2k"] .theme-menu {
+  background: #ffd6f0;
+  border: 2px solid #000000;
+  border-radius: 0;
+  box-shadow: 6px 6px 0 #00f0ff;
+}
+[data-theme="y2k"] .theme-option {
+  color: #000000;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+[data-theme="y2k"] .theme-option:hover { background: #ffe6f5; }
+[data-theme="y2k"] .theme-option.active { background: #ff1493; color: #ffffff; }
+
+/* ===== Search input ===== */
+[data-theme="y2k"] .search {
+  background: #ffd6f0;
+  border: 2px solid #000000;
+  border-radius: 0;
+}
+[data-theme="y2k"] .search input { color: #000000; }
+[data-theme="y2k"] .search input::placeholder { color: #a8588a; }
+[data-theme="y2k"] .select-wrap select {
+  background: #ffd6f0;
+  color: #000000;
+  border: 2px solid #000000;
+  border-radius: 0;
+  font-family: var(--font-display);
+}
+
+/* ===== Selection — cyan bg, black text ===== */
+[data-theme="y2k"] ::selection {
+  background: #00f0ff;
+  color: #000000;
+}
+
+/* ===== Scrollbar — magenta thumb, black border, cyan hover ===== */
+[data-theme="y2k"] ::-webkit-scrollbar-track { background: #e8b8de; }
+[data-theme="y2k"] ::-webkit-scrollbar-thumb {
+  background: #ff1493;
+  border: 3px solid #000000;
+  border-radius: 0;
+}
+[data-theme="y2k"] ::-webkit-scrollbar-thumb:hover { background: #00f0ff; }
+
+/* ===== Skeleton ===== */
+[data-theme="y2k"] .sk-line {
+  background: linear-gradient(90deg, #e8b8de, #ffd6f0, #e8b8de);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ===== State / loading ===== */
+[data-theme="y2k"] .state {
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  font-style: normal;
+}
+
+/* ===== Focus-visible — keyboard accessibility (WCAG 2.4.7) ===== */
+[data-theme="y2k"] .tab:focus-visible,
+[data-theme="y2k"] button:focus-visible,
+[data-theme="y2k"] .search input:focus-visible,
+[data-theme="y2k"] .theme-option:focus-visible,
+[data-theme="y2k"] input:focus-visible,
+[data-theme="y2k"] select:focus-visible {
+  outline: 3px solid #00f0ff;
+  outline-offset: 2px;
+}

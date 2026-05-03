@@ -1,0 +1,215 @@
+/* =============================================================
+   V3 Theme: HUD
+   Identity: sci-fi mission control — near-black slate + cyan HUD.
+   Mood: NASA mission control, instrument glow, dark ops dashboard.
+   ============================================================= */
+
+/* Body base: near-black with faint cyan top-radial */
+body.v3-layout[data-theme-v3="hud"] {
+  background: #0A0E14;
+}
+
+body[data-theme-v3="hud"] .appv3 {
+  /* ── Surface ─────────────────────────────────────────────── */
+  --v3-bg:            #0A0E14;   /* near-black blue — mission control floor */
+  --v3-surface:       #11161E;   /* elevated cards */
+  --v3-surface-2:     #161C26;   /* deeper elevation */
+  --v3-hover:         #1C2330;   /* hover state */
+  --v3-border:        #2A3A4A;   /* dim cyan border */
+  --v3-border-strong: #3D5060;   /* stronger separator */
+
+  /* ── Type ────────────────────────────────────────────────── */
+  /* text-3 (#6A8088) vs #0A0E14: luminance ratio ≈ 5.0:1 — passes AA */
+  --v3-text:   #CFE9EC;          /* pale cyan-white */
+  --v3-text-2: #9BBCC4;          /* mid cyan-grey */
+  --v3-text-3: #6A8088;          /* muted — verified ≥4.5:1 on near-black */
+  --v3-text-4: #3D5060;          /* decorative/dim only */
+
+  /* ── Accent (HUD cyan) ───────────────────────────────────── */
+  --v3-accent:       #7ADADA;    /* primary HUD cyan */
+  --v3-accent-hover: #A8EFEF;    /* brighter instrument hover */
+  --v3-accent-tint:  rgba(122, 218, 218, 0.12);
+  --v3-accent-soft:  rgba(122, 218, 218, 0.10);
+
+  /* ── Semantic ────────────────────────────────────────────── */
+  --v3-success:      #7CE6A8;    /* lock / ok signal — mint */
+  --v3-success-tint: rgba(124, 230, 168, 0.14);
+  --v3-warn:         #E6C87A;    /* yellow signal */
+  --v3-warn-tint:    rgba(230, 200, 122, 0.14);
+  --v3-info:         #7ADADA;    /* reuse cyan for info */
+  --v3-crit:         #FF5A6A;    /* red lock */
+  --v3-crit-tint:    rgba(255, 90, 106, 0.14);
+
+  /* ── Shadows — heavier on near-black backgrounds ────────── */
+  --v3-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.55);
+  --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.60), 0 1px 2px rgba(0, 0, 0, 0.40);
+  --v3-shadow-3: 0 6px 20px rgba(0, 0, 0, 0.70), 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Body background: faint cyan radial at top — instrument glow */
+body[data-theme-v3="hud"] .appv3 {
+  background: radial-gradient(ellipse 80% 40% at 50% 0%, rgba(122, 218, 218, 0.04) 0%, transparent 100%),
+              #0A0E14;
+}
+
+/* ── Content area: micro top-edge cyan tint ─────────────────── */
+body[data-theme-v3="hud"] .appv3-content {
+  background: linear-gradient(180deg, rgba(122, 218, 218, 0.025) 0px, transparent 48px),
+              var(--v3-bg);
+}
+
+/* ── Topbar: dim cyan shimmer on bottom border ───────────────── */
+body[data-theme-v3="hud"] .v3-topbar {
+  border-bottom-color: transparent;
+  box-shadow: 0 1px 0 0 #2A3A4A,
+              inset 0 -1px 0 0 rgba(122, 218, 218, 0.05);
+}
+
+/* ── Active tab: cyan underline glow — HUD signature ────────── */
+body[data-theme-v3="hud"] .v3-topbar-tab.active {
+  border-bottom-color: var(--v3-accent);
+  box-shadow: 0 1px 10px rgba(122, 218, 218, 0.45);
+}
+
+/* ── Stat cards: cyan ring on hover ─────────────────────────── */
+body[data-theme-v3="hud"] .v3-stat-card:hover {
+  box-shadow: var(--v3-shadow-2),
+              0 0 0 1px var(--v3-border-strong),
+              0 0 0 3px rgba(122, 218, 218, 0.16);
+  border-color: rgba(122, 218, 218, 0.30);
+}
+
+/* ── Rows: cyan border highlight on hover ────────────────────── */
+body[data-theme-v3="hud"] .v3-row[role="button"]:hover {
+  border-color: rgba(122, 218, 218, 0.28);
+  box-shadow: var(--v3-shadow-2);
+}
+
+/* ── Sidebar active link: inner cyan glow ───────────────────── */
+body[data-theme-v3="hud"] .v3-side-link.active {
+  box-shadow: inset 2px 0 0 #7ADADA;
+}
+
+/* ── Companion stage: dark radial with cyan underbelly ──────── */
+body[data-theme-v3="hud"] .v3-companion-stage {
+  background: radial-gradient(ellipse 90% 80% at 50% 100%,
+    rgba(122, 218, 218, 0.12) 0%,
+    rgba(122, 218, 218, 0.04) 50%,
+    transparent 100%);
+}
+
+/* ── Primary button: cyan glow ring on hover ─────────────────── */
+body[data-theme-v3="hud"] .v3-btn-primary:hover {
+  background: var(--v3-accent-hover);
+  border-color: var(--v3-accent-hover);
+  box-shadow: 0 0 0 3px rgba(122, 218, 218, 0.22);
+}
+
+/* ── Focus visible: instrument glow — ONE signature ─────────── */
+/* Soft cyan aura around focused elements — captures the HUD     */
+/* "instrument glow" feel without corner brackets or scanlines.  */
+body[data-theme-v3="hud"] .appv3 button:focus-visible,
+body[data-theme-v3="hud"] .appv3 a:focus-visible,
+body[data-theme-v3="hud"] .appv3 input:focus-visible,
+body[data-theme-v3="hud"] .appv3 select:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(122, 218, 218, 0.30);
+}
+
+/* ── Stat icon tints (HUD palette) ──────────────────────────── */
+body[data-theme-v3="hud"] .v3-stat-icon-orange {
+  background: rgba(122, 218, 218, 0.12);  /* cyan slot — primary accent */
+  color: #7ADADA;
+}
+body[data-theme-v3="hud"] .v3-stat-icon-purple {
+  background: rgba(224, 122, 138, 0.15);  /* magenta-rose — alert/comms */
+  color: #E07A8A;
+}
+body[data-theme-v3="hud"] .v3-stat-icon-amber {
+  background: rgba(230, 200, 122, 0.14);  /* amber — warning signal */
+  color: #E6C87A;
+}
+body[data-theme-v3="hud"] .v3-stat-icon-green {
+  background: rgba(124, 230, 168, 0.14);  /* mint — lock/ok */
+  color: #7CE6A8;
+}
+
+/* ── PR review pill: magenta-rose ────────────────────────────── */
+body[data-theme-v3="hud"] .v3-pr-pill-review {
+  background: rgba(224, 122, 138, 0.16);
+  color: #E07A8A;
+}
+
+/* ── PR row icon (magenta) ───────────────────────────────────── */
+body[data-theme-v3="hud"] .v3-row-pr .v3-row-icon {
+  background: rgba(224, 122, 138, 0.15);
+  color: #E07A8A;
+}
+
+/* ── "View all" links: cyan — consistent with HUD accent ─────── */
+body[data-theme-v3="hud"] .v3-link {
+  color: #7ADADA;
+}
+body[data-theme-v3="hud"] .v3-link:hover {
+  color: #A8EFEF;
+  text-decoration: underline;
+}
+
+/* ── Audit alert banner — amber signal ───────────────────────── */
+body[data-theme-v3="hud"] .v3-audit-foot {
+  background: rgba(230, 200, 122, 0.10);
+  border-color: rgba(230, 200, 122, 0.32);
+  color: #E6C87A;
+}
+body[data-theme-v3="hud"] .v3-audit-foot .v3-chev {
+  color: #E6C87A;
+}
+
+/* ── Audit findings: HUD-adapted backgrounds ─────────────────── */
+body[data-theme-v3="hud"] .v3-finding-crit {
+  border-color: rgba(255, 90, 106, 0.30);
+  background: rgba(255, 90, 106, 0.07);
+}
+body[data-theme-v3="hud"] .v3-finding-warn {
+  border-color: rgba(230, 200, 122, 0.28);
+  background: rgba(230, 200, 122, 0.07);
+}
+body[data-theme-v3="hud"] .v3-finding-info {
+  border-color: rgba(122, 218, 218, 0.25);
+  background: rgba(122, 218, 218, 0.06);
+}
+body[data-theme-v3="hud"] .v3-finding-ok {
+  border-color: rgba(124, 230, 168, 0.25);
+  background: rgba(124, 230, 168, 0.07);
+}
+
+/* ── Success / error banners ─────────────────────────────────── */
+body[data-theme-v3="hud"] .v3-error {
+  background: rgba(255, 90, 106, 0.10);
+  border-color: rgba(255, 90, 106, 0.30);
+  color: #FF5A6A;
+}
+body[data-theme-v3="hud"] .v3-success {
+  background: rgba(124, 230, 168, 0.10);
+  border-color: rgba(124, 230, 168, 0.28);
+  color: #7CE6A8;
+}
+
+/* ── Chip.active inverts cleanly on near-black ───────────────── */
+body[data-theme-v3="hud"] .v3-chip.active {
+  background: var(--v3-text);
+  border-color: var(--v3-text);
+  color: var(--v3-surface);
+}
+
+/* ── Scrollbar thumbs: dim slate tinted ──────────────────────── */
+body[data-theme-v3="hud"] .appv3 ::-webkit-scrollbar-thumb {
+  background: #2A3A4A;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+body[data-theme-v3="hud"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: #3D5060;
+  background-clip: content-box;
+}

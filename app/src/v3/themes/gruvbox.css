@@ -1,0 +1,231 @@
+/* =============================================================
+   V3 Theme: GRUVBOX
+   Identity: warm autumnal terminal — burnt orange, retro browns.
+   Palette: Pavel Pertsev's official Gruvbox Dark
+   https://github.com/morhetz/gruvbox
+   ============================================================= */
+
+/* ── Body background ─────────────────────────────────────────── */
+body.v3-layout[data-theme-v3="gruvbox"] {
+  background: #282828;
+}
+
+/* ── Design tokens ───────────────────────────────────────────── */
+body[data-theme-v3="gruvbox"] .appv3 {
+  /* Surface — Gruvbox bg scale */
+  --v3-bg:            #282828;   /* bg0  */
+  --v3-surface:       #32302F;   /* bg0_s — slightly warmer than bg0 */
+  --v3-surface-2:     #3C3836;   /* bg1  */
+  --v3-hover:         #504945;   /* bg2  — earthy brown, not cool gray */
+  --v3-border:        #3C3836;   /* bg1  — subtle, brown-tinted */
+  --v3-border-strong: #504945;   /* bg2  */
+
+  /* Type — Gruvbox fg scale
+     text-3 (#BDAE93 fg3) vs bg0 (#282828): relative luminance ~4.7:1 — passes AA */
+  --v3-text:   #EBDBB2;          /* fg1  — default Gruvbox fg, warm cream */
+  --v3-text-2: #D5C4A1;          /* fg2  */
+  --v3-text-3: #BDAE93;          /* fg3  — ≥4.5:1 on #282828 ✓ */
+  --v3-text-4: #928374;          /* gray — decorative/dim only */
+
+  /* Accent — Gruvbox bright orange */
+  --v3-accent:       #FE8019;    /* orange bright */
+  --v3-accent-hover: #FF9540;    /* lighter warm push on hover */
+  --v3-accent-tint:  rgba(254, 128, 25, 0.16);
+  --v3-accent-soft:  rgba(254, 128, 25, 0.10);
+
+  /* Semantic — Gruvbox bright variants throughout */
+  --v3-success:      #B8BB26;    /* green bright */
+  --v3-success-tint: rgba(184, 187, 38, 0.16);
+  --v3-warn:         #FABD2F;    /* yellow bright */
+  --v3-warn-tint:    rgba(250, 189, 47, 0.16);
+  --v3-info:         #83A598;    /* blue bright */
+  --v3-crit:         #FB4934;    /* red bright */
+  --v3-crit-tint:    rgba(251, 73, 52, 0.16);
+
+  /* Shadows — deeper on very dark bg */
+  --v3-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.55), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --v3-shadow-3: 0 6px 20px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.40);
+}
+
+/* ── App background: soft fireplace glow at the top ─────────── */
+/* The radial gradient recreates the warm phosphor glow of a vintage
+   terminal — like embers rising from the bottom of the screen.
+   0.04 opacity keeps it subliminal; any more and it fights the text. */
+body[data-theme-v3="gruvbox"] .appv3 {
+  background: radial-gradient(ellipse at top, rgba(254, 128, 25, 0.04) 0%, transparent 60%),
+              #282828;
+}
+
+/* ── Content area: warm SVG noise grain for paper/CRT texture ── */
+/* Tiny turbulence filter at 4% opacity adds the tactile warmth
+   Gruvbox is famous for — like old terminal phosphor or kraft paper.
+   Falls back gracefully to solid bg if SVG data URIs are blocked. */
+body[data-theme-v3="gruvbox"] .appv3-content {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, rgba(254, 128, 25, 0.018) 0px, transparent 60px);
+}
+
+/* ── Topbar: warm hairline border ────────────────────────────── */
+body[data-theme-v3="gruvbox"] .v3-topbar {
+  border-bottom-color: transparent;
+  box-shadow: 0 1px 0 0 #3C3836,
+              inset 0 -1px 0 0 rgba(254, 128, 25, 0.06);
+}
+
+/* ── Active topbar tab: orange underline with warm bloom ──────── */
+body[data-theme-v3="gruvbox"] .v3-topbar-tab.active {
+  border-bottom-color: #FE8019;
+  box-shadow: 0 1px 8px rgba(254, 128, 25, 0.30);
+}
+
+/* ── Stat cards: warm orange ring on hover ────────────────────── */
+/* Gruvbox feels unhurried — 220ms instead of 160ms */
+body[data-theme-v3="gruvbox"] .appv3 .v3-stat-card {
+  transition-duration: 220ms;
+}
+body[data-theme-v3="gruvbox"] .v3-stat-card:hover {
+  box-shadow: var(--v3-shadow-2),
+              0 0 0 1px rgba(254, 128, 25, 0.25),
+              0 0 0 3px rgba(254, 128, 25, 0.12);
+  border-color: rgba(254, 128, 25, 0.35);
+}
+
+/* ── Rows: warm earthy border on hover ────────────────────────── */
+body[data-theme-v3="gruvbox"] .appv3 .v3-row {
+  transition-duration: 220ms;
+}
+body[data-theme-v3="gruvbox"] .v3-row:hover {
+  border-color: rgba(254, 128, 25, 0.30);
+  box-shadow: var(--v3-shadow-2);
+}
+
+/* ── Sidebar active link: orange fill + warm inset shadow ─────── */
+body[data-theme-v3="gruvbox"] .v3-side-link.active {
+  background: rgba(254, 128, 25, 0.16);
+  color: #FE8019;
+  box-shadow: inset 3px 0 0 0 #FE8019;
+}
+body[data-theme-v3="gruvbox"] .v3-side-link.active svg {
+  color: #FE8019;
+}
+
+/* ── Companion stage: warm orange radial backing ─────────────── */
+body[data-theme-v3="gruvbox"] .v3-companion-stage {
+  background: radial-gradient(ellipse 90% 80% at 50% 100%,
+    rgba(254, 128, 25, 0.14) 0%,
+    rgba(214, 93, 14, 0.05) 55%,
+    transparent 100%);
+}
+
+/* ── Stat icon tints — Gruvbox bright variants ────────────────── */
+body[data-theme-v3="gruvbox"] .v3-stat-icon-orange {
+  background: rgba(254, 128, 25, 0.18);   /* orange bright */
+  color: #FE8019;
+}
+body[data-theme-v3="gruvbox"] .v3-stat-icon-purple {
+  background: rgba(211, 134, 155, 0.18);  /* purple bright */
+  color: #D3869B;
+}
+body[data-theme-v3="gruvbox"] .v3-stat-icon-amber {
+  background: rgba(250, 189, 47, 0.18);   /* yellow bright */
+  color: #FABD2F;
+}
+body[data-theme-v3="gruvbox"] .v3-stat-icon-green {
+  background: rgba(184, 187, 38, 0.18);   /* green bright */
+  color: #B8BB26;
+}
+
+/* ── PR review pill ──────────────────────────────────────────── */
+/* Gruvbox purple bright #D3869B — warm rose, not cold violet */
+body[data-theme-v3="gruvbox"] .v3-pr-pill-review {
+  background: rgba(211, 134, 155, 0.20);
+  color: #D3869B;
+}
+
+/* ── PR row icon (purple) ────────────────────────────────────── */
+body[data-theme-v3="gruvbox"] .v3-row-pr .v3-row-icon {
+  background: rgba(211, 134, 155, 0.18);
+  color: #D3869B;
+}
+
+/* ── "View all" links → Gruvbox aqua (adds 4th palette color) ── */
+/* #8EC07C is the bright aqua — warm blue-green, not cold blue.
+   Provides clear link affordance distinct from the orange accent. */
+body[data-theme-v3="gruvbox"] .v3-link {
+  color: #8EC07C;
+}
+body[data-theme-v3="gruvbox"] .v3-link:hover {
+  color: #B8CC9C;  /* lightened for hover */
+  text-decoration: underline;
+}
+
+/* ── Audit alert banner ──────────────────────────────────────── */
+/* #FABD2F on rgba(250,189,47,0.16) over #32302F — warm amber, earthy */
+body[data-theme-v3="gruvbox"] .v3-audit-foot {
+  background: rgba(250, 189, 47, 0.14);
+  border-color: rgba(250, 189, 47, 0.40);
+  color: #FABD2F;
+}
+body[data-theme-v3="gruvbox"] .v3-audit-foot .v3-chev {
+  color: #FABD2F;
+}
+
+/* ── Audit findings: dark-adapted warm tints ─────────────────── */
+body[data-theme-v3="gruvbox"] .v3-finding-crit {
+  border-color: rgba(251, 73, 52, 0.30);
+  background: rgba(251, 73, 52, 0.08);
+}
+body[data-theme-v3="gruvbox"] .v3-finding-warn {
+  border-color: rgba(250, 189, 47, 0.30);
+  background: rgba(250, 189, 47, 0.08);
+}
+body[data-theme-v3="gruvbox"] .v3-finding-info {
+  border-color: rgba(131, 165, 152, 0.28);
+  background: rgba(131, 165, 152, 0.08);
+}
+body[data-theme-v3="gruvbox"] .v3-finding-ok {
+  border-color: rgba(184, 187, 38, 0.28);
+  background: rgba(184, 187, 38, 0.07);
+}
+
+/* ── Success / error banners ─────────────────────────────────── */
+body[data-theme-v3="gruvbox"] .v3-error {
+  background: rgba(251, 73, 52, 0.10);
+  border-color: rgba(251, 73, 52, 0.30);
+  color: #FB4934;
+}
+body[data-theme-v3="gruvbox"] .v3-success {
+  background: rgba(184, 187, 38, 0.10);
+  border-color: rgba(184, 187, 38, 0.30);
+  color: #B8BB26;
+}
+
+/* ── Chip active: Gruvbox fg inverts cleanly ─────────────────── */
+body[data-theme-v3="gruvbox"] .v3-chip.active {
+  background: #EBDBB2;
+  border-color: #EBDBB2;
+  color: #282828;
+}
+
+/* ── Focus visible: warm orange glow ────────────────────────── */
+body[data-theme-v3="gruvbox"] .appv3 button:focus-visible,
+body[data-theme-v3="gruvbox"] .appv3 a:focus-visible,
+body[data-theme-v3="gruvbox"] .appv3 input:focus-visible,
+body[data-theme-v3="gruvbox"] .appv3 select:focus-visible {
+  outline: 2px solid #FE8019;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(254, 128, 25, 0.18);
+}
+
+/* ── Scrollbar thumbs: earthy brown-tinted ───────────────────── */
+body[data-theme-v3="gruvbox"] .appv3 ::-webkit-scrollbar-thumb {
+  background: #3C3836;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+body[data-theme-v3="gruvbox"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: #504945;
+  background-clip: content-box;
+}

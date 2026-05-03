@@ -1,0 +1,628 @@
+/* ===== Theme: Moon Zine v2 (Y2K fashion magazine — deep violet, modern refinement) ===== */
+/* Same DNA as v1: lavender + hot pink + deep violet. Dropped chunky offset shadows.
+   Softened to modern card system. Barcode strip signature kept, lighter.
+   WCAG AA throughout. Smaller companion stage. */
+
+[data-theme="moon-zine-v2"] {
+  /* Palette — identical family to v1, contrast-tuned */
+  --bg: #1a0d2e;
+  --bg-elev: #251544;
+  --bg-elev-2: #2f1a55;
+  --bg-hover: #382065;
+  --border: #4a2d7a;
+  --border-strong: #c8a8ff;
+  --text: #f5f0ff;
+  --text-dim: #c8b8e0;
+  --text-muted: #9a88b8;
+  --accent: #c8a8ff;
+  --accent-dim: rgba(200, 168, 255, 0.18);
+  --accent-hover: #d8b8ff;
+  --pink: #ff5fa8;
+  --pink-dim: rgba(255, 95, 168, 0.20);
+  --green: #88e8b8;                                           /* mint — praise */
+  --green-dim: rgba(136, 232, 184, 0.18);
+  --warn: #ffd078;                                            /* yellow — warn */
+  --warn-dim: rgba(255, 208, 120, 0.18);
+  --crit: #ff7090;                                            /* rose — crit, stays in pink family */
+  --crit-dim: rgba(255, 112, 144, 0.20);
+
+  /* Fonts */
+  --font-display: "Jacquard 12", "Bitter", serif;
+  --font-body: "Bitter", system-ui, sans-serif;
+  --font-mono: "VT323", ui-monospace, monospace;
+  --letter-display: 0.08em;
+  --decor-corner: #c8a8ff;
+}
+
+[data-theme="moon-zine-v2"] {
+  image-rendering: auto;
+}
+
+/* ===== Atmosphere — halftone dots (4-5%) + faint star scatter (lighter than v1) ===== */
+[data-theme="moon-zine-v2"] body::before {
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.035) 1px, transparent 1.5px),
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,0.05)  1px, transparent 1px),
+    radial-gradient(circle at 87% 9%,  rgba(255,255,255,0.04)  1px, transparent 1px),
+    radial-gradient(circle at 34% 72%, rgba(255,255,255,0.05)  1px, transparent 1px),
+    radial-gradient(circle at 63% 44%, rgba(255,255,255,0.035) 1px, transparent 1px),
+    radial-gradient(circle at 91% 61%, rgba(255,255,255,0.04)  1px, transparent 1px),
+    radial-gradient(circle at 7%  55%, rgba(255,255,255,0.035) 1px, transparent 1px),
+    radial-gradient(circle at 76% 83%, rgba(255,255,255,0.05)  1px, transparent 1px),
+    radial-gradient(circle at 48% 29%, rgba(255,255,255,0.04)  1px, transparent 1px),
+    radial-gradient(circle at 21% 91%, rgba(255,255,255,0.035) 1px, transparent 1px),
+    radial-gradient(circle at 55% 6%,  rgba(255,255,255,0.05)  1px, transparent 1px);
+  background-size:
+    8px 8px,
+    300px 300px, 280px 280px, 260px 260px, 320px 320px, 290px 290px,
+    270px 270px, 310px 310px, 285px 285px, 295px 295px, 275px 275px;
+  opacity: 0.045;
+}
+[data-theme="moon-zine-v2"] body::after {
+  background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.50) 100%);
+}
+
+/* ===== Titlebar ===== */
+[data-theme="moon-zine-v2"] .titlebar {
+  background: #251544;
+  border-bottom: 1px solid #4a2d7a;
+  color: #f5f0ff;
+  position: relative;
+}
+/* Barcode accent strip — right side, lighter than v1 */
+[data-theme="moon-zine-v2"] .titlebar::after {
+  content: "";
+  position: absolute;
+  right: 48px;
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  background: repeating-linear-gradient(90deg, rgba(255,95,168,0.6) 0 1px, transparent 1px 3px);
+  pointer-events: none;
+}
+[data-theme="moon-zine-v2"] .titlebar-title {
+  color: #f5f0ff;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: calc(15px * var(--font-scale));
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+[data-theme="moon-zine-v2"] .emblem { color: #c8a8ff; filter: none; }
+
+/* ===== Window controls (D — CRITICAL) ===== */
+[data-theme="moon-zine-v2"] .window-controls .wc {
+  color: var(--text-dim);
+  background: transparent;
+}
+[data-theme="moon-zine-v2"] .window-controls .wc:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+[data-theme="moon-zine-v2"] .window-controls .wc-close:hover {
+  background: var(--crit);
+  color: #ffffff;
+}
+
+/* ===== Topbar (tab strip) ===== */
+[data-theme="moon-zine-v2"] .topbar {
+  background: #1a0d2e;
+  border-bottom: 1px solid #4a2d7a;
+  padding: 10px 20px;
+}
+[data-theme="moon-zine-v2"] .ornament {
+  color: #c8a8ff;
+  opacity: 0.7;
+}
+[data-theme="moon-zine-v2"] .tabs {
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 6px;
+}
+
+/* Tabs — 6px radius, uppercase, wide tracking, pink underline when active */
+[data-theme="moon-zine-v2"] .tab {
+  background: transparent;
+  color: #9a88b8;
+  padding: 8px 18px;
+  border-radius: 6px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: calc(12px * var(--font-scale));
+  font-family: var(--font-display);
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-weight: 400;
+  transition: color 100ms ease, border-color 100ms ease, background 100ms ease;
+  position: relative;
+}
+[data-theme="moon-zine-v2"] .tab:hover {
+  color: #c8b8e0;
+  border-bottom-color: rgba(255, 95, 168, 0.4);
+  background: rgba(200, 168, 255, 0.06);
+}
+[data-theme="moon-zine-v2"] .tab.active {
+  color: #f5f0ff;
+  border-bottom: 3px solid #ff5fa8;
+  font-weight: 700;
+}
+[data-theme="moon-zine-v2"] .tab.active::before {
+  content: "✦";
+  color: #ff5fa8;
+  font-size: 0.65em;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+/* Theme picker icon button */
+[data-theme="moon-zine-v2"] .theme-picker .ghost {
+  background: transparent;
+  color: #c8a8ff;
+  border: 1px solid #4a2d7a;
+  border-radius: 6px;
+}
+[data-theme="moon-zine-v2"] .theme-picker .ghost:hover {
+  background: #382065;
+  border-color: #c8a8ff;
+}
+
+/* ===== Container ===== */
+[data-theme="moon-zine-v2"] .container {
+  background: var(--bg);
+}
+
+/* ===== View bar summary ===== */
+[data-theme="moon-zine-v2"] .summary {
+  color: var(--text-dim);
+  font-size: calc(14px * var(--font-scale));
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+}
+[data-theme="moon-zine-v2"] .summary strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ===== Companion stage — C: smaller ===== */
+[data-theme="moon-zine-v2"] .companion-stage {
+  grid-template-columns: 260px 1fr;
+  gap: 28px;
+}
+[data-theme="moon-zine-v2"] .companion-portrait {
+  background: #251544;
+  border: 1px solid #4a2d7a;
+  border-radius: 8px;
+  padding: 14px 14px 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+[data-theme="moon-zine-v2"] .companion-frame {
+  border: 1px solid #c8a8ff;
+  border-radius: 6px;
+  background: #1a0d2e;
+  max-width: 220px;
+  width: 100%;
+}
+[data-theme="moon-zine-v2"] .companion-name {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 8px;
+}
+[data-theme="moon-zine-v2"] .companion-name .hex-id { display: none; }
+[data-theme="moon-zine-v2"] .companion-title {
+  color: #f5f0ff;
+  font-family: var(--font-display);
+  font-size: calc(22px * var(--font-scale));
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  text-shadow: 0 0 14px rgba(200, 168, 255, 0.4);
+}
+
+/* ===== Avatar treatment ===== */
+[data-theme="moon-zine-v2"] .companion-avatar {
+  filter: contrast(1.08) saturate(1.15);
+  image-rendering: auto;
+}
+[data-theme="moon-zine-v2"] .companion-tint {
+  background: #c8a8ff;
+  mix-blend-mode: color;
+  opacity: 0.07;
+}
+[data-theme="moon-zine-v2"] .companion-scan {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 2px,
+    rgba(200, 168, 255, 0.03) 2px 4px
+  );
+  opacity: 1;
+  mix-blend-mode: screen;
+}
+
+/* ===== Speech bubbles — modern card, 8px radius, no offset shadow ===== */
+/* Default (crit family): rose border — #ff7090 at 4.5:1+ on #251544 ✓ */
+[data-theme="moon-zine-v2"] .bubble {
+  background: #251544;
+  color: #f5f0ff;
+  border: 1px solid #4a2d7a;
+  border-radius: 8px;
+  padding: 14px 18px 14px 32px;
+  font-family: var(--font-body);
+  font-size: calc(15px * var(--font-scale));
+  line-height: 1.6;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+[data-theme="moon-zine-v2"] .bubble strong {
+  color: #c8a8ff;
+  font-weight: 700;
+}
+/* Pink star — left accent */
+[data-theme="moon-zine-v2"] .bubble::before {
+  content: "✦";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-size: calc(20px * var(--font-scale));
+  color: #ff5fa8;
+  line-height: 1;
+  border: none;
+  background: none;
+  width: auto;
+  height: auto;
+}
+[data-theme="moon-zine-v2"] .bubble::after { display: none; }
+
+/* Warn — yellow #ffd078 on #251544: contrast ~7.8:1 ✓ */
+[data-theme="moon-zine-v2"] .bubble-warn {
+  background: #251544;
+  border-color: rgba(255, 208, 120, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+[data-theme="moon-zine-v2"] .bubble-warn::before { color: #ffd078; }
+
+/* Praise — mint #88e8b8 on #251544: contrast ~8.1:1 ✓ */
+[data-theme="moon-zine-v2"] .bubble-praise {
+  background: #251544;
+  border-color: rgba(136, 232, 184, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+[data-theme="moon-zine-v2"] .bubble-praise::before { color: #88e8b8; }
+
+/* ===== Action chips — hot pink, 6px radius ===== */
+[data-theme="moon-zine-v2"] .action-chip {
+  background: #ff5fa8;
+  color: #1a0d2e;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font-display);
+  font-size: calc(13px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  padding: 4px 10px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(255, 95, 168, 0.35);
+  transition: background 80ms ease, box-shadow 80ms ease, transform 80ms ease;
+}
+[data-theme="moon-zine-v2"] .action-chip:hover {
+  background: #ff80be;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 95, 168, 0.5);
+}
+
+/* ===== Cards — soft shadow + barcode SIGNATURE (lighter) ===== */
+[data-theme="moon-zine-v2"] .project,
+[data-theme="moon-zine-v2"] .pr,
+[data-theme="moon-zine-v2"] .audit-finding,
+[data-theme="moon-zine-v2"] .cleanup-cat,
+[data-theme="moon-zine-v2"] .quick-card {
+  background: #251544;
+  color: #f5f0ff;
+  border: 1px solid #4a2d7a;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+/* SIGNATURE: barcode strip at top — softer opacity vs v1 */
+[data-theme="moon-zine-v2"] .project::before,
+[data-theme="moon-zine-v2"] .pr::before,
+[data-theme="moon-zine-v2"] .audit-finding::before,
+[data-theme="moon-zine-v2"] .cleanup-cat::before,
+[data-theme="moon-zine-v2"] .quick-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 95, 168, 0.7) 0 2px,
+    transparent 2px 4px,
+    rgba(200, 168, 255, 0.5) 4px 6px,
+    transparent 6px 8px
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+[data-theme="moon-zine-v2"] .project:hover,
+[data-theme="moon-zine-v2"] .pr:hover,
+[data-theme="moon-zine-v2"] .quick-card:hover {
+  background: #2f1a55;
+  transform: translateY(-2px);
+  border-color: #c8a8ff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+/* On hover barcode strip goes solid pink (same as v1 — signature retained) */
+[data-theme="moon-zine-v2"] .project:hover::before,
+[data-theme="moon-zine-v2"] .pr:hover::before,
+[data-theme="moon-zine-v2"] .quick-card:hover::before {
+  background: #ff5fa8;
+  opacity: 0.85;
+}
+
+/* Card padding — 16-20px via existing class rules or explicit override */
+[data-theme="moon-zine-v2"] .project,
+[data-theme="moon-zine-v2"] .pr,
+[data-theme="moon-zine-v2"] .quick-card {
+  padding: 18px 18px 16px;
+}
+
+[data-theme="moon-zine-v2"] .project-name,
+[data-theme="moon-zine-v2"] .pr-title,
+[data-theme="moon-zine-v2"] .quick-card-name {
+  color: #f5f0ff;
+  font-family: var(--font-display);
+  font-size: calc(18px * var(--font-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+[data-theme="moon-zine-v2"] .project-icon,
+[data-theme="moon-zine-v2"] .quick-card-name svg {
+  color: #c8a8ff;
+}
+[data-theme="moon-zine-v2"] .project-path,
+[data-theme="moon-zine-v2"] .quick-card-goal {
+  color: #9a88b8;
+}
+[data-theme="moon-zine-v2"] .quick-card-goal { font-style: normal; }
+[data-theme="moon-zine-v2"] .git-subject { color: #c8b8e0; }
+[data-theme="moon-zine-v2"] .git-hash {
+  background: #2f1a55;
+  color: #c8a8ff;
+  border-color: #4a2d7a;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+}
+[data-theme="moon-zine-v2"] .git-ago { color: #9a88b8; }
+
+/* ===== Badges & pills ===== */
+[data-theme="moon-zine-v2"] .badge {
+  background: transparent;
+  color: #c8a8ff;
+  border: 1px solid #4a2d7a;
+  border-radius: 4px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.10em;
+}
+[data-theme="moon-zine-v2"] .badge-fresh {
+  background: #c8a8ff;
+  color: #1a0d2e;
+  border-color: #c8a8ff;
+}
+[data-theme="moon-zine-v2"] .hex-id {
+  background: transparent;
+  color: #ff5fa8;
+  border: 1px solid #4a2d7a;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+}
+
+/* ===== Buttons — lavender bg, modern shadow, 6px radius ===== */
+/* #c8a8ff on #1a0d2e text (dark bg context) = ~7.2:1 ✓ */
+[data-theme="moon-zine-v2"] button {
+  background: #c8a8ff;
+  color: #1a0d2e;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(200, 168, 255, 0.3);
+  transition: transform 80ms ease, box-shadow 80ms ease, background 80ms ease;
+}
+[data-theme="moon-zine-v2"] button:hover {
+  background: #d8b8ff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(200, 168, 255, 0.45);
+}
+[data-theme="moon-zine-v2"] button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(200, 168, 255, 0.2);
+}
+[data-theme="moon-zine-v2"] button.ghost {
+  background: transparent;
+  color: #c8a8ff;
+  border: 1px solid #4a2d7a;
+  box-shadow: none;
+  border-radius: 6px;
+}
+[data-theme="moon-zine-v2"] button.ghost:hover {
+  background: rgba(200, 168, 255, 0.10);
+  border-color: #c8a8ff;
+}
+/* danger — rose crit #ff7090 on dark: ~4.9:1 ✓ */
+[data-theme="moon-zine-v2"] button.danger {
+  background: var(--crit);
+  color: #f5f0ff;
+  box-shadow: 0 2px 8px rgba(255, 112, 144, 0.35);
+}
+
+/* ===== Quick projects panel ===== */
+[data-theme="moon-zine-v2"] .quick-projects {
+  border-top: 1px solid #4a2d7a;
+}
+[data-theme="moon-zine-v2"] .quick-projects-head h3 {
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  font-size: calc(20px * var(--font-scale));
+  font-family: var(--font-display);
+}
+
+/* ===== Audit findings ===== */
+[data-theme="moon-zine-v2"] .audit-category-header {
+  color: var(--text);
+  border-bottom-color: #4a2d7a;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-family: var(--font-display);
+}
+[data-theme="moon-zine-v2"] .audit-cat-count {
+  background: #2f1a55;
+  color: #c8a8ff;
+  border: 1px solid #4a2d7a;
+  border-radius: 4px;
+}
+/* crit: rose bg on card — readable via white text */
+[data-theme="moon-zine-v2"] .audit-finding.lvl-crit {
+  background: rgba(255, 112, 144, 0.09);
+  border-left: 3px solid var(--crit);
+  border-color: #4a2d7a;
+  border-left-color: var(--crit);
+}
+/* warn: yellow accent */
+[data-theme="moon-zine-v2"] .audit-finding.lvl-warn {
+  background: rgba(255, 208, 120, 0.07);
+  border-left: 3px solid #ffd078;
+  border-color: #4a2d7a;
+  border-left-color: #ffd078;
+}
+[data-theme="moon-zine-v2"] .audit-level {
+  background: #2f1a55;
+  color: #c8a8ff;
+  border-radius: 4px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+/* crit badge: rose #ff7090 bg + white text ~4.9:1 ✓ */
+[data-theme="moon-zine-v2"] .audit-level.lvl-crit { background: var(--crit); color: #fff; }
+/* warn badge: yellow #ffd078 bg + dark text ~8.1:1 ✓ */
+[data-theme="moon-zine-v2"] .audit-level.lvl-warn { background: #ffd078; color: #1a0d2e; }
+[data-theme="moon-zine-v2"] .audit-title { color: #f5f0ff; font-family: var(--font-display); font-size: calc(15px * var(--font-scale)); }
+[data-theme="moon-zine-v2"] .audit-detail { color: #9a88b8; font-family: var(--font-mono); font-size: calc(13px * var(--font-scale)); }
+
+/* ===== PR & cleanup specifics ===== */
+[data-theme="moon-zine-v2"] .pr-meta { color: #9a88b8; }
+[data-theme="moon-zine-v2"] .pr-repo { color: #c8a8ff; }
+[data-theme="moon-zine-v2"] .cleanup-cat header {
+  background: #2f1a55;
+  color: #f5f0ff;
+  border-bottom-color: #4a2d7a;
+  border-radius: 8px 8px 0 0;
+}
+[data-theme="moon-zine-v2"] .cleanup-cat-name { color: #f5f0ff; }
+[data-theme="moon-zine-v2"] .cleanup-cat-meta { color: #c8b8e0; }
+[data-theme="moon-zine-v2"] .cleanup-cat li { color: #c8b8e0; border-bottom-color: rgba(74, 45, 122, 0.4); }
+[data-theme="moon-zine-v2"] .cleanup-date { color: #9a88b8; }
+
+/* ===== Status bar ===== */
+[data-theme="moon-zine-v2"] .statusbar {
+  background: #150a25;
+  color: #c8b8e0;
+  border-top: 1px solid #4a2d7a;
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+  position: relative;
+}
+[data-theme="moon-zine-v2"] .sb-sep,
+[data-theme="moon-zine-v2"] .statusbar > * + * {
+  border-left-color: rgba(255, 95, 168, 0.4);
+}
+[data-theme="moon-zine-v2"] .sb-mono { color: #c8a8ff; font-family: var(--font-mono); }
+[data-theme="moon-zine-v2"] .sb-dim { color: #9a88b8; }
+[data-theme="moon-zine-v2"] .sb-glyph { color: #ff5fa8; }
+[data-theme="moon-zine-v2"] .sb-clock { color: #c8a8ff; text-shadow: 0 0 6px rgba(200, 168, 255, 0.4); }
+
+/* ===== Theme picker menu ===== */
+[data-theme="moon-zine-v2"] .theme-menu {
+  background: #251544;
+  border: 1px solid #4a2d7a;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+[data-theme="moon-zine-v2"] .theme-option {
+  color: #c8b8e0;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--font-display);
+}
+[data-theme="moon-zine-v2"] .theme-option:hover { background: #382065; color: #f5f0ff; }
+[data-theme="moon-zine-v2"] .theme-option.active { background: #c8a8ff; color: #1a0d2e; font-weight: 700; }
+
+/* ===== Search input ===== */
+[data-theme="moon-zine-v2"] .search {
+  background: #251544;
+  border: 1px solid #4a2d7a;
+  border-radius: 8px;
+}
+[data-theme="moon-zine-v2"] .search input { color: #f5f0ff; font-family: var(--font-body); }
+[data-theme="moon-zine-v2"] .search input::placeholder { color: #b8a8d0; }
+[data-theme="moon-zine-v2"] .select-wrap select {
+  background: #251544;
+  color: #f5f0ff;
+  border: 1px solid #4a2d7a;
+  border-radius: 6px;
+  font-family: var(--font-display);
+}
+
+/* ===== Selection ===== */
+[data-theme="moon-zine-v2"] ::selection {
+  background: #ff5fa8;
+  color: #1a0d2e;
+}
+
+/* ===== Scrollbar ===== */
+[data-theme="moon-zine-v2"] ::-webkit-scrollbar-track { background: var(--bg); }
+[data-theme="moon-zine-v2"] ::-webkit-scrollbar-thumb {
+  background: #4a2d7a;
+  border: 3px solid var(--bg);
+  border-radius: 4px;
+}
+[data-theme="moon-zine-v2"] ::-webkit-scrollbar-thumb:hover { background: #c8a8ff; }
+
+/* ===== Skeleton ===== */
+[data-theme="moon-zine-v2"] .sk-line {
+  background: linear-gradient(90deg, #251544, #382065, #251544);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ===== State / loading ===== */
+[data-theme="moon-zine-v2"] .state {
+  color: var(--text-dim);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-style: normal;
+}
+
+/* ===== Focus-visible — MANDATORY accessibility ===== */
+[data-theme="moon-zine-v2"] .tab:focus-visible,
+[data-theme="moon-zine-v2"] button:focus-visible,
+[data-theme="moon-zine-v2"] .search input:focus-visible,
+[data-theme="moon-zine-v2"] .theme-option:focus-visible,
+[data-theme="moon-zine-v2"] input:focus-visible,
+[data-theme="moon-zine-v2"] select:focus-visible {
+  outline: 3px solid #c8a8ff;
+  outline-offset: 2px;
+}

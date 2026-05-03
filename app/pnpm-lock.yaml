@@ -17,9 +17,6 @@ importers:
       '@fontsource/jacquard-12':
         specifier: ^5.2.8
         version: 5.2.8
-      '@fontsource/jetbrains-mono':
-        specifier: ^5.2.8
-        version: 5.2.8
       '@fontsource/vt323':
         specifier: ^5.2.7
         version: 5.2.7
@@ -307,9 +304,6 @@ packages:
 
   '@fontsource/jacquard-12@5.2.8':
     resolution: {integrity: sha512-Mbs9CR1UMst2lCpK2uFx86nvJtrgCjCxsQZy8Qmtf8ppL2StqbXA9Lr04iVj734o58m6+ftoeHENhU2uAJmt/g==}
-
-  '@fontsource/jetbrains-mono@5.2.8':
-    resolution: {integrity: sha512-6w8/SG4kqvIMu7xd7wt6x3idn1Qux3p9N62s6G3rfldOUYHpWcc2FKrqf+Vo44jRvqWj2oAtTHrZXEP23oSKwQ==}
 
   '@fontsource/vt323@5.2.7':
     resolution: {integrity: sha512-8JTMM23vMhQxin9Cn/ijty8cNwXW4INrln0VAJ2227Rz0CVfkzM3qr3l/CqudZJ6BXCnbCGUTdf2ym3cTNex8A==}
@@ -967,8 +961,6 @@ snapshots:
   '@fontsource/inter@5.2.8': {}
 
   '@fontsource/jacquard-12@5.2.8': {}
-
-  '@fontsource/jetbrains-mono@5.2.8': {}
 
   '@fontsource/vt323@5.2.7': {}
 

@@ -1,0 +1,226 @@
+/* =============================================================
+   V3 Theme: DEEPWEB
+   Identity: Y2K dark-web — deep navy + cyan/magenta dual-accent.
+   Mood: ブラックピット参戦!! — do you still remember?
+   ============================================================= */
+
+/* Body base: deep navy canvas */
+body.v3-layout[data-theme-v3="deepweb"] {
+  background: #0A1428;
+}
+
+body[data-theme-v3="deepweb"] .appv3 {
+  /* ── Surface ─────────────────────────────────────────────── */
+  --v3-bg:            #0A1428;   /* deep navy floor */
+  --v3-surface:       #14223E;   /* elevated panel */
+  --v3-surface-2:     #1C2D4A;   /* secondary surface */
+  --v3-hover:         #243958;   /* hover lift */
+  --v3-border:        #2C4870;   /* quiet grid lines */
+  --v3-border-strong: #5FA8FF;   /* cyan separator */
+
+  /* ── Type ────────────────────────────────────────────────── */
+  /* text (#D8E8FF) vs #0A1428: luminance ratio ≈ 10:1 — passes AAA */
+  --v3-text:   #D8E8FF;          /* pale blue-white */
+  --v3-text-2: #98B0D0;          /* secondary */
+  --v3-text-3: #7896B0;          /* tertiary — adjusted for AA 4.5:1 */
+  --v3-text-4: #4A6882;          /* decorative/dim only */
+
+  /* ── Accent (cyan primary, magenta secondary) ────────────── */
+  --v3-accent:       #5FA8FF;    /* cyan */
+  --v3-accent-hover: #88C0FF;    /* brighter hover */
+  --v3-accent-tint:  rgba(95, 168, 255, 0.14);
+  --v3-accent-soft:  rgba(95, 168, 255, 0.10);
+
+  /* ── Semantic ────────────────────────────────────────────── */
+  --v3-success:      #5FFFAA;    /* mint green */
+  --v3-success-tint: rgba(95, 255, 170, 0.15);
+  --v3-warn:         #FFAA5F;    /* amber */
+  --v3-warn-tint:    rgba(255, 170, 95, 0.15);
+  --v3-info:         #5FA8FF;    /* cyan info */
+  --v3-crit:         #FF5577;    /* hot red */
+  --v3-crit-tint:    rgba(255, 85, 119, 0.15);
+
+  /* ── Shadows — heavier on near-black backgrounds ────────── */
+  --v3-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.55);
+  --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.60), 0 1px 2px rgba(0, 0, 0, 0.40);
+  --v3-shadow-3: 0 6px 20px rgba(0, 0, 0, 0.70), 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Body background: magenta glow from top-right (Y2K forum feel) ── */
+body[data-theme-v3="deepweb"] .appv3 {
+  background: radial-gradient(ellipse at top right, rgba(255, 95, 204, 0.07) 0%, transparent 50%),
+              #0A1428;
+}
+
+/* ── Content area: faint cyan shimmer at top edge ────────────── */
+body[data-theme-v3="deepweb"] .appv3-content {
+  background: linear-gradient(180deg, rgba(95, 168, 255, 0.04) 0px, transparent 48px),
+              var(--v3-bg);
+}
+
+/* ── Topbar: cyan shimmer on bottom border ───────────────────── */
+body[data-theme-v3="deepweb"] .v3-topbar {
+  border-bottom-color: transparent;
+  box-shadow: 0 1px 0 0 #2C4870,
+              inset 0 -1px 0 0 rgba(95, 168, 255, 0.08);
+}
+
+/* ── Active tab: magenta bottom-border glow — deepweb signature ─ */
+body[data-theme-v3="deepweb"] .v3-topbar-tab.active {
+  border-bottom-color: #FF5FCC;
+  box-shadow: 0 1px 8px rgba(255, 95, 204, 0.40);
+  color: #FF5FCC;
+}
+
+/* ── Stat cards: signature inset glow + magenta ring on hover ─── */
+/* The "glowing sphere" feel: inset radial highlights the card interior */
+body[data-theme-v3="deepweb"] .v3-stat-card {
+  box-shadow: var(--v3-shadow-1),
+              inset 0 0 24px rgba(95, 168, 255, 0.06);
+}
+body[data-theme-v3="deepweb"] .v3-stat-card:hover {
+  box-shadow: var(--v3-shadow-2),
+              inset 0 0 24px rgba(95, 168, 255, 0.06),
+              0 0 0 1px rgba(255, 95, 204, 0.30),
+              0 0 0 3px rgba(255, 95, 204, 0.12);
+  border-color: rgba(255, 95, 204, 0.40);
+}
+
+/* ── Rows: cyan border highlight on hover ────────────────────── */
+body[data-theme-v3="deepweb"] .v3-row[role="button"]:hover {
+  border-color: rgba(95, 168, 255, 0.40);
+  box-shadow: var(--v3-shadow-2);
+}
+
+/* ── Cards (v3-card): same inset glow ───────────────────────── */
+body[data-theme-v3="deepweb"] .v3-card {
+  box-shadow: var(--v3-shadow-1),
+              inset 0 0 24px rgba(95, 168, 255, 0.06);
+}
+
+/* ── Sidebar active link: inset cyan glow ───────────────────── */
+body[data-theme-v3="deepweb"] .v3-side-link.active {
+  box-shadow: inset 2px 0 0 #5FA8FF;
+}
+
+/* ── Companion stage: navy radial with cyan tint ────────────── */
+body[data-theme-v3="deepweb"] .v3-companion-stage {
+  background: radial-gradient(ellipse 90% 80% at 50% 100%,
+    rgba(95, 168, 255, 0.14) 0%,
+    rgba(95, 168, 255, 0.05) 50%,
+    transparent 100%);
+}
+
+/* ── Primary button: cyan glow ring on hover ────────────────── */
+body[data-theme-v3="deepweb"] .v3-btn-primary:hover {
+  background: var(--v3-accent-hover);
+  border-color: var(--v3-accent-hover);
+  box-shadow: 0 0 0 3px rgba(95, 168, 255, 0.22);
+}
+
+/* ── Focus visible: magenta glow — Y2K signature ────────────── */
+body[data-theme-v3="deepweb"] .appv3 button:focus-visible,
+body[data-theme-v3="deepweb"] .appv3 a:focus-visible,
+body[data-theme-v3="deepweb"] .appv3 input:focus-visible,
+body[data-theme-v3="deepweb"] .appv3 select:focus-visible {
+  outline: 2px solid #FF5FCC;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(255, 95, 204, 0.30);
+}
+
+/* ── Stat icon tints (cyan + magenta + amber + mint) ─────────── */
+body[data-theme-v3="deepweb"] .v3-stat-icon-orange {
+  background: rgba(95, 168, 255, 0.14);  /* cyan — primary slot */
+  color: #5FA8FF;
+}
+body[data-theme-v3="deepweb"] .v3-stat-icon-purple {
+  background: rgba(255, 95, 204, 0.16);  /* magenta */
+  color: #FF5FCC;
+}
+body[data-theme-v3="deepweb"] .v3-stat-icon-amber {
+  background: rgba(255, 170, 95, 0.16);  /* amber */
+  color: #FFAA5F;
+}
+body[data-theme-v3="deepweb"] .v3-stat-icon-green {
+  background: rgba(95, 255, 170, 0.15);  /* mint */
+  color: #5FFFAA;
+}
+
+/* ── PR review pill: magenta ─────────────────────────────────── */
+body[data-theme-v3="deepweb"] .v3-pr-pill-review {
+  background: rgba(255, 95, 204, 0.16);
+  color: #FF5FCC;
+}
+
+/* ── PR row icon: magenta ────────────────────────────────────── */
+body[data-theme-v3="deepweb"] .v3-row-pr .v3-row-icon {
+  background: rgba(255, 95, 204, 0.16);
+  color: #FF5FCC;
+}
+
+/* ── "View all" links: cyan ──────────────────────────────────── */
+body[data-theme-v3="deepweb"] .v3-link {
+  color: #5FA8FF;
+}
+body[data-theme-v3="deepweb"] .v3-link:hover {
+  color: #88C0FF;
+  text-decoration: underline;
+}
+
+/* ── Audit alert banner: magenta ─────────────────────────────── */
+body[data-theme-v3="deepweb"] .v3-audit-foot {
+  background: rgba(255, 95, 204, 0.10);
+  border-color: rgba(255, 95, 204, 0.35);
+  color: #FF5FCC;
+}
+body[data-theme-v3="deepweb"] .v3-audit-foot .v3-chev {
+  color: #FF5FCC;
+}
+
+/* ── Audit findings: deepweb-adapted backgrounds ─────────────── */
+body[data-theme-v3="deepweb"] .v3-finding-crit {
+  border-color: rgba(255, 85, 119, 0.30);
+  background: rgba(255, 85, 119, 0.07);
+}
+body[data-theme-v3="deepweb"] .v3-finding-warn {
+  border-color: rgba(255, 170, 95, 0.28);
+  background: rgba(255, 170, 95, 0.07);
+}
+body[data-theme-v3="deepweb"] .v3-finding-info {
+  border-color: rgba(95, 168, 255, 0.25);
+  background: rgba(95, 168, 255, 0.06);
+}
+body[data-theme-v3="deepweb"] .v3-finding-ok {
+  border-color: rgba(95, 255, 170, 0.25);
+  background: rgba(95, 255, 170, 0.07);
+}
+
+/* ── Success / error banners ─────────────────────────────────── */
+body[data-theme-v3="deepweb"] .v3-error {
+  background: rgba(255, 85, 119, 0.10);
+  border-color: rgba(255, 85, 119, 0.30);
+  color: #FF5577;
+}
+body[data-theme-v3="deepweb"] .v3-success {
+  background: rgba(95, 255, 170, 0.10);
+  border-color: rgba(95, 255, 170, 0.28);
+  color: #5FFFAA;
+}
+
+/* ── Chip.active inverts on near-black ───────────────────────── */
+body[data-theme-v3="deepweb"] .v3-chip.active {
+  background: var(--v3-text);
+  border-color: var(--v3-text);
+  color: var(--v3-surface);
+}
+
+/* ── Scrollbar thumbs: cyan/magenta ─────────────────────────── */
+body[data-theme-v3="deepweb"] .appv3 ::-webkit-scrollbar-thumb {
+  background: #2C4870;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+body[data-theme-v3="deepweb"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: #5FA8FF;
+  background-clip: content-box;
+}

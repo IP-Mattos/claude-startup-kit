@@ -1,6 +1,13 @@
 Set-Location $PSScriptRoot
 $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 if (Test-Path $vswhere) {
+    # Prepend vswhere's directory to PATH so vcvars64.bat's internal vswhere
+    # call works without emitting "'vswhere.exe' is not recognized" warning.
+    $vswhereDir = Split-Path $vswhere -Parent
+    if (-not ($env:PATH -split ';' -contains $vswhereDir)) {
+        $env:PATH = "$vswhereDir;$env:PATH"
+    }
+
     $vsInstall = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
     if ($vsInstall) {
         $vcvars = Join-Path $vsInstall 'VC\Auxiliary\Build\vcvars64.bat'

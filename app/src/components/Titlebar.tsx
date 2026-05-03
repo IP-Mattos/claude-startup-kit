@@ -2,13 +2,24 @@ import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, Square, X } from "lucide-react";
 
+const IS_TAURI =
+  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+const safeGetCurrentWindow = () => {
+  try {
+    return IS_TAURI ? getCurrentWindow() : null;
+  } catch {
+    return null;
+  }
+};
+
 export function Titlebar() {
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
+    const win = safeGetCurrentWindow();
+    if (!win) return;
     let cancelled = false;
     let unlisten: (() => void) | undefined;
-    const win = getCurrentWindow();
     win.isMaximized().then((m) => {
       if (!cancelled) setMaximized(m);
     });
@@ -31,7 +42,7 @@ export function Titlebar() {
     };
   }, []);
 
-  const win = getCurrentWindow();
+  const win = safeGetCurrentWindow();
   return (
     <div className="titlebar" data-tauri-drag-region>
       <div className="titlebar-brand" data-tauri-drag-region>
@@ -50,17 +61,17 @@ export function Titlebar() {
       </div>
       <div className="titlebar-drag" data-tauri-drag-region />
       <div className="window-controls">
-        <button className="wc" onClick={() => win.minimize()} title="Minimizar">
+        <button className="wc" onClick={() => win?.minimize()} title="Minimizar">
           <Minus size={12} strokeWidth={2.5} />
         </button>
         <button
           className="wc"
-          onClick={() => win.toggleMaximize()}
+          onClick={() => win?.toggleMaximize()}
           title={maximized ? "Restaurar" : "Maximizar"}
         >
           <Square size={11} strokeWidth={2} />
         </button>
-        <button className="wc wc-close" onClick={() => win.close()} title="Cerrar">
+        <button className="wc wc-close" onClick={() => win?.close()} title="Cerrar">
           <X size={13} strokeWidth={2.5} />
         </button>
       </div>

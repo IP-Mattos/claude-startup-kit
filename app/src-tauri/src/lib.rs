@@ -302,7 +302,18 @@ pub struct CleanupResult {
 }
 
 #[tauri::command]
-fn cleanup_apply(paths: Vec<String>) -> CleanupResult {
+async fn cleanup_apply(paths: Vec<String>) -> CleanupResult {
+    tokio::task::spawn_blocking(move || cleanup_apply_blocking(paths))
+        .await
+        .unwrap_or_else(|_| CleanupResult {
+            deleted: 0,
+            failed: 1,
+            freed_bytes: 0,
+            errors: vec!["task panicked".to_string()],
+        })
+}
+
+fn cleanup_apply_blocking(paths: Vec<String>) -> CleanupResult {
     let mut deleted = 0u32;
     let mut failed = 0u32;
     let mut freed = 0u64;
@@ -697,8 +708,11 @@ fn engram_project_goal_blocking(path: &str, known: &[String]) -> Option<String> 
 }
 
 #[tauri::command]
-fn engram_project_goal(path: String, known: Vec<String>) -> Option<String> {
-    engram_project_goal_blocking(&path, &known)
+async fn engram_project_goal(path: String, known: Vec<String>) -> Option<String> {
+    tokio::task::spawn_blocking(move || engram_project_goal_blocking(&path, &known))
+        .await
+        .ok()
+        .flatten()
 }
 
 fn extract_goal(text: &str) -> Option<String> {
@@ -766,8 +780,11 @@ fn git_last_commit_blocking(path: &str) -> Option<GitInfo> {
 }
 
 #[tauri::command]
-fn git_last_commit(path: String) -> Option<GitInfo> {
-    git_last_commit_blocking(&path)
+async fn git_last_commit(path: String) -> Option<GitInfo> {
+    tokio::task::spawn_blocking(move || git_last_commit_blocking(&path))
+        .await
+        .ok()
+        .flatten()
 }
 
 // ---------- batched enrichment ----------
@@ -806,25 +823,69 @@ async fn enrich_projects(paths: Vec<String>) -> Vec<EnrichedProject> {
     out
 }
 
-#[tauri::command]
-fn open_in_vscode(path: String) -> Result<(), String> {
-    // Direct invocation of code.cmd. Path is passed as a single argv entry,
-    // so Rust's Windows arg quoter handles spaces. .spawn() returns immediately
-    // (no UI block); we don't wait for VS Code to exit.
-    Command::new("code.cmd")
-        .arg(&path)
-        .spawn()
-        .map_err(|e| format!("failed to launch VS Code: {e}"))?;
-    Ok(())
+// Reject inputs that look like CLI flags or shell escape paths. Prevents an
+// attacker who controls the renderer (e.g. via XSS in a dep) from passing
+// `--install-extension evil.ext` to code.cmd or `shell:::{CLSID}` to explorer.
+fn validate_open_path(path: &str) -> Result<PathBuf, String> {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return Err("empty path".to_string());
+    }
+    // Flag-injection guard.
+    if trimmed.starts_with('-') || trimmed.starts_with('/') {
+        return Err(format!("refused (looks like a flag/option): {trimmed}"));
+    }
+    // Shell-namespace / protocol guards (Windows-specific attack surface).
+    let lower = trimmed.to_lowercase();
+    for bad in ["shell:", "shell:::", "::{", "file://", "ms-windows-store:"] {
+        if lower.starts_with(bad) {
+            return Err(format!("refused (protocol/shell path): {trimmed}"));
+        }
+    }
+    // Reject UNC \\server\share — NTLM hash capture vector.
+    if trimmed.starts_with("\\\\") || trimmed.starts_with("//") {
+        return Err(format!("refused (UNC path): {trimmed}"));
+    }
+    // Path must exist and resolve cleanly.
+    let p = Path::new(trimmed);
+    if !p.exists() {
+        return Err(format!("path not found: {trimmed}"));
+    }
+    let canonical = p
+        .canonicalize()
+        .map_err(|e| format!("canonicalize {trimmed}: {e}"))?;
+    Ok(canonical)
 }
 
 #[tauri::command]
-fn open_path_in_explorer(path: String) -> Result<(), String> {
-    Command::new("explorer")
-        .arg(&path)
-        .spawn()
-        .map_err(|e| format!("failed to open explorer: {e}"))?;
-    Ok(())
+async fn open_in_vscode(path: String) -> Result<(), String> {
+    let canonical = validate_open_path(&path)?;
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        // `--` ends VS Code's option parsing so the path that follows is treated
+        // verbatim and never as a flag, even if a future bypass slips through.
+        Command::new("code.cmd")
+            .arg("--")
+            .arg(&canonical)
+            .spawn()
+            .map_err(|e| format!("failed to launch VS Code: {e}"))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn open_path_in_explorer(path: String) -> Result<(), String> {
+    let canonical = validate_open_path(&path)?;
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        Command::new("explorer")
+            .arg(&canonical)
+            .spawn()
+            .map_err(|e| format!("failed to open explorer: {e}"))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
 }
 
 fn show_main_window(app: &tauri::AppHandle) {
