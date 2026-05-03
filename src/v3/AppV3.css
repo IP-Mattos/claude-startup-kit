@@ -1301,7 +1301,9 @@ body.v3-layout #root {
   object-fit: cover;
 }
 /* Bordered message box — quotes the line so the assistant feels like it's
-   actually telling you something instead of being plain page copy. */
+   actually telling you something instead of being plain page copy.
+   pre-line preserves manual \n in the i18n strings so the headline ('Sin
+   críticos.') sits on its own line without us having to ship JSX. */
 .v3-companion-message {
   font-size: 13px;
   line-height: 1.55;
@@ -1310,6 +1312,7 @@ body.v3-layout #root {
   background: var(--v3-surface-2);
   border: 1px solid var(--v3-border);
   border-radius: var(--v3-radius);
+  white-space: pre-line;
 }
 .v3-companion-emph {
   color: var(--v3-accent);

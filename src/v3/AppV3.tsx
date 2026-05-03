@@ -257,22 +257,6 @@ function SidebarV3({
           <span className="v3-status-dot" aria-hidden="true" />
           <span className="v3-system-status-headline">{headline}</span>
         </div>
-        {(critCount > 0 || warnCount > 0) && (
-          <div className="v3-system-status-stats">
-            {critCount > 0 && (
-              <span className="v3-system-status-stat v3-system-status-stat-crit">
-                <span className="v3-system-status-stat-num">{critCount}</span>
-                <span>{t("status.crit_short")}</span>
-              </span>
-            )}
-            {warnCount > 0 && (
-              <span className="v3-system-status-stat v3-system-status-stat-warn">
-                <span className="v3-system-status-stat-num">{warnCount}</span>
-                <span>{t("status.warn_short")}</span>
-              </span>
-            )}
-          </div>
-        )}
         <div className="v3-system-status-meta">
           {t("status.last_scan")} <strong>{lastScanAgo}</strong>
         </div>
@@ -555,8 +539,11 @@ function CompanionWidget({
       </div>
       <div className="v3-companion-message">{message}</div>
       <div className="v3-companion-foot">
-        <span className="v3-companion-scan">
-          {t("companion.stat_scan")} · <strong>{lastScanAgo}</strong>
+        <span
+          className="v3-companion-scan"
+          title={`${t("companion.stat_scan")}: ${lastScanAgo}`}
+        >
+          {lastScanAgo}
         </span>
         <button className="v3-btn-primary v3-companion-cta" onClick={action.onClick}>
           {action.label}

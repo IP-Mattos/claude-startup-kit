@@ -74,16 +74,16 @@ const STRINGS = {
     es: "Revisé tu workspace. Nada crítico para marcar ahora.",
   },
   "companion.has_crits": {
-    en: "I've analyzed your workspace. There are {n} critical issues that should be addressed.",
-    es: "Analicé tu workspace. Hay {n} problemas críticos que deberías revisar.",
+    en: "I've analyzed your workspace.\n{n} critical issues should be addressed.",
+    es: "Analicé tu workspace.\nHay {n} problemas críticos para revisar.",
   },
   "companion.has_warns": {
-    en: "Audit clean on critical. {n} warnings you can address when you have time.",
-    es: "Sin críticos. {n} advertencias para mirar cuando tengas un rato.",
+    en: "Audit clean on critical.\n{n} warnings to look at when you have time.",
+    es: "Sin críticos.\n{n} advertencias para mirar cuando tengas un rato.",
   },
   "companion.has_prs": {
-    en: "Workspace healthy. {n} pull requests waiting for your review.",
-    es: "Workspace sano. Hay {n} pull requests esperando tu review.",
+    en: "Workspace healthy.\n{n} pull requests waiting for your review.",
+    es: "Workspace sano.\nHay {n} pull requests esperando tu review.",
   },
   "companion.today": {
     en: "You've been working on {project} today. Audit's clean.",
@@ -164,7 +164,7 @@ const STRINGS = {
   "settings.language": { en: "Language", es: "Idioma" },
   "settings.language_auto": { en: "System", es: "Sistema" },
   "settings.language_en": { en: "English", es: "Inglés" },
-  "settings.language_es": { en: "Spanish (Rioplatense)", es: "Español (Rioplatense)" },
+  "settings.language_es": { en: "Spanish", es: "Español" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;
