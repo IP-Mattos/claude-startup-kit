@@ -1,0 +1,367 @@
+/* =============================================================
+   V3 Theme: Y2K-POP
+   Identity: vaporwave OS chrome — magenta + electric cyan + violet,
+   pixel window frames over a soft pink-violet dithered desktop.
+   Reference moods: Mac OS 9 in lipstick, Bliss Type 2000, GeoCities.
+   ============================================================= */
+
+/* ── Body background ──────────────────────────────────────────
+   Diagonal pink-to-violet wash + a 5% dither checker SVG overlay.
+   Reads as a friendly retro-OS desktop, not a flat wash.
+   ─────────────────────────────────────────────────────────── */
+body.v3-layout[data-theme-v3="y2k-pop"] {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='2' height='2' fill='%23B07DC9' fill-opacity='0.08'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%23B07DC9' fill-opacity='0.08'/%3E%3C/svg%3E"),
+    linear-gradient(135deg, #FDD8E5 0%, #E8D8F2 55%, #E0D2F4 100%);
+  background-repeat: repeat, no-repeat;
+}
+
+body[data-theme-v3="y2k-pop"] .appv3 {
+  /* ── Surface ─────────────────────────────────────────────── */
+  --v3-bg:           #F5EFFB;            /* soft cream-violet desktop */
+  --v3-surface:      #FBF6FE;            /* card body — paper-cream */
+  --v3-surface-2:    #F2E9F8;            /* inset / subtle alt */
+  --v3-hover:        #F4DDF0;            /* magenta-tinted wash */
+  --v3-border:       #E5B6D8;            /* soft magenta hairline */
+  --v3-border-strong:#FF5FB0;            /* electric magenta — chunky frame */
+
+  /* ── Type — AA on cream surfaces ─────────────────────────── */
+  /* #2A1233 on #FBF6FE ≈ 14:1 — heavy ink on pastel paper */
+  --v3-text:   #2A1233;                  /* deep violet ink */
+  --v3-text-2: #4B2461;                  /* secondary violet */
+  --v3-text-3: #6B3A86;                  /* ~5.4:1 on cream — AA */
+  --v3-text-4: #A07AB6;                  /* decorative / placeholders */
+
+  /* ── Accent: electric magenta ────────────────────────────── */
+  /* #C4257E on #FBF6FE ≈ 5.0:1 — passes AA for non-large text.
+     The brighter #FF5FB0 is reserved for fills, frames, icons. */
+  --v3-accent:        #FF5FB0;
+  --v3-accent-hover:  #E63F94;
+  --v3-accent-tint:   #FFE2F1;
+  --v3-accent-soft:   rgba(255, 95, 176, 0.18);
+
+  /* ── Semantic ────────────────────────────────────────────── */
+  --v3-success:       #00B894;           /* mint — pops on cream */
+  --v3-success-tint:  #CFF5EB;
+  --v3-warn:          #F2A40C;           /* warm amber — readable on cream */
+  --v3-warn-tint:     #FFEBC2;
+  /* Electric cyan — both info AND secondary accent.
+     Slightly deeper than --v3-info-tint hue for a hair of separation. */
+  --v3-info:          #22D3EE;
+  --v3-info-tint:     #C9F4FB;
+  --v3-crit:          #E5184F;
+  --v3-crit-tint:     #FFD6E0;
+
+  /* ── Shadows: pixel-style, no blur ───────────────────────── */
+  /* 1px hard-offset magenta drop — the "window stuck on a desktop" feel */
+  --v3-shadow-1: 1px 1px 0 0 rgba(75, 36, 97, 0.18);
+  --v3-shadow-2: 2px 2px 0 0 rgba(75, 36, 97, 0.22), 0 0 0 1px rgba(255, 95, 176, 0.20);
+  --v3-shadow-3: 3px 3px 0 0 rgba(75, 36, 97, 0.28), 0 0 0 1px rgba(255, 95, 176, 0.30);
+}
+
+/* ── Content area: dithered desktop ──────────────────────────
+   Same checker as body, slightly stronger inside the viewport.
+   Sells the OS-window-on-desktop metaphor.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .appv3-content {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='2' height='2' fill='%23FF5FB0' fill-opacity='0.06'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%2322D3EE' fill-opacity='0.06'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* ── Typography: Bitter heads, Inter body, VT323 chrome ─────── */
+body[data-theme-v3="y2k-pop"] .appv3 {
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+body[data-theme-v3="y2k-pop"] .appv3 h1,
+body[data-theme-v3="y2k-pop"] .appv3 h2,
+body[data-theme-v3="y2k-pop"] .appv3 h3,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-card-title,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-section-title {
+  font-family: "Bitter", "Iowan Old Style", Georgia, serif;
+  letter-spacing: -0.005em;
+}
+
+/* ── Cards: pixel windows with magenta title-bar strip ───────
+   Each .v3-card gets a 22px title bar via ::before, with three
+   decorative pixel squares (close/min/max) in the upper right.
+   Pure CSS — no JS, no interactivity.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-card {
+  position: relative;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 6px;
+  padding-top: 30px;                     /* space below the title bar */
+  box-shadow:
+    2px 2px 0 0 rgba(75, 36, 97, 0.22),
+    0 0 0 1px rgba(255, 95, 176, 0.25);
+  overflow: hidden;
+}
+
+body[data-theme-v3="y2k-pop"] .appv3 .v3-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  background:
+    /* the three pixel chrome squares — purple, cyan, magenta */
+    linear-gradient(90deg, transparent calc(100% - 56px),
+      #2A1233 calc(100% - 56px), #2A1233 calc(100% - 48px),
+      transparent calc(100% - 48px), transparent calc(100% - 40px),
+      #22D3EE calc(100% - 40px), #22D3EE calc(100% - 32px),
+      transparent calc(100% - 32px), transparent calc(100% - 24px),
+      #FFE2F1 calc(100% - 24px), #FFE2F1 calc(100% - 16px),
+      transparent calc(100% - 16px)),
+    linear-gradient(180deg, #FF5FB0 0%, #E63F94 100%);
+  border-bottom: 1px solid #B12D77;
+  background-size: 100% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+/* Tiny pixel "title" text on the bar — VT323 glyphs */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  font-family: "VT323", "Press Start 2P", monospace;
+  color: #FFE2F1;
+  font-size: 14px;
+  line-height: 22px;
+  padding-left: 10px;
+  letter-spacing: 0.04em;
+  text-shadow: 1px 1px 0 rgba(75, 36, 97, 0.45);
+  pointer-events: none;
+}
+
+/* ── Stat cards: same window treatment, denser ───────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-card {
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 0 rgba(75, 36, 97, 0.22);
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow:
+    3px 3px 0 0 rgba(75, 36, 97, 0.28),
+    0 0 0 2px var(--v3-accent-soft);
+}
+
+/* ── Rows: hairline magenta + cyan hover edge ────────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-row {
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: 4px;
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-row:hover {
+  background: var(--v3-hover);
+  border-color: var(--v3-accent);
+  box-shadow:
+    1px 1px 0 0 var(--v3-info),
+    0 0 0 1px var(--v3-accent);
+}
+
+/* ── Sidebar active link: cyan bg + magenta pixel arrow ──────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-side-link {
+  position: relative;
+  border-radius: 3px;
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-side-link.active {
+  background: var(--v3-info-tint);
+  color: #0E5C6B;                        /* deep cyan ink — AA on cyan tint */
+  font-weight: 600;
+  box-shadow:
+    inset 2px 0 0 var(--v3-accent),
+    1px 1px 0 0 rgba(75, 36, 97, 0.18);
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-side-link.active::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  margin-top: -4px;
+  /* solid pixel arrow — three stacked squares look */
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--v3-accent);
+  filter: drop-shadow(1px 0 0 #2A1233);
+}
+
+/* ── Topbar: cream with magenta hairline + cyan inset ────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-topbar {
+  background: var(--v3-surface);
+  border-bottom: 1px solid var(--v3-accent);
+  box-shadow: inset 0 -2px 0 0 var(--v3-info);
+}
+
+/* ── Statusbar: dithered pink + cyan corner readouts ─────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-statusbar {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='2' height='2' fill='%23FF5FB0' fill-opacity='0.18'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%23FF5FB0' fill-opacity='0.18'/%3E%3C/svg%3E"),
+    var(--v3-accent-tint);
+  border-top: 1px solid var(--v3-accent);
+  font-family: "VT323", "Press Start 2P", monospace;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  color: var(--v3-text-2);
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-statusbar > :first-child,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-statusbar > :last-child {
+  color: #0E5C6B;                        /* cyan ink on pink dither */
+  background: var(--v3-info-tint);
+  padding: 2px 8px;
+  border: 1px solid var(--v3-info);
+  border-radius: 2px;
+}
+
+/* ── Companion stage: pink-cyan vapor glow ───────────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-companion-stage {
+  background:
+    radial-gradient(ellipse 80% 60% at 30% 100%,
+      rgba(255, 95, 176, 0.28) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 60% at 80% 0%,
+      rgba(34, 211, 238, 0.22) 0%, transparent 65%),
+    linear-gradient(180deg, #FFE2F1 0%, #FBF6FE 70%, transparent 100%);
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-companion-head {
+  border-bottom: 1px dashed var(--v3-accent);
+}
+
+/* ── Stat icon tints — magenta / cyan / violet / mint ────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-icon-orange {
+  background: var(--v3-accent-tint);
+  color: #C4257E;
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-icon-purple {
+  background: #ECDDF7;
+  color: #6B3A86;
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-icon-amber {
+  background: var(--v3-info-tint);
+  color: #0E5C6B;
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-icon-green {
+  background: var(--v3-success-tint);
+  color: #006B5A;
+}
+
+/* ── PR pill / row icon: violet on cream ─────────────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-pr-pill-review {
+  background: #ECDDF7;
+  color: #6B3A86;
+  border: 1px solid #C9A8E0;
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-row-pr .v3-row-icon {
+  background: #ECDDF7;
+  color: #6B3A86;
+}
+
+/* ── Audit warn banner: amber on cream ───────────────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-audit-foot {
+  background: var(--v3-warn-tint);
+  border-color: var(--v3-warn);
+  color: #6B3F00;
+  box-shadow: 1px 1px 0 0 rgba(75, 36, 97, 0.18);
+}
+
+/* ── Findings ────────────────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-finding-crit {
+  border-color: var(--v3-crit);
+  background: var(--v3-crit-tint);
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-finding-warn {
+  border-color: var(--v3-warn);
+  background: var(--v3-warn-tint);
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-finding-info {
+  border-color: var(--v3-info);
+  background: var(--v3-info-tint);
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-finding-ok {
+  border-color: var(--v3-success);
+  background: var(--v3-success-tint);
+}
+
+/* ── Banners ─────────────────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-error {
+  background: var(--v3-crit-tint);
+  border-color: var(--v3-crit);
+  color: #8A0F2E;
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-success {
+  background: var(--v3-success-tint);
+  border-color: var(--v3-success);
+  color: #00604F;
+}
+
+/* ── Chips ──────────────────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-chip {
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 3px;
+  background: var(--v3-surface);
+  font-family: "VT323", monospace;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+}
+body[data-theme-v3="y2k-pop"] .appv3 .v3-chip.active {
+  background: var(--v3-accent);
+  border-color: var(--v3-accent);
+  color: #FFFFFF;
+  box-shadow: 1px 1px 0 0 var(--v3-info);
+}
+
+/* ── Buttons: pixel windows in miniature ─────────────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 button,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-btn {
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 4px;
+  box-shadow: 1px 1px 0 0 rgba(75, 36, 97, 0.22);
+}
+body[data-theme-v3="y2k-pop"] .appv3 button:hover,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 2px 2px 0 0 rgba(75, 36, 97, 0.28);
+}
+body[data-theme-v3="y2k-pop"] .appv3 button:active,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+/* ── Focus visible: cyan ring + magenta core ─────────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 button:focus-visible,
+body[data-theme-v3="y2k-pop"] .appv3 a:focus-visible,
+body[data-theme-v3="y2k-pop"] .appv3 input:focus-visible,
+body[data-theme-v3="y2k-pop"] .appv3 select:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.35);
+}
+
+/* ── Scrollbar: chunky pixel rail ────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .appv3 ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+body[data-theme-v3="y2k-pop"] .appv3 ::-webkit-scrollbar-track {
+  background: var(--v3-accent-tint);
+  border-left: 1px solid var(--v3-accent);
+}
+body[data-theme-v3="y2k-pop"] .appv3 ::-webkit-scrollbar-thumb {
+  background: var(--v3-accent);
+  border: 2px solid var(--v3-accent-tint);
+  border-radius: 0;
+  background-clip: content-box;
+}
+body[data-theme-v3="y2k-pop"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: var(--v3-accent-hover);
+  background-clip: content-box;
+}

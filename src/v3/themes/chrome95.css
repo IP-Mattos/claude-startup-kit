@@ -1,0 +1,398 @@
+/* =============================================================
+   V3 Theme: CHROME 95
+   Identity: authentic Windows 95 system chrome — gray surfaces,
+   navy accent, 3D bevels, dotted focus outlines. The personality
+   IS its rigidness. Contrast is modernized (black on #D4D0C8 ≈ 14:1)
+   even though the palette stays period-correct.
+   Reference moods: Windows 95 Explorer, Program Manager, Notepad.
+   ============================================================= */
+
+/* ── Body background ──────────────────────────────────────────
+   The classic teal desktop would fight the layout — we keep the
+   outer chrome the same system gray so the whole window reads as
+   one rigid panel. No gradients. No glow.
+   ─────────────────────────────────────────────────────────── */
+body.v3-layout[data-theme-v3="chrome95"] {
+  background: #008080; /* Win95 desktop teal — only peeks at the very edges */
+  font-family: "Tahoma", "MS Sans Serif", "Microsoft Sans Serif", system-ui, sans-serif;
+}
+
+/* ── Token definitions ──────────────────────────────────────── */
+body[data-theme-v3="chrome95"] .appv3 {
+  /* ── Surface family — the iconic 3D Objects gray ──────────── */
+  --v3-bg:            #D4D0C8;  /* "3D Objects" gray (post-Plus! refresh of #C0C0C0) */
+  --v3-surface:       #D4D0C8;  /* dialog face — same as bg, bevels do the lifting */
+  --v3-surface-2:     #C0C0C0;  /* slightly darker for inset wells / titlebars-inactive */
+  --v3-hover:         #E0DCD4;  /* +2 lightness; subtle since Win95 mostly didn't hover */
+  --v3-border:        #808080;  /* dark bevel edge (bottom/right of raised) */
+  --v3-border-strong: #404040;  /* outermost bevel — the hard black-ish line */
+
+  /* ── Type ─────────────────────────────────────────────────── */
+  /* Black on #D4D0C8 ≈ 14:1 — way past AAA. Modernized contrast. */
+  --v3-text:   #000000;          /* system text */
+  --v3-text-2: #1A1A1A;          /* near-black for secondary; still ≈12:1 */
+  --v3-text-3: #404040;          /* "GrayText" but NOT the broken #808080 — ≈8.5:1 */
+  --v3-text-4: #707070;          /* truly decorative; placeholders only — ≈4.6:1 */
+
+  /* ── Accent — Win95 active titlebar navy ──────────────────── */
+  --v3-accent:        #000080;   /* the navy */
+  --v3-accent-hover:  #1F1FA0;   /* +12 lightness for press feedback */
+  --v3-accent-tint:   #C5C5DC;   /* navy mixed with system gray ≈ 18% */
+  --v3-accent-soft:   rgba(0, 0, 128, 0.14);
+
+  /* ── Semantic — period palette, AA-corrected ─────────────── */
+  --v3-success:       #008000;   /* DOS green */
+  --v3-success-tint:  #CFE5CF;   /* green @ ~22% on gray */
+  --v3-warn:          #806000;   /* dark mustard — readable, not yellow */
+  --v3-warn-tint:     #EFE3BE;   /* parchment */
+  /* Calm steel-blue for info — never yellow. Period-appropriate. */
+  --v3-info:          #2A4D7A;   /* steel blue, deeper than the navy accent */
+  --v3-info-tint:     #C8D4E2;
+  --v3-crit:          #800000;   /* maroon — Win95 error red */
+  --v3-crit-tint:     #E8C8C8;
+
+  /* ── BEVEL layers (NOT soft shadows) ──────────────────────────
+     The whole 3D vocabulary lives in these three tokens.
+     shadow-1: standard raised face (button at rest, panel).
+     shadow-2: deeper raise (focused/hover button — same face,
+               slightly thicker outer ring).
+     shadow-3: sunken / inset (input fields, status well).
+     Layer order: white top-left → light gray → dark gray →
+     near-black outer.
+     ─────────────────────────────────────────────────────────── */
+  --v3-shadow-1:
+    inset  1px  1px 0 0 #FFFFFF,
+    inset -1px -1px 0 0 #404040,
+    inset  2px  2px 0 0 #DFDFDF,
+    inset -2px -2px 0 0 #808080;
+  --v3-shadow-2:
+    inset  1px  1px 0 0 #FFFFFF,
+    inset -1px -1px 0 0 #000000,
+    inset  2px  2px 0 0 #DFDFDF,
+    inset -2px -2px 0 0 #808080;
+  --v3-shadow-3:
+    inset  1px  1px 0 0 #404040,
+    inset -1px -1px 0 0 #FFFFFF,
+    inset  2px  2px 0 0 #808080,
+    inset -2px -2px 0 0 #DFDFDF;
+}
+
+/* ── Kill all roundness — Win95 had ZERO border radius ──────── */
+body[data-theme-v3="chrome95"] .appv3,
+body[data-theme-v3="chrome95"] .appv3 *,
+body[data-theme-v3="chrome95"] .appv3 *::before,
+body[data-theme-v3="chrome95"] .appv3 *::after {
+  border-radius: 0 !important;
+}
+
+/* ── Body / app background ─────────────────────────────────── */
+body[data-theme-v3="chrome95"] .appv3 {
+  background: var(--v3-bg);
+  color: var(--v3-text);
+  font-family: "Tahoma", "MS Sans Serif", "Microsoft Sans Serif", system-ui, sans-serif;
+  /* Faint 1px noise = nothing. Win95 was flat gray. Period. */
+}
+
+/* ── Surfaces: cards / panels get the raised bevel ─────────── */
+body[data-theme-v3="chrome95"] .appv3 .v3-card,
+body[data-theme-v3="chrome95"] .appv3 .v3-stat-card,
+body[data-theme-v3="chrome95"] .appv3 .v3-panel,
+body[data-theme-v3="chrome95"] .appv3 .v3-row {
+  background: var(--v3-surface);
+  border: 0;
+  box-shadow: var(--v3-shadow-1);
+}
+
+/* Hover: don't change shape — flicker the surface like Win95 hot-track */
+body[data-theme-v3="chrome95"] .appv3 .v3-stat-card:hover,
+body[data-theme-v3="chrome95"] .appv3 .v3-row:hover {
+  background: var(--v3-hover);
+  box-shadow: var(--v3-shadow-1);
+}
+
+/* ── Buttons: raised bevel, invert on :active (depressed key) ─ */
+body[data-theme-v3="chrome95"] .appv3 button,
+body[data-theme-v3="chrome95"] .appv3 .v3-btn {
+  background: var(--v3-surface);
+  color: var(--v3-text);
+  border: 1px solid var(--v3-border-strong);
+  box-shadow: var(--v3-shadow-1);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 4px 12px;
+}
+body[data-theme-v3="chrome95"] .appv3 button:hover,
+body[data-theme-v3="chrome95"] .appv3 .v3-btn:hover {
+  background: var(--v3-hover);
+  box-shadow: var(--v3-shadow-1);
+}
+/* :active = the depressed key feel — bevel inverts */
+body[data-theme-v3="chrome95"] .appv3 button:active,
+body[data-theme-v3="chrome95"] .appv3 .v3-btn:active {
+  background: var(--v3-surface-2);
+  box-shadow: var(--v3-shadow-3);
+  /* nudge label 1px down-right to sell the press */
+  padding: 5px 11px 3px 13px;
+}
+
+/* Primary button: still bevelled, but face goes navy w/ white text */
+body[data-theme-v3="chrome95"] .appv3 .v3-btn-primary,
+body[data-theme-v3="chrome95"] .appv3 button.primary {
+  background: var(--v3-accent);
+  color: #FFFFFF;
+  font-weight: 700;
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-btn-primary:hover,
+body[data-theme-v3="chrome95"] .appv3 button.primary:hover {
+  background: var(--v3-accent-hover);
+}
+
+/* ── Inputs / selects: INVERTED bevel (sunken) over white ──── */
+body[data-theme-v3="chrome95"] .appv3 input,
+body[data-theme-v3="chrome95"] .appv3 textarea,
+body[data-theme-v3="chrome95"] .appv3 select {
+  background: #FFFFFF;
+  color: var(--v3-text);
+  border: 0;
+  box-shadow: var(--v3-shadow-3);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 3px 6px;
+}
+body[data-theme-v3="chrome95"] .appv3 input::placeholder,
+body[data-theme-v3="chrome95"] .appv3 textarea::placeholder {
+  color: var(--v3-text-4);
+}
+
+/* ── Focus: 1px DOTTED black outline, INSET 4px (marching ants) */
+body[data-theme-v3="chrome95"] .appv3 :focus,
+body[data-theme-v3="chrome95"] .appv3 :focus-visible {
+  outline: 1px dotted #000000;
+  outline-offset: -4px;
+  /* No glow, no ring — Win95 was austere. */
+}
+
+/* ── Topbar: flat bar, navy strip on the active tab ────────── */
+body[data-theme-v3="chrome95"] .v3-topbar {
+  background: var(--v3-surface);
+  border-bottom: 1px solid var(--v3-border-strong);
+  box-shadow: inset 0 -1px 0 0 #FFFFFF, 0 1px 0 0 #404040;
+  font-size: 11px;
+}
+body[data-theme-v3="chrome95"] .v3-topbar .v3-tab.active,
+body[data-theme-v3="chrome95"] .appv3 .v3-tab.active {
+  background: var(--v3-accent);
+  color: #FFFFFF;
+}
+
+/* ── Sidebar: panel face with raised bevel; active link = navy */
+body[data-theme-v3="chrome95"] .appv3 .v3-sidebar {
+  background: var(--v3-surface);
+  border-right: 1px solid var(--v3-border-strong);
+  box-shadow: inset -1px 0 0 0 #404040, inset 1px 0 0 0 #FFFFFF;
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-side-link {
+  color: var(--v3-text);
+  border-radius: 0 !important;
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-side-link:hover {
+  background: var(--v3-hover);
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-side-link.active {
+  background: var(--v3-accent);
+  color: #FFFFFF;
+  box-shadow: none;
+}
+/* Dotted focus inside the active link is white, not black */
+body[data-theme-v3="chrome95"] .appv3 .v3-side-link.active:focus,
+body[data-theme-v3="chrome95"] .appv3 .v3-side-link.active:focus-visible {
+  outline: 1px dotted #FFFFFF;
+  outline-offset: -4px;
+}
+
+/* ── Statusbar: classic gray with sunken 1-line strip ──────── */
+body[data-theme-v3="chrome95"] .appv3 .v3-statusbar,
+body[data-theme-v3="chrome95"] .appv3 .v3-status,
+body[data-theme-v3="chrome95"] .appv3 .v3-footer {
+  background: var(--v3-surface);
+  color: var(--v3-text-3);
+  border-top: 1px solid #FFFFFF;
+  box-shadow: inset 0 1px 0 0 #FFFFFF, 0 -1px 0 0 #404040;
+  font-family: "Tahoma", "MS Sans Serif", system-ui, sans-serif;
+  font-size: 11px;
+  padding: 2px 8px;
+}
+/* The "file size" wells in the statusbar corners — sunken */
+body[data-theme-v3="chrome95"] .appv3 .v3-status-cell,
+body[data-theme-v3="chrome95"] .appv3 .v3-statusbar > * {
+  box-shadow: var(--v3-shadow-3);
+  padding: 1px 6px;
+  font-size: 11px;
+}
+
+/* ── Window controls (min/max/close): tiny pixel-feel ──────── */
+body[data-theme-v3="chrome95"] .appv3 .v3-wctrl,
+body[data-theme-v3="chrome95"] .appv3 .v3-window-control {
+  width: 16px;
+  height: 14px;
+  background: var(--v3-surface);
+  box-shadow: var(--v3-shadow-1);
+  font-size: 9px;
+  line-height: 1;
+  font-family: "Marlett", "Tahoma", system-ui, sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-wctrl:active,
+body[data-theme-v3="chrome95"] .appv3 .v3-window-control:active {
+  box-shadow: var(--v3-shadow-3);
+}
+
+/* ── Companion stage: flat gray with a sunken inset frame ──── */
+body[data-theme-v3="chrome95"] .appv3 .v3-companion-stage {
+  background: var(--v3-surface);
+  box-shadow: var(--v3-shadow-3);
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-companion-head {
+  background: var(--v3-accent);
+  color: #FFFFFF;
+  padding: 2px 6px;
+  font-weight: 700;
+  font-size: 11px;
+  border-bottom: 0;
+}
+
+/* ── Stat icon tints — desaturated, period-appropriate ─────── */
+body[data-theme-v3="chrome95"] .appv3 .v3-stat-icon-orange {
+  background: #E0C8B0;
+  color: #804000;
+  box-shadow: var(--v3-shadow-3);
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-stat-icon-purple {
+  background: #C8C0D8;
+  color: #400080;
+  box-shadow: var(--v3-shadow-3);
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-stat-icon-amber {
+  background: var(--v3-warn-tint);
+  color: var(--v3-warn);
+  box-shadow: var(--v3-shadow-3);
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-stat-icon-green {
+  background: var(--v3-success-tint);
+  color: var(--v3-success);
+  box-shadow: var(--v3-shadow-3);
+}
+
+/* ── Audit footer: sunken parchment well ───────────────────── */
+body[data-theme-v3="chrome95"] .appv3 .v3-audit-foot {
+  background: var(--v3-warn-tint);
+  border: 0;
+  box-shadow: var(--v3-shadow-3);
+  color: var(--v3-warn);
+}
+
+/* Audit findings: each gets its own sunken well */
+body[data-theme-v3="chrome95"] .appv3 .v3-finding-crit {
+  background: var(--v3-crit-tint);
+  border: 0;
+  box-shadow: var(--v3-shadow-3);
+  color: var(--v3-crit);
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-finding-warn {
+  background: var(--v3-warn-tint);
+  border: 0;
+  box-shadow: var(--v3-shadow-3);
+  color: var(--v3-warn);
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-finding-info {
+  background: var(--v3-info-tint);
+  border: 0;
+  box-shadow: var(--v3-shadow-3);
+  color: var(--v3-info);
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-finding-ok {
+  background: var(--v3-success-tint);
+  border: 0;
+  box-shadow: var(--v3-shadow-3);
+  color: var(--v3-success);
+}
+
+/* ── Banners ───────────────────────────────────────────────── */
+body[data-theme-v3="chrome95"] .appv3 .v3-error {
+  background: var(--v3-crit-tint);
+  border: 0;
+  box-shadow: var(--v3-shadow-3);
+  color: var(--v3-crit);
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-success {
+  background: var(--v3-success-tint);
+  border: 0;
+  box-shadow: var(--v3-shadow-3);
+  color: var(--v3-success);
+}
+
+/* ── PR pill / row icon ────────────────────────────────────── */
+body[data-theme-v3="chrome95"] .appv3 .v3-pr-pill-review {
+  background: var(--v3-accent-tint);
+  color: var(--v3-accent);
+  box-shadow: var(--v3-shadow-1);
+  font-weight: 700;
+  padding: 1px 6px;
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-row-pr .v3-row-icon {
+  background: var(--v3-accent-tint);
+  color: var(--v3-accent);
+  box-shadow: var(--v3-shadow-3);
+}
+
+/* ── Chip.active — the one selected pill, navy face ────────── */
+body[data-theme-v3="chrome95"] .appv3 .v3-chip {
+  background: var(--v3-surface);
+  color: var(--v3-text);
+  border: 0;
+  box-shadow: var(--v3-shadow-1);
+  padding: 2px 10px;
+  font-size: 11px;
+}
+body[data-theme-v3="chrome95"] .appv3 .v3-chip.active {
+  background: var(--v3-accent);
+  color: #FFFFFF;
+  box-shadow: var(--v3-shadow-3); /* depressed = active */
+}
+
+/* ── Scrollbar: chunky 16px Win95 scrollbar ────────────────── */
+body[data-theme-v3="chrome95"] .appv3 ::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+  background: var(--v3-surface);
+}
+body[data-theme-v3="chrome95"] .appv3 ::-webkit-scrollbar-track {
+  background:
+    repeating-conic-gradient(#D4D0C8 0% 25%, #BFBBB3 0% 50%) 50% / 2px 2px;
+}
+body[data-theme-v3="chrome95"] .appv3 ::-webkit-scrollbar-thumb {
+  background: var(--v3-surface);
+  box-shadow: var(--v3-shadow-1);
+  border: 0;
+}
+body[data-theme-v3="chrome95"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: var(--v3-hover);
+}
+body[data-theme-v3="chrome95"] .appv3 ::-webkit-scrollbar-button {
+  background: var(--v3-surface);
+  box-shadow: var(--v3-shadow-1);
+  width: 16px;
+  height: 16px;
+}
+body[data-theme-v3="chrome95"] .appv3 ::-webkit-scrollbar-button:active {
+  box-shadow: var(--v3-shadow-3);
+}
+
+/* ── Selection: navy bar w/ white text — the Win95 highlight ─ */
+body[data-theme-v3="chrome95"] .appv3 ::selection {
+  background: var(--v3-accent);
+  color: #FFFFFF;
+}

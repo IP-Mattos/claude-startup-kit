@@ -5,16 +5,12 @@
 export const V3_THEME_ORDER = [
   "light",
   "dark",
-  "pastel-kawaii",
-  "cyber-moon",
-  "brutal-green",
-  "pixel-command",
-  "text-ticker",
-  "blueprint",
-  "win95",
-  "vapor",
-  "bunker",
-  "bios",
+  "retro-os",
+  "chrome95",
+  "lunar-hud",
+  "lilac-stickers",
+  "y2k-pop",
+  "pixel-crt",
 ] as const;
 
 export type V3Theme = (typeof V3_THEME_ORDER)[number];
@@ -27,18 +23,14 @@ export interface V3ThemeOption {
   swatch: [string, string, string];
 }
 export const V3_THEME_OPTIONS: V3ThemeOption[] = [
-  { id: "light",         label: "Light",          swatch: ["#F8F9FB", "#FFFFFF", "#ED7B26"] },
-  { id: "dark",          label: "Dark",           swatch: ["#0F172A", "#1E293B", "#ED7B26"] },
-  { id: "pastel-kawaii", label: "Pastel Kawaii",  swatch: ["#FBF1F6", "#FFFFFF", "#C24683"] },
-  { id: "cyber-moon",    label: "Cyber Moon",     swatch: ["#0A0820", "#14122B", "#22D3EE"] },
-  { id: "brutal-green",  label: "Brutal Green",   swatch: ["#050705", "#0B0F0B", "#3DDC84"] },
-  { id: "pixel-command", label: "Pixel Command",  swatch: ["#F2EAD6", "#FBF6E7", "#B8351E"] },
-  { id: "text-ticker",   label: "Text Ticker",    swatch: ["#F4EFE6", "#FBF7EE", "#B23A2E"] },
-  { id: "blueprint",     label: "Blueprint",      swatch: ["#103A5C", "#164870", "#F0892B"] },
-  { id: "win95",         label: "Win95",          swatch: ["#D4D0C8", "#C0C0C0", "#000080"] },
-  { id: "vapor",         label: "Vapor",          swatch: ["#2B0E3A", "#1A0E2E", "#22D3EE"] },
-  { id: "bunker",        label: "Bunker",         swatch: ["#14160F", "#1F2218", "#E8A33D"] },
-  { id: "bios",          label: "BIOS",           swatch: ["#0000AA", "#000080", "#FFFF00"] },
+  { id: "light",          label: "Light",          swatch: ["#F8F9FB", "#FFFFFF", "#ED7B26"] },
+  { id: "dark",           label: "Dark",           swatch: ["#0F172A", "#1E293B", "#ED7B26"] },
+  { id: "retro-os",       label: "Retro OS",       swatch: ["#F2F4F8", "#FFFFFF", "#1F4FD8"] },
+  { id: "chrome95",       label: "Chrome 95",      swatch: ["#D4D0C8", "#C0C0C0", "#000080"] },
+  { id: "lunar-hud",      label: "Lunar HUD",      swatch: ["#0E1218", "#141923", "#5EE7F2"] },
+  { id: "lilac-stickers", label: "Lilac Stickers", swatch: ["#D9D2ED", "#1A1525", "#9C84C8"] },
+  { id: "y2k-pop",        label: "Y2K Pop",        swatch: ["#FBF6FE", "#F5EFFB", "#FF5FB0"] },
+  { id: "pixel-crt",      label: "Pixel CRT",      swatch: ["#3F2EBC", "#1A1466", "#5DE693"] },
 ];
 
 // One-shot apply: load CSS + persist + set body attribute. Both the cycle

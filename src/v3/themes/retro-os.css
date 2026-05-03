@@ -1,0 +1,411 @@
+/* =============================================================
+   V3 Theme: RETRO-OS
+   Identity: a 90s tech magazine got a pixel reboot — disciplined
+   retro-OS UI kit. Bitmap display heading, modern sans body,
+   hairline 1px borders everywhere, dual accent (cobalt blue
+   primary + warm tomato red as "hot callout"). Pale graph-paper
+   surface, dotted-tab sidebar indicator, stair-step card corners.
+   Reference moods: System 7 / OS 2 Warp / Geocities-cleaned-up.
+   ============================================================= */
+
+/* ── Body background ──────────────────────────────────────────
+   Very pale cool gray — graph paper. Not pure white; gives the
+   layout a printed-magazine surface.
+   ─────────────────────────────────────────────────────────── */
+body.v3-layout[data-theme-v3="retro-os"] {
+  background: #F2F4F8;
+}
+
+/* ── Token definitions ────────────────────────────────────────
+   Dual-accent palette: cobalt blue primary, tomato red hot.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="retro-os"] .appv3 {
+  /* ── Surface ─────────────────────────────────────────────── */
+  --v3-bg:           #F2F4F8;          /* graph-paper pale */
+  --v3-surface:      #FFFFFF;
+  --v3-surface-2:    #F7F8FB;
+  --v3-hover:        #ECEFF5;          /* cool, not warm */
+  --v3-border:       #C8CDD6;          /* hairline cool grey, visible */
+  --v3-border-strong: #9AA2AF;
+
+  /* ── Type ────────────────────────────────────────────────── */
+  /* Deep slate-ink — feels like printed text on cream stock */
+  --v3-text:   #14181F;
+  --v3-text-2: #3A4250;
+  --v3-text-3: #5A6373;                /* 5.4:1 on #FFFFFF, 5.0:1 on #F2F4F8 — AA */
+  --v3-text-4: #8A93A2;                /* decorative / placeholders only */
+
+  /* ── Accent — cobalt blue (primary action) ──────────────── */
+  --v3-accent:       #1F4FD8;          /* cobalt — confident, not cyan */
+  --v3-accent-hover: #1840B5;
+  --v3-accent-tint:  #E6EDFC;          /* cobalt @ ~10% on white */
+  --v3-accent-soft:  rgba(31, 79, 216, 0.12);
+
+  /* ── Semantic ────────────────────────────────────────────── */
+  --v3-success:      #1F8A4C;          /* mossy green, not material-neon */
+  --v3-success-tint: #DBF1E2;
+  --v3-warn:         #C57B00;          /* burnt amber */
+  --v3-warn-tint:    #FBEACB;
+  /* CALM cyan-ish blue for info — distinct from cobalt accent */
+  --v3-info:         #1473B5;
+  --v3-info-tint:    #D6EBF8;
+  /* WARM RED — doubles as "hot callout" on most-actionable button */
+  --v3-crit:         #D8331E;          /* tomato — warm, not crimson */
+  --v3-crit-tint:    #FBE2DD;
+
+  /* ── Shadows — flat, hairline, never blurry blobs ────────── */
+  /* Retro-OS earns elevation through stacked 1px offsets, not
+     gaussian blur. shadow-2/3 use offset-only steps. */
+  --v3-shadow-1: 0 1px 0 0 rgba(20, 24, 31, 0.06);
+  --v3-shadow-2: 1px 1px 0 0 #C8CDD6, 2px 2px 0 0 rgba(20, 24, 31, 0.04);
+  --v3-shadow-3: 1px 1px 0 0 #9AA2AF, 3px 3px 0 0 rgba(20, 24, 31, 0.06);
+}
+
+/* ── Body & content surface ──────────────────────────────────
+   Hairline graph-paper grid (~24px) on .appv3-content only.
+   3% opacity cool grey lines — invisible at arm's length,
+   present at full zoom. Sidebar/topbar stay flat.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="retro-os"] .appv3 .appv3-content {
+  background-color: var(--v3-bg);
+  background-image:
+    linear-gradient(to right,  rgba(20, 24, 31, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(20, 24, 31, 0.045) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: 0 0;
+}
+
+/* ── Topbar: hairline bottom rule, no gradient ────────────── */
+body[data-theme-v3="retro-os"] .v3-topbar {
+  border-bottom: 1px solid var(--v3-border);
+  background: var(--v3-surface);
+  box-shadow: 0 1px 0 0 rgba(20, 24, 31, 0.03);
+}
+
+/* Topbar tabs — square, bitmap-y, never pill-rounded */
+body[data-theme-v3="retro-os"] .v3-topbar-tab {
+  border-radius: 2px;
+}
+body[data-theme-v3="retro-os"] .v3-topbar-tab.active::after {
+  background: var(--v3-accent);
+  height: 2px;
+  border-radius: 0;
+}
+
+/* ── Cards — square corners, stair-step shadow motif ─────── */
+body[data-theme-v3="retro-os"] .v3-card {
+  border-radius: 4px;                  /* spec: 4px max */
+  border: 1px solid var(--v3-border);
+  background: var(--v3-surface);
+  /* Stair-step: 1px hairline + a 1px offset shadow that reads
+     as a single-pixel drop. The decorative motif. */
+  box-shadow: 1px 1px 0 0 var(--v3-border);
+}
+
+body[data-theme-v3="retro-os"] .v3-card-head {
+  border-bottom: 1px solid var(--v3-border);
+}
+
+/* ── Stat card hover — hot callout cobalt outline ────────── */
+body[data-theme-v3="retro-os"] .v3-stat-card {
+  border-radius: 4px;
+  box-shadow: 1px 1px 0 0 var(--v3-border);
+}
+body[data-theme-v3="retro-os"] .v3-stat-card:hover {
+  border-color: var(--v3-accent);
+  box-shadow: 1px 1px 0 0 var(--v3-accent),
+              2px 2px 0 0 var(--v3-accent-soft);
+}
+
+/* ── Rows — square, hairline, hot border on hover ────────── */
+body[data-theme-v3="retro-os"] .v3-row {
+  border-radius: 4px;
+}
+body[data-theme-v3="retro-os"] .v3-row:hover {
+  border-color: var(--v3-accent);
+  background: var(--v3-accent-tint);
+  box-shadow: 1px 1px 0 0 var(--v3-accent-soft);
+}
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+body[data-theme-v3="retro-os"] .v3-sidebar {
+  border-right: 1px solid var(--v3-border);
+  background: var(--v3-surface);
+}
+
+body[data-theme-v3="retro-os"] .v3-side-link {
+  border-radius: 2px;
+  position: relative;
+}
+body[data-theme-v3="retro-os"] .v3-side-link:hover {
+  background: var(--v3-hover);
+}
+
+/* SIGNATURE MOTIF: dotted tab indicator on active sidebar link.
+   Inset cobalt 2px bar + a dotted right-edge tick — feels like
+   the "selected" state of a 90s control panel tab. */
+body[data-theme-v3="retro-os"] .v3-side-link.active {
+  background: var(--v3-accent-tint);
+  color: var(--v3-accent);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
+  border-right: 1px dotted var(--v3-accent);
+}
+body[data-theme-v3="retro-os"] .v3-side-link.active svg {
+  color: var(--v3-accent);
+}
+
+/* ── Buttons — solid fills, no gradients, inset on :active ── */
+body[data-theme-v3="retro-os"] .v3-btn-primary,
+body[data-theme-v3="retro-os"] .v3-btn-ghost {
+  border-radius: 3px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: none;                    /* retro: snappy, no ease */
+}
+
+body[data-theme-v3="retro-os"] .v3-btn-primary {
+  background: var(--v3-accent);
+  border: 1px solid var(--v3-accent-hover);
+  color: #FFFFFF;
+  /* 1px hairline drop shadow — pixel push */
+  box-shadow: 1px 1px 0 0 rgba(20, 24, 31, 0.18);
+}
+body[data-theme-v3="retro-os"] .v3-btn-primary:hover {
+  background: var(--v3-accent-hover);
+  border-color: var(--v3-accent-hover);
+}
+body[data-theme-v3="retro-os"] .v3-btn-primary:active {
+  /* INSET PUSHED LOOK — the spec'd 1px inset on :active */
+  transform: translate(1px, 1px);
+  box-shadow: inset 1px 1px 0 0 rgba(0, 0, 0, 0.25);
+}
+
+body[data-theme-v3="retro-os"] .v3-btn-ghost {
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border-strong);
+  color: var(--v3-text);
+  box-shadow: 1px 1px 0 0 rgba(20, 24, 31, 0.08);
+}
+body[data-theme-v3="retro-os"] .v3-btn-ghost:hover {
+  background: var(--v3-hover);
+  border-color: var(--v3-text);
+}
+body[data-theme-v3="retro-os"] .v3-btn-ghost:active {
+  transform: translate(1px, 1px);
+  box-shadow: inset 1px 1px 0 0 rgba(0, 0, 0, 0.12);
+}
+
+body[data-theme-v3="retro-os"] .v3-btn-primary[disabled] {
+  background: var(--v3-border);
+  border-color: var(--v3-border-strong);
+  color: var(--v3-text-3);
+  box-shadow: none;
+}
+
+/* ── Chips — square retro tabs ───────────────────────────── */
+body[data-theme-v3="retro-os"] .v3-chip {
+  border-radius: 2px;
+}
+body[data-theme-v3="retro-os"] .v3-chip.active {
+  background: var(--v3-accent);
+  border-color: var(--v3-accent-hover);
+  color: #FFFFFF;
+}
+
+/* ── Companion stage — pale cobalt wash, no orange warmth ── */
+body[data-theme-v3="retro-os"] .v3-companion-stage {
+  background: linear-gradient(
+    180deg,
+    #E6EDFC 0%,
+    #F1F4FB 45%,
+    rgba(242, 244, 248, 0) 100%
+  );
+}
+body[data-theme-v3="retro-os"] .v3-companion-head {
+  padding: 2px 2px 8px;
+  border-bottom: 1px solid var(--v3-accent-tint);
+}
+
+/* ── Audit footer — uses tomato (crit) as the "hot callout"
+   per the dual-accent personality. The audit nudge is the
+   most-actionable card on the screen, so it earns the red. */
+body[data-theme-v3="retro-os"] .v3-audit-foot {
+  background: var(--v3-crit-tint);
+  border: 1px solid var(--v3-crit);
+  color: #6F1A0E;                      /* deep tomato — 7.4:1 on #FBE2DD, AA+ */
+  border-radius: 4px;
+  box-shadow: 1px 1px 0 0 rgba(216, 51, 30, 0.25);
+}
+body[data-theme-v3="retro-os"] .v3-audit-foot .v3-chev {
+  color: var(--v3-crit);
+}
+
+/* ── Audit findings — hairline retro cards ──────────────── */
+body[data-theme-v3="retro-os"] .v3-finding-crit {
+  border-color: var(--v3-crit);
+  background: var(--v3-crit-tint);
+}
+body[data-theme-v3="retro-os"] .v3-finding-warn {
+  border-color: var(--v3-warn);
+  background: var(--v3-warn-tint);
+}
+body[data-theme-v3="retro-os"] .v3-finding-info {
+  border-color: var(--v3-info);
+  background: var(--v3-info-tint);
+}
+body[data-theme-v3="retro-os"] .v3-finding-ok {
+  border-color: var(--v3-success);
+  background: var(--v3-success-tint);
+}
+
+/* ── Statusbar — bitmap label, hairline TOP rule ─────────── */
+/* VT323 already imported globally. Status bar reads as a CRT
+   readout strip docked to the bottom. */
+body[data-theme-v3="retro-os"] .v3-statusbar {
+  border-top: 1px solid var(--v3-border);
+  background: var(--v3-surface);
+  font-family: 'VT323', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v3-text-2);
+}
+body[data-theme-v3="retro-os"] .v3-statusbar-version {
+  color: var(--v3-accent);
+  font-weight: 500;
+}
+body[data-theme-v3="retro-os"] .v3-statusbar-state {
+  color: var(--v3-text-3);
+}
+body[data-theme-v3="retro-os"] .v3-statusbar-sep {
+  color: var(--v3-text-4);
+}
+
+/* ── Brand mark + sidebar logo — bitmap display heading ──── */
+/* The H1-flavor tagline in the sidebar logo gets VT323 to lock
+   in the "retro display" identity. Body copy stays clean sans. */
+body[data-theme-v3="retro-os"] .v3-sidebar-logo-line1 {
+  font-family: 'VT323', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 1.05em;
+}
+body[data-theme-v3="retro-os"] .v3-sidebar-logo-line2 {
+  font-family: 'VT323', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+body[data-theme-v3="retro-os"] .v3-brand-name {
+  font-family: 'VT323', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 1.1em;
+}
+
+/* ── Card titles — bitmap display, slight uppercase ─────── */
+body[data-theme-v3="retro-os"] .v3-card-title {
+  font-family: 'VT323', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 1.15em;
+  color: var(--v3-text);
+}
+
+/* ── Stat icon tints — cobalt / tomato dual-accent system ── */
+body[data-theme-v3="retro-os"] .v3-stat-icon-orange {
+  background: var(--v3-crit-tint);
+  color: var(--v3-crit);
+}
+body[data-theme-v3="retro-os"] .v3-stat-icon-purple {
+  background: var(--v3-accent-tint);
+  color: var(--v3-accent);
+}
+body[data-theme-v3="retro-os"] .v3-stat-icon-amber {
+  background: var(--v3-warn-tint);
+  color: #8A5500;                      /* 6.7:1 on warn-tint — AA */
+}
+body[data-theme-v3="retro-os"] .v3-stat-icon-green {
+  background: var(--v3-success-tint);
+  color: var(--v3-success);
+}
+
+/* ── PR pills & rows ────────────────────────────────────── */
+body[data-theme-v3="retro-os"] .v3-pr-pill-review {
+  background: var(--v3-accent-tint);
+  color: var(--v3-accent);
+}
+body[data-theme-v3="retro-os"] .v3-row-pr .v3-row-icon {
+  background: var(--v3-accent-tint);
+  color: var(--v3-accent);
+}
+
+/* ── Banners ─────────────────────────────────────────────── */
+body[data-theme-v3="retro-os"] .v3-error {
+  background: var(--v3-crit-tint);
+  border: 1px solid var(--v3-crit);
+  color: #6F1A0E;
+  border-radius: 4px;
+}
+body[data-theme-v3="retro-os"] .v3-success {
+  background: var(--v3-success-tint);
+  border: 1px solid var(--v3-success);
+  color: #0E4A28;
+  border-radius: 4px;
+}
+
+/* ── Focus visible — square cobalt outline ──────────────── */
+body[data-theme-v3="retro-os"] .appv3 button:focus-visible,
+body[data-theme-v3="retro-os"] .appv3 a:focus-visible,
+body[data-theme-v3="retro-os"] .appv3 input:focus-visible,
+body[data-theme-v3="retro-os"] .appv3 select:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+/* ── Pill source overrides keep semantic mapping ─────────── */
+body[data-theme-v3="retro-os"] .v3-pill-source-config {
+  background: var(--v3-accent-tint);
+  color: var(--v3-accent);
+}
+body[data-theme-v3="retro-os"] .v3-pill-source-plugin {
+  background: var(--v3-success-tint);
+  color: var(--v3-success);
+}
+
+/* ── Switch — square track ──────────────────────────────── */
+body[data-theme-v3="retro-os"] .v3-switch-slider {
+  border-radius: 3px;
+  border: 1px solid var(--v3-border-strong);
+}
+body[data-theme-v3="retro-os"] .v3-switch-slider::before {
+  border-radius: 2px;
+}
+body[data-theme-v3="retro-os"] .v3-switch input:checked ~ .v3-switch-slider {
+  background: var(--v3-accent);
+  border-color: var(--v3-accent-hover);
+}
+
+/* ── Scrollbar — chunky, square, OS-style ───────────────── */
+body[data-theme-v3="retro-os"] .appv3 ::-webkit-scrollbar-thumb {
+  background: var(--v3-border-strong);
+  border-radius: 0;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+body[data-theme-v3="retro-os"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: var(--v3-text-3);
+  background-clip: content-box;
+}
+
+/* ── Window controls (frameless titlebar) ───────────────── */
+body[data-theme-v3="retro-os"] .v3-wc {
+  border-radius: 0;
+}
+body[data-theme-v3="retro-os"] .v3-wc:hover {
+  background: var(--v3-hover);
+}
+body[data-theme-v3="retro-os"] .v3-wc-close:hover {
+  background: var(--v3-crit);
+  color: #FFFFFF;
+}
