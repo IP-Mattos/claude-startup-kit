@@ -852,6 +852,55 @@ export function ClaudeViewV3() {
 
       <article className="v3-card">
         <header className="v3-card-head">
+          <h2 className="v3-card-title">MCP servers</h2>
+          <span className="v3-row-dim">
+            {mcps.filter((m) => m.enabled).length} active of {mcps.length}
+          </span>
+        </header>
+        {loading ? (
+          <div className="v3-empty">Loading MCP servers…</div>
+        ) : mcps.length === 0 ? (
+          <div className="v3-empty">
+            No MCP servers configured under ~/.claude/mcp/ or settings.json.
+          </div>
+        ) : (
+          <ul className="v3-list">
+            {mcps.map((m) => (
+              <li key={`${m.source}:${m.name}`} className="v3-claude-row">
+                <div className="v3-claude-row-body">
+                  <div className="v3-claude-row-title">
+                    <span className="v3-claude-row-name">{m.name}</span>
+                    <span
+                      className={
+                        "v3-pill v3-pill-soft v3-pill-source-" + m.source
+                      }
+                    >
+                      {m.source}
+                    </span>
+                  </div>
+                  <div className="v3-claude-row-meta">
+                    {m.command
+                      ? `${m.command} ${m.args.join(" ")}`.trim()
+                      : "Bundled plugin — no explicit command."}
+                  </div>
+                </div>
+                <label className="v3-switch" aria-label={`Toggle ${m.name}`}>
+                  <input
+                    type="checkbox"
+                    checked={m.enabled}
+                    disabled={togglingName === m.name}
+                    onChange={() => toggleMcp(m)}
+                  />
+                  <span className="v3-switch-slider" aria-hidden="true" />
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
+
+      <article className="v3-card">
+        <header className="v3-card-head">
           <h2 className="v3-card-title">Skills</h2>
           <span className="v3-row-dim">
             {skills.length} {skills.length === 1 ? "skill" : "skills"} · sorted
@@ -895,55 +944,6 @@ export function ClaudeViewV3() {
                   <ExternalLink size={13} strokeWidth={2} />
                   Open
                 </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </article>
-
-      <article className="v3-card">
-        <header className="v3-card-head">
-          <h2 className="v3-card-title">MCP servers</h2>
-          <span className="v3-row-dim">
-            {mcps.filter((m) => m.enabled).length} active of {mcps.length}
-          </span>
-        </header>
-        {loading ? (
-          <div className="v3-empty">Loading MCP servers…</div>
-        ) : mcps.length === 0 ? (
-          <div className="v3-empty">
-            No MCP servers configured under ~/.claude/mcp/ or settings.json.
-          </div>
-        ) : (
-          <ul className="v3-list">
-            {mcps.map((m) => (
-              <li key={`${m.source}:${m.name}`} className="v3-claude-row">
-                <div className="v3-claude-row-body">
-                  <div className="v3-claude-row-title">
-                    <span className="v3-claude-row-name">{m.name}</span>
-                    <span
-                      className={
-                        "v3-pill v3-pill-soft v3-pill-source-" + m.source
-                      }
-                    >
-                      {m.source}
-                    </span>
-                  </div>
-                  <div className="v3-claude-row-meta">
-                    {m.command
-                      ? `${m.command} ${m.args.join(" ")}`.trim()
-                      : "Bundled plugin — no explicit command."}
-                  </div>
-                </div>
-                <label className="v3-switch" aria-label={`Toggle ${m.name}`}>
-                  <input
-                    type="checkbox"
-                    checked={m.enabled}
-                    disabled={togglingName === m.name}
-                    onChange={() => toggleMcp(m)}
-                  />
-                  <span className="v3-switch-slider" aria-hidden="true" />
-                </label>
               </li>
             ))}
           </ul>
