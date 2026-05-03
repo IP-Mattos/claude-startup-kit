@@ -7,7 +7,18 @@ import type {
   Project,
   ProjectEnrichment,
 } from "../types";
-import { activityLabelEn, projectName, friendlyErrorEn, prNumberFromUrl } from "../lib/format";
+import {
+  activityLabelEn,
+  agoLabel,
+  pickGreeting,
+  prNumberFromUrl,
+  projectName,
+  friendlyErrorEn,
+} from "../lib/format";
+import type { V3Tab } from "./v3types";
+import { CompanionWidget } from "../components/v3/CompanionWidget";
+import { StatusBar } from "../components/v3/StatusBar";
+import { WorkspaceCard } from "../components/v3/WorkspaceCard";
 import { parseAuditFindings } from "../lib/audit";
 import { nextV3Theme, applyAndPersistV3Theme, readV3ThemeFromBody } from "../lib/themes";
 import { enrichProjects } from "../lib/enrichProjects";
@@ -56,17 +67,6 @@ import {
   X,
 } from "lucide-react";
 import "./AppV3.css";
-
-type V3Tab =
-  | "overview"
-  | "projects"
-  | "prs"
-  | "audit"
-  | "cleanup"
-  | "settings"
-  | "claude"
-  | "companions"
-  | "sync";
 
 // Two-track navigation:
 //   • SIDEBAR_NAV — high-frequency, operational tabs (one click away).
@@ -397,237 +397,7 @@ function freshnessScore(daysAgo: number): number {
   return Math.round(100 - daysAgo * 1.7);
 }
 
-// ===== Companion widget =====
-// Sidebar System Status already carries the crit/warn/scan counts. The
-// companion is intentionally a soft nudge — single line that names the
-// next thing worth looking at, never repeats the numbers themselves.
-function CompanionWidget({
-  companionName,
-  companionImage,
-  critCount,
-  warnCount,
-  prCount,
-  todayProject,
-  todayProjectPath,
-  lastScanAgo,
-  onJump,
-  onOpenProject,
-}: {
-  companionName: string;
-  companionImage: string | null;
-  critCount: number;
-  warnCount: number;
-  prCount: number;
-  todayProject: string | null;
-  todayProjectPath: string | null;
-  lastScanAgo: string;
-  onJump: (tab: V3Tab) => void;
-  onOpenProject: (path: string) => void;
-}) {
-  const { t } = useT();
-  // The message keys for has_crits/has_warns/has_prs include a {n} that
-  // should pop visually. We replace the first run of digits with a styled
-  // span so the rest of the sentence stays plain — keeps i18n simple while
-  // still drawing the eye to the number.
-  const rawMessage =
-    critCount > 0
-      ? t("companion.has_crits", { n: critCount })
-      : warnCount > 0
-      ? t("companion.has_warns", { n: warnCount })
-      : prCount > 0
-      ? t("companion.has_prs", { n: prCount })
-      : todayProject
-      ? t("companion.today", { project: todayProject })
-      : t("companion.idle");
-  const message: React.ReactNode = (() => {
-    const m = rawMessage.match(/^(.*?)(\d+)(.*)$/s);
-    if (!m) return rawMessage;
-    return (
-      <>
-        {m[1]}
-        <strong className="v3-companion-emph">{m[2]}</strong>
-        {m[3]}
-      </>
-    );
-  })();
-
-  // Pick the single most relevant action for the current state. Priority
-  // matches the message above so the headline + button always agree.
-  const action: { label: string; onClick: () => void } =
-    critCount > 0 || warnCount > 0
-      ? {
-          label: t("companion.action_review_audit"),
-          onClick: () => onJump("audit"),
-        }
-      : prCount > 0
-      ? {
-          label: t("companion.action_open_prs"),
-          onClick: () => onJump("prs"),
-        }
-      : todayProject && todayProjectPath
-      ? {
-          label: t("companion.action_open_project"),
-          onClick: () => onOpenProject(todayProjectPath),
-        }
-      : {
-          label: t("companion.action_browse_projects"),
-          onClick: () => onJump("projects"),
-        };
-
-  const avatarSrc = companionImage ?? "/Sia2.webp";
-
-  return (
-    <section className="v3-companion-widget">
-      <header className="v3-companion-head">
-        <span className="v3-companion-title">{companionName}</span>
-        <span className="v3-companion-status">
-          <span className="v3-status-dot" aria-hidden="true" />
-          {t("companion.online")}
-        </span>
-      </header>
-      <div className="v3-companion-stage">
-        <div className="v3-companion-avatar" aria-hidden="true">
-          <img src={avatarSrc} alt="" draggable={false} />
-        </div>
-      </div>
-      <div className="v3-companion-message">{message}</div>
-      <div className="v3-companion-foot">
-        <span
-          className="v3-companion-scan"
-          title={`${t("companion.stat_scan")}: ${lastScanAgo}`}
-        >
-          {lastScanAgo}
-        </span>
-        <button className="v3-btn-primary v3-companion-cta" onClick={action.onClick}>
-          {action.label}
-        </button>
-      </div>
-    </section>
-  );
-}
-
-// ===== Workspace card (second slot of the right panel) =====
-// Surfaces the four signals the user wanted at a glance: skills usage,
-// engram memory volume, and the two version pins. Distinct from Overview
-// (which carries project / pr / finding counts) — this card is about the
-// *tooling state* of the machine.
-interface WorkspaceSummary {
-  app_version: string;
-  gentle_ai_version: string | null;
-  engram_sessions: number | null;
-  engram_observations: number | null;
-  skills_total: number;
-  skills_used: number;
-}
-
-function WorkspaceCard() {
-  const { t } = useT();
-  const [summary, setSummary] = useState<WorkspaceSummary | null>(null);
-  useEffect(() => {
-    if (!IS_TAURI) return;
-    let cancelled = false;
-    invoke<WorkspaceSummary>("workspace_summary")
-      .then((s) => {
-        if (!cancelled) setSummary(s);
-      })
-      .catch(() => {
-        /* card stays in skeleton state — non-fatal for the UI */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const skillsPct = summary
-    ? summary.skills_total === 0
-      ? 0
-      : Math.round((summary.skills_used / summary.skills_total) * 100)
-    : 0;
-  const dash = "—";
-
-  return (
-    <section className="v3-workspace-card">
-      <header className="v3-workspace-head">
-        <h3 className="v3-workspace-title">{t("workspace.title")}</h3>
-      </header>
-      <div className="v3-workspace-section">
-        <div className="v3-workspace-row">
-          <span className="v3-workspace-row-label">{t("workspace.skills")}</span>
-          <span className="v3-workspace-row-value">
-            {summary ? `${summary.skills_used} / ${summary.skills_total}` : dash}
-          </span>
-        </div>
-        <div
-          className="v3-workspace-bar-track"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={skillsPct}
-          aria-label={t("workspace.skills")}
-        >
-          <div
-            className="v3-workspace-bar-fill v3-workspace-bar-fill-accent"
-            style={{ width: `${skillsPct}%` }}
-          />
-        </div>
-        <div className="v3-workspace-row">
-          <span className="v3-workspace-row-label">{t("workspace.engram")}</span>
-          <span className="v3-workspace-row-value">
-            {summary?.engram_observations != null
-              ? t("workspace.engram_obs", { n: summary.engram_observations })
-              : dash}
-          </span>
-        </div>
-      </div>
-      <div className="v3-workspace-divider" aria-hidden="true" />
-      <div className="v3-workspace-section">
-        <div className="v3-workspace-row">
-          <span className="v3-workspace-row-label">{t("workspace.app")}</span>
-          <span className="v3-workspace-row-value v3-workspace-version">
-            v{summary?.app_version ?? dash}
-          </span>
-        </div>
-        <div className="v3-workspace-row">
-          <span className="v3-workspace-row-label">{t("workspace.gentle_ai")}</span>
-          <span className="v3-workspace-row-value v3-workspace-version">
-            {summary?.gentle_ai_version ? `v${summary.gentle_ai_version}` : dash}
-          </span>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ===== Status bar =====
-// Statusbar is reduced to identity (version + ready state) on the left and
-// a live clock + activity dot on the right. Project/finding counts moved
-// out — they're already shown in the sidebar System Status card and the
-// per-tab headers.
-function StatusBarV3() {
-  const [now, setNow] = useState<Date>(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-  const { t, lang } = useT();
-  const time = now.toLocaleTimeString(lang === "es" ? "es-AR" : "en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  return (
-    <footer className="v3-statusbar">
-      <div className="v3-statusbar-left">
-        <span className="v3-statusbar-version">v0.1.0</span>
-        <span className="v3-statusbar-sep" aria-hidden="true">|</span>
-        <span className="v3-statusbar-state">{t("statusbar.ready")}</span>
-      </div>
-      <div className="v3-statusbar-right">
-        <span>{time}</span>
-        <span className="v3-statusbar-dot" aria-hidden="true" />
-      </div>
-    </footer>
-  );
-}
+// CompanionWidget, WorkspaceCard, StatusBar moved to ../components/v3/.
 
 // ===== Overview view =====
 function OverviewView({
@@ -867,32 +637,7 @@ function OverviewView({
 }
 
 
-// Compute "X ago" for a unix-ms timestamp.
-// `t` flows in from useT() at the call site so these stay pure (no closure
-// over hook state) and the locale switch updates them on next render.
-function agoLabel(
-  ms: number | null,
-  t: (k: import("../lib/i18n").StringKey, vars?: Record<string, string | number>) => string
-): string {
-  if (ms === null) return t("common.never");
-  const sec = Math.floor((Date.now() - ms) / 1000);
-  if (sec < 5) return t("common.just_now");
-  if (sec < 60) return t("ago.seconds", { n: sec });
-  const m = Math.floor(sec / 60);
-  if (m < 60) return t("ago.minutes", { n: m });
-  const h = Math.floor(m / 60);
-  if (h < 24) return t("ago.hours", { n: h });
-  return t("ago.days", { n: Math.floor(h / 24) });
-}
-
-function pickGreeting(
-  t: (k: import("../lib/i18n").StringKey) => string
-): string {
-  const h = new Date().getHours();
-  if (h < 12) return t("greeting.morning");
-  if (h < 19) return t("greeting.afternoon");
-  return t("greeting.evening");
-}
+// agoLabel + pickGreeting moved to ../lib/format.ts
 
 // Keyboard shortcuts cover the operational sidebar tabs (Ctrl+1..5). The
 // topbar tabs (Claude / Companion / Settings) are low-frequency — Ctrl+,
@@ -1257,7 +1002,7 @@ export default function AppV3() {
           <WorkspaceCard />
         </aside>
       </div>
-      <StatusBarV3 />
+      <StatusBar />
     </div>
   );
 }

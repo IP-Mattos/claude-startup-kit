@@ -1,3 +1,41 @@
+import type { StringKey } from "./i18n";
+type Translator = (k: StringKey, vars?: Record<string, string | number>) => string;
+
+// Compute "X ago" for a unix-ms timestamp. `t` flows in from useT() at the
+// call site so this stays pure (no closure over hook state) and the locale
+// switch updates the label on next render.
+export function agoLabel(ms: number | null, t: Translator): string {
+  if (ms === null) return t("common.never");
+  const sec = Math.floor((Date.now() - ms) / 1000);
+  if (sec < 5) return t("common.just_now");
+  if (sec < 60) return t("ago.seconds", { n: sec });
+  const m = Math.floor(sec / 60);
+  if (m < 60) return t("ago.minutes", { n: m });
+  const h = Math.floor(m / 60);
+  if (h < 24) return t("ago.hours", { n: h });
+  return t("ago.days", { n: Math.floor(h / 24) });
+}
+
+// Greeting based on current hour. Takes `t` so it tracks locale changes.
+export function pickGreeting(t: (k: StringKey) => string): string {
+  const h = new Date().getHours();
+  if (h < 12) return t("greeting.morning");
+  if (h < 19) return t("greeting.afternoon");
+  return t("greeting.evening");
+}
+
+// Keyboard activation helper — turns role="button" divs into Enter/Space
+// clickable. Co-located here because it's a tiny utility shared across
+// multiple V3 components.
+import type { KeyboardEvent } from "react";
+export const onKeyboardActivate =
+  (fn: () => void) => (e: KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      fn();
+    }
+  };
+
 export function projectName(path: string): string {
   const parts = path.replace(/\\/g, "/").split("/").filter(Boolean);
   return parts[parts.length - 1] ?? path;
