@@ -1090,8 +1090,6 @@ export function SettingsViewV3() {
         </div>
       </header>
 
-      <SyncCard />
-
       <article className="v3-card">
         <header className="v3-card-head">
           <h2 className="v3-card-title">{t("settings.language")}</h2>
@@ -1234,6 +1232,23 @@ interface CloneResult {
   path: string;
   status: "cloned" | "exists" | "error";
   message: string;
+}
+
+// Page-level wrapper for SyncCard. The card itself is reusable but lives
+// today as its own top-bar tab.
+export function SyncViewV3() {
+  const { t } = useT();
+  return (
+    <div className="v3-view">
+      <header className="v3-view-head">
+        <div>
+          <h1 className="v3-greeting">{t("sync.title")}</h1>
+          <p className="v3-subtitle">{t("sync.lead")}</p>
+        </div>
+      </header>
+      <SyncCard />
+    </div>
+  );
 }
 
 function SyncCard() {
@@ -1387,11 +1402,8 @@ function SyncCard() {
 
   return (
     <article className="v3-card">
-      <header className="v3-card-head">
-        <h2 className="v3-card-title">{t("sync.title")}</h2>
-      </header>
-      <p className="v3-subtitle v3-sync-lead">{t("sync.lead")}</p>
-
+      {/* Title + lead live on the SyncViewV3 page header now. The card
+          starts straight at the configured/setup body. */}
       {state?.configured ? (
         <div className="v3-form">
           <div className="v3-sync-row">

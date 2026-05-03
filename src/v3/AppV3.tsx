@@ -21,6 +21,7 @@ import {
   ClaudeViewV3,
   CompanionsViewV3,
   SettingsViewV3,
+  SyncViewV3,
 } from "./views";
 
 // Tauri APIs throw when loaded from a plain browser at localhost:1420
@@ -41,6 +42,7 @@ import {
   Bot,
   Boxes,
   ChevronRight,
+  Cloud,
   Code2,
   Cog,
   FolderOpen,
@@ -63,7 +65,8 @@ type V3Tab =
   | "cleanup"
   | "settings"
   | "claude"
-  | "companions";
+  | "companions"
+  | "sync";
 
 // Two-track navigation:
 //   • SIDEBAR_NAV — high-frequency, operational tabs (one click away).
@@ -87,6 +90,7 @@ const TOPBAR_NAV: {
   navKey: import("../lib/i18n").StringKey;
   Icon: typeof Home;
 }[] = [
+  { id: "sync", navKey: "nav.sync", Icon: Cloud },
   { id: "claude", navKey: "nav.claude", Icon: Boxes },
   { id: "companions", navKey: "nav.companions", Icon: Bot },
   { id: "settings", navKey: "nav.settings", Icon: Cog },
@@ -1251,6 +1255,7 @@ export default function AppV3() {
           {tab === "prs" && <PrsViewV3 />}
           {tab === "audit" && <AuditViewV3 />}
           {tab === "cleanup" && <CleanupViewV3 />}
+          {tab === "sync" && <SyncViewV3 />}
           {tab === "claude" && <ClaudeViewV3 />}
           {tab === "companions" && (
             <CompanionsViewV3

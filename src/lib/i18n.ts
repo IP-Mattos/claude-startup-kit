@@ -26,6 +26,7 @@ const STRINGS = {
   "nav.claude": { en: "Claude", es: "Claude" },
   "nav.companions": { en: "Companions", es: "Compañeros" },
   "nav.settings": { en: "Settings", es: "Ajustes" },
+  "nav.sync": { en: "Sync", es: "Sync" },
 
   // System status (sidebar bottom card)
   "status.operational": { en: "All systems operational", es: "Todo funcionando" },
