@@ -1,0 +1,331 @@
+/* =============================================================
+   V3 Theme: BUNKER
+   Identity: tactical operations command — olive drab, sand, black.
+   Stencil headings, hard 1px borders, mono labels, restrained
+   amber for active/warning states. Brutalist + HUD blend.
+   Reference moods: field operations console, ops bunker, FOB
+   command tent. Functional, restrained, controlled.
+   ============================================================= */
+
+/* ── Body background ──────────────────────────────────────────
+   Near-black with a faint olive cast. No gradient drama —
+   bunkers don't have mood lighting.
+   ─────────────────────────────────────────────────────────── */
+body.v3-layout[data-theme-v3="bunker"] {
+  background: #14160F;
+}
+
+body[data-theme-v3="bunker"] .appv3 {
+  /* ── Surface — olive-tinted near-blacks ──────────────────── */
+  --v3-bg:            #14160F;          /* deep olive-black */
+  --v3-surface:       #1F2218;          /* card body */
+  --v3-surface-2:     #272A1F;          /* lifted surface */
+  --v3-hover:         #2F3326;          /* hover step */
+  --v3-border:        #3A3E2E;          /* hairline olive */
+  --v3-border-strong: #4E5440;          /* stencil edge */
+
+  /* ── Type — sand on olive, AA verified ───────────────────── */
+  /* #E8DEC2 (sand) on #1F2218 ≈ 11.4:1 — clears AAA easily.
+     #C8BD9E on #1F2218 ≈ 8.7:1.
+     #A39A7E on #1F2218 ≈ 5.6:1 — passes AA on body+surface.
+     #7A745E on #1F2218 ≈ 3.4:1 — decorative ONLY (text-4). */
+  --v3-text:   #E8DEC2;                 /* primary sand */
+  --v3-text-2: #C8BD9E;                 /* secondary parchment */
+  --v3-text-3: #A39A7E;                 /* dim tag/label sand */
+  --v3-text-4: #7A745E;                 /* decorative / placeholders only */
+
+  /* ── Accent — restrained tactical amber ──────────────────── */
+  /* #E8A33D (warning amber) on #1F2218 ≈ 8.5:1. Used sparingly
+     — active sidebar bar, focus ring, key warnings. NOT neon. */
+  --v3-accent:       #E8A33D;
+  --v3-accent-hover: #D08F2A;
+  --v3-accent-tint:  rgba(232, 163, 61, 0.12);
+  --v3-accent-soft:  rgba(232, 163, 61, 0.18);
+
+  /* ── Semantic ────────────────────────────────────────────── */
+  /* Olive-green success (#8FA661) — reads as "field OK", not Material green */
+  --v3-success:      #8FA661;
+  --v3-success-tint: rgba(143, 166, 97, 0.16);
+
+  /* Warn shares the accent amber — by design in tactical UI */
+  --v3-warn:         #E8A33D;
+  --v3-warn-tint:    rgba(232, 163, 61, 0.16);
+
+  /* Info: dim sand-cyan — calm, NOT yellow/orange. #8FB8B5 on
+     #1F2218 ≈ 7.0:1. Reads as a CRT phosphor blue-grey. */
+  --v3-info:         #8FB8B5;
+  --v3-info-tint:    rgba(143, 184, 181, 0.14);
+
+  /* Crit: muted brick (#D26B5C) — desaturated to stay in palette.
+     #D26B5C on #1F2218 ≈ 5.2:1. */
+  --v3-crit:         #D26B5C;
+  --v3-crit-tint:    rgba(210, 107, 92, 0.14);
+
+  /* ── Shadows — flat, never decorative ────────────────────── */
+  /* Bunkers cast hard shadows. Tight, dark, no blur drama. */
+  --v3-shadow-1: 0 1px 0 0 rgba(0, 0, 0, 0.50);
+  --v3-shadow-2: 0 2px 0 0 rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.30);
+  --v3-shadow-3: 0 3px 0 0 rgba(0, 0, 0, 0.50), 0 0 0 1px rgba(0, 0, 0, 0.40);
+}
+
+/* ── Mono font on labels & statusbar ──────────────────────────
+   Tactical readout vibe. Body remains in the layout's sans;
+   only category labels and statusbar shift to mono.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="bunker"] .appv3 .v3-statusbar,
+body[data-theme-v3="bunker"] .appv3 .v3-side-section,
+body[data-theme-v3="bunker"] .appv3 .v3-section-title,
+body[data-theme-v3="bunker"] .appv3 .v3-stat-label,
+body[data-theme-v3="bunker"] .appv3 .v3-row-meta,
+body[data-theme-v3="bunker"] .appv3 .v3-chip,
+body[data-theme-v3="bunker"] .appv3 .v3-pill,
+body[data-theme-v3="bunker"] .appv3 .v3-pr-pill,
+body[data-theme-v3="bunker"] .appv3 .v3-pr-pill-review {
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace,
+               SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* ── Section / sidebar headers: stencil-ish tracking ─────────
+   ALL CAPS + wide tracking + dim sand. Reads like a stencilled
+   crate label. Not actual stencil font (asset weight) — just
+   spacing + weight discipline.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="bunker"] .appv3 .v3-side-section,
+body[data-theme-v3="bunker"] .appv3 .v3-section-title {
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  color: var(--v3-text-3);
+}
+
+/* ── Cards: hard 1px borders, no rounding drama ───────────────
+   Override softness anywhere it sneaks in. Max 2px radius.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="bunker"] .appv3 .v3-stat-card,
+body[data-theme-v3="bunker"] .appv3 .v3-card,
+body[data-theme-v3="bunker"] .appv3 .v3-row,
+body[data-theme-v3="bunker"] .appv3 .v3-companion-widget {
+  border-radius: 2px;
+  border-width: 1px;
+  border-style: solid;
+}
+
+/* ── Topbar: hard bottom edge ────────────────────────────────
+   No gradient — a dark olive bar terminating in a hard amber
+   hairline shadow at the very bottom (faint, 8% opacity).
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="bunker"] .appv3 .v3-topbar {
+  border-bottom: 1px solid var(--v3-border-strong);
+  box-shadow: 0 1px 0 0 rgba(232, 163, 61, 0.08);
+}
+
+/* ── Sidebar active link: amber 2px left bar + lift ──────────
+   Matches the sidebar pattern from light/dark, but with a
+   chunkier 2px bar and a subtle surface-2 lift.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="bunker"] .appv3 .v3-side-link.active {
+  background: var(--v3-surface-2);
+  color: var(--v3-accent);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
+  border-radius: 0;
+}
+
+body[data-theme-v3="bunker"] .appv3 .v3-side-link:hover {
+  background: var(--v3-hover);
+}
+
+/* ── Stat cards: hover = hard amber border, no glow ──────────
+   Bunkers don't glow. Border swap + flat shadow only.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="bunker"] .appv3 .v3-stat-card:hover {
+  border-color: var(--v3-accent);
+  box-shadow: var(--v3-shadow-2);
+}
+
+/* ── Rows: hover = strong olive border ───────────────────────
+   Reserve amber for ACTIVE state, not hover.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="bunker"] .appv3 .v3-row:hover {
+  border-color: var(--v3-border-strong);
+  background: var(--v3-hover);
+  box-shadow: var(--v3-shadow-1);
+}
+
+/* ── Focus ring: hard amber outline ──────────────────────────
+   Tactical "selected" feel. No diffuse glow.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="bunker"] .appv3 button:focus-visible,
+body[data-theme-v3="bunker"] .appv3 a:focus-visible,
+body[data-theme-v3="bunker"] .appv3 input:focus-visible,
+body[data-theme-v3="bunker"] .appv3 select:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+/* ── Stat icon tints — olive-keyed palette ───────────────────
+   No purple or candy colours. Everything stays in the
+   olive/sand/amber/brick family. */
+
+body[data-theme-v3="bunker"] .appv3 .v3-stat-icon-orange {
+  background: rgba(232, 163, 61, 0.16);
+  color: var(--v3-accent);
+}
+body[data-theme-v3="bunker"] .appv3 .v3-stat-icon-purple {
+  /* Re-key purple → desaturated sage, in-palette */
+  background: rgba(143, 184, 181, 0.16);
+  color: #B5D2CF;
+}
+body[data-theme-v3="bunker"] .appv3 .v3-stat-icon-amber {
+  background: rgba(232, 163, 61, 0.16);
+  color: var(--v3-accent);
+}
+body[data-theme-v3="bunker"] .appv3 .v3-stat-icon-green {
+  background: rgba(143, 166, 97, 0.18);
+  color: #B0C786;
+}
+
+/* ── PR review pill: sage instead of purple ──────────────────
+   Keeps the visual differentiation without breaking palette. */
+body[data-theme-v3="bunker"] .appv3 .v3-pr-pill-review {
+  background: rgba(143, 184, 181, 0.18);
+  color: #B5D2CF;
+  border: 1px solid rgba(143, 184, 181, 0.30);
+}
+
+body[data-theme-v3="bunker"] .appv3 .v3-row-pr .v3-row-icon {
+  background: rgba(143, 184, 181, 0.16);
+  color: #B5D2CF;
+}
+
+/* ── Audit footer warning banner ─────────────────────────────
+   Hard amber border, no glow. Mono label inheritance from
+   the section-title rule above keeps it stencil-flavoured.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="bunker"] .appv3 .v3-audit-foot {
+  background: rgba(232, 163, 61, 0.10);
+  border: 1px solid rgba(232, 163, 61, 0.40);
+  color: var(--v3-accent);
+  border-radius: 2px;
+}
+body[data-theme-v3="bunker"] .appv3 .v3-audit-foot .v3-chev {
+  color: var(--v3-accent);
+}
+
+/* ── Audit findings: dim, dark-adapted ───────────────────────
+   1px hard borders, low-alpha bgs — readout cards, not alerts. */
+body[data-theme-v3="bunker"] .appv3 .v3-finding-crit {
+  border: 1px solid rgba(210, 107, 92, 0.36);
+  background: rgba(210, 107, 92, 0.08);
+  border-radius: 2px;
+}
+body[data-theme-v3="bunker"] .appv3 .v3-finding-warn {
+  border: 1px solid rgba(232, 163, 61, 0.36);
+  background: rgba(232, 163, 61, 0.08);
+  border-radius: 2px;
+}
+body[data-theme-v3="bunker"] .appv3 .v3-finding-info {
+  border: 1px solid rgba(143, 184, 181, 0.30);
+  background: rgba(143, 184, 181, 0.07);
+  border-radius: 2px;
+}
+body[data-theme-v3="bunker"] .appv3 .v3-finding-ok {
+  border: 1px solid rgba(143, 166, 97, 0.32);
+  background: rgba(143, 166, 97, 0.07);
+  border-radius: 2px;
+}
+
+/* ── Success / error banners ─────────────────────────────────
+   Sand-tone text on tinted bg. */
+body[data-theme-v3="bunker"] .appv3 .v3-error {
+  background: rgba(210, 107, 92, 0.10);
+  border: 1px solid rgba(210, 107, 92, 0.36);
+  color: #E8A89D;
+  border-radius: 2px;
+}
+body[data-theme-v3="bunker"] .appv3 .v3-success {
+  background: rgba(143, 166, 97, 0.10);
+  border: 1px solid rgba(143, 166, 97, 0.32);
+  color: #C2D69A;
+  border-radius: 2px;
+}
+
+/* ── Chip.active: sand-on-olive inversion ────────────────────
+   Active chip flips to sand bg, near-black text — like a
+   selected toggle on a console panel. */
+body[data-theme-v3="bunker"] .appv3 .v3-chip.active {
+  background: var(--v3-text);
+  border-color: var(--v3-text);
+  color: var(--v3-bg);
+}
+
+/* ── Tertiary dividers: 1px dashed olive ─────────────────────
+   The "military fence" touch. Applied to subtle internal
+   separators, not main card borders. */
+body[data-theme-v3="bunker"] .appv3 .v3-divider,
+body[data-theme-v3="bunker"] .appv3 hr {
+  border: none;
+  border-top: 1px dashed var(--v3-border-strong);
+  background: none;
+}
+
+/* ── Companion stage: dim olive wash, no radial drama ────────
+   Replaces the warm-glow gradients from light/dark with a
+   flat low-elevation olive — bunkers are lit by overheads,
+   not sunsets. */
+body[data-theme-v3="bunker"] .appv3 .v3-companion-stage {
+  background: linear-gradient(
+    180deg,
+    rgba(232, 163, 61, 0.06) 0%,
+    rgba(232, 163, 61, 0.02) 45%,
+    transparent 100%
+  );
+}
+
+/* ── Companion widget header: dashed underline ───────────────
+   Reuses the fence motif as a hairline separator under the
+   companion title block. */
+body[data-theme-v3="bunker"] .appv3 .v3-companion-head {
+  padding: 2px 2px 8px;
+  border-bottom: 1px dashed var(--v3-border);
+}
+
+/* ── Statusbar: mono readout strip ───────────────────────────
+   Inherit the mono+caps treatment; add a top border so it
+   sits like a console footer. */
+body[data-theme-v3="bunker"] .appv3 .v3-statusbar {
+  border-top: 1px solid var(--v3-border-strong);
+  background: var(--v3-surface);
+  font-size: 0.78em;
+}
+
+/* ── Scrollbars: olive thumbs ────────────────────────────────
+   In-palette, restrained. */
+body[data-theme-v3="bunker"] .appv3 ::-webkit-scrollbar-thumb {
+  background: #3A3E2E;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  border-radius: 0;
+}
+body[data-theme-v3="bunker"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: #4E5440;
+  background-clip: content-box;
+}
+
+/* ── Content area: faint scanline overlay ────────────────────
+   Signature texture — a 1px horizontal scanline at ~3% opacity
+   over the content viewport. Reads as CRT/HUD readout at full
+   zoom, invisible at normal viewing. Scoped tightly. */
+body[data-theme-v3="bunker"] .appv3 .appv3-content {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(232, 163, 61, 0.025) 0,
+      rgba(232, 163, 61, 0.025) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  background-color: var(--v3-bg);
+}

@@ -2,7 +2,20 @@
 // shortcut) and views.tsx (theme picker grid) consume this; without it the
 // two files drift and a new theme breaks the cycle order.
 
-export const V3_THEME_ORDER = ["light", "dark"] as const;
+export const V3_THEME_ORDER = [
+  "light",
+  "dark",
+  "pastel-kawaii",
+  "cyber-moon",
+  "brutal-green",
+  "pixel-command",
+  "text-ticker",
+  "blueprint",
+  "win95",
+  "vapor",
+  "bunker",
+  "bios",
+] as const;
 
 export type V3Theme = (typeof V3_THEME_ORDER)[number];
 
@@ -14,8 +27,18 @@ export interface V3ThemeOption {
   swatch: [string, string, string];
 }
 export const V3_THEME_OPTIONS: V3ThemeOption[] = [
-  { id: "light", label: "Light", swatch: ["#F8F9FB", "#FFFFFF", "#ED7B26"] },
-  { id: "dark", label: "Dark", swatch: ["#0F172A", "#1E293B", "#ED7B26"] },
+  { id: "light",         label: "Light",          swatch: ["#F8F9FB", "#FFFFFF", "#ED7B26"] },
+  { id: "dark",          label: "Dark",           swatch: ["#0F172A", "#1E293B", "#ED7B26"] },
+  { id: "pastel-kawaii", label: "Pastel Kawaii",  swatch: ["#FBF1F6", "#FFFFFF", "#C24683"] },
+  { id: "cyber-moon",    label: "Cyber Moon",     swatch: ["#0A0820", "#14122B", "#22D3EE"] },
+  { id: "brutal-green",  label: "Brutal Green",   swatch: ["#050705", "#0B0F0B", "#3DDC84"] },
+  { id: "pixel-command", label: "Pixel Command",  swatch: ["#F2EAD6", "#FBF6E7", "#B8351E"] },
+  { id: "text-ticker",   label: "Text Ticker",    swatch: ["#F4EFE6", "#FBF7EE", "#B23A2E"] },
+  { id: "blueprint",     label: "Blueprint",      swatch: ["#103A5C", "#164870", "#F0892B"] },
+  { id: "win95",         label: "Win95",          swatch: ["#D4D0C8", "#C0C0C0", "#000080"] },
+  { id: "vapor",         label: "Vapor",          swatch: ["#2B0E3A", "#1A0E2E", "#22D3EE"] },
+  { id: "bunker",        label: "Bunker",         swatch: ["#14160F", "#1F2218", "#E8A33D"] },
+  { id: "bios",          label: "BIOS",           swatch: ["#0000AA", "#000080", "#FFFF00"] },
 ];
 
 // One-shot apply: load CSS + persist + set body attribute. Both the cycle

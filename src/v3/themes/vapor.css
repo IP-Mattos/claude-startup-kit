@@ -1,0 +1,240 @@
+/* =============================================================
+   V3 Theme: VAPOR
+   Identity: vaporwave sunset — magenta→indigo→near-black gradient
+   body, dark indigo surfaces, ONE controlled neon (cyan) for
+   accent/active states. Pink reserved for crit + chrome italic
+   accents only. HUD + kawaii blend; no Geocities chaos.
+   Reference moods: Macintosh Plus, Robin Eisenberg gradients,
+   Tokyo neon at 3am.
+   ============================================================= */
+
+/* Body background: deep magenta → indigo → near-black sunset.
+   Surfaces (#1A0E2E) are darker than the gradient's mid-tone
+   so cards float legibly on top. */
+body.v3-layout[data-theme-v3="vapor"] {
+  background:
+    linear-gradient(180deg,
+      #2B0A3D 0%,
+      #1A0B36 28%,
+      #14092B 55%,
+      #0B0520 80%,
+      #07030F 100%);
+  background-attachment: fixed;
+}
+
+body[data-theme-v3="vapor"] .appv3 {
+  /* ── Surface ─────────────────────────────────────────────── */
+  /* Surfaces sit DARKER than the body gradient's mid-tone. */
+  --v3-bg:            #14092B;
+  --v3-surface:       #1A0E2E;
+  --v3-surface-2:     #221538;
+  --v3-hover:         #2A1A45;
+  --v3-border:        #3A2856;
+  --v3-border-strong: #56407A;
+
+  /* ── Type ────────────────────────────────────────────────── */
+  /* text-3 (#948BB8) vs surface (#1A0E2E) ≈ 4.7:1 — passes AA.
+     text-4 is decorative-only (sub-AA, dim labels). */
+  --v3-text:   #F1ECFF;              /* near-white violet — NOT pure white */
+  --v3-text-2: #C9C2E6;              /* ~9:1 on surface */
+  --v3-text-3: #948BB8;              /* 4.7:1 on surface — body-text safe */
+  --v3-text-4: #6B6388;              /* decorative / dim labels only */
+
+  /* ── Accent (cyan — the ONE strong neon) ─────────────────── */
+  /* #22D3EE on #1A0E2E ≈ 8.5:1 — passes AAA. */
+  --v3-accent:       #22D3EE;
+  --v3-accent-hover: #67E8F9;
+  --v3-accent-tint:  rgba(34, 211, 238, 0.14);
+  --v3-accent-soft:  rgba(34, 211, 238, 0.20);
+
+  /* ── Semantic ────────────────────────────────────────────── */
+  --v3-success:      #34D399;
+  --v3-success-tint: rgba(52, 211, 153, 0.14);
+  /* Warn: warm peach (not yellow — yellow clashes with the magenta body). */
+  --v3-warn:         #FBBF24;
+  --v3-warn-tint:    rgba(251, 191, 36, 0.15);
+  /* Info: calm cyan, slightly shifted from accent so the two read distinct. */
+  --v3-info:         #7DD3FC;
+  --v3-info-tint:    rgba(125, 211, 252, 0.15);
+  /* Crit: vapor pink — the only place pink lives at full strength. */
+  --v3-crit:         #F472B6;
+  --v3-crit-tint:    rgba(244, 114, 182, 0.16);
+
+  /* ── Shadows — diffuse, plum-tinted ──────────────────────── */
+  --v3-shadow-1: 0 1px 3px rgba(7, 3, 15, 0.45);
+  --v3-shadow-2: 0 2px 10px rgba(7, 3, 15, 0.55), 0 1px 2px rgba(7, 3, 15, 0.35);
+  --v3-shadow-3: 0 8px 28px rgba(7, 3, 15, 0.70), 0 2px 6px rgba(7, 3, 15, 0.40);
+}
+
+/* ── Content area: faint cyan haze at the top edge ───────────── */
+body[data-theme-v3="vapor"] .appv3-content {
+  background: linear-gradient(180deg,
+    rgba(34, 211, 238, 0.025) 0px,
+    transparent 96px),
+    transparent;
+}
+
+/* ── Topbar: dark with neon cyan hairline at the bottom ──────── */
+body[data-theme-v3="vapor"] .v3-topbar {
+  background: rgba(20, 9, 43, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom-color: transparent;
+  box-shadow:
+    0 1px 0 0 rgba(34, 211, 238, 0.35),
+    0 1px 12px -2px rgba(34, 211, 238, 0.18);
+}
+
+/* ── Statusbar: dark with neon cyan hairline at the top ──────── */
+body[data-theme-v3="vapor"] .v3-statusbar {
+  background: rgba(11, 5, 32, 0.92);
+  border-top-color: transparent;
+  box-shadow:
+    inset 0 1px 0 0 rgba(34, 211, 238, 0.30);
+}
+
+/* ── Sidebar: tinted dark indigo over the gradient ───────────── */
+body[data-theme-v3="vapor"] .v3-sidebar {
+  background: rgba(20, 9, 43, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* ── Sidebar active link: cyan left bar + soft outer glow ────── */
+body[data-theme-v3="vapor"] .v3-side-link.active {
+  box-shadow:
+    inset 3px 0 0 #22D3EE,
+    0 0 18px -4px rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.06);
+}
+
+/* ── Stat cards: cyan ring on hover (only place glow lives) ──── */
+body[data-theme-v3="vapor"] .v3-stat-card:hover {
+  box-shadow:
+    var(--v3-shadow-2),
+    0 0 0 1px var(--v3-border-strong),
+    0 0 0 3px var(--v3-accent-soft);
+  border-color: rgba(34, 211, 238, 0.35);
+}
+
+/* ── Rows: subtle cyan border on hover (no glow) ─────────────── */
+body[data-theme-v3="vapor"] .v3-row:hover {
+  border-color: rgba(34, 211, 238, 0.30);
+  box-shadow: var(--v3-shadow-2);
+}
+
+/* ── Companion stage: soft pink-cyan horizon glow ────────────── */
+body[data-theme-v3="vapor"] .v3-companion-stage {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 100%,
+      rgba(244, 114, 182, 0.10) 0%,
+      rgba(34, 211, 238, 0.06) 45%,
+      transparent 100%);
+}
+
+/* ── Focus visible: cyan outline, controlled glow ────────────── */
+body[data-theme-v3="vapor"] .appv3 button:focus-visible,
+body[data-theme-v3="vapor"] .appv3 a:focus-visible,
+body[data-theme-v3="vapor"] .appv3 input:focus-visible,
+body[data-theme-v3="vapor"] .appv3 select:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.18);
+}
+
+/* ── Stat icon tints ─────────────────────────────────────────── */
+body[data-theme-v3="vapor"] .v3-stat-icon-orange {
+  /* Reframed as pink for vapor — the "warm" slot. */
+  background: rgba(244, 114, 182, 0.16);
+  color: #F9A8D4;
+}
+body[data-theme-v3="vapor"] .v3-stat-icon-purple {
+  background: rgba(196, 181, 253, 0.16);
+  color: #C4B5FD;
+}
+body[data-theme-v3="vapor"] .v3-stat-icon-amber {
+  background: rgba(251, 191, 36, 0.16);
+  color: #FBBF24;
+}
+body[data-theme-v3="vapor"] .v3-stat-icon-green {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34D399;
+}
+
+/* ── PR review pill ──────────────────────────────────────────── */
+body[data-theme-v3="vapor"] .v3-pr-pill-review {
+  background: rgba(196, 181, 253, 0.18);
+  color: #C4B5FD;
+}
+
+/* ── PR row icon (violet) ────────────────────────────────────── */
+body[data-theme-v3="vapor"] .v3-row-pr .v3-row-icon {
+  background: rgba(196, 181, 253, 0.16);
+  color: #C4B5FD;
+}
+
+/* ── Audit alert banner ──────────────────────────────────────── */
+body[data-theme-v3="vapor"] .v3-audit-foot {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #FBBF24;
+}
+body[data-theme-v3="vapor"] .v3-audit-foot .v3-chev {
+  color: #FBBF24;
+}
+
+/* ── Audit findings: vapor-adapted ───────────────────────────── */
+body[data-theme-v3="vapor"] .v3-finding-crit {
+  border-color: rgba(244, 114, 182, 0.32);
+  background: rgba(244, 114, 182, 0.08);
+}
+body[data-theme-v3="vapor"] .v3-finding-warn {
+  border-color: rgba(251, 191, 36, 0.30);
+  background: rgba(251, 191, 36, 0.08);
+}
+body[data-theme-v3="vapor"] .v3-finding-info {
+  border-color: rgba(125, 211, 252, 0.28);
+  background: rgba(125, 211, 252, 0.07);
+}
+body[data-theme-v3="vapor"] .v3-finding-ok {
+  border-color: rgba(52, 211, 153, 0.25);
+  background: rgba(52, 211, 153, 0.07);
+}
+
+/* ── Success / error banners ─────────────────────────────────── */
+body[data-theme-v3="vapor"] .v3-error {
+  background: rgba(244, 114, 182, 0.10);
+  border-color: rgba(244, 114, 182, 0.32);
+  color: #F9A8D4;
+}
+body[data-theme-v3="vapor"] .v3-success {
+  background: rgba(52, 211, 153, 0.10);
+  border-color: rgba(52, 211, 153, 0.28);
+  color: #6EE7B7;
+}
+
+/* ── Chip.active: cyan inversion ─────────────────────────────── */
+body[data-theme-v3="vapor"] .v3-chip.active {
+  background: var(--v3-accent);
+  border-color: var(--v3-accent);
+  color: #07030F;
+}
+
+/* ── Headings: subtle italic chrome accent (the one motif) ───── */
+/* Restrained — italics only on h1/h2 inside content, not everywhere. */
+body[data-theme-v3="vapor"] .appv3 h1,
+body[data-theme-v3="vapor"] .appv3 h2 {
+  font-style: italic;
+  letter-spacing: -0.01em;
+}
+
+/* ── Scrollbar thumbs: plum-tinted ───────────────────────────── */
+body[data-theme-v3="vapor"] .appv3 ::-webkit-scrollbar-thumb {
+  background: #3A2856;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+body[data-theme-v3="vapor"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: #56407A;
+  background-clip: content-box;
+}

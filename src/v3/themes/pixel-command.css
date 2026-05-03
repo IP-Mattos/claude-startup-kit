@@ -1,0 +1,330 @@
+/* =============================================================
+   V3 Theme: PIXEL-COMMAND
+   Identity: cream parchment + ink-black hairlines.
+   90s/Win95 OS structure, 8-bit pixel-corner accents,
+   brutalist-meets-kawaii — the grown-up retro.
+   Reference moods: Win95 chrome, dithered HUDs, ink-on-cream
+   risograph zines, OLD-schoool TUI panels.
+   ============================================================= */
+
+/* ── Body background ──────────────────────────────────────────
+   Flat parchment cream. No gradients — this aesthetic earns
+   depth from hairlines, not light.
+   ─────────────────────────────────────────────────────────── */
+body.v3-layout[data-theme-v3="pixel-command"] {
+  background: #F2EAD6;
+}
+
+/* ── Token definitions ──────────────────────────────────────── */
+body[data-theme-v3="pixel-command"] .appv3 {
+  /* ── Surface ─────────────────────────────────────────────── */
+  --v3-bg:           #F2EAD6;          /* aged parchment */
+  --v3-surface:      #FBF6E7;          /* card cream — slightly lifted */
+  --v3-surface-2:    #F5EDD8;          /* subtle hatched stripe */
+  --v3-hover:        #ECE2C6;          /* warm wheat */
+  --v3-border:       #1A1814;          /* near-black ink hairline */
+  --v3-border-strong: #0D0C0A;         /* deeper ink for emphasis */
+
+  /* ── Type ────────────────────────────────────────────────── */
+  /* text on surface: #1A1814 on #FBF6E7 ≈ 15:1 — generous AA */
+  --v3-text:   #1A1814;                /* ink black */
+  --v3-text-2: #3A3528;                /* warm soot */
+  /* text-3 on bg: #5C5340 on #F2EAD6 ≈ 7.1:1 — passes AAA */
+  --v3-text-3: #5C5340;                /* mid-bistre */
+  --v3-text-4: #897C5E;                /* decorative / placeholders */
+
+  /* ── Accent ──────────────────────────────────────────────── */
+  /* Deep oxblood — reads like console-dot red on cream, never neon */
+  --v3-accent:       #B8351E;
+  --v3-accent-hover: #9A2A14;
+  --v3-accent-tint:  #F4DAD0;          /* dusty rose wash */
+  --v3-accent-soft:  rgba(184, 53, 30, 0.10);
+
+  /* ── Semantic — all muted, ink-tempered ─────────────────── */
+  --v3-success:      #2F7D3B;          /* moss green */
+  --v3-success-tint: #DCEAD4;
+  --v3-warn:         #B26B12;          /* burnt amber, NOT neon */
+  --v3-warn-tint:    #F4E0BB;
+  /* CALM blue — slate teal, not yellow/orange */
+  --v3-info:         #2B5C8A;
+  --v3-info-tint:    #D8E2EC;
+  --v3-crit:         #9A2A14;
+  --v3-crit-tint:    #F0CFC6;
+
+  /* ── Shadows — chunky-but-precise pixel offsets ─────────── */
+  /* No blur. Hard 1-2px ink offsets — that's the OS-window feel. */
+  --v3-shadow-1: 1px 1px 0 0 rgba(26, 24, 20, 0.55);
+  --v3-shadow-2: 2px 2px 0 0 rgba(26, 24, 20, 0.65);
+  --v3-shadow-3: 3px 3px 0 0 rgba(26, 24, 20, 0.75);
+}
+
+/* ── Typography ───────────────────────────────────────────────
+   Bitter for body (warm slab serif sits beautifully on cream)
+   VT323 for the small mono / status / version flecks.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="pixel-command"] .appv3 {
+  font-family: 'Bitter', 'Inter', system-ui, sans-serif;
+}
+
+/* Status-bar / footer / version chips use VT323 for terminal feel */
+body[data-theme-v3="pixel-command"] .appv3 .v3-statusbar,
+body[data-theme-v3="pixel-command"] .appv3 .v3-version,
+body[data-theme-v3="pixel-command"] .appv3 .v3-meta,
+body[data-theme-v3="pixel-command"] .appv3 .v3-row-meta,
+body[data-theme-v3="pixel-command"] .appv3 .v3-stat-label,
+body[data-theme-v3="pixel-command"] .appv3 .v3-chip,
+body[data-theme-v3="pixel-command"] .appv3 .v3-tag {
+  font-family: 'VT323', 'Bitter', monospace;
+  font-size: 1.05em;
+  letter-spacing: 0.02em;
+}
+
+/* ── Content viewport: faint hatched dither ──────────────────
+   2px diagonal hatch at very low opacity — the riso-print feel.
+   Replaces the dot-grid trick of the light theme.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="pixel-command"] .appv3 .appv3-content {
+  background-color: var(--v3-bg);
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(26, 24, 20, 0.035) 0px,
+    rgba(26, 24, 20, 0.035) 1px,
+    transparent 1px,
+    transparent 6px
+  );
+}
+
+/* ── Topbar: hard ink underline ─────────────────────────────── */
+body[data-theme-v3="pixel-command"] .v3-topbar {
+  border-bottom: 1px solid var(--v3-border);
+  box-shadow: 0 1px 0 0 rgba(26, 24, 20, 0.25);
+}
+
+/* ── Cards: ink hairline + offset shadow (the "OS window") ─── */
+body[data-theme-v3="pixel-command"] .appv3 .v3-card,
+body[data-theme-v3="pixel-command"] .appv3 .v3-stat-card,
+body[data-theme-v3="pixel-command"] .appv3 .v3-panel {
+  border: 1px solid var(--v3-border);
+  border-radius: 2px;            /* tiny chamfer — pixel-corner cue */
+  box-shadow: var(--v3-shadow-1);
+  background: var(--v3-surface);
+}
+
+/* Stat card hover: lift to a 2px ink offset (pressed-deeper feel) */
+body[data-theme-v3="pixel-command"] .appv3 .v3-stat-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--v3-shadow-2);
+  border-color: var(--v3-border-strong);
+}
+
+/* ── Rows: hairline, hover swap to dusty-rose tint ───────────
+   No outer ring (light theme's move). This aesthetic gets its
+   pop from a fill swap, not a glow.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="pixel-command"] .appv3 .v3-row {
+  border: 1px solid var(--v3-border);
+  border-radius: 2px;
+  background: var(--v3-surface);
+}
+body[data-theme-v3="pixel-command"] .appv3 .v3-row:hover {
+  background: var(--v3-accent-tint);
+  border-color: var(--v3-border-strong);
+  box-shadow: var(--v3-shadow-1);
+}
+
+/* ── Sidebar active link: chunky pressed-key shadow ──────────
+   The signature move. Inset bottom + right shadows make it read
+   like a pressed CRT button. Bold tint underneath.
+   ─────────────────────────────────────────────────────────── */
+body[data-theme-v3="pixel-command"] .appv3 .v3-side-link {
+  border-radius: 2px;
+}
+body[data-theme-v3="pixel-command"] .appv3 .v3-side-link:hover {
+  background: var(--v3-hover);
+}
+body[data-theme-v3="pixel-command"] .appv3 .v3-side-link.active {
+  background: var(--v3-accent-tint);
+  color: var(--v3-accent);
+  border: 1px solid var(--v3-border);
+  /* Pressed key: inset dark on top+left, bright on bottom+right */
+  box-shadow:
+    inset 2px 2px 0 0 rgba(26, 24, 20, 0.20),
+    inset -1px -1px 0 0 rgba(255, 250, 235, 0.6);
+}
+
+/* ── Companion stage: parchment with corner dither ─────────── */
+body[data-theme-v3="pixel-command"] .appv3 .v3-companion-stage {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 100%,
+      var(--v3-accent-tint) 0%,
+      transparent 70%),
+    var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: 2px;
+}
+
+/* Companion header: ink hairline divider, no tint */
+body[data-theme-v3="pixel-command"] .appv3 .v3-companion-head {
+  padding: 2px 2px 8px;
+  border-bottom: 1px dashed var(--v3-text-4);
+}
+
+/* ── Buttons: brutalist OS-button ───────────────────────────── */
+body[data-theme-v3="pixel-command"] .appv3 .v3-btn,
+body[data-theme-v3="pixel-command"] .appv3 button.v3-btn {
+  border: 1px solid var(--v3-border);
+  border-radius: 2px;
+  background: var(--v3-surface);
+  color: var(--v3-text);
+  box-shadow: var(--v3-shadow-1);
+  font-family: 'Bitter', system-ui, sans-serif;
+  font-weight: 600;
+}
+body[data-theme-v3="pixel-command"] .appv3 .v3-btn:hover {
+  background: var(--v3-hover);
+  box-shadow: var(--v3-shadow-2);
+}
+body[data-theme-v3="pixel-command"] .appv3 .v3-btn:active {
+  box-shadow: inset 1px 1px 0 0 rgba(26, 24, 20, 0.35);
+  transform: translate(1px, 1px);
+}
+
+/* Primary button: oxblood fill, cream text */
+body[data-theme-v3="pixel-command"] .appv3 .v3-btn-primary {
+  background: var(--v3-accent);
+  color: #FBF6E7;
+  border-color: var(--v3-border-strong);
+}
+body[data-theme-v3="pixel-command"] .appv3 .v3-btn-primary:hover {
+  background: var(--v3-accent-hover);
+}
+
+/* ── Inputs ─────────────────────────────────────────────────── */
+body[data-theme-v3="pixel-command"] .appv3 input,
+body[data-theme-v3="pixel-command"] .appv3 select,
+body[data-theme-v3="pixel-command"] .appv3 textarea {
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: 2px;
+  color: var(--v3-text);
+  /* Inset hairline reads like a sunken Win95 field */
+  box-shadow: inset 1px 1px 0 0 rgba(26, 24, 20, 0.18);
+}
+
+/* ── Focus visible: hard ink double-stroke ──────────────────── */
+body[data-theme-v3="pixel-command"] .appv3 button:focus-visible,
+body[data-theme-v3="pixel-command"] .appv3 a:focus-visible,
+body[data-theme-v3="pixel-command"] .appv3 input:focus-visible,
+body[data-theme-v3="pixel-command"] .appv3 select:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--v3-border);
+}
+
+/* ── Stat icon tints — desaturated for cream bg ────────────── */
+body[data-theme-v3="pixel-command"] .v3-stat-icon-orange {
+  background: var(--v3-accent-tint);
+  color: var(--v3-accent);
+}
+body[data-theme-v3="pixel-command"] .v3-stat-icon-purple {
+  background: #E2D8E8;
+  color: #5B3D6B;
+}
+body[data-theme-v3="pixel-command"] .v3-stat-icon-amber {
+  background: var(--v3-warn-tint);
+  color: var(--v3-warn);
+}
+body[data-theme-v3="pixel-command"] .v3-stat-icon-green {
+  background: var(--v3-success-tint);
+  color: var(--v3-success);
+}
+
+/* ── PR review pill ─────────────────────────────────────────── */
+body[data-theme-v3="pixel-command"] .v3-pr-pill-review {
+  background: #E2D8E8;
+  color: #5B3D6B;
+  border: 1px solid var(--v3-text-4);
+  border-radius: 2px;
+  font-family: 'VT323', monospace;
+}
+
+/* ── Chips: pixel pills with hard borders ───────────────────── */
+body[data-theme-v3="pixel-command"] .appv3 .v3-chip {
+  border: 1px solid var(--v3-border);
+  border-radius: 2px;
+  background: var(--v3-surface);
+  color: var(--v3-text-2);
+  box-shadow: var(--v3-shadow-1);
+}
+body[data-theme-v3="pixel-command"] .appv3 .v3-chip.active {
+  background: var(--v3-text);
+  border-color: var(--v3-text);
+  color: var(--v3-surface);
+  /* Pressed-in feel — shadow disappears */
+  box-shadow: inset 1px 1px 0 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ── Audit findings: ink-edged tinted blocks ────────────────── */
+body[data-theme-v3="pixel-command"] .v3-finding-crit {
+  border: 1px solid var(--v3-crit);
+  background: var(--v3-crit-tint);
+}
+body[data-theme-v3="pixel-command"] .v3-finding-warn {
+  border: 1px solid var(--v3-warn);
+  background: var(--v3-warn-tint);
+}
+body[data-theme-v3="pixel-command"] .v3-finding-info {
+  border: 1px solid var(--v3-info);
+  background: var(--v3-info-tint);
+}
+body[data-theme-v3="pixel-command"] .v3-finding-ok {
+  border: 1px solid var(--v3-success);
+  background: var(--v3-success-tint);
+}
+
+/* ── Audit footer warning banner ────────────────────────────── */
+/* #6E4109 on #F4E0BB ≈ 7.5:1 — passes AAA */
+body[data-theme-v3="pixel-command"] .v3-audit-foot {
+  background: var(--v3-warn-tint);
+  border: 1px solid var(--v3-warn);
+  border-radius: 2px;
+  color: #6E4109;
+  box-shadow: var(--v3-shadow-1);
+}
+body[data-theme-v3="pixel-command"] .v3-audit-foot .v3-chev {
+  color: #6E4109;
+}
+
+/* ── Success / error banners ────────────────────────────────── */
+body[data-theme-v3="pixel-command"] .v3-error {
+  background: var(--v3-crit-tint);
+  border: 1px solid var(--v3-crit);
+  color: #5C1A0E;
+}
+body[data-theme-v3="pixel-command"] .v3-success {
+  background: var(--v3-success-tint);
+  border: 1px solid var(--v3-success);
+  color: #1F4D26;
+}
+
+/* ── Scrollbar: cream track, ink thumb ──────────────────────── */
+body[data-theme-v3="pixel-command"] .appv3 ::-webkit-scrollbar-track {
+  background: var(--v3-bg);
+}
+body[data-theme-v3="pixel-command"] .appv3 ::-webkit-scrollbar-thumb {
+  background: #5C5340;
+  border: 2px solid transparent;
+  border-radius: 0;             /* no round — pixel block */
+  background-clip: content-box;
+}
+body[data-theme-v3="pixel-command"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: var(--v3-text);
+  background-clip: content-box;
+}
+
+/* ── Decorative dashed accent (used sparingly) ──────────────── */
+/* Apply via .v3-divider — the only place we use a dashed border,
+   a deliberate "section break" mark like old terminal forms. */
+body[data-theme-v3="pixel-command"] .appv3 .v3-divider {
+  border-top: 1px dashed var(--v3-text-4);
+}

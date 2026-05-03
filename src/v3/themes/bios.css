@@ -1,0 +1,318 @@
+/* =============================================================
+   V3 Theme: BIOS
+   Identity: old PC firmware setup screen — deep blue bg, white
+   hard borders, cyan field labels, yellow active row.
+   Reference moods: AMI BIOS, Award BIOS, Phoenix setup, IBM PS/2.
+   Motif: hard 1px white double-line borders + a single steady
+   prompt cursor. No glow, no flicker, no gradients. Rigid grid.
+   ============================================================= */
+
+/* ── Body background: pure deep blue, no gradient ──────────── */
+body.v3-layout[data-theme-v3="bios"] {
+  background: #0000AA;
+}
+
+/* ── Token definitions ─────────────────────────────────────── */
+body[data-theme-v3="bios"] .appv3 {
+  /* ── Surface ──────────────────────────────────────────────
+     Classic AMI/Award palette. Surface and bg are the same
+     deep blue — BIOS screens are flat. surface-2 is a step
+     darker for inset wells (input fields, code blocks). */
+  --v3-bg:            #0000AA;
+  --v3-surface:       #0000AA;
+  --v3-surface-2:     #000080;        /* navy inset — "field well" */
+  --v3-hover:         #1A1AB8;        /* faint lift on row hover */
+  --v3-border:        #FFFFFF;        /* hard white — BIOS signature */
+  --v3-border-strong: #FFFFFF;
+
+  /* ── Type ────────────────────────────────────────────────
+     Pure white for headings/body — BIOS does not do soft greys.
+     Cyan for secondary (field labels). Light steel for tertiary.
+     text-3 #C0C0C0 on #0000AA ≈ 9.6:1 — strong AA pass.
+     text-4 #8A8AC8 on #0000AA ≈ 4.6:1 — AA floor, decorative. */
+  --v3-text:   #FFFFFF;
+  --v3-text-2: #00FFFF;               /* cyan — field labels */
+  --v3-text-3: #C0C0C0;               /* light grey — values, hints */
+  --v3-text-4: #8A8AC8;               /* dim periwinkle — placeholder */
+
+  /* ── Accent: BIOS yellow (the "selected option" color) ──
+     #FFFF00 on #0000AA ≈ 13.6:1 — extreme contrast, the whole
+     point of BIOS UIs. accent-tint is the solid yellow band
+     used behind the active row. accent-soft is for subtle
+     inset bars / focus rings. */
+  --v3-accent:        #FFFF00;
+  --v3-accent-hover:  #FFD700;        /* slightly warmer on press */
+  --v3-accent-tint:   #FFFF00;        /* solid — used as row bg */
+  --v3-accent-soft:   rgba(255, 255, 0, 0.22);
+
+  /* ── Semantic ────────────────────────────────────────────
+     Success: BIOS bright green (#00FF00 on blue ≈ 8.5:1).
+     Warn: yellow — fits the theme; matches accent intentionally.
+     Info: calm cyan, never yellow.
+     Crit: BIOS bright red on dim wash. */
+  --v3-success:      #00FF00;
+  --v3-success-tint: rgba(0, 255, 0, 0.16);
+  --v3-warn:         #FFFF00;
+  --v3-warn-tint:    rgba(255, 255, 0, 0.16);
+  --v3-info:         #00FFFF;
+  --v3-info-tint:    rgba(0, 255, 255, 0.14);
+  --v3-crit:         #FF5555;
+  --v3-crit-tint:    rgba(255, 85, 85, 0.16);
+
+  /* ── Shadows: BIOS has none. Keep flat. ─────────────────
+     We define empty/near-zero shadows so component CSS that
+     reaches for shadow-1..3 doesn't drop a soft blur on a
+     theme that should read CRT-rigid. */
+  --v3-shadow-1: none;
+  --v3-shadow-2: 0 0 0 1px #FFFFFF;
+  --v3-shadow-3: 0 0 0 1px #FFFFFF;
+}
+
+/* ── Global mono enforcement ──────────────────────────────────
+   VT323 is loaded in main.tsx. Apply across the whole app —
+   BIOS is mono everywhere, even numbers. */
+body[data-theme-v3="bios"] .appv3,
+body[data-theme-v3="bios"] .appv3 * {
+  font-family: 'VT323', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: 0;
+}
+
+/* Bump base size slightly — VT323 reads small at 14px */
+body[data-theme-v3="bios"] .appv3 {
+  font-size: 16px;
+}
+
+/* ── Kill rounded corners — BIOS is square ──────────────────
+   Component CSS uses border-radius for cards/buttons/chips.
+   Force everything to 0 so the rigid grid feel is consistent. */
+body[data-theme-v3="bios"] .appv3,
+body[data-theme-v3="bios"] .appv3 * {
+  border-radius: 0 !important;
+}
+
+/* ── Sidebar active link: yellow row + black text ───────────
+   The signature "selected setup option" look. */
+body[data-theme-v3="bios"] .appv3 .v3-side-link.active {
+  background: var(--v3-accent);
+  color: #000000;
+  box-shadow: none;
+}
+body[data-theme-v3="bios"] .appv3 .v3-side-link.active * {
+  color: #000000;
+}
+
+/* Inactive sidebar links: white text, navy hover */
+body[data-theme-v3="bios"] .appv3 .v3-side-link {
+  color: #FFFFFF;
+}
+body[data-theme-v3="bios"] .appv3 .v3-side-link:hover {
+  background: var(--v3-hover);
+  color: #FFFFFF;
+}
+
+/* ── Topbar: hard white bottom border, no gradient ─────────── */
+body[data-theme-v3="bios"] .appv3 .v3-topbar {
+  background: var(--v3-bg);
+  border-bottom: 1px solid #FFFFFF;
+  box-shadow: none;
+}
+
+/* ── Cards / surfaces: hard white 1px border, flat fill ───── */
+body[data-theme-v3="bios"] .appv3 .v3-stat-card,
+body[data-theme-v3="bios"] .appv3 .v3-row,
+body[data-theme-v3="bios"] .appv3 .v3-panel,
+body[data-theme-v3="bios"] .appv3 .v3-card {
+  background: var(--v3-surface);
+  border: 1px solid #FFFFFF;
+  box-shadow: none;
+}
+
+/* Hover: invert to navy inset, keep white border */
+body[data-theme-v3="bios"] .appv3 .v3-row:hover,
+body[data-theme-v3="bios"] .appv3 .v3-stat-card:hover {
+  background: var(--v3-surface-2);
+  border-color: #FFFFFF;
+  box-shadow: none;
+}
+
+/* ── Inputs / selects: navy well, white border, cyan caret ── */
+body[data-theme-v3="bios"] .appv3 input,
+body[data-theme-v3="bios"] .appv3 select,
+body[data-theme-v3="bios"] .appv3 textarea {
+  background: var(--v3-surface-2);
+  border: 1px solid #FFFFFF;
+  color: #FFFFFF;
+  caret-color: #00FFFF;
+}
+body[data-theme-v3="bios"] .appv3 input::placeholder,
+body[data-theme-v3="bios"] .appv3 textarea::placeholder {
+  color: var(--v3-text-4);
+}
+
+/* ── Focus: yellow outline, no glow ─────────────────────────
+   No box-shadow blur — BIOS focus is a hard 2px swap. */
+body[data-theme-v3="bios"] .appv3 button:focus-visible,
+body[data-theme-v3="bios"] .appv3 a:focus-visible,
+body[data-theme-v3="bios"] .appv3 input:focus-visible,
+body[data-theme-v3="bios"] .appv3 select:focus-visible {
+  outline: 2px solid #FFFF00;
+  outline-offset: 0;
+  box-shadow: none;
+}
+
+/* ── Buttons: white border on blue, yellow on hover ────────
+   Primary action inverts: yellow bg + black text, the same
+   "selected" treatment as the active sidebar row. */
+body[data-theme-v3="bios"] .appv3 button {
+  background: var(--v3-surface);
+  border: 1px solid #FFFFFF;
+  color: #FFFFFF;
+  box-shadow: none;
+}
+body[data-theme-v3="bios"] .appv3 button:hover {
+  background: var(--v3-accent);
+  color: #000000;
+  border-color: #FFFFFF;
+}
+
+/* ── Chips ─────────────────────────────────────────────────
+   Active chip = yellow + black; inactive = white border on blue. */
+body[data-theme-v3="bios"] .appv3 .v3-chip {
+  background: var(--v3-surface);
+  border: 1px solid #FFFFFF;
+  color: #FFFFFF;
+}
+body[data-theme-v3="bios"] .appv3 .v3-chip.active {
+  background: var(--v3-accent);
+  border-color: #FFFFFF;
+  color: #000000;
+}
+
+/* ── Companion stage: keep flat ─────────────────────────── */
+body[data-theme-v3="bios"] .appv3 .v3-companion-stage {
+  background: var(--v3-surface-2);
+  border: 1px solid #FFFFFF;
+}
+
+/* ── Audit findings: BIOS-flat, hard borders, no soft tints ─ */
+body[data-theme-v3="bios"] .appv3 .v3-finding-crit {
+  background: var(--v3-surface-2);
+  border: 1px solid #FF5555;
+  color: #FFFFFF;
+}
+body[data-theme-v3="bios"] .appv3 .v3-finding-warn {
+  background: var(--v3-surface-2);
+  border: 1px solid #FFFF00;
+  color: #FFFFFF;
+}
+body[data-theme-v3="bios"] .appv3 .v3-finding-info {
+  background: var(--v3-surface-2);
+  border: 1px solid #00FFFF;
+  color: #FFFFFF;
+}
+body[data-theme-v3="bios"] .appv3 .v3-finding-ok {
+  background: var(--v3-surface-2);
+  border: 1px solid #00FF00;
+  color: #FFFFFF;
+}
+
+/* Audit footer: yellow band, the "press F1 for help" feel */
+body[data-theme-v3="bios"] .appv3 .v3-audit-foot {
+  background: var(--v3-accent);
+  border: 1px solid #FFFFFF;
+  color: #000000;
+}
+body[data-theme-v3="bios"] .appv3 .v3-audit-foot .v3-chev {
+  color: #000000;
+}
+
+/* ── Stat icon tints: solid BIOS palette, no soft alpha ──── */
+body[data-theme-v3="bios"] .appv3 .v3-stat-icon-orange {
+  background: #000080;
+  color: #FFFF00;
+  border: 1px solid #FFFFFF;
+}
+body[data-theme-v3="bios"] .appv3 .v3-stat-icon-purple {
+  background: #000080;
+  color: #FF55FF;
+  border: 1px solid #FFFFFF;
+}
+body[data-theme-v3="bios"] .appv3 .v3-stat-icon-amber {
+  background: #000080;
+  color: #FFFF00;
+  border: 1px solid #FFFFFF;
+}
+body[data-theme-v3="bios"] .appv3 .v3-stat-icon-green {
+  background: #000080;
+  color: #00FF00;
+  border: 1px solid #FFFFFF;
+}
+
+/* ── PR pill ──────────────────────────────────────────────── */
+body[data-theme-v3="bios"] .appv3 .v3-pr-pill-review {
+  background: #000080;
+  color: #00FFFF;
+  border: 1px solid #FFFFFF;
+}
+body[data-theme-v3="bios"] .appv3 .v3-row-pr .v3-row-icon {
+  background: #000080;
+  color: #00FFFF;
+  border: 1px solid #FFFFFF;
+}
+
+/* ── Banners: flat, hard borders ───────────────────────────── */
+body[data-theme-v3="bios"] .appv3 .v3-error {
+  background: var(--v3-surface-2);
+  border: 1px solid #FF5555;
+  color: #FF5555;
+}
+body[data-theme-v3="bios"] .appv3 .v3-success {
+  background: var(--v3-surface-2);
+  border: 1px solid #00FF00;
+  color: #00FF00;
+}
+
+/* ── Scrollbar: square, white-on-blue, no rounding ────────── */
+body[data-theme-v3="bios"] .appv3 ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+body[data-theme-v3="bios"] .appv3 ::-webkit-scrollbar-track {
+  background: var(--v3-surface-2);
+  border-left: 1px solid #FFFFFF;
+}
+body[data-theme-v3="bios"] .appv3 ::-webkit-scrollbar-thumb {
+  background: #FFFFFF;
+  border: 2px solid #0000AA;
+  background-clip: content-box;
+  border-radius: 0;
+}
+body[data-theme-v3="bios"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: #FFFF00;
+  background-clip: content-box;
+}
+
+/* ── Selection: yellow band, black text — "highlighted entry" */
+body[data-theme-v3="bios"] .appv3 ::selection {
+  background: #FFFF00;
+  color: #000000;
+}
+
+/* ── Headings: pure white, never accent-colored ──────────── */
+body[data-theme-v3="bios"] .appv3 h1,
+body[data-theme-v3="bios"] .appv3 h2,
+body[data-theme-v3="bios"] .appv3 h3,
+body[data-theme-v3="bios"] .appv3 h4 {
+  color: #FFFFFF;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ── Field labels: cyan, the BIOS "key:" look ─────────────── */
+body[data-theme-v3="bios"] .appv3 label,
+body[data-theme-v3="bios"] .appv3 .v3-label,
+body[data-theme-v3="bios"] .appv3 .v3-stat-label {
+  color: var(--v3-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
