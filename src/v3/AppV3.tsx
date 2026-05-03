@@ -285,14 +285,20 @@ export default function AppV3() {
                 <button
                   type="button"
                   className="v3-update-banner-primary"
-                  onClick={() => handleOpenUrl(updates.app!.release_url)}
+                  onClick={() => {
+                    void updates.applyApp();
+                  }}
+                  disabled={updates.applyingApp}
                 >
-                  {t("banner.open_release")}
+                  {updates.applyingApp
+                    ? t("common.updating")
+                    : t("common.update_now")}
                 </button>
                 <button
                   type="button"
                   className="v3-update-banner-ghost"
                   onClick={() => updates.dismissApp(updates.app!.latest)}
+                  disabled={updates.applyingApp}
                 >
                   {t("common.later")}
                 </button>

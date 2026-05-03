@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -20,6 +20,10 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png"] }
 tauri-plugin-opener = "2"
+# Real auto-updater: downloads + verifies signature + atomic install + restart.
+# Requires TAURI_SIGNING_PRIVATE_KEY{,_PASSWORD} at build time and a `latest.json`
+# manifest published alongside the release artifacts.
+tauri-plugin-updater = "2"
 # Update channel — uses the GitHub releases REST API so no signing infra is
 # required. See lib.rs `check_*_update` commands.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
