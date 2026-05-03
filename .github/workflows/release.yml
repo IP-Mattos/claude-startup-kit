@@ -1,8 +1,16 @@
 name: Release
 
-# Triggered by pushing a `v*` tag (e.g. `v0.1.1`).
-# Builds Windows installers (.msi + .exe) with Tauri and uploads them
-# as assets on the matching GitHub Release.
+# Triggered by pushing a `v*` tag (e.g. `v0.1.2`).
+#
+# Builds the Windows bundle with `tauri-apps/tauri-action`, which also:
+#   - signs the .msi/-setup.exe with the updater private key (env vars below),
+#   - emits the `latest.json` manifest the in-app updater pulls from
+#     `releases/latest/download/latest.json`,
+#   - uploads everything as release assets in one step.
+#
+# To make this run end-to-end, the repo needs two GitHub Actions secrets:
+#   - TAURI_SIGNING_PRIVATE_KEY           (full content of the private key file)
+#   - TAURI_SIGNING_PRIVATE_KEY_PASSWORD  (the passphrase chosen at key gen)
 on:
   push:
     tags:
@@ -13,7 +21,7 @@ permissions:
 
 jobs:
   build-windows:
-    name: Build & publish Windows installers
+    name: Build, sign & publish Windows installers
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -41,39 +49,21 @@ jobs:
       - name: Install frontend deps
         run: pnpm install --frozen-lockfile
 
-      - name: Build Tauri bundle
-        run: pnpm tauri build
-
-      - name: Collect installer artifacts
-        id: collect
-        shell: pwsh
-        run: |
-          $bundle = "src-tauri/target/release/bundle"
-          $files = @()
-          $files += Get-ChildItem -Path "$bundle/msi" -Filter '*.msi' -ErrorAction SilentlyContinue
-          $files += Get-ChildItem -Path "$bundle/nsis" -Filter '*-setup.exe' -ErrorAction SilentlyContinue
-          if ($files.Count -eq 0) {
-            Write-Error "No installer artifacts found under $bundle"
-            exit 1
-          }
-          $paths = $files | ForEach-Object { $_.FullName }
-          $paths | ForEach-Object { Write-Host "Will upload: $_" }
-          # Multi-line output for the next step
-          "files<<EOF" >> $env:GITHUB_OUTPUT
-          $paths -join "`n" >> $env:GITHUB_OUTPUT
-          "EOF" >> $env:GITHUB_OUTPUT
-
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          # Tag is the one that triggered the workflow.
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          # Release notes: pull from CHANGELOG section for this version (best effort).
-          # If you prefer manually-edited notes, edit the release after publish.
-          generate_release_notes: true
-          files: ${{ steps.collect.outputs.files }}
-          draft: false
-          prerelease: false
+      - name: Build, sign, and publish
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          # Reuse the tag that triggered the workflow.
+          tagName: ${{ github.ref_name }}
+          releaseName: ${{ github.ref_name }}
+          releaseBody: |
+            See `CHANGELOG.md` in the repo for the full notes for this release.
+          releaseDraft: false
+          prerelease: false
+          # Generates `latest.json` (the manifest the in-app updater reads) and
+          # uploads it alongside the .msi / -setup.exe. Without this, signed
+          # bundles still publish but the updater plugin has nothing to read.
+          includeUpdaterJson: true

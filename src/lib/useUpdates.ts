@@ -40,11 +40,20 @@ export interface UpdatesState {
   // True while ANY check is in flight; UI uses this to disable the manual
   // "Check now" button.
   checking: boolean;
+  // True while the auto-updater is actively downloading + installing the
+  // app's own update. Surfaced separately so the banner can show "Updating…"
+  // instead of the regular "Apply" CTA.
+  applyingApp: boolean;
   // Last error from a failed check, if any. Cleared on the next successful
   // check.
   error: string | null;
   // Imperative actions.
   checkNow: () => void;
+  // Triggers atomic auto-update: download + verify signature + replace
+  // binary + restart. On the happy path this resolves AFTER the new process
+  // has taken over (the call never actually returns in practice). On error
+  // the promise rejects and `error` is populated.
+  applyApp: () => Promise<void>;
   applyGentleAi: () => Promise<string | null>;
   dismissApp: (version: string) => void;
   dismissGentleAi: (version: string) => void;
@@ -99,6 +108,7 @@ export function useUpdates(): UpdatesState {
   const [app, setApp] = useState<UpdateStatus | null>(null);
   const [gentleAi, setGentleAi] = useState<UpdateStatus | null>(null);
   const [checking, setChecking] = useState(false);
+  const [applyingApp, setApplyingApp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Avoid re-running on StrictMode double-mount in dev.
   const ranOnce = useRef(false);
@@ -167,6 +177,22 @@ export function useUpdates(): UpdatesState {
     void runChecks(true);
   }, [runChecks]);
 
+  const applyApp = useCallback(async (): Promise<void> => {
+    if (!IS_TAURI) return;
+    setApplyingApp(true);
+    setError(null);
+    try {
+      await invoke<void>("apply_app_update");
+      // The Rust handler calls app.restart() on success, so this point is
+      // typically unreachable. We clear the flag defensively in case the
+      // restart fails or is a no-op on some future platform.
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setApplyingApp(false);
+    }
+  }, []);
+
   const applyGentleAi = useCallback(async (): Promise<string | null> => {
     if (!IS_TAURI) return null;
     setChecking(true);
@@ -197,8 +223,10 @@ export function useUpdates(): UpdatesState {
     app,
     gentleAi,
     checking,
+    applyingApp,
     error,
     checkNow,
+    applyApp,
     applyGentleAi,
     dismissApp,
     dismissGentleAi,

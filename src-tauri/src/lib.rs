@@ -1381,6 +1381,33 @@ async fn check_app_update() -> Result<UpdateStatus, String> {
     }
 }
 
+/// Atomic auto-update of the app itself.
+///
+/// Uses `tauri-plugin-updater` against the `latest.json` manifest published
+/// by the release workflow. The plugin downloads the new bundle, verifies
+/// its signature against the public key embedded in `tauri.conf.json`,
+/// replaces the running binary, and restarts the app. The function never
+/// actually returns to the renderer on the happy path — `app.restart()`
+/// swaps the process. The `Result<(), String>` signature is for the error
+/// path (network failure, signature mismatch, "no update available").
+#[tauri::command]
+async fn apply_app_update(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_updater::UpdaterExt;
+    let updater = app
+        .updater()
+        .map_err(|e| format!("updater unavailable: {e}"))?;
+    let update = updater
+        .check()
+        .await
+        .map_err(|e| format!("update check failed: {e}"))?
+        .ok_or_else(|| "no update available".to_string())?;
+    update
+        .download_and_install(|_chunk, _total| {}, || {})
+        .await
+        .map_err(|e| format!("download/install failed: {e}"))?;
+    app.restart()
+}
+
 fn read_gentle_ai_version() -> String {
     let out = silent_command("gentle-ai").arg("version").output();
     let bytes = match out {
@@ -2034,6 +2061,7 @@ async fn sync_disconnect() -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             scan_projects,
             git_last_commit,
@@ -2048,6 +2076,7 @@ pub fn run() {
             open_path_in_explorer,
             open_url,
             check_app_update,
+            apply_app_update,
             check_gentle_ai_update,
             apply_gentle_ai_update,
             workspace_summary,
