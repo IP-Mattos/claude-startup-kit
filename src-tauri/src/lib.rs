@@ -14,6 +14,25 @@ use tauri::{
     Manager,
 };
 
+/// Build a `Command` that does NOT flash a console window on Windows.
+///
+/// Tauri is a GUI app, but every CLI subprocess (`gh`, `git`, `engram`, ...) it spawns
+/// gets a `conhost.exe` window by default — visible as a brief flicker every time the
+/// user navigates a tab. `CREATE_NO_WINDOW` (0x0800_0000) suppresses that.
+/// On non-Windows targets this is a transparent no-op.
+fn silent_command(program: &str) -> Command {
+    let cmd = std::process::Command::new(program);
+    #[cfg(target_os = "windows")]
+    let mut cmd = cmd;
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
 #[derive(Serialize, Clone)]
 pub struct Project {
     pub path: String,
@@ -416,7 +435,7 @@ pub struct GhPullRequest {
 
 fn github_review_queue_blocking(limit: u32) -> Result<Vec<GhPullRequest>, String> {
     let limit_str = limit.to_string();
-    let output = Command::new("gh")
+    let output = silent_command("gh")
         .args([
             "search",
             "prs",
@@ -501,7 +520,7 @@ fn open_url(url: String) -> Result<(), String> {
     }
     // rundll32 doesn't re-interpret the URL string the way cmd.exe does
     // (avoids `&` becoming a command separator on PR query-string URLs).
-    Command::new("rundll32")
+    silent_command("rundll32")
         .args(["url.dll,FileProtocolHandler", &url])
         .spawn()
         .map_err(|e| format!("failed to open url: {e}"))?;
@@ -523,7 +542,7 @@ fn run_audit_blocking() -> Result<Vec<AuditFinding>, String> {
     if !script.exists() {
         return Err(format!("audit script not found at {}", script.display()));
     }
-    let output = Command::new("powershell")
+    let output = silent_command("powershell")
         .args([
             "-NoProfile",
             "-ExecutionPolicy",
@@ -598,7 +617,7 @@ static KNOWN_PROJECTS_CACHE: Lazy<Mutex<Option<KnownProjectsCache>>> =
 const KNOWN_PROJECTS_TTL: Duration = Duration::from_secs(5 * 60);
 
 fn fetch_known_projects_uncached() -> Vec<String> {
-    let Ok(output) = Command::new("engram").args(["projects", "list"]).output() else {
+    let Ok(output) = silent_command("engram").args(["projects", "list"]).output() else {
         return vec![];
     };
     if !output.status.success() {
@@ -687,7 +706,7 @@ fn engram_project_goal_blocking(path: &str, known: &[String]) -> Option<String> 
         return None;
     }
     let project_name = resolve_engram_project(&leaf, known);
-    let output = Command::new("engram")
+    let output = silent_command("engram")
         .args([
             "search",
             "session summary",
@@ -756,7 +775,7 @@ fn git_last_commit_blocking(path: &str) -> Option<GitInfo> {
     if !project.join(".git").exists() {
         return None;
     }
-    let output = Command::new("git")
+    let output = silent_command("git")
         .args(["-C", path, "log", "-1", "--pretty=format:%h|%cr|%an|%s"])
         .output()
         .ok()?;
@@ -863,7 +882,7 @@ async fn open_in_vscode(path: String) -> Result<(), String> {
     tokio::task::spawn_blocking(move || -> Result<(), String> {
         // `--` ends VS Code's option parsing so the path that follows is treated
         // verbatim and never as a flag, even if a future bypass slips through.
-        Command::new("code.cmd")
+        silent_command("code.cmd")
             .arg("--")
             .arg(&canonical)
             .spawn()
@@ -878,7 +897,7 @@ async fn open_in_vscode(path: String) -> Result<(), String> {
 async fn open_path_in_explorer(path: String) -> Result<(), String> {
     let canonical = validate_open_path(&path)?;
     tokio::task::spawn_blocking(move || -> Result<(), String> {
-        Command::new("explorer")
+        silent_command("explorer")
             .arg(&canonical)
             .spawn()
             .map_err(|e| format!("failed to open explorer: {e}"))?;
@@ -1317,7 +1336,7 @@ async fn fetch_latest_release(repo: &str) -> Result<GhRelease, String> {
     // 5000/hour, which is effectively unlimited for our use case.
     let endpoint = format!("repos/{repo}/releases/latest");
     let out = tokio::task::spawn_blocking(move || -> Result<std::process::Output, String> {
-        Command::new("gh")
+        silent_command("gh")
             .args(["api", &endpoint, "-H", "Accept: application/vnd.github+json"])
             .output()
             .map_err(|e| format!("spawn gh: {e}"))
@@ -1363,7 +1382,7 @@ async fn check_app_update() -> Result<UpdateStatus, String> {
 }
 
 fn read_gentle_ai_version() -> String {
-    let out = Command::new("gentle-ai").arg("version").output();
+    let out = silent_command("gentle-ai").arg("version").output();
     let bytes = match out {
         Ok(o) if o.status.success() => o.stdout,
         _ => return String::new(),
@@ -1432,7 +1451,7 @@ pub struct WorkspaceSummary {
 //     Observations: 421
 // We grep for those two labels and pull the first integer that follows.
 fn read_engram_stats() -> (Option<u32>, Option<u32>) {
-    let out = match Command::new("engram").arg("stats").output() {
+    let out = match silent_command("engram").arg("stats").output() {
         Ok(o) if o.status.success() => o,
         _ => return (None, None),
     };
@@ -1512,7 +1531,7 @@ async fn apply_gentle_ai_update() -> Result<String, String> {
     // a useful tail if something goes wrong.
     let cmd = format!("irm {GENTLE_AI_INSTALLER_URL} | iex");
     let out = tokio::task::spawn_blocking(move || -> Result<std::process::Output, String> {
-        Command::new("powershell")
+        silent_command("powershell")
             .args(["-NoProfile", "-NonInteractive", "-Command", &cmd])
             .output()
             .map_err(|e| format!("spawn powershell: {e}"))
@@ -1597,7 +1616,7 @@ fn list_local_projects_with_remote() -> Vec<SyncedProject> {
             // Project's source folder was moved or deleted — skip.
             continue;
         }
-        let remote = match Command::new("git")
+        let remote = match silent_command("git")
             .args(["-C"])
             .arg(&cwd)
             .args(["remote", "get-url", "origin"])
@@ -1687,7 +1706,7 @@ fn sync_status() -> Result<SyncState, String> {
 // Run a `git` subcommand inside the sync repo. Returns combined output
 // trimmed of trailing whitespace. Used to keep call sites short.
 fn git_in(repo: &Path, args: &[&str]) -> Result<String, String> {
-    let out = Command::new("git")
+    let out = silent_command("git")
         .current_dir(repo)
         .args(args)
         .output()
@@ -1704,7 +1723,7 @@ fn git_in(repo: &Path, args: &[&str]) -> Result<String, String> {
 async fn sync_setup(repo_name: String) -> Result<SyncState, String> {
     tokio::task::spawn_blocking(move || -> Result<SyncState, String> {
         // Resolve the gh user so the user only types the bare repo name.
-        let owner_out = Command::new("gh")
+        let owner_out = silent_command("gh")
             .args(["api", "user", "--jq", ".login"])
             .output()
             .map_err(|e| format!("spawn gh: {e}"))?;
@@ -1738,7 +1757,7 @@ async fn sync_setup(repo_name: String) -> Result<SyncState, String> {
             .map_err(|e| format!("create sync parent: {e}"))?;
 
         // Try to create the repo. If it already exists (re-setup), continue.
-        let create = Command::new("gh")
+        let create = silent_command("gh")
             .args([
                 "repo",
                 "create",
@@ -1760,7 +1779,7 @@ async fn sync_setup(repo_name: String) -> Result<SyncState, String> {
 
         // Clone over HTTPS so gh auth's stored credentials kick in.
         let remote_url = format!("https://github.com/{full_name}.git");
-        let clone = Command::new("git")
+        let clone = silent_command("git")
             .args(["clone", &remote_url])
             .arg(&repo_dir)
             .output()
@@ -1809,7 +1828,7 @@ async fn sync_export() -> Result<SyncState, String> {
         let target = repo_dir.join(SYNC_FILE_NAME);
 
         // engram export <path> — overwrites the file in place.
-        let out = Command::new("engram")
+        let out = silent_command("engram")
             .args(["export"])
             .arg(&target)
             .output()
@@ -1833,7 +1852,7 @@ async fn sync_export() -> Result<SyncState, String> {
         // Stage + amend (squash history into a single commit). If there's
         // no prior commit yet, fall back to a regular commit.
         git_in(&repo_dir, &["add", SYNC_FILE_NAME, SYNC_PROJECTS_FILE])?;
-        let amend = Command::new("git")
+        let amend = silent_command("git")
             .current_dir(&repo_dir)
             .args(["commit", "--amend", "-m", "sync"])
             .output()
@@ -1889,7 +1908,7 @@ async fn sync_import() -> Result<SyncState, String> {
             return Err(format!("{SYNC_FILE_NAME} missing in remote"));
         }
 
-        let out = Command::new("engram")
+        let out = silent_command("engram")
             .args(["import"])
             .arg(&source)
             .output()
@@ -1969,7 +1988,7 @@ async fn clone_project(
                 message: "destination already exists, skipped".to_string(),
             });
         }
-        let out = Command::new("git")
+        let out = silent_command("git")
             .args(["clone", &remote_url])
             .arg(&dest)
             .output()
