@@ -306,7 +306,9 @@ body.v3-layout #root {
 
 .v3-sidebar-spacer { flex: 1; }
 
-/* System status card (sidebar bottom) */
+/* System status card (sidebar bottom).
+   Tone classes drive the dot color + ambient ring; the rest stays neutral so
+   the card never reads as alarmist on cold start. */
 .v3-system-status {
   background: var(--v3-surface-2);
   border: 1px solid var(--v3-border);
@@ -314,42 +316,93 @@ body.v3-layout #root {
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-.v3-system-status-title {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--v3-text);
+  gap: 10px;
 }
 .v3-system-status-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--v3-text-2);
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--v3-text);
+  line-height: 1.2;
+}
+.v3-system-status-headline {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .v3-status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--v3-success);
-  box-shadow: 0 0 0 2px var(--v3-success-tint);
   flex-shrink: 0;
+  background: var(--v3-success);
+  box-shadow: 0 0 0 3px var(--v3-success-tint);
 }
+.v3-system-status-ok .v3-status-dot {
+  background: var(--v3-success);
+  box-shadow: 0 0 0 3px var(--v3-success-tint);
+}
+.v3-system-status-warn .v3-status-dot {
+  background: var(--v3-warn);
+  box-shadow: 0 0 0 3px var(--v3-warn-tint);
+}
+.v3-system-status-crit .v3-status-dot {
+  background: var(--v3-crit);
+  box-shadow: 0 0 0 3px var(--v3-crit-tint);
+}
+.v3-system-status-idle .v3-status-dot {
+  background: var(--v3-text-3);
+  box-shadow: 0 0 0 3px var(--v3-hover);
+}
+
+/* Stat chips — only render when there's something to show. */
+.v3-system-status-stats {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.v3-system-status-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.v3-system-status-stat-num {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.v3-system-status-stat-crit {
+  background: var(--v3-crit-tint);
+  color: var(--v3-crit);
+}
+.v3-system-status-stat-warn {
+  background: var(--v3-warn-tint);
+  color: var(--v3-warn);
+}
+
 .v3-system-status-meta {
   font-size: 11.5px;
   color: var(--v3-text-3);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 .v3-system-status-meta strong {
   color: var(--v3-text-2);
   font-weight: 600;
 }
 .v3-system-status-cta {
-  margin-top: 4px;
+  margin-top: 2px;
+  width: 100%;
+  justify-content: center;
 }
 
 /* ========== Content area ========== */
@@ -494,6 +547,35 @@ body.v3-layout #root {
 .v3-switch input:focus-visible ~ .v3-switch-slider {
   outline: 2px solid var(--v3-accent);
   outline-offset: 2px;
+}
+
+/* Settings → Language picker — segmented control. */
+.v3-lang-row {
+  display: flex;
+  gap: 4px;
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius);
+  padding: 3px;
+}
+.v3-lang-option {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  padding: 8px 12px;
+  border-radius: var(--v3-radius-sm);
+  font: inherit;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--v3-text-2);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.v3-lang-option:hover { color: var(--v3-text); }
+.v3-lang-option.active {
+  background: var(--v3-surface);
+  color: var(--v3-text);
+  box-shadow: var(--v3-shadow-1);
 }
 
 /* Settings → Updates card — one row per channel (app, gentle-ai). */
@@ -1856,8 +1938,8 @@ body.v3-layout #root {
   .v3-system-status {
     padding: 8px;
   }
-  .v3-system-status-title,
   .v3-system-status-row,
+  .v3-system-status-stats,
   .v3-system-status-meta {
     display: none;
   }

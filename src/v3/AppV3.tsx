@@ -13,6 +13,7 @@ import { nextV3Theme, loadV3Theme, readV3ThemeFromBody } from "../lib/themes";
 import type { V3Theme } from "../lib/themes";
 import { enrichProjects } from "../lib/enrichProjects";
 import { useUpdates } from "../lib/useUpdates";
+import { useT, plural } from "../lib/i18n";
 import {
   ProjectsViewV3,
   PrsViewV3,
@@ -68,25 +69,32 @@ type V3Tab =
   | "companions"
   | "settings";
 
-const TOPBAR_TABS: { id: V3Tab; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "projects", label: "Projects" },
-  { id: "prs", label: "PRs" },
-  { id: "audit", label: "Audit" },
-  { id: "cleanup", label: "Cleanup" },
-  { id: "claude", label: "Claude" },
-  { id: "settings", label: "Settings" },
+// Tab catalogs use translation keys instead of hardcoded labels. The id
+// stays English (canonical state); the label is resolved per render via
+// useT() inside the component that consumes the array.
+const TOPBAR_TABS: { id: V3Tab; topKey: import("../lib/i18n").StringKey }[] = [
+  { id: "overview", topKey: "topbar.overview" },
+  { id: "projects", topKey: "topbar.projects" },
+  { id: "prs", topKey: "topbar.prs" },
+  { id: "audit", topKey: "topbar.audit" },
+  { id: "cleanup", topKey: "topbar.cleanup" },
+  { id: "claude", topKey: "topbar.claude" },
+  { id: "settings", topKey: "topbar.settings" },
 ];
 
-const SIDEBAR_NAV: { id: V3Tab; label: string; Icon: typeof Home }[] = [
-  { id: "overview", label: "Overview", Icon: Home },
-  { id: "projects", label: "Projects", Icon: FolderOpen },
-  { id: "prs", label: "Pull Requests", Icon: GitPullRequest },
-  { id: "audit", label: "Audit", Icon: Activity },
-  { id: "cleanup", label: "Cleanup", Icon: Trash2 },
-  { id: "claude", label: "Claude", Icon: Boxes },
-  { id: "companions", label: "Companions", Icon: Bot },
-  { id: "settings", label: "Settings", Icon: Cog },
+const SIDEBAR_NAV: {
+  id: V3Tab;
+  navKey: import("../lib/i18n").StringKey;
+  Icon: typeof Home;
+}[] = [
+  { id: "overview", navKey: "nav.overview", Icon: Home },
+  { id: "projects", navKey: "nav.projects", Icon: FolderOpen },
+  { id: "prs", navKey: "nav.prs", Icon: GitPullRequest },
+  { id: "audit", navKey: "nav.audit", Icon: Activity },
+  { id: "cleanup", navKey: "nav.cleanup", Icon: Trash2 },
+  { id: "claude", navKey: "nav.claude", Icon: Boxes },
+  { id: "companions", navKey: "nav.companions", Icon: Bot },
+  { id: "settings", navKey: "nav.settings", Icon: Cog },
 ];
 
 // ===== Topbar (with Tauri drag region + window controls) =====
@@ -118,6 +126,7 @@ function TopbarV3({
     };
   }, []);
   const win = safeGetCurrentWindow();
+  const { t } = useT();
 
   return (
     <header className="v3-topbar" data-tauri-drag-region>
@@ -129,13 +138,13 @@ function TopbarV3({
       </div>
 
       <nav className="v3-topbar-nav" data-tauri-drag-region>
-        {TOPBAR_TABS.map((t) => (
+        {TOPBAR_TABS.map((tab) => (
           <button
-            key={t.id}
-            className={"v3-topbar-tab" + (activeTab === t.id ? " active" : "")}
-            onClick={() => onTab(t.id)}
+            key={tab.id}
+            className={"v3-topbar-tab" + (activeTab === tab.id ? " active" : "")}
+            onClick={() => onTab(tab.id)}
           >
-            {t.label}
+            {t(tab.topKey)}
           </button>
         ))}
       </nav>
@@ -173,12 +182,38 @@ function SidebarV3({
   onTab,
   lastScanAgo,
   onRunAudit,
+  critCount,
+  warnCount,
+  findingTotal,
 }: {
   activeTab: V3Tab;
   onTab: (t: V3Tab) => void;
   lastScanAgo: string;
   onRunAudit: () => void;
+  critCount: number;
+  warnCount: number;
+  findingTotal: number;
 }) {
+  const { t } = useT();
+  // Single source of truth for the colored dot + headline. Critical wins
+  // over warning, warning wins over OK; "no scan yet" is its own state so
+  // the green light doesn't lie before the first audit runs.
+  const tone =
+    findingTotal === 0 && lastScanAgo === t("common.never")
+      ? "idle"
+      : critCount > 0
+      ? "crit"
+      : warnCount > 0
+      ? "warn"
+      : "ok";
+  const headline =
+    tone === "idle"
+      ? t("status.idle")
+      : tone === "crit"
+      ? plural(t, critCount, "status.crit_one", "status.crit_other")
+      : tone === "warn"
+      ? plural(t, warnCount, "status.warn_one", "status.warn_other")
+      : t("status.operational");
   return (
     <aside className="v3-sidebar" aria-label="Primary navigation">
       <div className="v3-sidebar-logo">
@@ -192,37 +227,54 @@ function SidebarV3({
       </div>
 
       <nav className="v3-sidebar-nav">
-        {SIDEBAR_NAV.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            className={"v3-side-link" + (activeTab === id ? " active" : "")}
-            onClick={() => onTab(id)}
-            aria-label={label}
-          >
-            <Icon size={16} strokeWidth={1.8} />
-            <span>{label}</span>
-          </button>
-        ))}
+        {SIDEBAR_NAV.map(({ id, navKey, Icon }) => {
+          const label = t(navKey);
+          return (
+            <button
+              key={id}
+              className={"v3-side-link" + (activeTab === id ? " active" : "")}
+              onClick={() => onTab(id)}
+              aria-label={label}
+            >
+              <Icon size={16} strokeWidth={1.8} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
       </nav>
 
       <div className="v3-sidebar-spacer" />
 
-      <div className="v3-system-status">
-        <div className="v3-system-status-title">System Status</div>
+      <div className={`v3-system-status v3-system-status-${tone}`}>
         <div className="v3-system-status-row">
           <span className="v3-status-dot" aria-hidden="true" />
-          <span>All systems operational</span>
+          <span className="v3-system-status-headline">{headline}</span>
         </div>
+        {(critCount > 0 || warnCount > 0) && (
+          <div className="v3-system-status-stats">
+            {critCount > 0 && (
+              <span className="v3-system-status-stat v3-system-status-stat-crit">
+                <span className="v3-system-status-stat-num">{critCount}</span>
+                <span>{t("status.crit_short")}</span>
+              </span>
+            )}
+            {warnCount > 0 && (
+              <span className="v3-system-status-stat v3-system-status-stat-warn">
+                <span className="v3-system-status-stat-num">{warnCount}</span>
+                <span>{t("status.warn_short")}</span>
+              </span>
+            )}
+          </div>
+        )}
         <div className="v3-system-status-meta">
-          <div>Last scan: <strong>{lastScanAgo}</strong></div>
-          <div>Manual refresh available</div>
+          {t("status.last_scan")} <strong>{lastScanAgo}</strong>
         </div>
         <button
           className="v3-btn-ghost v3-system-status-cta"
           onClick={onRunAudit}
         >
           <ShieldCheck size={13} strokeWidth={2} />
-          <span>Run Full Audit</span>
+          <span>{t("status.run_audit")}</span>
         </button>
       </div>
     </aside>
@@ -536,18 +588,23 @@ function StatusBarV3({
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
-  const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const { t, lang } = useT();
+  // Match the clock format to the active locale (24h for es by default).
+  const time = now.toLocaleTimeString(lang === "es" ? "es-AR" : "en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   return (
     <footer className="v3-statusbar">
       <div className="v3-statusbar-left">
         <span className="v3-statusbar-version">v0.1.0</span>
         <span className="v3-statusbar-sep" aria-hidden="true">|</span>
-        <span className="v3-statusbar-state">Ready</span>
+        <span className="v3-statusbar-state">{t("statusbar.ready")}</span>
       </div>
       <div className="v3-statusbar-right">
-        <span>{projectCount} project{projectCount === 1 ? "" : "s"}</span>
-        <span>{findingCount} finding{findingCount === 1 ? "" : "s"}</span>
-        <span>Scan {lastScanAgo}</span>
+        <span>{plural(t, projectCount, "statusbar.projects_one", "statusbar.projects_other")}</span>
+        <span>{plural(t, findingCount, "statusbar.findings_one", "statusbar.findings_other")}</span>
+        <span>{t("statusbar.scan", { ago: lastScanAgo })}</span>
         <span>{time}</span>
         <span className="v3-statusbar-dot" aria-hidden="true" />
       </div>
@@ -760,23 +817,30 @@ function OverviewView({
 
 
 // Compute "X ago" for a unix-ms timestamp.
-function agoLabel(ms: number | null): string {
-  if (ms === null) return "never";
+// `t` flows in from useT() at the call site so these stay pure (no closure
+// over hook state) and the locale switch updates them on next render.
+function agoLabel(
+  ms: number | null,
+  t: (k: import("../lib/i18n").StringKey, vars?: Record<string, string | number>) => string
+): string {
+  if (ms === null) return t("common.never");
   const sec = Math.floor((Date.now() - ms) / 1000);
-  if (sec < 5) return "just now";
-  if (sec < 60) return `${sec}s ago`;
+  if (sec < 5) return t("common.just_now");
+  if (sec < 60) return t("ago.seconds", { n: sec });
   const m = Math.floor(sec / 60);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return t("ago.minutes", { n: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 24) return t("ago.hours", { n: h });
+  return t("ago.days", { n: Math.floor(h / 24) });
 }
 
-function pickGreeting(): string {
+function pickGreeting(
+  t: (k: import("../lib/i18n").StringKey) => string
+): string {
   const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 19) return "Good afternoon";
-  return "Good evening";
+  if (h < 12) return t("greeting.morning");
+  if (h < 19) return t("greeting.afternoon");
+  return t("greeting.evening");
 }
 
 // V3 themes — must match the keys in AppV3.css and views.tsx picker.
@@ -815,6 +879,10 @@ export default function AppV3() {
   // Per-source fetch errors — surfaced via the retry banner so backend
   // failures stop masquerading as empty states.
   const [fetchErrors, setFetchErrors] = useState<{ source: string; msg: string }[]>([]);
+
+  // i18n hook — every helper that produces user-facing strings (greeting,
+  // ago labels, headlines) takes `t` as a parameter so they stay pure.
+  const { t } = useT();
 
   // Update channels (this app + gentle-ai). 24h cooldown is internal to the
   // hook; banners below render from the returned state.
@@ -1013,8 +1081,11 @@ export default function AppV3() {
         <SidebarV3
           activeTab={tab}
           onTab={setTab}
-          lastScanAgo={agoLabel(lastScanAt)}
+          lastScanAgo={agoLabel(lastScanAt, t)}
           onRunAudit={handleRunAudit}
+          critCount={stats.crit}
+          warnCount={stats.warn}
+          findingTotal={stats.total}
         />
         <main className="appv3-content">
           {updates.app?.available && (
@@ -1098,7 +1169,7 @@ export default function AppV3() {
           )}
           {tab === "overview" && (
             <OverviewView
-              greeting={`${pickGreeting()}.`}
+              greeting={`${pickGreeting(t)}.`}
               projects={projects}
               prs={prs}
               goals={goals}
@@ -1143,7 +1214,7 @@ export default function AppV3() {
       <StatusBarV3
         projectCount={projects.length}
         findingCount={findings.length}
-        lastScanAgo={agoLabel(lastScanAt)}
+        lastScanAgo={agoLabel(lastScanAt, t)}
       />
     </div>
   );

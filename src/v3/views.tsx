@@ -37,6 +37,8 @@ import { isV3Theme, loadV3Theme } from "../lib/themes";
 import type { V3Theme } from "../lib/themes";
 import { parseAuditFindings } from "../lib/audit";
 import { useUpdates } from "../lib/useUpdates";
+import { useT } from "../lib/i18n";
+import type { LangPref } from "../lib/i18n";
 
 const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -1095,20 +1097,49 @@ export function SettingsViewV3({
 }) {
   const [theme, setTheme] = useState<V3Theme>(() => readV3Theme());
   const updates = useUpdates();
+  const { t, pref, setPref } = useT();
 
   const pick = (t: V3Theme) => {
     setTheme(t);
     applyV3Theme(t);
   };
 
+  const langOptions: { value: LangPref; label: string }[] = [
+    { value: "auto", label: t("settings.language_auto") },
+    { value: "en", label: t("settings.language_en") },
+    { value: "es", label: t("settings.language_es") },
+  ];
+
   return (
     <div className="v3-view">
       <header className="v3-view-head">
         <div>
-          <h1 className="v3-greeting">Settings</h1>
-          <p className="v3-subtitle">App preferences and configuration.</p>
+          <h1 className="v3-greeting">{t("settings.title")}</h1>
+          <p className="v3-subtitle">{t("settings.subtitle")}</p>
         </div>
       </header>
+
+      <article className="v3-card">
+        <header className="v3-card-head">
+          <h2 className="v3-card-title">{t("settings.language")}</h2>
+        </header>
+        <div className="v3-form">
+          <div className="v3-lang-row">
+            {langOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                className={
+                  "v3-lang-option" + (pref === opt.value ? " active" : "")
+                }
+                onClick={() => setPref(opt.value)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </article>
 
       <article className="v3-card">
         <header className="v3-card-head">
