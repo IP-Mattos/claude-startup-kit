@@ -90,8 +90,8 @@ const TOPBAR_NAV: {
   navKey: import("../lib/i18n").StringKey;
   Icon: typeof Home;
 }[] = [
-  { id: "sync", navKey: "nav.sync", Icon: Cloud },
   { id: "claude", navKey: "nav.claude", Icon: Boxes },
+  { id: "sync", navKey: "nav.sync", Icon: Cloud },
   { id: "companions", navKey: "nav.companions", Icon: Bot },
   { id: "settings", navKey: "nav.settings", Icon: Cog },
 ];
