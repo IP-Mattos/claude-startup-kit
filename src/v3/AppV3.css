@@ -731,7 +731,8 @@ body.v3-layout #root {
 .v3-update-row-status {
   font-size: 13px;
   text-align: right;
-  max-width: 60%;
+  max-width: 70%;
+  min-width: 0;
 }
 .v3-update-row-status-ok { color: var(--v3-success); }
 .v3-update-row-status-warn { color: var(--v3-warn); font-weight: 600; }
@@ -1674,9 +1675,12 @@ body.v3-layout #root {
   display: flex;
   align-items: center;
   gap: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-wrap: wrap;
+  /* Long-form helper text inside Settings (paragraphs) needs to break
+     normally. Single-line meta strips (project path, PR repo · author ·
+     date) handle their own truncation via .v3-row-path which keeps
+     white-space: nowrap + ellipsis. */
+  line-height: 1.5;
 }
 .v3-row-path {
   white-space: nowrap;
