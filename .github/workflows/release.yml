@@ -1,0 +1,79 @@
+name: Release
+
+# Triggered by pushing a `v*` tag (e.g. `v0.1.1`).
+# Builds Windows installers (.msi + .exe) with Tauri and uploads them
+# as assets on the matching GitHub Release.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build & publish Windows installers
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Tauri bundle
+        run: pnpm tauri build
+
+      - name: Collect installer artifacts
+        id: collect
+        shell: pwsh
+        run: |
+          $bundle = "src-tauri/target/release/bundle"
+          $files = @()
+          $files += Get-ChildItem -Path "$bundle/msi" -Filter '*.msi' -ErrorAction SilentlyContinue
+          $files += Get-ChildItem -Path "$bundle/nsis" -Filter '*-setup.exe' -ErrorAction SilentlyContinue
+          if ($files.Count -eq 0) {
+            Write-Error "No installer artifacts found under $bundle"
+            exit 1
+          }
+          $paths = $files | ForEach-Object { $_.FullName }
+          $paths | ForEach-Object { Write-Host "Will upload: $_" }
+          # Multi-line output for the next step
+          "files<<EOF" >> $env:GITHUB_OUTPUT
+          $paths -join "`n" >> $env:GITHUB_OUTPUT
+          "EOF" >> $env:GITHUB_OUTPUT
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Tag is the one that triggered the workflow.
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          # Release notes: pull from CHANGELOG section for this version (best effort).
+          # If you prefer manually-edited notes, edit the release after publish.
+          generate_release_notes: true
+          files: ${{ steps.collect.outputs.files }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
