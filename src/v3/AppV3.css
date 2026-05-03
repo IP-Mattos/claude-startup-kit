@@ -156,7 +156,8 @@ body.v3-layout #root {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 12px;
+  /* Wider right padding separates the brand block from the topbar nav. */
+  padding: 0 28px 0 14px;
   min-width: 0;
 }
 .v3-brand-mark {
