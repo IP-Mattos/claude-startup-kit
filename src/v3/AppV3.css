@@ -94,17 +94,58 @@ body.v3-layout #root {
   cursor: pointer;
 }
 
-/* ========== Topbar — brand on the left, drag region in the middle,
-   window controls on the right. Sidebar still owns navigation. ========== */
+/* ========== Topbar — brand · low-freq nav · drag spacer · window controls.
+   Two-track navigation: sidebar keeps high-frequency operational tabs,
+   topbar carries the meta tabs (Claude / Companion / Settings). */
 .v3-topbar {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto auto 1fr auto;
   align-items: stretch;
-  height: 36px;
+  height: 38px;
   background: var(--v3-surface);
   border-bottom: 1px solid var(--v3-border);
   flex-shrink: 0;
   user-select: none;
+}
+
+/* Topbar nav — small text+icon buttons, hover is subtle. NOT draggable. */
+.v3-topbar-nav {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+}
+.v3-topbar-tab {
+  position: relative;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+  color: var(--v3-text-3);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 120ms ease, background 120ms ease;
+}
+.v3-topbar-tab:hover {
+  color: var(--v3-text);
+  background: var(--v3-hover);
+}
+.v3-topbar-tab.active {
+  color: var(--v3-accent);
+}
+.v3-topbar-tab.active::after {
+  /* Bottom-edge pin so the active tab anchors to the row beneath. */
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 0;
+  height: 2px;
+  background: var(--v3-accent);
+  border-radius: 1px 1px 0 0;
 }
 
 .v3-topbar-brand {

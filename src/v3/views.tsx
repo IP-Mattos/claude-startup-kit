@@ -822,16 +822,16 @@ export function ClaudeViewV3() {
   );
 
   return (
-    <>
-      {error && (
-        <div className="v3-error" role="alert" aria-live="assertive">
-          {error}
+    <div className="v3-view">
+      <header className="v3-view-head">
+        <div>
+          <h1 className="v3-greeting">Claude</h1>
+          <p className="v3-subtitle">
+            Skills available to Claude Code and MCP servers configured on this
+            machine.
+          </p>
         </div>
-      )}
-
-      <article className="v3-card">
-        <header className="v3-card-head">
-          <h2 className="v3-card-title">Claude</h2>
+        <div className="v3-view-tools">
           <button
             type="button"
             className="v3-link"
@@ -841,12 +841,14 @@ export function ClaudeViewV3() {
             <RefreshCw size={12} strokeWidth={2.4} />
             {loading ? " Refreshing…" : " Refresh"}
           </button>
-        </header>
-        <p className="v3-subtitle">
-          Skills available to Claude Code and MCP servers configured on this
-          machine.
-        </p>
-      </article>
+        </div>
+      </header>
+
+      {error && (
+        <div className="v3-error" role="alert" aria-live="assertive">
+          {error}
+        </div>
+      )}
 
       <article className="v3-card">
         <header className="v3-card-head">
@@ -947,7 +949,7 @@ export function ClaudeViewV3() {
           </ul>
         )}
       </article>
-    </>
+    </div>
   );
 }
 
@@ -987,9 +989,19 @@ export function CompanionsViewV3({
   };
 
   return (
-    <article className="v3-card">
+    <div className="v3-view">
+      <header className="v3-view-head">
+        <div>
+          <h1 className="v3-greeting">Companion</h1>
+          <p className="v3-subtitle">
+            Configure the assistant shown in the right panel.
+          </p>
+        </div>
+      </header>
+
+      <article className="v3-card">
         <header className="v3-card-head">
-          <h2 className="v3-card-title">Companion</h2>
+          <h2 className="v3-card-title">Identity</h2>
         </header>
         <div className="v3-form">
           <label className="v3-form-row">
@@ -1047,23 +1059,14 @@ export function CompanionsViewV3({
           </div>
         </div>
       </article>
+    </div>
   );
 }
 
 // =====================================================================
 // SettingsView
 // =====================================================================
-export function SettingsViewV3({
-  companionName,
-  companionImage,
-  onCompanionNameChange,
-  onCompanionImageChange,
-}: {
-  companionName: string;
-  companionImage: string | null;
-  onCompanionNameChange: (v: string) => void;
-  onCompanionImageChange: (v: string | null) => void;
-}) {
+export function SettingsViewV3() {
   const [theme, setTheme] = useState<V3Theme>(() => readSavedV3Theme());
   const updates = useUpdates();
   const { t, pref, setPref } = useT();
@@ -1173,15 +1176,6 @@ export function SettingsViewV3({
           ))}
         </div>
       </article>
-
-      <CompanionsViewV3
-        name={companionName}
-        image={companionImage}
-        onNameChange={onCompanionNameChange}
-        onImageChange={onCompanionImageChange}
-      />
-
-      <ClaudeViewV3 />
 
       <article className="v3-card">
         <header className="v3-card-head">

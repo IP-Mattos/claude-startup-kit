@@ -18,6 +18,8 @@ import {
   PrsViewV3,
   AuditViewV3,
   CleanupViewV3,
+  ClaudeViewV3,
+  CompanionsViewV3,
   SettingsViewV3,
 } from "./views";
 
@@ -36,6 +38,8 @@ import {
   Activity,
   AlertTriangle,
   ArrowUp,
+  Bot,
+  Boxes,
   ChevronRight,
   Code2,
   Cog,
@@ -57,11 +61,15 @@ type V3Tab =
   | "prs"
   | "audit"
   | "cleanup"
-  | "settings";
+  | "settings"
+  | "claude"
+  | "companions";
 
-// Sidebar nav uses translation keys instead of hardcoded labels. The id
-// stays English (canonical state); the label is resolved per render via
-// useT() inside the component that consumes the array.
+// Two-track navigation:
+//   • SIDEBAR_NAV — high-frequency, operational tabs (one click away).
+//   • TOPBAR_NAV  — low-frequency, meta tabs (config / introspection).
+// The id stays English (canonical state); the label is resolved per render
+// via useT() inside the component that consumes the array.
 const SIDEBAR_NAV: {
   id: V3Tab;
   navKey: import("../lib/i18n").StringKey;
@@ -72,13 +80,29 @@ const SIDEBAR_NAV: {
   { id: "prs", navKey: "nav.prs", Icon: GitPullRequest },
   { id: "audit", navKey: "nav.audit", Icon: Activity },
   { id: "cleanup", navKey: "nav.cleanup", Icon: Trash2 },
+];
+
+const TOPBAR_NAV: {
+  id: V3Tab;
+  navKey: import("../lib/i18n").StringKey;
+  Icon: typeof Home;
+}[] = [
+  { id: "claude", navKey: "nav.claude", Icon: Boxes },
+  { id: "companions", navKey: "nav.companions", Icon: Bot },
   { id: "settings", navKey: "nav.settings", Icon: Cog },
 ];
 
-// ===== Topbar — drag region + window controls only =====
-// Sidebar owns brand + navigation; the topbar is intentionally minimal so
-// the chrome stops competing with content.
-function TopbarV3() {
+// ===== Topbar =====
+// Brand on the left, low-frequency tabs (Claude / Companion / Settings)
+// in the middle, window controls on the right. Sidebar owns the
+// high-frequency operational tabs.
+function TopbarV3({
+  activeTab,
+  onTab,
+}: {
+  activeTab: V3Tab;
+  onTab: (t: V3Tab) => void;
+}) {
   const [maximized, setMaximized] = useState(false);
   useEffect(() => {
     const win = safeGetCurrentWindow();
@@ -100,6 +124,7 @@ function TopbarV3() {
     };
   }, []);
   const win = safeGetCurrentWindow();
+  const { t } = useT();
 
   return (
     <header className="v3-topbar" data-tauri-drag-region>
@@ -109,6 +134,23 @@ function TopbarV3() {
         </span>
         <span className="v3-brand-name">Claude Startup Kit</span>
       </div>
+      <nav className="v3-topbar-nav">
+        {TOPBAR_NAV.map(({ id, navKey, Icon }) => {
+          const label = t(navKey);
+          return (
+            <button
+              key={id}
+              type="button"
+              className={"v3-topbar-tab" + (activeTab === id ? " active" : "")}
+              onClick={() => onTab(id)}
+              aria-label={label}
+            >
+              <Icon size={13} strokeWidth={2} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </nav>
       <div className="v3-topbar-spacer" data-tauri-drag-region />
       <div className="v3-window-controls">
         <button
@@ -874,14 +916,15 @@ function pickGreeting(
   return t("greeting.evening");
 }
 
-// Tab order matches sidebar (6 entries → Ctrl+1..6).
+// Keyboard shortcuts cover the operational sidebar tabs (Ctrl+1..5). The
+// topbar tabs (Claude / Companion / Settings) are low-frequency — Ctrl+,
+// still jumps to Settings; the others are click-only.
 const KEYBOARD_TAB_ORDER: ReadonlyArray<V3Tab> = [
   "overview",
   "projects",
   "prs",
   "audit",
   "cleanup",
-  "settings",
 ];
 
 // ===== Root =====
@@ -1065,7 +1108,7 @@ export default function AppV3() {
       const mod = e.ctrlKey || e.metaKey;
       if (!mod) return;
       // Ctrl+1..7 — switch tab in sidebar order
-      if (e.key >= "1" && e.key <= "6") {
+      if (e.key >= "1" && e.key <= "5") {
         const idx = Number(e.key) - 1;
         const next = KEYBOARD_TAB_ORDER[idx];
         if (next) {
@@ -1099,7 +1142,7 @@ export default function AppV3() {
 
   return (
     <div className="appv3">
-      <TopbarV3 />
+      <TopbarV3 activeTab={tab} onTab={setTab} />
       <div className="appv3-body">
         <SidebarV3
           activeTab={tab}
@@ -1208,14 +1251,16 @@ export default function AppV3() {
           {tab === "prs" && <PrsViewV3 />}
           {tab === "audit" && <AuditViewV3 />}
           {tab === "cleanup" && <CleanupViewV3 />}
-          {tab === "settings" && (
-            <SettingsViewV3
-              companionName={companionName}
-              companionImage={companionImage}
-              onCompanionNameChange={setCompanionName}
-              onCompanionImageChange={setCompanionImage}
+          {tab === "claude" && <ClaudeViewV3 />}
+          {tab === "companions" && (
+            <CompanionsViewV3
+              name={companionName}
+              image={companionImage}
+              onNameChange={setCompanionName}
+              onImageChange={setCompanionImage}
             />
           )}
+          {tab === "settings" && <SettingsViewV3 />}
         </main>
         <aside className="appv3-rightpanel" aria-label="Companion panel">
           <CompanionWidget
