@@ -896,6 +896,195 @@ fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 
+// ─── Update channel ──────────────────────────────────────────────────────
+//
+// We don't ship a signed Tauri auto-updater bundle yet (no signing keys, no
+// release pipeline). Instead, both update channels (this app and the
+// gentle-ai CLI) hit the GitHub Releases REST API, compare semver, and let
+// the renderer surface a banner. "Apply" for the app opens the release page;
+// "apply" for gentle-ai shells out to the upstream PowerShell installer
+// exactly the way the legacy SessionStart hook used to.
+//
+// When we eventually want true auto-update with atomic install + restart,
+// swap in tauri-plugin-updater + signed release artifacts. The IPC contract
+// below should stay stable so the frontend doesn't need to change.
+
+const APP_RELEASES_REPO: &str = "IP-Mattos/claude-startup-kit";
+const GENTLE_AI_RELEASES_REPO: &str = "Gentleman-Programming/gentle-ai";
+const GENTLE_AI_INSTALLER_URL: &str =
+    "https://raw.githubusercontent.com/Gentleman-Programming/gentle-ai/main/scripts/install.ps1";
+
+#[derive(Serialize, Clone)]
+pub struct UpdateStatus {
+    pub available: bool,
+    pub current: String,
+    pub latest: String,
+    pub release_url: String,
+    pub notes: String,
+    pub configured: bool,
+}
+
+#[derive(serde::Deserialize)]
+struct GhRelease {
+    tag_name: String,
+    html_url: String,
+    #[serde(default)]
+    body: String,
+}
+
+// Strips a leading "v" so "v0.1.2" and "0.1.2" compare equal.
+fn strip_v(s: &str) -> &str {
+    s.strip_prefix('v').unwrap_or(s)
+}
+
+// Naive semver lex compare. Good enough for tag_name vs CARGO_PKG_VERSION
+// where both sides are dotted numerics with optional leading "v".
+fn version_is_newer(latest: &str, current: &str) -> bool {
+    let parse = |v: &str| -> Vec<u32> {
+        strip_v(v)
+            .split(|c: char| !c.is_ascii_digit())
+            .filter(|p| !p.is_empty())
+            .filter_map(|p| p.parse::<u32>().ok())
+            .collect()
+    };
+    let l = parse(latest);
+    let c = parse(current);
+    for i in 0..l.len().max(c.len()) {
+        let li = l.get(i).copied().unwrap_or(0);
+        let ci = c.get(i).copied().unwrap_or(0);
+        if li != ci {
+            return li > ci;
+        }
+    }
+    false
+}
+
+async fn fetch_latest_release(repo: &str) -> Result<GhRelease, String> {
+    let url = format!("https://api.github.com/repos/{repo}/releases/latest");
+    let client = reqwest::Client::builder()
+        .user_agent("claude-startup-kit-updater/0.1")
+        .timeout(Duration::from_secs(10))
+        .build()
+        .map_err(|e| format!("http client: {e}"))?;
+    let resp = client
+        .get(&url)
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await
+        .map_err(|e| format!("github api: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(format!("github api status {}", resp.status()));
+    }
+    resp.json::<GhRelease>()
+        .await
+        .map_err(|e| format!("github json: {e}"))
+}
+
+#[tauri::command]
+async fn check_app_update() -> Result<UpdateStatus, String> {
+    let current = env!("CARGO_PKG_VERSION").to_string();
+    match fetch_latest_release(APP_RELEASES_REPO).await {
+        Ok(rel) => {
+            let latest = strip_v(&rel.tag_name).to_string();
+            Ok(UpdateStatus {
+                available: version_is_newer(&latest, &current),
+                current,
+                latest,
+                release_url: rel.html_url,
+                notes: rel.body,
+                configured: true,
+            })
+        }
+        Err(_) => {
+            // No releases published yet (404) or network failure — treat as
+            // "not configured" rather than an error so the UI degrades cleanly.
+            Ok(UpdateStatus {
+                available: false,
+                current,
+                latest: String::new(),
+                release_url: String::new(),
+                notes: String::new(),
+                configured: false,
+            })
+        }
+    }
+}
+
+fn read_gentle_ai_version() -> String {
+    let out = Command::new("gentle-ai").arg("version").output();
+    let bytes = match out {
+        Ok(o) if o.status.success() => o.stdout,
+        _ => return String::new(),
+    };
+    let text = String::from_utf8_lossy(&bytes);
+    // First semver-shaped triplet wins.
+    for token in text.split(|c: char| !c.is_ascii_digit() && c != '.') {
+        let parts: Vec<&str> = token.split('.').collect();
+        if parts.len() == 3 && parts.iter().all(|p| p.parse::<u32>().is_ok()) {
+            return token.to_string();
+        }
+    }
+    String::new()
+}
+
+#[tauri::command]
+async fn check_gentle_ai_update() -> Result<UpdateStatus, String> {
+    let current = tokio::task::spawn_blocking(read_gentle_ai_version)
+        .await
+        .map_err(|e| format!("task join: {e}"))?;
+    if current.is_empty() {
+        // gentle-ai not installed (or not on PATH). Surface as not-configured
+        // so the UI can show a CTA to install it instead of a noisy error.
+        return Ok(UpdateStatus {
+            available: false,
+            current: String::new(),
+            latest: String::new(),
+            release_url: String::new(),
+            notes: String::new(),
+            configured: false,
+        });
+    }
+    let rel = fetch_latest_release(GENTLE_AI_RELEASES_REPO).await?;
+    let latest = strip_v(&rel.tag_name).to_string();
+    Ok(UpdateStatus {
+        available: version_is_newer(&latest, &current),
+        current,
+        latest,
+        release_url: rel.html_url,
+        notes: rel.body,
+        configured: true,
+    })
+}
+
+#[tauri::command]
+async fn apply_gentle_ai_update() -> Result<String, String> {
+    // Mirrors the legacy SessionStart hook: irm <installer> | iex via
+    // PowerShell. We capture combined stdout+stderr so the renderer can show
+    // a useful tail if something goes wrong.
+    let cmd = format!("irm {GENTLE_AI_INSTALLER_URL} | iex");
+    let out = tokio::task::spawn_blocking(move || -> Result<std::process::Output, String> {
+        Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &cmd])
+            .output()
+            .map_err(|e| format!("spawn powershell: {e}"))
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))??;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        return Err(format!(
+            "installer exited {}:\n{stderr}\n{stdout}",
+            out.status
+        ));
+    }
+    // Re-read installed version so the UI can confirm the upgrade.
+    let after = tokio::task::spawn_blocking(read_gentle_ai_version)
+        .await
+        .map_err(|e| format!("task join: {e}"))?;
+    Ok(after)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -912,7 +1101,10 @@ pub fn run() {
             cleanup_apply,
             open_in_vscode,
             open_path_in_explorer,
-            open_url
+            open_url,
+            check_app_update,
+            check_gentle_ai_update,
+            apply_gentle_ai_update
         ])
         .setup(|app| {
             let show_i = MenuItem::with_id(app, "show", "Mostrar ventana", true, None::<&str>)?;

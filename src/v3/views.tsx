@@ -36,6 +36,7 @@ import { enrichProjects } from "../lib/enrichProjects";
 import { isV3Theme, loadV3Theme } from "../lib/themes";
 import type { V3Theme } from "../lib/themes";
 import { parseAuditFindings } from "../lib/audit";
+import { useUpdates } from "../lib/useUpdates";
 
 const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -853,6 +854,7 @@ export function SettingsViewV3({
   onJumpCompanion: () => void;
 }) {
   const [theme, setTheme] = useState<V3Theme>(() => readV3Theme());
+  const updates = useUpdates();
 
   const pick = (t: V3Theme) => {
     setTheme(t);
@@ -867,6 +869,41 @@ export function SettingsViewV3({
           <p className="v3-subtitle">App preferences and configuration.</p>
         </div>
       </header>
+
+      <article className="v3-card">
+        <header className="v3-card-head">
+          <h2 className="v3-card-title">Updates</h2>
+          <button
+            type="button"
+            className="v3-link"
+            onClick={updates.checkNow}
+            disabled={updates.checking}
+          >
+            {updates.checking ? "Checking…" : "Check now"}
+          </button>
+        </header>
+        <div className="v3-form">
+          <UpdateRow
+            label="Claude Startup Kit"
+            status={updates.app}
+            notConfiguredHint="No release published yet on GitHub. Configure once a release pipeline ships."
+          />
+          <UpdateRow
+            label="gentle-ai"
+            status={updates.gentleAi}
+            notConfiguredHint="gentle-ai is not on PATH. Install it from gentle-ai's repo."
+          />
+          {updates.error && (
+            <div className="v3-error" role="alert" aria-live="assertive">
+              {updates.error}
+            </div>
+          )}
+          <p className="v3-row-meta">
+            Updates are checked automatically once every 24 hours. Click "Check
+            now" to refresh immediately.
+          </p>
+        </div>
+      </article>
 
       <article className="v3-card">
         <header className="v3-card-head">
@@ -958,3 +995,54 @@ export function SettingsViewV3({
 // Code2 import keeps lucide tree-shaking happy; reference it so unused-imports
 // rule doesn't fire if a future revision drops the icon.
 void Code2;
+
+// Renders one row of the Updates card. Shows current/latest with a status
+// badge — "up to date", "update available", or "not configured" when the
+// channel can't be reached (no published release / gentle-ai not on PATH).
+function UpdateRow({
+  label,
+  status,
+  notConfiguredHint,
+}: {
+  label: string;
+  status: import("../lib/useUpdates").UpdateStatus | null;
+  notConfiguredHint: string;
+}) {
+  if (!status) {
+    return (
+      <div className="v3-update-row">
+        <div className="v3-update-row-label">{label}</div>
+        <div className="v3-update-row-status v3-update-row-status-dim">Loading…</div>
+      </div>
+    );
+  }
+  if (!status.configured) {
+    return (
+      <div className="v3-update-row">
+        <div className="v3-update-row-label">{label}</div>
+        <div className="v3-update-row-status v3-update-row-status-dim">
+          Not configured
+          <div className="v3-row-meta">{notConfiguredHint}</div>
+        </div>
+      </div>
+    );
+  }
+  if (status.available) {
+    return (
+      <div className="v3-update-row">
+        <div className="v3-update-row-label">{label}</div>
+        <div className="v3-update-row-status v3-update-row-status-warn">
+          v{status.current} → v{status.latest}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="v3-update-row">
+      <div className="v3-update-row-label">{label}</div>
+      <div className="v3-update-row-status v3-update-row-status-ok">
+        v{status.current} · up to date
+      </div>
+    </div>
+  );
+}

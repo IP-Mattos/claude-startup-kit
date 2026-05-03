@@ -12,6 +12,7 @@ import { parseAuditFindings } from "../lib/audit";
 import { nextV3Theme, loadV3Theme, readV3ThemeFromBody } from "../lib/themes";
 import type { V3Theme } from "../lib/themes";
 import { enrichProjects } from "../lib/enrichProjects";
+import { useUpdates } from "../lib/useUpdates";
 import {
   ProjectsViewV3,
   PrsViewV3,
@@ -809,6 +810,19 @@ export default function AppV3() {
   // failures stop masquerading as empty states.
   const [fetchErrors, setFetchErrors] = useState<{ source: string; msg: string }[]>([]);
 
+  // Update channels (this app + gentle-ai). 24h cooldown is internal to the
+  // hook; banners below render from the returned state.
+  const updates = useUpdates();
+  const [gentleAiApplying, setGentleAiApplying] = useState(false);
+  const [gentleAiResult, setGentleAiResult] = useState<string | null>(null);
+  const handleApplyGentleAi = async () => {
+    setGentleAiApplying(true);
+    setGentleAiResult(null);
+    const after = await updates.applyGentleAi();
+    setGentleAiApplying(false);
+    setGentleAiResult(after ? `gentle-ai upgraded to v${after}` : "Update failed");
+  };
+
   // Companion config — owned here so the right-panel widget updates live when
   // the user edits their companion in the Companions view. Persistence to
   // localStorage happens here too; CompanionsViewV3 just calls the setters.
@@ -997,6 +1011,63 @@ export default function AppV3() {
           onRunAudit={handleRunAudit}
         />
         <main className="appv3-content">
+          {updates.app?.available && (
+            <div className="v3-update-banner" role="status" aria-live="polite">
+              <div className="v3-update-banner-body">
+                <strong>Claude Startup Kit v{updates.app.latest}</strong>{" "}
+                <span className="v3-update-banner-meta">
+                  is available (you're on v{updates.app.current})
+                </span>
+              </div>
+              <div className="v3-update-banner-actions">
+                <button
+                  type="button"
+                  className="v3-update-banner-primary"
+                  onClick={() => handleOpenUrl(updates.app!.release_url)}
+                >
+                  Open release
+                </button>
+                <button
+                  type="button"
+                  className="v3-update-banner-ghost"
+                  onClick={() => updates.dismissApp(updates.app!.latest)}
+                >
+                  Later
+                </button>
+              </div>
+            </div>
+          )}
+          {updates.gentleAi?.available && (
+            <div className="v3-update-banner" role="status" aria-live="polite">
+              <div className="v3-update-banner-body">
+                <strong>gentle-ai v{updates.gentleAi.latest}</strong>{" "}
+                <span className="v3-update-banner-meta">
+                  is available (you're on v{updates.gentleAi.current})
+                </span>
+                {gentleAiResult && (
+                  <span className="v3-update-banner-result"> · {gentleAiResult}</span>
+                )}
+              </div>
+              <div className="v3-update-banner-actions">
+                <button
+                  type="button"
+                  className="v3-update-banner-primary"
+                  onClick={handleApplyGentleAi}
+                  disabled={gentleAiApplying}
+                >
+                  {gentleAiApplying ? "Updating…" : "Update now"}
+                </button>
+                <button
+                  type="button"
+                  className="v3-update-banner-ghost"
+                  onClick={() => updates.dismissGentleAi(updates.gentleAi!.latest)}
+                  disabled={gentleAiApplying}
+                >
+                  Later
+                </button>
+              </div>
+            </div>
+          )}
           {fetchErrors.length > 0 && (
             <div className="v3-fetch-banner" role="alert" aria-live="polite">
               <div className="v3-fetch-banner-body">

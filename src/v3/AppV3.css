@@ -361,6 +361,95 @@ body.v3-layout #root {
   min-width: 0;
 }
 
+/* Settings → Updates card — one row per channel (app, gentle-ai). */
+.v3-update-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--v3-border);
+}
+.v3-update-row:last-of-type { border-bottom: 0; }
+.v3-update-row-label {
+  font-weight: 600;
+  color: var(--v3-text);
+}
+.v3-update-row-status {
+  font-size: 13px;
+  text-align: right;
+  max-width: 60%;
+}
+.v3-update-row-status-ok { color: var(--v3-success); }
+.v3-update-row-status-warn { color: var(--v3-warn); font-weight: 600; }
+.v3-update-row-status-dim { color: var(--v3-text-3); }
+.v3-update-row-status .v3-row-meta {
+  margin-top: 4px;
+  font-weight: 400;
+  color: var(--v3-text-3);
+}
+
+/* Update banner — sits above content for both app and gentle-ai update
+   prompts. Accent-tinted (vs the warn-tinted fetch banner) so it reads as
+   a positive nudge, not a failure. Both banners stack when present. */
+.v3-update-banner {
+  margin: 16px 24px 0;
+  padding: 10px 14px;
+  background: var(--v3-accent-tint);
+  border: 1px solid var(--v3-accent);
+  border-radius: var(--v3-radius);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--v3-text);
+}
+.v3-update-banner-body { flex: 1; min-width: 0; }
+.v3-update-banner-body strong { color: var(--v3-text); }
+.v3-update-banner-meta { color: var(--v3-text-2); }
+.v3-update-banner-result { color: var(--v3-success); font-weight: 500; }
+.v3-update-banner-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+}
+.v3-update-banner-primary {
+  background: var(--v3-accent);
+  color: #FFFFFF;
+  border: 1px solid var(--v3-accent);
+  border-radius: var(--v3-radius-sm);
+  padding: 6px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font: inherit;
+}
+.v3-update-banner-primary:hover:not(:disabled) {
+  background: var(--v3-accent-hover);
+}
+.v3-update-banner-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.v3-update-banner-ghost {
+  background: transparent;
+  color: var(--v3-text-2);
+  border: 1px solid transparent;
+  border-radius: var(--v3-radius-sm);
+  padding: 6px 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font: inherit;
+}
+.v3-update-banner-ghost:hover:not(:disabled) {
+  background: var(--v3-hover);
+  color: var(--v3-text);
+}
+.v3-update-banner-primary:focus-visible,
+.v3-update-banner-ghost:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 2px;
+}
+
 /* Fetch error banner — surfaces backend failures (per-source) so empty
    states don't masquerade as success. Sticks above the view content. */
 .v3-fetch-banner {

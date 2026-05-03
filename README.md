@@ -99,6 +99,31 @@ The token contract (`--v3-bg`, `--v3-surface`, `--v3-text`, `--v3-accent`, seman
 
 ---
 
+## Updates
+
+The app checks two channels every 24h (cooldown is per-channel, stored in
+`localStorage`):
+
+| Channel | Source | Apply action |
+|---------|--------|--------------|
+| **Claude Startup Kit** | `IP-Mattos/claude-startup-kit` GitHub releases | Opens the release page in the default browser. |
+| **gentle-ai** | `Gentleman-Programming/gentle-ai` GitHub releases | Runs the upstream PowerShell installer (`irm <installer> \| iex`) and reports the new version. |
+
+If an update is available, a banner appears above the content with `Update
+now` / `Open release` and `Later` actions. Dismissed versions are remembered
+per-channel so the same banner doesn't follow you forever. Settings → Updates
+shows the live status and a `Check now` button that bypasses the cooldown.
+
+The "configured" state in Settings reads:
+
+- **App**: `Not configured` until a release is published on the GitHub repo.
+- **gentle-ai**: `Not configured` if `gentle-ai` is not on `PATH`.
+
+This intentionally keeps the IPC contract stable so a future migration to
+`tauri-plugin-updater` (signed bundles, atomic install, auto-restart) can
+swap the implementation without touching the frontend. Signing keys + a
+release pipeline are the prerequisites for that upgrade.
+
 ## Security model
 
 The Tauri side guards every IPC that touches the filesystem with:
