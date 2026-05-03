@@ -1146,69 +1146,94 @@ body.v3-layout #root {
   color: #7C3AED;
 }
 
-/* Audit summary */
-.v3-audit-body {
+/* Audit summary — modern compact layout: stacked bar + 3 stat tiles +
+   total footer. The donut is gone; this reads at a glance and scales
+   gracefully on narrow widths. */
+.v3-audit-bar {
   display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 8px 0;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border);
 }
-.v3-donut {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
+.v3-audit-bar-seg {
+  display: block;
+  height: 100%;
+  transition: width 240ms ease;
+}
+.v3-audit-bar-seg + .v3-audit-bar-seg {
+  /* Subtle hairline between segments so adjacent colors don't blur. */
+  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.18);
+}
+.v3-audit-bar-crit { background: var(--v3-crit); }
+.v3-audit-bar-warn { background: var(--v3-warn); }
+.v3-audit-bar-info { background: var(--v3-info); }
+
+.v3-audit-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.v3-audit-tile {
   position: relative;
-  flex-shrink: 0;
-}
-.v3-donut-hole {
-  position: absolute;
-  inset: 22px;
-  background: var(--v3-surface);
-  border-radius: 50%;
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius);
+  padding: 12px 14px 12px 16px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-.v3-donut-num {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--v3-text);
-  line-height: 1;
-}
-.v3-donut-label {
-  font-size: 10.5px;
-  color: var(--v3-text-3);
-  margin-top: 2px;
-}
-.v3-audit-legend {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
   gap: 10px;
-  flex: 1;
+  overflow: hidden;
 }
-.v3-audit-legend li {
+.v3-audit-tile-stripe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+.v3-audit-tile-crit .v3-audit-tile-stripe { background: var(--v3-crit); }
+.v3-audit-tile-warn .v3-audit-tile-stripe { background: var(--v3-warn); }
+.v3-audit-tile-info .v3-audit-tile-stripe { background: var(--v3-info); }
+.v3-audit-tile-body {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--v3-text-2);
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
-.v3-legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-}
-.v3-legend-num {
-  font-weight: 600;
+.v3-audit-tile-num {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
   color: var(--v3-text);
-  width: 20px;
+  font-variant-numeric: tabular-nums;
 }
-.v3-legend-label { color: var(--v3-text-2); }
+.v3-audit-tile-label {
+  font-size: 11.5px;
+  color: var(--v3-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
+
+.v3-audit-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--v3-text-3);
+}
+.v3-audit-meta-num {
+  font-weight: 700;
+  color: var(--v3-text-2);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.v3-audit-meta-label { color: var(--v3-text-3); }
 
 .v3-audit-foot {
   display: flex;

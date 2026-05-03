@@ -346,53 +346,6 @@ function RecentProjectCard({
   );
 }
 
-// ===== Audit donut (CSS conic-gradient) =====
-function AuditDonut({
-  crit,
-  warn,
-  info,
-}: {
-  crit: number;
-  warn: number;
-  info: number;
-}) {
-  const total = crit + warn + info;
-  if (total === 0) {
-    return (
-      <div
-        className="v3-donut v3-donut-empty"
-        role="img"
-        aria-label="No audit findings"
-      >
-        <div className="v3-donut-hole">
-          <div className="v3-donut-num">0</div>
-          <div className="v3-donut-label">Total Findings</div>
-        </div>
-      </div>
-    );
-  }
-  const critPct = (crit / total) * 100;
-  const warnPct = (warn / total) * 100;
-  const ring = `conic-gradient(
-    #DC2626 0% ${critPct}%,
-    #F59E0B ${critPct}% ${critPct + warnPct}%,
-    #FCD34D ${critPct + warnPct}% 100%
-  )`;
-  return (
-    <div
-      className="v3-donut"
-      style={{ background: ring }}
-      role="img"
-      aria-label={`Audit findings: ${crit} critical, ${warn} warning, ${info} info`}
-    >
-      <div className="v3-donut-hole">
-        <div className="v3-donut-num">{total}</div>
-        <div className="v3-donut-label">Total Findings</div>
-      </div>
-    </div>
-  );
-}
-
 // Keyboard activation helper — turns role="button" divs into Enter/Space-clickable
 const onKeyboardActivate = (fn: () => void) => (e: React.KeyboardEvent) => {
   if (e.key === "Enter" || e.key === " ") {
@@ -841,26 +794,60 @@ function OverviewView({
             <div className="v3-empty">Audit clean. No findings.</div>
           ) : (
             <>
-              <div className="v3-audit-body">
-                <AuditDonut crit={stats.crit} warn={stats.warn} info={Math.max(stats.info, 1)} />
-                <ul className="v3-audit-legend">
-                  <li>
-                    <span className="v3-legend-dot" style={{ background: "#DC2626" }} />
-                    <span className="v3-legend-num">{stats.crit}</span>
-                    <span className="v3-legend-label">Critical</span>
-                  </li>
-                  <li>
-                    <span className="v3-legend-dot" style={{ background: "#F59E0B" }} />
-                    <span className="v3-legend-num">{stats.warn}</span>
-                    <span className="v3-legend-label">Warning</span>
-                  </li>
-                  <li>
-                    <span className="v3-legend-dot" style={{ background: "#FCD34D" }} />
-                    <span className="v3-legend-num">{stats.info}</span>
-                    <span className="v3-legend-label">Info</span>
-                  </li>
-                </ul>
+              {/* Stacked bar: proportional widths per severity. Renders as a
+                  single rounded track segmented by % so it reads at a glance
+                  without the visual weight of a donut. */}
+              <div
+                className="v3-audit-bar"
+                role="progressbar"
+                aria-label={`${stats.total} audit findings: ${stats.crit} critical, ${stats.warn} warnings, ${stats.info} info`}
+              >
+                {stats.crit > 0 && (
+                  <span
+                    className="v3-audit-bar-seg v3-audit-bar-crit"
+                    style={{ width: `${(stats.crit / stats.total) * 100}%` }}
+                  />
+                )}
+                {stats.warn > 0 && (
+                  <span
+                    className="v3-audit-bar-seg v3-audit-bar-warn"
+                    style={{ width: `${(stats.warn / stats.total) * 100}%` }}
+                  />
+                )}
+                {stats.info > 0 && (
+                  <span
+                    className="v3-audit-bar-seg v3-audit-bar-info"
+                    style={{ width: `${(stats.info / stats.total) * 100}%` }}
+                  />
+                )}
               </div>
+              <div className="v3-audit-tiles">
+                <div className="v3-audit-tile v3-audit-tile-crit">
+                  <span className="v3-audit-tile-stripe" aria-hidden="true" />
+                  <div className="v3-audit-tile-body">
+                    <div className="v3-audit-tile-num">{stats.crit}</div>
+                    <div className="v3-audit-tile-label">Critical</div>
+                  </div>
+                </div>
+                <div className="v3-audit-tile v3-audit-tile-warn">
+                  <span className="v3-audit-tile-stripe" aria-hidden="true" />
+                  <div className="v3-audit-tile-body">
+                    <div className="v3-audit-tile-num">{stats.warn}</div>
+                    <div className="v3-audit-tile-label">Warning</div>
+                  </div>
+                </div>
+                <div className="v3-audit-tile v3-audit-tile-info">
+                  <span className="v3-audit-tile-stripe" aria-hidden="true" />
+                  <div className="v3-audit-tile-body">
+                    <div className="v3-audit-tile-num">{stats.info}</div>
+                    <div className="v3-audit-tile-label">Info</div>
+                  </div>
+                </div>
+              </div>
+              <footer className="v3-audit-meta">
+                <span className="v3-audit-meta-num">{stats.total}</span>
+                <span className="v3-audit-meta-label">total findings</span>
+              </footer>
               {stats.crit > 0 && (
                 <footer className="v3-audit-foot">
                   <AlertTriangle size={14} strokeWidth={2} />
