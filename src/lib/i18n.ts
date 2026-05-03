@@ -122,6 +122,24 @@ const STRINGS = {
     en: "Stop syncing? The remote repo stays on GitHub — you can re-attach later.",
     es: "¿Detener el sync? El repo remoto queda en GitHub, podés re-conectar después.",
   },
+  // Project clone section (shown when projects.json has entries)
+  "sync.projects_title": { en: "Projects on this remote", es: "Proyectos en este remoto" },
+  "sync.projects_empty": {
+    en: "No projects with git remotes were detected on the source machine.",
+    es: "No se detectaron proyectos con remoto en la máquina fuente.",
+  },
+  "sync.projects_lead": {
+    en: "Clone any of these into a folder on this machine. Already-existing folders are skipped.",
+    es: "Cloná cualquiera de estos en una carpeta de esta máquina. Las que ya existen se omiten.",
+  },
+  "sync.target_label": { en: "Clone into", es: "Clonar en" },
+  "sync.target_placeholder": { en: "C:\\code", es: "C:\\code" },
+  "sync.clone_all": { en: "Clone all", es: "Clonar todos" },
+  "sync.cloning": { en: "Cloning…", es: "Clonando…" },
+  "sync.clone_one": { en: "Clone", es: "Clonar" },
+  "sync.clone_status_cloned": { en: "Cloned", es: "Clonado" },
+  "sync.clone_status_exists": { en: "Already exists", es: "Ya existe" },
+  "sync.clone_status_error": { en: "Failed", es: "Falló" },
 
   // Workspace card (sits under the companion in the right panel)
   "workspace.title": { en: "Workspace", es: "Workspace" },

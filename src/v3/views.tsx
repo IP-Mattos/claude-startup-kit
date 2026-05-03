@@ -1260,6 +1260,17 @@ interface SyncState {
   last_error: string | null;
 }
 
+interface SyncedProject {
+  name: string;
+  remote_url: string;
+}
+interface CloneResult {
+  remote_url: string;
+  path: string;
+  status: "cloned" | "exists" | "error";
+  message: string;
+}
+
 function SyncCard() {
   const { t } = useT();
   const [state, setState] = useState<SyncState | null>(null);
@@ -1267,12 +1278,27 @@ function SyncCard() {
   // One spinner per action so the user sees which one's busy.
   const [busy, setBusy] = useState<"setup" | "export" | "import" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [projects, setProjects] = useState<SyncedProject[]>([]);
+  const [targetDir, setTargetDir] = useState("");
+  // remote_url -> per-row clone status
+  const [cloneResults, setCloneResults] = useState<Record<string, CloneResult>>({});
+  const [cloningAll, setCloningAll] = useState(false);
+
+  // Load both status + listed projects once on mount, and re-fetch
+  // projects after every successful sync action.
+  const refreshProjects = () => {
+    if (!IS_TAURI) return;
+    invoke<SyncedProject[]>("sync_listed_projects")
+      .then(setProjects)
+      .catch(() => setProjects([]));
+  };
 
   useEffect(() => {
     if (!IS_TAURI) return;
     invoke<SyncState>("sync_status")
       .then(setState)
       .catch((e) => setError(friendlyErrorEn(e)));
+    refreshProjects();
   }, []);
 
   const handleSetup = async () => {
@@ -1294,6 +1320,7 @@ function SyncCard() {
     try {
       const next = await invoke<SyncState>("sync_export");
       setState(next);
+      refreshProjects();
     } catch (e) {
       setError(friendlyErrorEn(e));
     } finally {
@@ -1308,10 +1335,67 @@ function SyncCard() {
     try {
       const next = await invoke<SyncState>("sync_import");
       setState(next);
+      refreshProjects();
+      // Reset previous clone statuses so the new list starts clean.
+      setCloneResults({});
     } catch (e) {
       setError(friendlyErrorEn(e));
     } finally {
       setBusy(null);
+    }
+  };
+
+  // Clone one repo. Updates the per-row map regardless of outcome so
+  // the user sees a clear status next to each project.
+  const cloneOne = async (p: SyncedProject) => {
+    if (!targetDir.trim()) {
+      setError("Set a target directory first");
+      return;
+    }
+    setCloneResults((prev) => ({
+      ...prev,
+      [p.remote_url]: {
+        remote_url: p.remote_url,
+        path: "",
+        status: "error",
+        message: "...",
+      },
+    }));
+    try {
+      const res = await invoke<CloneResult>("clone_project", {
+        remoteUrl: p.remote_url,
+        targetDir,
+        name: p.name,
+      });
+      setCloneResults((prev) => ({ ...prev, [p.remote_url]: res }));
+    } catch (e) {
+      setCloneResults((prev) => ({
+        ...prev,
+        [p.remote_url]: {
+          remote_url: p.remote_url,
+          path: "",
+          status: "error",
+          message: friendlyErrorEn(e),
+        },
+      }));
+    }
+  };
+
+  const cloneAll = async () => {
+    if (!targetDir.trim()) {
+      setError("Set a target directory first");
+      return;
+    }
+    setCloningAll(true);
+    setError(null);
+    try {
+      // Sequential — concurrent git clones from the same auth context can
+      // race the credential helper on Windows.
+      for (const p of projects) {
+        await cloneOne(p);
+      }
+    } finally {
+      setCloningAll(false);
     }
   };
 
@@ -1386,6 +1470,88 @@ function SyncCard() {
             >
               {t("sync.disconnect")}
             </button>
+          </div>
+
+          <div className="v3-sync-projects">
+            <header className="v3-sync-projects-head">
+              <h3 className="v3-sync-projects-title">
+                {t("sync.projects_title")}{" "}
+                <span className="v3-row-dim">({projects.length})</span>
+              </h3>
+            </header>
+            {projects.length === 0 ? (
+              <p className="v3-row-meta">{t("sync.projects_empty")}</p>
+            ) : (
+              <>
+                <p className="v3-row-meta">{t("sync.projects_lead")}</p>
+                <label className="v3-form-row">
+                  <span className="v3-form-label">{t("sync.target_label")}</span>
+                  <input
+                    type="text"
+                    className="v3-input"
+                    value={targetDir}
+                    onChange={(e) => setTargetDir(e.target.value)}
+                    placeholder={t("sync.target_placeholder")}
+                    disabled={cloningAll}
+                  />
+                </label>
+                <div className="v3-sync-actions">
+                  <button
+                    type="button"
+                    className="v3-update-banner-primary"
+                    onClick={cloneAll}
+                    disabled={cloningAll || !targetDir.trim()}
+                  >
+                    {cloningAll ? t("sync.cloning") : t("sync.clone_all")}
+                  </button>
+                </div>
+                <ul className="v3-sync-project-list">
+                  {projects.map((p) => {
+                    const result = cloneResults[p.remote_url];
+                    const statusClass =
+                      result?.status === "cloned"
+                        ? "v3-sync-project-status-ok"
+                        : result?.status === "exists"
+                        ? "v3-sync-project-status-dim"
+                        : result?.status === "error"
+                        ? "v3-sync-project-status-crit"
+                        : "";
+                    const statusLabel =
+                      result?.status === "cloned"
+                        ? t("sync.clone_status_cloned")
+                        : result?.status === "exists"
+                        ? t("sync.clone_status_exists")
+                        : result?.status === "error"
+                        ? t("sync.clone_status_error")
+                        : "";
+                    return (
+                      <li key={p.remote_url} className="v3-sync-project-row">
+                        <div className="v3-sync-project-body">
+                          <div className="v3-sync-project-name">{p.name}</div>
+                          <div className="v3-sync-project-remote">{p.remote_url}</div>
+                          {result && (
+                            <div className={`v3-sync-project-status ${statusClass}`}>
+                              {statusLabel}
+                              {result.message && result.status !== "cloned"
+                                ? ` · ${result.message}`
+                                : ""}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="v3-btn-ghost v3-sync-btn"
+                          onClick={() => cloneOne(p)}
+                          disabled={cloningAll || !targetDir.trim()}
+                        >
+                          {t("sync.clone_one")}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
           </div>
         </div>
       ) : (

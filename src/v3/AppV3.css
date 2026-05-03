@@ -569,6 +569,67 @@ body.v3-layout #root {
   margin-left: auto;
 }
 
+/* Project clone section — shown once a sync is configured. Lists every
+   repo from projects.json with a per-row Clone button + status. */
+.v3-sync-projects {
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--v3-border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.v3-sync-projects-head { display: flex; align-items: baseline; }
+.v3-sync-projects-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--v3-text);
+  margin: 0;
+}
+.v3-sync-project-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.v3-sync-project-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--v3-border);
+}
+.v3-sync-project-row:last-child { border-bottom: 0; }
+.v3-sync-project-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.v3-sync-project-name {
+  font-weight: 600;
+  color: var(--v3-text);
+  font-size: 13.5px;
+}
+.v3-sync-project-remote {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--v3-text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.v3-sync-project-status {
+  font-size: 11.5px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+.v3-sync-project-status-ok { color: var(--v3-success); }
+.v3-sync-project-status-dim { color: var(--v3-text-3); }
+.v3-sync-project-status-crit { color: var(--v3-crit); }
+
 /* Settings → Updates card — one row per channel (app, gentle-ai). */
 .v3-update-row {
   display: flex;

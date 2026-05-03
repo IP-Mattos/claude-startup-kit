@@ -1544,6 +1544,88 @@ async fn apply_gentle_ai_update() -> Result<String, String> {
 // synced). The clone lives at ~/.claude/.csk-sync/repo/.
 
 const SYNC_FILE_NAME: &str = "engram-export.json";
+const SYNC_PROJECTS_FILE: &str = "projects.json";
+
+#[derive(Serialize, serde::Deserialize, Clone)]
+pub struct SyncedProject {
+    /// Folder name extracted from the cwd path.
+    pub name: String,
+    /// Git remote (origin). Stored stripped of trailing newlines.
+    pub remote_url: String,
+}
+
+/// Walk ~/.claude/projects/<hash>/, resolve each project's cwd via the
+/// first JSONL entry, then ask git for the origin remote. Projects
+/// without a git remote (no .git, or local-only) are skipped — the sync
+/// catalogue is GitHub-clone-driven.
+fn list_local_projects_with_remote() -> Vec<SyncedProject> {
+    let dir = match claude_projects_dir() {
+        Some(d) => d,
+        None => return vec![],
+    };
+    let mut out: Vec<SyncedProject> = Vec::new();
+    let mut seen_remotes: std::collections::HashSet<String> = Default::default();
+    let entries = match fs::read_dir(&dir) {
+        Ok(e) => e,
+        Err(_) => return out,
+    };
+    for entry in entries.flatten() {
+        let project_dir = entry.path();
+        if !project_dir.is_dir() {
+            continue;
+        }
+        // Reuse the existing helper that pulls cwd from a list of JSONLs.
+        let jsonls: Vec<PathBuf> = match fs::read_dir(&project_dir) {
+            Ok(entries) => entries
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| p.extension().and_then(|s| s.to_str()) == Some("jsonl"))
+                .collect(),
+            Err(_) => continue,
+        };
+        if jsonls.is_empty() {
+            continue;
+        }
+        let cwd = match first_cwd_in_jsonls(&jsonls) {
+            Some(c) => c,
+            None => continue,
+        };
+        let cwd_path = Path::new(&cwd);
+        if !cwd_path.exists() {
+            // Project's source folder was moved or deleted — skip.
+            continue;
+        }
+        let remote = match Command::new("git")
+            .args(["-C"])
+            .arg(&cwd)
+            .args(["remote", "get-url", "origin"])
+            .output()
+        {
+            Ok(o) if o.status.success() => {
+                String::from_utf8_lossy(&o.stdout).trim().to_string()
+            }
+            _ => continue,
+        };
+        if remote.is_empty() {
+            continue;
+        }
+        if !seen_remotes.insert(remote.clone()) {
+            // Multiple JSONL projects can point at the same repo; dedupe.
+            continue;
+        }
+        let name = cwd_path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "project".to_string());
+        out.push(SyncedProject {
+            name,
+            remote_url: remote,
+        });
+    }
+    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    out
+}
 
 #[derive(Serialize, Clone, serde::Deserialize, Default)]
 pub struct SyncState {
@@ -1737,9 +1819,18 @@ async fn sync_export() -> Result<SyncState, String> {
             return Err(stderr.into_owned());
         }
 
+        // Also dump the catalogue of projects with git remotes so the other
+        // machine can `git clone` them straight from the sync card.
+        let projects = list_local_projects_with_remote();
+        let projects_path = repo_dir.join(SYNC_PROJECTS_FILE);
+        let projects_json = serde_json::to_string_pretty(&projects)
+            .map_err(|e| format!("serialize projects.json: {e}"))?;
+        fs::write(&projects_path, projects_json)
+            .map_err(|e| format!("write projects.json: {e}"))?;
+
         // Stage + amend (squash history into a single commit). If there's
         // no prior commit yet, fall back to a regular commit.
-        git_in(&repo_dir, &["add", SYNC_FILE_NAME])?;
+        git_in(&repo_dir, &["add", SYNC_FILE_NAME, SYNC_PROJECTS_FILE])?;
         let amend = Command::new("git")
             .current_dir(&repo_dir)
             .args(["commit", "--amend", "-m", "sync"])
@@ -1818,6 +1909,89 @@ async fn sync_import() -> Result<SyncState, String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+#[derive(Serialize, Clone)]
+pub struct ClonedProject {
+    pub remote_url: String,
+    pub path: String,
+    pub status: String, // "cloned" | "exists" | "error"
+    pub message: String,
+}
+
+/// List of projects in the synced repo's projects.json. Returns empty if
+/// not yet synced or if no remotes are tracked.
+#[tauri::command]
+async fn sync_listed_projects() -> Result<Vec<SyncedProject>, String> {
+    tokio::task::spawn_blocking(|| -> Result<Vec<SyncedProject>, String> {
+        let repo_dir = sync_repo_dir().ok_or("home dir unavailable")?;
+        let path = repo_dir.join(SYNC_PROJECTS_FILE);
+        if !path.exists() {
+            return Ok(vec![]);
+        }
+        let body = fs::read_to_string(&path)
+            .map_err(|e| format!("read projects.json: {e}"))?;
+        let parsed: Vec<SyncedProject> =
+            serde_json::from_str(&body).unwrap_or_default();
+        Ok(parsed)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+/// Clone one repo into <target_dir>/<name>. If the destination already
+/// exists, returns status="exists" instead of erroring (the user can
+/// re-run safely). All errors are captured per-row so the frontend can
+/// keep iterating through the rest of the list.
+#[tauri::command]
+async fn clone_project(
+    remote_url: String,
+    target_dir: String,
+    name: String,
+) -> Result<ClonedProject, String> {
+    tokio::task::spawn_blocking(move || -> Result<ClonedProject, String> {
+        let target_root = PathBuf::from(target_dir.trim());
+        if target_root.as_os_str().is_empty() {
+            return Err("target directory is empty".to_string());
+        }
+        if !target_root.exists() {
+            fs::create_dir_all(&target_root)
+                .map_err(|e| format!("create target dir: {e}"))?;
+        }
+        let dest = target_root.join(&name);
+        if dest.exists() {
+            // Idempotent: if the repo's already there, treat as a no-op.
+            // The user can manually pull or move it; we don't second-guess.
+            return Ok(ClonedProject {
+                remote_url,
+                path: dest.to_string_lossy().to_string(),
+                status: "exists".to_string(),
+                message: "destination already exists, skipped".to_string(),
+            });
+        }
+        let out = Command::new("git")
+            .args(["clone", &remote_url])
+            .arg(&dest)
+            .output()
+            .map_err(|e| format!("spawn git clone: {e}"))?;
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            return Ok(ClonedProject {
+                remote_url,
+                path: dest.to_string_lossy().to_string(),
+                status: "error".to_string(),
+                message: stderr.into_owned(),
+            });
+        }
+        Ok(ClonedProject {
+            remote_url,
+            path: dest.to_string_lossy().to_string(),
+            status: "cloned".to_string(),
+            message: String::new(),
+        })
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 #[tauri::command]
 async fn sync_disconnect() -> Result<(), String> {
     tokio::task::spawn_blocking(|| -> Result<(), String> {
@@ -1861,6 +2035,8 @@ pub fn run() {
             sync_export,
             sync_import,
             sync_disconnect,
+            sync_listed_projects,
+            clone_project,
             list_claude_skills,
             count_claude_skill_usage,
             list_mcp_servers,
