@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.2"
+version = "0.1.3"
 description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
@@ -24,6 +24,9 @@ tauri-plugin-opener = "2"
 # Requires TAURI_SIGNING_PRIVATE_KEY{,_PASSWORD} at build time and a `latest.json`
 # manifest published alongside the release artifacts.
 tauri-plugin-updater = "2"
+# Launch on system boot. Persists to HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+# on Windows. The toggle lives in Settings — disabled by default, user opts in.
+tauri-plugin-autostart = "2"
 # Update channel — uses the GitHub releases REST API so no signing infra is
 # required. See lib.rs `check_*_update` commands.
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
