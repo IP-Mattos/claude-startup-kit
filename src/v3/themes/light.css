@@ -47,7 +47,10 @@ body.v3-layout:not([data-theme-v3]) .appv3 {
   --v3-success-tint: #D1FAE5;
   --v3-warn: #F59E0B;
   --v3-warn-tint: #FEF3C7;
-  --v3-info: #FCD34D;
+  /* Calm blue for info — yellow + amber side-by-side made the audit
+     panel read as alarmist even when findings were just informational. */
+  --v3-info: #3B82F6;
+  --v3-info-tint: #DBEAFE;
   --v3-crit: #DC2626;
   --v3-crit-tint: #FEE2E2;
 

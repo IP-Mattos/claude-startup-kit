@@ -57,7 +57,11 @@ body.v3-layout #root {
   --v3-success-tint: #DCFCE7;
   --v3-warn: #F59E0B;
   --v3-warn-tint: #FEF3C7;
-  --v3-info: #FCD34D;
+  /* Info is a CALM signal — blue, not yellow. Yellow+amber together
+     made the whole audit panel scream 'something's wrong' even when
+     most findings were just informational. */
+  --v3-info: #3B82F6;
+  --v3-info-tint: #DBEAFE;
   --v3-crit: #DC2626;
   --v3-crit-tint: #FEE2E2;
 
@@ -1193,11 +1197,18 @@ body.v3-layout #root {
   left: 0;
   top: 0;
   bottom: 0;
-  width: 3px;
+  width: 4px;
 }
 .v3-audit-tile-crit .v3-audit-tile-stripe { background: var(--v3-crit); }
 .v3-audit-tile-warn .v3-audit-tile-stripe { background: var(--v3-warn); }
 .v3-audit-tile-info .v3-audit-tile-stripe { background: var(--v3-info); }
+
+/* Color the big number in its severity tone so the eye lands on the
+   semantic info first (red=bad, blue=fine), reinforcing the at-a-glance
+   read of the panel. */
+.v3-audit-tile-crit .v3-audit-tile-num { color: var(--v3-crit); }
+.v3-audit-tile-warn .v3-audit-tile-num { color: var(--v3-warn); }
+.v3-audit-tile-info .v3-audit-tile-num { color: var(--v3-info); }
 .v3-audit-tile-body {
   display: flex;
   flex-direction: column;
