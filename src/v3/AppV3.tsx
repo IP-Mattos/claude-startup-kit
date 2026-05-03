@@ -20,16 +20,14 @@ import { nextV3Theme, applyAndPersistV3Theme, readV3ThemeFromBody } from "../lib
 import { enrichProjects } from "../lib/enrichProjects";
 import { useUpdates } from "../lib/useUpdates";
 import { useT } from "../lib/i18n";
-import {
-  ProjectsViewV3,
-  PrsViewV3,
-  AuditViewV3,
-  CleanupViewV3,
-  ClaudeViewV3,
-  CompanionsViewV3,
-  SettingsViewV3,
-  SyncViewV3,
-} from "./views";
+import { ProjectsView } from "../views/v3/ProjectsView";
+import { PrsView } from "../views/v3/PrsView";
+import { AuditView } from "../views/v3/AuditView";
+import { CleanupView } from "../views/v3/CleanupView";
+import { ClaudeView } from "../views/v3/ClaudeView";
+import { CompanionsView } from "../views/v3/CompanionsView";
+import { SettingsView } from "../views/v3/SettingsView";
+import { SyncView } from "../views/v3/SyncView";
 import "./AppV3.css";
 
 // Tauri APIs throw when loaded from a plain browser at localhost:1420
@@ -368,21 +366,21 @@ export default function AppV3() {
               onCycleTheme={handleCycleTheme}
             />
           )}
-          {tab === "projects" && <ProjectsViewV3 />}
-          {tab === "prs" && <PrsViewV3 />}
-          {tab === "audit" && <AuditViewV3 />}
-          {tab === "cleanup" && <CleanupViewV3 />}
-          {tab === "sync" && <SyncViewV3 />}
-          {tab === "claude" && <ClaudeViewV3 />}
+          {tab === "projects" && <ProjectsView />}
+          {tab === "prs" && <PrsView />}
+          {tab === "audit" && <AuditView />}
+          {tab === "cleanup" && <CleanupView />}
+          {tab === "sync" && <SyncView />}
+          {tab === "claude" && <ClaudeView />}
           {tab === "companions" && (
-            <CompanionsViewV3
+            <CompanionsView
               name={companionName}
               image={companionImage}
               onNameChange={setCompanionName}
               onImageChange={setCompanionImage}
             />
           )}
-          {tab === "settings" && <SettingsViewV3 />}
+          {tab === "settings" && <SettingsView />}
         </main>
         <aside className="appv3-rightpanel" aria-label={t("window.companion_panel")}>
           <CompanionWidget
