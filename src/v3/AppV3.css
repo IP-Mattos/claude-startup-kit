@@ -103,7 +103,10 @@ body.v3-layout #root {
   align-items: stretch;
   height: 38px;
   background: var(--v3-surface);
-  border-bottom: 1px solid var(--v3-border);
+  /* Hairline at the bottom done as an inset shadow so the active-tab
+     underline can sit flush at the same y-position without fighting a
+     real border for the last pixel. */
+  box-shadow: inset 0 -1px 0 var(--v3-border);
   flex-shrink: 0;
   user-select: none;
 }
@@ -139,13 +142,15 @@ body.v3-layout #root {
   color: var(--v3-accent);
 }
 .v3-topbar-tab.active::after {
-  /* Sit on the topbar's 1px bottom border so the underline reads as flush
-     with the row beneath instead of floating one pixel above it. */
+  /* Sits at the very bottom of the tab — same y as the topbar's hairline.
+     Because the hairline is now an inset shadow on the topbar (not a
+     real border), this 2px bar covers it cleanly at the active tab's
+     range, reading as flush with the content row beneath. */
   content: "";
   position: absolute;
   left: 8px;
   right: 8px;
-  bottom: -1px;
+  bottom: 0;
   height: 2px;
   background: var(--v3-accent);
   border-radius: 1px 1px 0 0;
