@@ -992,10 +992,18 @@ fn parse_skill_frontmatter(text: &str) -> (String, String) {
 }
 
 // Counts how many times each skill name appears across recent JSONL logs.
-// Plain substring count is fine — Claude's tool-call payloads include the
-// skill name in their JSON body, so even quoted occurrences match.
+//
+// Heavy users (hundreds of MB of conversation history) made the naive
+// implementation hang for seconds. The current version:
+//   • caps to 7 days mtime — recent activity is what 'most used' should
+//     reflect, and the cost falls roughly linearly with the window.
+//   • caps each file at 2 MiB — auto-compacted long conversations would
+//     otherwise dominate the scan; truncating still gives a representative
+//     sample.
+//   • does ONE pass per file with all needles pre-built.
 fn count_skill_usage(skill_names: &[String]) -> std::collections::HashMap<String, u32> {
     use std::collections::HashMap;
+    use std::io::Read;
     let mut counts: HashMap<String, u32> = HashMap::new();
     for n in skill_names {
         counts.insert(n.clone(), 0);
@@ -1004,7 +1012,16 @@ fn count_skill_usage(skill_names: &[String]) -> std::collections::HashMap<String
         Some(d) => d,
         None => return counts,
     };
-    let cutoff = SystemTime::now() - Duration::from_secs(30 * 24 * 60 * 60);
+    let cutoff = SystemTime::now() - Duration::from_secs(7 * 24 * 60 * 60);
+    const PER_FILE_CAP: u64 = 2 * 1024 * 1024;
+
+    // Pre-build the quoted needles once. Quoting biases toward JSON tool-call
+    // payload mentions over free-text references that happen to share a word.
+    let needles: Vec<(String, String)> = skill_names
+        .iter()
+        .map(|n| (n.clone(), format!("\"{n}\"")))
+        .collect();
+
     let entries = match fs::read_dir(&projects_dir) {
         Ok(e) => e,
         Err(_) => return counts,
@@ -1020,28 +1037,32 @@ fn count_skill_usage(skill_names: &[String]) -> std::collections::HashMap<String
             if p.extension().and_then(|s| s.to_str()) != Some("jsonl") {
                 continue;
             }
-            let mtime = match fs::metadata(&p).and_then(|m| m.modified()) {
+            let meta = match fs::metadata(&p) {
+                Ok(m) => m,
+                Err(_) => continue,
+            };
+            let mtime = match meta.modified() {
                 Ok(t) => t,
                 Err(_) => continue,
             };
             if mtime < cutoff {
                 continue;
             }
-            // Read once, scan once.
-            let body = match fs::read_to_string(&p) {
-                Ok(b) => b,
+            // Read up to the cap. take(N) on Read doesn't allocate beyond N.
+            let file = match File::open(&p) {
+                Ok(f) => f,
                 Err(_) => continue,
             };
-            for n in skill_names {
-                // Quoted name to bias toward tool-payload mentions instead
-                // of free-text references that happen to share the word.
-                let needle = format!("\"{n}\"");
-                if !body.contains(&needle) {
-                    continue;
-                }
-                let c = body.matches(&needle).count() as u32;
-                if let Some(slot) = counts.get_mut(n) {
-                    *slot = slot.saturating_add(c);
+            let mut buf = String::new();
+            if file.take(PER_FILE_CAP).read_to_string(&mut buf).is_err() {
+                continue;
+            }
+            for (name, needle) in &needles {
+                let c = buf.matches(needle.as_str()).count() as u32;
+                if c > 0 {
+                    if let Some(slot) = counts.get_mut(name) {
+                        *slot = slot.saturating_add(c);
+                    }
                 }
             }
         }
@@ -1051,6 +1072,9 @@ fn count_skill_usage(skill_names: &[String]) -> std::collections::HashMap<String
 
 #[tauri::command]
 async fn list_claude_skills() -> Result<Vec<ClaudeSkill>, String> {
+    // Fast path: enumerate skill directories + parse frontmatter, no usage
+    // scan. Frontend follows up with `count_claude_skill_usage` so the list
+    // appears instantly even when the JSONL backlog is heavy.
     tokio::task::spawn_blocking(|| -> Result<Vec<ClaudeSkill>, String> {
         let dir = claude_skills_dir().ok_or("home dir unavailable")?;
         let entries = match fs::read_dir(&dir) {
@@ -1081,16 +1105,20 @@ async fn list_claude_skills() -> Result<Vec<ClaudeSkill>, String> {
                 usage_count: 0,
             });
         }
-        let names: Vec<String> = skills.iter().map(|s| s.name.clone()).collect();
-        let counts = count_skill_usage(&names);
-        for s in skills.iter_mut() {
-            s.usage_count = counts.get(&s.name).copied().unwrap_or(0);
-        }
-        skills.sort_by(|a, b| b.usage_count.cmp(&a.usage_count).then(a.name.cmp(&b.name)));
+        skills.sort_by(|a, b| a.name.cmp(&b.name));
         Ok(skills)
     })
     .await
     .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn count_claude_skill_usage(
+    names: Vec<String>,
+) -> Result<std::collections::HashMap<String, u32>, String> {
+    tokio::task::spawn_blocking(move || count_skill_usage(&names))
+        .await
+        .map_err(|e| format!("task join: {e}"))
 }
 
 #[tauri::command]
@@ -1428,6 +1456,7 @@ pub fn run() {
             check_gentle_ai_update,
             apply_gentle_ai_update,
             list_claude_skills,
+            count_claude_skill_usage,
             list_mcp_servers,
             toggle_mcp_server
         ])

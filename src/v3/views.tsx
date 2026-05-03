@@ -744,6 +744,9 @@ export function ClaudeViewV3() {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    // Two-stage fetch: list_claude_skills returns the catalog instantly
+    // (no JSONL scan), then count_claude_skill_usage enriches counts in
+    // the background. Same pattern used elsewhere for project enrichment.
     Promise.all([
       invoke<ClaudeSkill[]>("list_claude_skills").catch(() => [] as ClaudeSkill[]),
       invoke<McpServer[]>("list_mcp_servers").catch(() => [] as McpServer[]),
@@ -752,9 +755,36 @@ export function ClaudeViewV3() {
         if (cancelled) return;
         setSkills(s);
         setMcps(m);
+        setLoading(false);
+        // Kick the usage scan AFTER the UI shows skills. Don't block render.
+        if (s.length > 0) {
+          invoke<Record<string, number>>("count_claude_skill_usage", {
+            names: s.map((sk) => sk.name),
+          })
+            .then((counts) => {
+              if (cancelled) return;
+              setSkills((prev) =>
+                prev
+                  .map((sk) => ({ ...sk, usage_count: counts[sk.name] ?? 0 }))
+                  // After counts arrive, sort by usage so the picker reflects
+                  // 'most used' as soon as the data is available.
+                  .sort(
+                    (a, b) =>
+                      b.usage_count - a.usage_count || a.name.localeCompare(b.name)
+                  )
+              );
+            })
+            .catch(() => {
+              /* usage scan is best-effort — silent fail keeps the list visible */
+            });
+        }
       })
-      .catch((e) => !cancelled && setError(friendlyErrorEn(e)))
-      .finally(() => !cancelled && setLoading(false));
+      .catch((e) => {
+        if (!cancelled) {
+          setError(friendlyErrorEn(e));
+          setLoading(false);
+        }
+      });
     return () => {
       cancelled = true;
     };
