@@ -16,6 +16,7 @@
     "core:window:allow-unminimize",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
-    "opener:default"
+    "opener:default",
+    "autostart:default"
   ]
 }

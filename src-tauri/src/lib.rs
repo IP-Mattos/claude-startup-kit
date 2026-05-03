@@ -2062,6 +2062,14 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        // Autostart: persists to HKCU\Software\Microsoft\Windows\CurrentVersion\Run on
+        // Windows. The toggle is exposed in Settings; disabled by default so the user
+        // opts in explicitly. `MacosLauncher::LaunchAgent` is a no-op on Windows but
+        // the API requires the variant. `args = None` runs the app with no extra flags.
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .invoke_handler(tauri::generate_handler![
             scan_projects,
             git_last_commit,

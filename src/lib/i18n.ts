@@ -172,6 +172,15 @@ const STRINGS = {
     en: 'Updates are checked automatically once every 24 hours. Click "Check now" to refresh immediately.',
     es: "Las actualizaciones se buscan automáticamente cada 24 horas. Tocá \"Buscar ahora\" para refrescar al toque.",
   },
+  "settings.autostart_title": { en: "Startup", es: "Inicio" },
+  "settings.autostart_label": {
+    en: "Launch Claude Startup Kit when Windows starts",
+    es: "Abrir Claude Startup Kit cuando inicie Windows",
+  },
+  "settings.autostart_hint": {
+    en: "Opens the app on every login, minimized to the tray. Toggle off any time.",
+    es: "Abre la app en cada inicio de sesión, minimizada en la bandeja. Lo desactivás cuando quieras.",
+  },
   "settings.theme": { en: "Theme", es: "Tema" },
   "settings.curated_palettes": { en: "{n} curated palettes", es: "{n} paletas curadas" },
   "settings.shortcuts": { en: "Keyboard Shortcuts", es: "Atajos de teclado" },

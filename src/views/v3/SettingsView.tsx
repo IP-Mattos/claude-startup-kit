@@ -1,5 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
+import {
+  enable as enableAutostart,
+  disable as disableAutostart,
+  isEnabled as isAutostartEnabled,
+} from "@tauri-apps/plugin-autostart";
 import {
   V3_THEME_OPTIONS,
   applyAndPersistV3Theme,
@@ -10,10 +15,47 @@ import { useUpdates } from "../../lib/useUpdates";
 import { useT } from "../../lib/i18n";
 import type { LangPref } from "../../lib/i18n";
 
+const IS_TAURI =
+  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+
 export function SettingsView() {
   const [theme, setTheme] = useState<V3Theme>(() => readSavedV3Theme());
   const updates = useUpdates();
   const { t, pref, setPref } = useT();
+
+  // Autostart state: read once from the OS on mount, then mirror locally
+  // so the toggle reflects user input immediately while the IPC round-trip
+  // is in flight. `null` means "not yet known" — used to render a disabled
+  // checkbox until we have ground truth.
+  const [autostart, setAutostart] = useState<boolean | null>(null);
+  const [autostartBusy, setAutostartBusy] = useState(false);
+  const [autostartError, setAutostartError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!IS_TAURI) {
+      setAutostart(false);
+      return;
+    }
+    isAutostartEnabled()
+      .then((enabled) => setAutostart(enabled))
+      .catch((e) => setAutostartError(String(e)));
+  }, []);
+
+  const toggleAutostart = async () => {
+    if (!IS_TAURI || autostart === null) return;
+    setAutostartBusy(true);
+    setAutostartError(null);
+    const next = !autostart;
+    try {
+      if (next) await enableAutostart();
+      else await disableAutostart();
+      setAutostart(next);
+    } catch (e) {
+      setAutostartError(String(e));
+    } finally {
+      setAutostartBusy(false);
+    }
+  };
 
   const pick = (next: V3Theme) => {
     setTheme(applyAndPersistV3Theme(next));
@@ -73,11 +115,19 @@ export function SettingsView() {
             label={t("settings.update_app_label")}
             status={updates.app}
             notConfiguredHint={t("settings.update_app_hint")}
+            onApply={() => {
+              void updates.applyApp();
+            }}
+            applying={updates.applyingApp}
           />
           <UpdateRow
             label={t("settings.update_gentle_ai_label")}
             status={updates.gentleAi}
             notConfiguredHint={t("settings.update_gentle_ai_hint")}
+            onApply={() => {
+              void updates.applyGentleAi();
+            }}
+            applying={updates.checking}
           />
           {updates.error && (
             <div className="v3-error" role="alert" aria-live="assertive">
@@ -85,6 +135,35 @@ export function SettingsView() {
             </div>
           )}
           <p className="v3-row-meta">{t("settings.updates_auto_hint")}</p>
+        </div>
+      </article>
+
+      <article className="v3-card">
+        <header className="v3-card-head">
+          <h2 className="v3-card-title">{t("settings.autostart_title")}</h2>
+        </header>
+        <div className="v3-form">
+          <label className="v3-toggle-row">
+            <input
+              type="checkbox"
+              checked={autostart === true}
+              disabled={autostart === null || autostartBusy || !IS_TAURI}
+              onChange={() => {
+                void toggleAutostart();
+              }}
+            />
+            <div className="v3-toggle-body">
+              <div className="v3-toggle-label">
+                {t("settings.autostart_label")}
+              </div>
+              <div className="v3-row-meta">{t("settings.autostart_hint")}</div>
+            </div>
+          </label>
+          {autostartError && (
+            <div className="v3-error" role="alert" aria-live="assertive">
+              {autostartError}
+            </div>
+          )}
         </div>
       </article>
 
@@ -150,14 +229,21 @@ export function SettingsView() {
 // Renders one row of the Updates card. Shows current/latest with a status
 // badge — "up to date", "update available", or "not configured" when the
 // channel can't be reached (no published release / gentle-ai not on PATH).
+// When an update is available AND `onApply` is provided, also renders an
+// "Update now" button right next to the status so the user can trigger the
+// upgrade from Settings without waiting for the top-of-page banner.
 function UpdateRow({
   label,
   status,
   notConfiguredHint,
+  onApply,
+  applying,
 }: {
   label: string;
   status: import("../../lib/useUpdates").UpdateStatus | null;
   notConfiguredHint: string;
+  onApply?: () => void;
+  applying?: boolean;
 }) {
   const { t } = useT();
   if (!status) {
@@ -188,6 +274,16 @@ function UpdateRow({
         <div className="v3-update-row-status v3-update-row-status-warn">
           v{status.current} → v{status.latest}
         </div>
+        {onApply && (
+          <button
+            type="button"
+            className="v3-update-row-action"
+            onClick={onApply}
+            disabled={applying === true}
+          >
+            {applying ? t("common.updating") : t("common.update_now")}
+          </button>
+        )}
       </div>
     );
   }
