@@ -1532,6 +1532,309 @@ async fn apply_gentle_ai_update() -> Result<String, String> {
     Ok(after)
 }
 
+// ─── Workspace sync (Engram-only over a private GitHub repo) ─────────────
+//
+// Sync only the engram export — not Claude Code's raw JSONL transcripts.
+// JSONLs are append-only and grow fast; engram is the distilled memory.
+// Repo holds a single file (engram-export.json) and we squash history each
+// sync via `git commit --amend` + `--force-with-lease` so the repo never
+// bloats. Single-author single-file means no merge conflicts in practice.
+//
+// Local state lives at ~/.claude/.csk-sync/state.json (per-machine, not
+// synced). The clone lives at ~/.claude/.csk-sync/repo/.
+
+const SYNC_FILE_NAME: &str = "engram-export.json";
+
+#[derive(Serialize, Clone, serde::Deserialize, Default)]
+pub struct SyncState {
+    pub configured: bool,
+    pub remote_url: String,
+    pub repo_full_name: String, // "user/repo"
+    pub last_sync_at: Option<u64>,
+    pub last_sync_kind: Option<String>, // "export" | "import"
+    pub last_error: Option<String>,
+}
+
+fn sync_dir() -> Option<PathBuf> {
+    dirs_home().map(|h| h.join(".claude").join(".csk-sync"))
+}
+
+fn sync_state_path() -> Option<PathBuf> {
+    sync_dir().map(|d| d.join("state.json"))
+}
+
+fn sync_repo_dir() -> Option<PathBuf> {
+    sync_dir().map(|d| d.join("repo"))
+}
+
+fn read_sync_state() -> SyncState {
+    let path = match sync_state_path() {
+        Some(p) => p,
+        None => return SyncState::default(),
+    };
+    let body = match fs::read_to_string(&path) {
+        Ok(b) => b,
+        Err(_) => return SyncState::default(),
+    };
+    serde_json::from_str(&body).unwrap_or_default()
+}
+
+fn write_sync_state(state: &SyncState) -> Result<(), String> {
+    let dir = sync_dir().ok_or("home dir unavailable")?;
+    fs::create_dir_all(&dir).map_err(|e| format!("create sync dir: {e}"))?;
+    let path = dir.join("state.json");
+    let body = serde_json::to_string_pretty(state)
+        .map_err(|e| format!("serialize sync state: {e}"))?;
+    fs::write(&path, body).map_err(|e| format!("write sync state: {e}"))
+}
+
+fn now_unix() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+#[tauri::command]
+fn sync_status() -> Result<SyncState, String> {
+    Ok(read_sync_state())
+}
+
+// Run a `git` subcommand inside the sync repo. Returns combined output
+// trimmed of trailing whitespace. Used to keep call sites short.
+fn git_in(repo: &Path, args: &[&str]) -> Result<String, String> {
+    let out = Command::new("git")
+        .current_dir(repo)
+        .args(args)
+        .output()
+        .map_err(|e| format!("spawn git: {e}"))?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        return Err(format!("git {} failed: {stderr}", args.join(" ")));
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+}
+
+// `gh repo create` runs through the user's existing gh auth.
+#[tauri::command]
+async fn sync_setup(repo_name: String) -> Result<SyncState, String> {
+    tokio::task::spawn_blocking(move || -> Result<SyncState, String> {
+        // Resolve the gh user so the user only types the bare repo name.
+        let owner_out = Command::new("gh")
+            .args(["api", "user", "--jq", ".login"])
+            .output()
+            .map_err(|e| format!("spawn gh: {e}"))?;
+        if !owner_out.status.success() {
+            let stderr = String::from_utf8_lossy(&owner_out.stderr);
+            return Err(format!(
+                "gh not authenticated. Run `gh auth login`.\n{stderr}"
+            ));
+        }
+        let owner = String::from_utf8_lossy(&owner_out.stdout).trim().to_string();
+        if owner.is_empty() {
+            return Err("gh returned an empty user".to_string());
+        }
+        let bare_name = repo_name.trim().trim_matches('/');
+        if bare_name.is_empty() {
+            return Err("repository name cannot be empty".to_string());
+        }
+        // Allow either "name" or "user/name". Normalize to user/name.
+        let full_name = if bare_name.contains('/') {
+            bare_name.to_string()
+        } else {
+            format!("{owner}/{bare_name}")
+        };
+
+        let repo_dir = sync_repo_dir().ok_or("home dir unavailable")?;
+        if repo_dir.exists() {
+            // Idempotency: tear down any stale half-setup before retrying.
+            let _ = fs::remove_dir_all(&repo_dir);
+        }
+        fs::create_dir_all(repo_dir.parent().unwrap())
+            .map_err(|e| format!("create sync parent: {e}"))?;
+
+        // Try to create the repo. If it already exists (re-setup), continue.
+        let create = Command::new("gh")
+            .args([
+                "repo",
+                "create",
+                &full_name,
+                "--private",
+                "--description",
+                "Claude Startup Kit — engram memory sync",
+            ])
+            .output()
+            .map_err(|e| format!("spawn gh repo create: {e}"))?;
+        if !create.status.success() {
+            let stderr = String::from_utf8_lossy(&create.stderr);
+            // If the repo already exists, gh exits non-zero with a helpful
+            // message — treat as success and continue to clone.
+            if !stderr.contains("already exists") {
+                return Err(format!("gh repo create: {stderr}"));
+            }
+        }
+
+        // Clone over HTTPS so gh auth's stored credentials kick in.
+        let remote_url = format!("https://github.com/{full_name}.git");
+        let clone = Command::new("git")
+            .args(["clone", &remote_url])
+            .arg(&repo_dir)
+            .output()
+            .map_err(|e| format!("spawn git clone: {e}"))?;
+        if !clone.status.success() {
+            let stderr = String::from_utf8_lossy(&clone.stderr);
+            return Err(format!("git clone: {stderr}"));
+        }
+
+        // Seed the repo with an empty export so the first push has content.
+        let initial = repo_dir.join(SYNC_FILE_NAME);
+        if !initial.exists() {
+            fs::write(&initial, "{}").map_err(|e| format!("seed export: {e}"))?;
+            git_in(&repo_dir, &["add", SYNC_FILE_NAME])?;
+            // Ignore commit errors when there's nothing to commit (rare).
+            let _ = git_in(&repo_dir, &["commit", "-m", "init: csk sync"]);
+            let _ = git_in(&repo_dir, &["push", "-u", "origin", "HEAD"]);
+        }
+
+        let state = SyncState {
+            configured: true,
+            remote_url,
+            repo_full_name: full_name,
+            last_sync_at: None,
+            last_sync_kind: None,
+            last_error: None,
+        };
+        write_sync_state(&state)?;
+        Ok(state)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn sync_export() -> Result<SyncState, String> {
+    tokio::task::spawn_blocking(move || -> Result<SyncState, String> {
+        let mut state = read_sync_state();
+        if !state.configured {
+            return Err("Workspace sync is not configured".to_string());
+        }
+        let repo_dir = sync_repo_dir().ok_or("home dir unavailable")?;
+        if !repo_dir.exists() {
+            return Err("Sync repo missing — run setup again".to_string());
+        }
+        let target = repo_dir.join(SYNC_FILE_NAME);
+
+        // engram export <path> — overwrites the file in place.
+        let out = Command::new("engram")
+            .args(["export"])
+            .arg(&target)
+            .output()
+            .map_err(|e| format!("spawn engram: {e}"))?;
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            state.last_error = Some(format!("engram export: {stderr}"));
+            let _ = write_sync_state(&state);
+            return Err(stderr.into_owned());
+        }
+
+        // Stage + amend (squash history into a single commit). If there's
+        // no prior commit yet, fall back to a regular commit.
+        git_in(&repo_dir, &["add", SYNC_FILE_NAME])?;
+        let amend = Command::new("git")
+            .current_dir(&repo_dir)
+            .args(["commit", "--amend", "-m", "sync"])
+            .output()
+            .map_err(|e| format!("spawn git: {e}"))?;
+        if !amend.status.success() {
+            // No commit to amend (fresh repo) — make the first one.
+            git_in(&repo_dir, &["commit", "-m", "sync"])?;
+        }
+        // --force-with-lease refuses if remote moved unexpectedly.
+        git_in(&repo_dir, &["push", "--force-with-lease", "origin", "HEAD"])?;
+
+        state.last_sync_at = Some(now_unix());
+        state.last_sync_kind = Some("export".to_string());
+        state.last_error = None;
+        write_sync_state(&state)?;
+        Ok(state)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn sync_import() -> Result<SyncState, String> {
+    tokio::task::spawn_blocking(move || -> Result<SyncState, String> {
+        let mut state = read_sync_state();
+        if !state.configured {
+            return Err("Workspace sync is not configured".to_string());
+        }
+        let repo_dir = sync_repo_dir().ok_or("home dir unavailable")?;
+        if !repo_dir.exists() {
+            return Err("Sync repo missing — run setup again".to_string());
+        }
+
+        // Hard-reset to remote HEAD. Local edits in the sync repo are
+        // disposable — the engram db is the source of truth, not this file.
+        git_in(&repo_dir, &["fetch", "origin"])?;
+        // Default branch could be main or master. Use HEAD, which gh
+        // populates on creation.
+        let default_branch = git_in(
+            &repo_dir,
+            &["symbolic-ref", "refs/remotes/origin/HEAD"],
+        )
+        .ok()
+        .and_then(|s| s.rsplit('/').next().map(|x| x.to_string()))
+        .unwrap_or_else(|| "main".to_string());
+        git_in(
+            &repo_dir,
+            &["reset", "--hard", &format!("origin/{default_branch}")],
+        )?;
+
+        let source = repo_dir.join(SYNC_FILE_NAME);
+        if !source.exists() {
+            return Err(format!("{SYNC_FILE_NAME} missing in remote"));
+        }
+
+        let out = Command::new("engram")
+            .args(["import"])
+            .arg(&source)
+            .output()
+            .map_err(|e| format!("spawn engram: {e}"))?;
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            state.last_error = Some(format!("engram import: {stderr}"));
+            let _ = write_sync_state(&state);
+            return Err(stderr.into_owned());
+        }
+
+        state.last_sync_at = Some(now_unix());
+        state.last_sync_kind = Some("import".to_string());
+        state.last_error = None;
+        write_sync_state(&state)?;
+        Ok(state)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn sync_disconnect() -> Result<(), String> {
+    tokio::task::spawn_blocking(|| -> Result<(), String> {
+        if let Some(dir) = sync_dir() {
+            // Remove local clone + state. The remote repo on GitHub stays —
+            // user may want to re-attach later or manually delete.
+            if dir.exists() {
+                fs::remove_dir_all(&dir)
+                    .map_err(|e| format!("remove sync dir: {e}"))?;
+            }
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1553,6 +1856,11 @@ pub fn run() {
             check_gentle_ai_update,
             apply_gentle_ai_update,
             workspace_summary,
+            sync_status,
+            sync_setup,
+            sync_export,
+            sync_import,
+            sync_disconnect,
             list_claude_skills,
             count_claude_skill_usage,
             list_mcp_servers,

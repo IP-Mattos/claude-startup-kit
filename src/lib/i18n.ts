@@ -90,6 +90,39 @@ const STRINGS = {
   },
   // Last-scan label inside the companion footer
   "companion.stat_scan": { en: "Last scan", es: "Último scan" },
+  // Workspace sync (Settings card — engram-only over a private GitHub repo)
+  "sync.title": { en: "Workspace sync", es: "Sync del workspace" },
+  "sync.lead": {
+    en: "Mirror your engram memory to a private GitHub repo so you can pick up the same context on another machine.",
+    es: "Espejá tu memoria de engram a un repo privado de GitHub para retomar el contexto en otra máquina.",
+  },
+  "sync.repo_label": { en: "Repository name", es: "Nombre del repo" },
+  "sync.repo_placeholder": { en: "claude-sync", es: "claude-sync" },
+  "sync.repo_hint": {
+    en: "Will be created under your gh user as private. You can also paste a full owner/name.",
+    es: "Se crea privado bajo tu usuario de gh. También aceptá owner/name completo.",
+  },
+  "sync.setup": { en: "Set up sync", es: "Configurar sync" },
+  "sync.setting_up": { en: "Setting up…", es: "Configurando…" },
+  "sync.connected_to": { en: "Connected to", es: "Conectado a" },
+  "sync.last_sync": { en: "Last sync", es: "Último sync" },
+  "sync.last_sync_export": { en: "exported", es: "exportado" },
+  "sync.last_sync_import": { en: "imported", es: "importado" },
+  "sync.never_synced": { en: "Never synced yet", es: "Nunca sincronizado" },
+  "sync.export_now": { en: "Push to remote", es: "Subir al remoto" },
+  "sync.exporting": { en: "Pushing…", es: "Subiendo…" },
+  "sync.import_now": { en: "Pull from remote", es: "Bajar del remoto" },
+  "sync.importing": { en: "Pulling…", es: "Bajando…" },
+  "sync.disconnect": { en: "Disconnect", es: "Desconectar" },
+  "sync.confirm_import": {
+    en: "This will overwrite engram memory on this machine with the remote. Continue?",
+    es: "Esto va a pisar la memoria de engram en esta máquina con la del remoto. ¿Seguir?",
+  },
+  "sync.confirm_disconnect": {
+    en: "Stop syncing? The remote repo stays on GitHub — you can re-attach later.",
+    es: "¿Detener el sync? El repo remoto queda en GitHub, podés re-conectar después.",
+  },
+
   // Workspace card (sits under the companion in the right panel)
   "workspace.title": { en: "Workspace", es: "Workspace" },
   "workspace.skills": { en: "Skills used", es: "Skills usadas" },

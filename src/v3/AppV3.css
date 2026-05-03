@@ -520,6 +520,55 @@ body.v3-layout #root {
   box-shadow: var(--v3-shadow-1);
 }
 
+/* Settings → Workspace sync card. Compact two-state UI:
+   not-configured = repo name input + Set up button;
+   configured     = connected repo + last sync + push/pull/disconnect. */
+.v3-sync-lead {
+  margin: 0 0 4px;
+}
+.v3-sync-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--v3-border);
+}
+.v3-sync-row:last-of-type { border-bottom: 0; }
+.v3-sync-row-label {
+  font-size: 12.5px;
+  color: var(--v3-text-2);
+  font-weight: 500;
+}
+.v3-sync-row-value {
+  font-size: 13px;
+  color: var(--v3-text);
+  text-align: right;
+}
+.v3-sync-repo {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  color: var(--v3-text);
+  background: var(--v3-surface-2);
+  padding: 2px 8px;
+  border-radius: var(--v3-radius-sm);
+  border: 1px solid var(--v3-border);
+}
+.v3-sync-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.v3-sync-btn {
+  /* Match the height of the primary button next to it. */
+  padding: 6px 14px;
+}
+.v3-sync-disconnect {
+  margin-left: auto;
+}
+
 /* Settings → Updates card — one row per channel (app, gentle-ai). */
 .v3-update-row {
   display: flex;
