@@ -108,15 +108,19 @@ body.v3-layout #root {
   user-select: none;
 }
 
-/* Topbar nav — small text+icon buttons, hover is subtle. NOT draggable. */
+/* Topbar nav — small text+icon buttons, hover is subtle. NOT draggable.
+   Generous padding + gap so the tabs read as separate items at a glance
+   instead of a single cramped strip. */
 .v3-topbar-nav {
   display: flex;
   align-items: stretch;
   height: 100%;
+  gap: 4px;
+  padding: 0 8px;
 }
 .v3-topbar-tab {
   position: relative;
-  padding: 0 12px;
+  padding: 0 18px;
   background: transparent;
   border: 0;
   color: var(--v3-text-3);
@@ -126,7 +130,7 @@ body.v3-layout #root {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   transition: color 120ms ease, background 120ms ease;
 }
 .v3-topbar-tab:hover {
@@ -140,8 +144,8 @@ body.v3-layout #root {
   /* Bottom-edge pin so the active tab anchors to the row beneath. */
   content: "";
   position: absolute;
-  left: 8px;
-  right: 8px;
+  left: 14px;
+  right: 14px;
   bottom: 0;
   height: 2px;
   background: var(--v3-accent);
