@@ -3,7 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   AlertOctagon,
   AlertTriangle,
-  Bot,
   Check,
   Code2,
   ExternalLink,
@@ -823,16 +822,16 @@ export function ClaudeViewV3() {
   );
 
   return (
-    <div className="v3-view">
-      <header className="v3-view-head">
-        <div>
-          <h1 className="v3-greeting">Claude</h1>
-          <p className="v3-subtitle">
-            Skills available to Claude Code and MCP servers configured on this
-            machine.
-          </p>
+    <>
+      {error && (
+        <div className="v3-error" role="alert" aria-live="assertive">
+          {error}
         </div>
-        <div className="v3-view-tools">
+      )}
+
+      <article className="v3-card">
+        <header className="v3-card-head">
+          <h2 className="v3-card-title">Claude</h2>
           <button
             type="button"
             className="v3-link"
@@ -842,14 +841,12 @@ export function ClaudeViewV3() {
             <RefreshCw size={12} strokeWidth={2.4} />
             {loading ? " Refreshing…" : " Refresh"}
           </button>
-        </div>
-      </header>
-
-      {error && (
-        <div className="v3-error" role="alert" aria-live="assertive">
-          {error}
-        </div>
-      )}
+        </header>
+        <p className="v3-subtitle">
+          Skills available to Claude Code and MCP servers configured on this
+          machine.
+        </p>
+      </article>
 
       <article className="v3-card">
         <header className="v3-card-head">
@@ -950,7 +947,7 @@ export function ClaudeViewV3() {
           </ul>
         )}
       </article>
-    </div>
+    </>
   );
 }
 
@@ -990,19 +987,9 @@ export function CompanionsViewV3({
   };
 
   return (
-    <div className="v3-view">
-      <header className="v3-view-head">
-        <div>
-          <h1 className="v3-greeting">Companion</h1>
-          <p className="v3-subtitle">
-            Configure the assistant shown in the right panel.
-          </p>
-        </div>
-      </header>
-
-      <article className="v3-card">
+    <article className="v3-card">
         <header className="v3-card-head">
-          <h2 className="v3-card-title">Identity</h2>
+          <h2 className="v3-card-title">Companion</h2>
         </header>
         <div className="v3-form">
           <label className="v3-form-row">
@@ -1060,7 +1047,6 @@ export function CompanionsViewV3({
           </div>
         </div>
       </article>
-    </div>
   );
 }
 
@@ -1068,9 +1054,15 @@ export function CompanionsViewV3({
 // SettingsView
 // =====================================================================
 export function SettingsViewV3({
-  onJumpCompanion,
+  companionName,
+  companionImage,
+  onCompanionNameChange,
+  onCompanionImageChange,
 }: {
-  onJumpCompanion: () => void;
+  companionName: string;
+  companionImage: string | null;
+  onCompanionNameChange: (v: string) => void;
+  onCompanionImageChange: (v: string | null) => void;
 }) {
   const [theme, setTheme] = useState<V3Theme>(() => readSavedV3Theme());
   const updates = useUpdates();
@@ -1182,35 +1174,14 @@ export function SettingsViewV3({
         </div>
       </article>
 
-      <article className="v3-card">
-        <header className="v3-card-head">
-          <h2 className="v3-card-title">Companion</h2>
-        </header>
-        <div
-          className="v3-settings-row"
-          onClick={onJumpCompanion}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              onJumpCompanion();
-            }
-          }}
-          role="button"
-          tabIndex={0}
-          aria-label="Customize companion"
-        >
-          <div className="v3-settings-row-icon">
-            <Bot size={16} strokeWidth={2} />
-          </div>
-          <div className="v3-settings-row-body">
-            <div className="v3-row-title">Customize companion</div>
-            <div className="v3-row-meta">
-              Set the name and avatar shown in the right panel.
-            </div>
-          </div>
-          <span className="v3-row-extra">→</span>
-        </div>
-      </article>
+      <CompanionsViewV3
+        name={companionName}
+        image={companionImage}
+        onNameChange={onCompanionNameChange}
+        onImageChange={onCompanionImageChange}
+      />
+
+      <ClaudeViewV3 />
 
       <article className="v3-card">
         <header className="v3-card-head">

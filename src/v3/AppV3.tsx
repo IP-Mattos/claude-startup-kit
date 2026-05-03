@@ -18,8 +18,6 @@ import {
   PrsViewV3,
   AuditViewV3,
   CleanupViewV3,
-  ClaudeViewV3,
-  CompanionsViewV3,
   SettingsViewV3,
 } from "./views";
 
@@ -38,7 +36,6 @@ import {
   Activity,
   AlertTriangle,
   ArrowUp,
-  Bot,
   ChevronRight,
   Code2,
   Cog,
@@ -50,7 +47,6 @@ import {
   ShieldCheck,
   Square,
   Trash2,
-  Boxes,
   X,
 } from "lucide-react";
 import "./AppV3.css";
@@ -61,8 +57,6 @@ type V3Tab =
   | "prs"
   | "audit"
   | "cleanup"
-  | "claude"
-  | "companions"
   | "settings";
 
 // Sidebar nav uses translation keys instead of hardcoded labels. The id
@@ -78,8 +72,6 @@ const SIDEBAR_NAV: {
   { id: "prs", navKey: "nav.prs", Icon: GitPullRequest },
   { id: "audit", navKey: "nav.audit", Icon: Activity },
   { id: "cleanup", navKey: "nav.cleanup", Icon: Trash2 },
-  { id: "claude", navKey: "nav.claude", Icon: Boxes },
-  { id: "companions", navKey: "nav.companions", Icon: Bot },
   { id: "settings", navKey: "nav.settings", Icon: Cog },
 ];
 
@@ -111,6 +103,12 @@ function TopbarV3() {
 
   return (
     <header className="v3-topbar" data-tauri-drag-region>
+      <div className="v3-topbar-brand" data-tauri-drag-region>
+        <span className="v3-brand-mark" aria-hidden="true">
+          <img src="/Shield.svg" alt="" draggable={false} />
+        </span>
+        <span className="v3-brand-name">Claude Startup Kit</span>
+      </div>
       <div className="v3-topbar-spacer" data-tauri-drag-region />
       <div className="v3-window-controls">
         <button
@@ -876,15 +874,13 @@ function pickGreeting(
   return t("greeting.evening");
 }
 
-// Tab order matches sidebar (8 entries → Ctrl+1..8).
+// Tab order matches sidebar (6 entries → Ctrl+1..6).
 const KEYBOARD_TAB_ORDER: ReadonlyArray<V3Tab> = [
   "overview",
   "projects",
   "prs",
   "audit",
   "cleanup",
-  "claude",
-  "companions",
   "settings",
 ];
 
@@ -1069,7 +1065,7 @@ export default function AppV3() {
       const mod = e.ctrlKey || e.metaKey;
       if (!mod) return;
       // Ctrl+1..7 — switch tab in sidebar order
-      if (e.key >= "1" && e.key <= "8") {
+      if (e.key >= "1" && e.key <= "6") {
         const idx = Number(e.key) - 1;
         const next = KEYBOARD_TAB_ORDER[idx];
         if (next) {
@@ -1212,17 +1208,13 @@ export default function AppV3() {
           {tab === "prs" && <PrsViewV3 />}
           {tab === "audit" && <AuditViewV3 />}
           {tab === "cleanup" && <CleanupViewV3 />}
-          {tab === "claude" && <ClaudeViewV3 />}
-          {tab === "companions" && (
-            <CompanionsViewV3
-              name={companionName}
-              image={companionImage}
-              onNameChange={setCompanionName}
-              onImageChange={setCompanionImage}
-            />
-          )}
           {tab === "settings" && (
-            <SettingsViewV3 onJumpCompanion={() => setTab("companions")} />
+            <SettingsViewV3
+              companionName={companionName}
+              companionImage={companionImage}
+              onCompanionNameChange={setCompanionName}
+              onCompanionImageChange={setCompanionImage}
+            />
           )}
         </main>
         <aside className="appv3-rightpanel" aria-label="Companion panel">

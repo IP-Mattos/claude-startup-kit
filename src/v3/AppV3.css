@@ -94,18 +94,47 @@ body.v3-layout #root {
   cursor: pointer;
 }
 
-/* ========== Topbar — drag region + window controls only ==========
-   Sidebar carries brand and navigation; the topbar is intentionally minimal.
-   The spacer fills the middle so the whole row remains a drag handle. */
+/* ========== Topbar — brand on the left, drag region in the middle,
+   window controls on the right. Sidebar still owns navigation. ========== */
 .v3-topbar {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: stretch;
   height: 36px;
   background: var(--v3-surface);
   border-bottom: 1px solid var(--v3-border);
   flex-shrink: 0;
   user-select: none;
+}
+
+.v3-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  min-width: 0;
+}
+.v3-brand-mark {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.v3-brand-mark > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  -webkit-user-drag: none;
+}
+.v3-brand-name {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--v3-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .v3-topbar-spacer {
