@@ -427,6 +427,12 @@ function CompanionWidget({
   warnCount,
   prCount,
   todayProject,
+  todayProjectPath,
+  health,
+  projectsThisWeek,
+  lastScanAgo,
+  onJump,
+  onOpenProject,
 }: {
   companionName: string;
   companionImage: string | null;
@@ -434,6 +440,12 @@ function CompanionWidget({
   warnCount: number;
   prCount: number;
   todayProject: string | null;
+  todayProjectPath: string | null;
+  health: number;
+  projectsThisWeek: number;
+  lastScanAgo: string;
+  onJump: (tab: V3Tab) => void;
+  onOpenProject: (path: string) => void;
 }) {
   const { t } = useT();
   const message =
@@ -446,6 +458,29 @@ function CompanionWidget({
       : todayProject
       ? t("companion.today", { project: todayProject })
       : t("companion.idle");
+
+  // Pick the single most relevant action for the current state. Priority
+  // matches the message above so the headline + button always agree.
+  const action: { label: string; onClick: () => void } =
+    critCount > 0 || warnCount > 0
+      ? {
+          label: t("companion.action_review_audit"),
+          onClick: () => onJump("audit"),
+        }
+      : prCount > 0
+      ? {
+          label: t("companion.action_open_prs"),
+          onClick: () => onJump("prs"),
+        }
+      : todayProject && todayProjectPath
+      ? {
+          label: t("companion.action_open_project"),
+          onClick: () => onOpenProject(todayProjectPath),
+        }
+      : {
+          label: t("companion.action_browse_projects"),
+          onClick: () => onJump("projects"),
+        };
 
   const avatarSrc = companionImage ?? "/Sia2.webp";
 
@@ -463,7 +498,34 @@ function CompanionWidget({
           <img src={avatarSrc} alt="" draggable={false} />
         </div>
       </div>
+      <div className="v3-companion-stats">
+        <div className="v3-companion-stat">
+          <div className="v3-companion-stat-label">{t("companion.stat_health")}</div>
+          <div className="v3-companion-stat-value">{health}%</div>
+        </div>
+        <div className="v3-companion-stat">
+          <div className="v3-companion-stat-label">{t("companion.stat_week")}</div>
+          <div className="v3-companion-stat-value">{projectsThisWeek}</div>
+        </div>
+        <div className="v3-companion-stat">
+          <div className="v3-companion-stat-label">{t("companion.stat_today")}</div>
+          <div
+            className="v3-companion-stat-value v3-companion-stat-value-text"
+            title={todayProject ?? undefined}
+          >
+            {todayProject ?? t("companion.stat_today_none")}
+          </div>
+        </div>
+      </div>
       <div className="v3-companion-message">{message}</div>
+      <div className="v3-companion-foot">
+        <span className="v3-companion-scan">
+          {t("companion.stat_scan")} · <strong>{lastScanAgo}</strong>
+        </span>
+        <button className="v3-btn-primary v3-companion-cta" onClick={action.onClick}>
+          {action.label}
+        </button>
+      </div>
     </section>
   );
 }
@@ -893,6 +955,14 @@ export default function AppV3() {
     const today = projects.find((p) => p.days_ago <= 1);
     return today ? projectName(today.path) : null;
   }, [projects]);
+  const todayProjectPath = useMemo(() => {
+    const today = projects.find((p) => p.days_ago <= 1);
+    return today ? today.path : null;
+  }, [projects]);
+  const projectsThisWeek = useMemo(
+    () => projects.filter((p) => p.days_ago <= 7).length,
+    [projects]
+  );
 
   const handleOpenProject = (path: string) => {
     if (!IS_TAURI) return;
@@ -1083,6 +1153,12 @@ export default function AppV3() {
             warnCount={stats.warn}
             prCount={prs.length}
             todayProject={todayProject}
+            todayProjectPath={todayProjectPath}
+            health={stats.health}
+            projectsThisWeek={projectsThisWeek}
+            lastScanAgo={agoLabel(lastScanAt, t)}
+            onJump={setTab}
+            onOpenProject={handleOpenProject}
           />
         </aside>
       </div>

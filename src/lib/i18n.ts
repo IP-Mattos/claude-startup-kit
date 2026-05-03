@@ -73,6 +73,17 @@ const STRINGS = {
   "companion.has_warns": { en: "Some warnings to look at.", es: "Hay advertencias para mirar." },
   "companion.has_prs": { en: "PRs awaiting your review.", es: "PRs esperando tu review." },
   "companion.today": { en: "Working on {project} today.", es: "Estás en {project} hoy." },
+  // Stats strip below the avatar
+  "companion.stat_health": { en: "Health", es: "Salud" },
+  "companion.stat_week": { en: "This week", es: "Esta semana" },
+  "companion.stat_today": { en: "Today", es: "Hoy" },
+  "companion.stat_scan": { en: "Last scan", es: "Último scan" },
+  "companion.stat_today_none": { en: "—", es: "—" },
+  // Contextual action buttons (one is shown, picked by current state)
+  "companion.action_review_audit": { en: "Review audit", es: "Ver auditoría" },
+  "companion.action_open_prs": { en: "Open PRs", es: "Ver PRs" },
+  "companion.action_open_project": { en: "Open today's project", es: "Abrir proyecto del día" },
+  "companion.action_browse_projects": { en: "Browse projects", es: "Ver proyectos" },
 
   // Settings
   "settings.title": { en: "Settings", es: "Ajustes" },

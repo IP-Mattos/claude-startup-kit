@@ -1104,11 +1104,66 @@ body.v3-layout #root {
   color: var(--v3-accent);
   font-weight: 600;
 }
-.v3-companion-actions {
+
+/* Stats strip — three condensed cells under the avatar. Numbers borrow the
+   accent for visual anchoring; labels stay muted so the eye lands on values
+   first. */
+.v3-companion-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 12px 4px;
+  border-top: 1px solid var(--v3-border);
+  border-bottom: 1px solid var(--v3-border);
+}
+.v3-companion-stat {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.v3-companion-stat-label {
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--v3-text-3);
+}
+.v3-companion-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--v3-text);
+  line-height: 1.2;
+}
+.v3-companion-stat-value-text {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Footer: muted scan label on the left, primary action on the right. */
+.v3-companion-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
   margin-top: 4px;
+}
+.v3-companion-scan {
+  font-size: 11.5px;
+  color: var(--v3-text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.v3-companion-scan strong {
+  color: var(--v3-text-2);
+  font-weight: 600;
+}
+.v3-companion-cta {
+  flex-shrink: 0;
 }
 
 /* Buttons (right-panel) */
