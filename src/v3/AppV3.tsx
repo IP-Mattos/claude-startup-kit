@@ -18,6 +18,7 @@ import {
   PrsViewV3,
   AuditViewV3,
   CleanupViewV3,
+  ClaudeViewV3,
   CompanionsViewV3,
   SettingsViewV3,
 } from "./views";
@@ -52,6 +53,7 @@ import {
   Sparkles,
   Square,
   Trash2,
+  Boxes,
   X,
 } from "lucide-react";
 import "./AppV3.css";
@@ -62,6 +64,7 @@ type V3Tab =
   | "prs"
   | "audit"
   | "cleanup"
+  | "claude"
   | "companions"
   | "settings";
 
@@ -71,6 +74,7 @@ const TOPBAR_TABS: { id: V3Tab; label: string }[] = [
   { id: "prs", label: "PRs" },
   { id: "audit", label: "Audit" },
   { id: "cleanup", label: "Cleanup" },
+  { id: "claude", label: "Claude" },
   { id: "settings", label: "Settings" },
 ];
 
@@ -80,6 +84,7 @@ const SIDEBAR_NAV: { id: V3Tab; label: string; Icon: typeof Home }[] = [
   { id: "prs", label: "Pull Requests", Icon: GitPullRequest },
   { id: "audit", label: "Audit", Icon: Activity },
   { id: "cleanup", label: "Cleanup", Icon: Trash2 },
+  { id: "claude", label: "Claude", Icon: Boxes },
   { id: "companions", label: "Companions", Icon: Bot },
   { id: "settings", label: "Settings", Icon: Cog },
 ];
@@ -784,13 +789,14 @@ function applyV3ThemeToBody(theme: V3Theme) {
   }
 }
 
-// Tab order matches sidebar (7 entries → Ctrl+1..7).
+// Tab order matches sidebar (8 entries → Ctrl+1..8).
 const KEYBOARD_TAB_ORDER: ReadonlyArray<V3Tab> = [
   "overview",
   "projects",
   "prs",
   "audit",
   "cleanup",
+  "claude",
   "companions",
   "settings",
 ];
@@ -968,7 +974,7 @@ export default function AppV3() {
       const mod = e.ctrlKey || e.metaKey;
       if (!mod) return;
       // Ctrl+1..7 — switch tab in sidebar order
-      if (e.key >= "1" && e.key <= "7") {
+      if (e.key >= "1" && e.key <= "8") {
         const idx = Number(e.key) - 1;
         const next = KEYBOARD_TAB_ORDER[idx];
         if (next) {
@@ -1108,6 +1114,7 @@ export default function AppV3() {
           {tab === "prs" && <PrsViewV3 />}
           {tab === "audit" && <AuditViewV3 />}
           {tab === "cleanup" && <CleanupViewV3 />}
+          {tab === "claude" && <ClaudeViewV3 />}
           {tab === "companions" && (
             <CompanionsViewV3
               name={companionName}

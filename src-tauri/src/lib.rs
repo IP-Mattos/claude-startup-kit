@@ -896,6 +896,328 @@ fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 
+// ─── Claude skills + MCP servers ─────────────────────────────────────────
+//
+// Skills live as `~/.claude/skills/<name>/SKILL.md` with YAML frontmatter
+// like `name:`, `description:`. Usage counts come from a best-effort scan
+// of the user's JSONL conversation logs under `~/.claude/projects/`. We only
+// look at files modified in the last 30 days to keep the cost bounded — a
+// fresh scan typically runs in under 100ms on a normal-size workspace.
+//
+// MCP servers come from two sources:
+//   • `~/.claude/mcp/<name>.json` — file-based servers. "Active" means the
+//     file exists with the .json extension; toggling off renames it to
+//     `<name>.json.disabled` so the data is preserved.
+//   • `~/.claude/settings.json#/enabledPlugins` — bundled plugin MCPs
+//     (engram@engram, etc.). Toggling flips the bool in place.
+
+#[derive(Serialize, Clone)]
+pub struct ClaudeSkill {
+    pub name: String,
+    pub description: String,
+    pub path: String,
+    pub usage_count: u32,
+}
+
+#[derive(Serialize, Clone)]
+pub struct McpServer {
+    pub name: String,
+    pub command: String,
+    pub args: Vec<String>,
+    pub source: String, // "config" | "plugin"
+    pub enabled: bool,
+    pub path: String,   // file path for "config"; settings.json for "plugin"
+}
+
+fn claude_skills_dir() -> Option<PathBuf> {
+    dirs_home().map(|h| h.join(".claude").join("skills"))
+}
+
+fn claude_mcp_dir() -> Option<PathBuf> {
+    dirs_home().map(|h| h.join(".claude").join("mcp"))
+}
+
+fn claude_settings_path() -> Option<PathBuf> {
+    dirs_home().map(|h| h.join(".claude").join("settings.json"))
+}
+
+// Pulls `name:` and `description:` out of a YAML frontmatter block at the
+// top of SKILL.md. Description supports the `>` folded scalar across the
+// next non-empty indented lines. Anything fancier we don't need.
+fn parse_skill_frontmatter(text: &str) -> (String, String) {
+    let mut name = String::new();
+    let mut description = String::new();
+    let mut in_fm = false;
+    let mut reading_desc = false;
+    for raw in text.lines() {
+        let line = raw.trim_end();
+        if line.trim() == "---" {
+            if !in_fm {
+                in_fm = true;
+                continue;
+            } else {
+                break;
+            }
+        }
+        if !in_fm {
+            continue;
+        }
+        // Continuation of folded `description: >` block.
+        if reading_desc {
+            if line.starts_with(' ') || line.starts_with('\t') {
+                let cont = line.trim();
+                if !description.is_empty() {
+                    description.push(' ');
+                }
+                description.push_str(cont);
+                continue;
+            }
+            reading_desc = false;
+        }
+        if let Some(rest) = line.strip_prefix("name:") {
+            name = rest.trim().trim_matches('"').to_string();
+            continue;
+        }
+        if let Some(rest) = line.strip_prefix("description:") {
+            let trimmed = rest.trim();
+            if trimmed == ">" || trimmed == "|" {
+                reading_desc = true;
+            } else {
+                description = trimmed.trim_matches('"').to_string();
+            }
+            continue;
+        }
+    }
+    (name, description)
+}
+
+// Counts how many times each skill name appears across recent JSONL logs.
+// Plain substring count is fine — Claude's tool-call payloads include the
+// skill name in their JSON body, so even quoted occurrences match.
+fn count_skill_usage(skill_names: &[String]) -> std::collections::HashMap<String, u32> {
+    use std::collections::HashMap;
+    let mut counts: HashMap<String, u32> = HashMap::new();
+    for n in skill_names {
+        counts.insert(n.clone(), 0);
+    }
+    let projects_dir = match claude_projects_dir() {
+        Some(d) => d,
+        None => return counts,
+    };
+    let cutoff = SystemTime::now() - Duration::from_secs(30 * 24 * 60 * 60);
+    let entries = match fs::read_dir(&projects_dir) {
+        Ok(e) => e,
+        Err(_) => return counts,
+    };
+    for entry in entries.flatten() {
+        let project_path = entry.path();
+        let inner = match fs::read_dir(&project_path) {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        for jsonl in inner.flatten() {
+            let p = jsonl.path();
+            if p.extension().and_then(|s| s.to_str()) != Some("jsonl") {
+                continue;
+            }
+            let mtime = match fs::metadata(&p).and_then(|m| m.modified()) {
+                Ok(t) => t,
+                Err(_) => continue,
+            };
+            if mtime < cutoff {
+                continue;
+            }
+            // Read once, scan once.
+            let body = match fs::read_to_string(&p) {
+                Ok(b) => b,
+                Err(_) => continue,
+            };
+            for n in skill_names {
+                // Quoted name to bias toward tool-payload mentions instead
+                // of free-text references that happen to share the word.
+                let needle = format!("\"{n}\"");
+                if !body.contains(&needle) {
+                    continue;
+                }
+                let c = body.matches(&needle).count() as u32;
+                if let Some(slot) = counts.get_mut(n) {
+                    *slot = slot.saturating_add(c);
+                }
+            }
+        }
+    }
+    counts
+}
+
+#[tauri::command]
+async fn list_claude_skills() -> Result<Vec<ClaudeSkill>, String> {
+    tokio::task::spawn_blocking(|| -> Result<Vec<ClaudeSkill>, String> {
+        let dir = claude_skills_dir().ok_or("home dir unavailable")?;
+        let entries = match fs::read_dir(&dir) {
+            Ok(e) => e,
+            Err(_) => return Ok(vec![]),
+        };
+        let mut skills: Vec<ClaudeSkill> = Vec::new();
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let folder_name = match path.file_name().and_then(|s| s.to_str()) {
+                Some(s) => s.to_string(),
+                None => continue,
+            };
+            // Skip _shared (resolver helpers, not user-invocable).
+            if folder_name.starts_with('_') {
+                continue;
+            }
+            let skill_md = path.join("SKILL.md");
+            let body = fs::read_to_string(&skill_md).unwrap_or_default();
+            let (fm_name, fm_desc) = parse_skill_frontmatter(&body);
+            skills.push(ClaudeSkill {
+                name: if fm_name.is_empty() { folder_name } else { fm_name },
+                description: fm_desc,
+                path: skill_md.to_string_lossy().to_string(),
+                usage_count: 0,
+            });
+        }
+        let names: Vec<String> = skills.iter().map(|s| s.name.clone()).collect();
+        let counts = count_skill_usage(&names);
+        for s in skills.iter_mut() {
+            s.usage_count = counts.get(&s.name).copied().unwrap_or(0);
+        }
+        skills.sort_by(|a, b| b.usage_count.cmp(&a.usage_count).then(a.name.cmp(&b.name)));
+        Ok(skills)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn list_mcp_servers() -> Result<Vec<McpServer>, String> {
+    tokio::task::spawn_blocking(|| -> Result<Vec<McpServer>, String> {
+        let mut servers: Vec<McpServer> = Vec::new();
+
+        // 1. File-based servers under ~/.claude/mcp/. Active = .json,
+        // disabled = .json.disabled (we own the convention).
+        if let Some(mcp_dir) = claude_mcp_dir() {
+            if let Ok(entries) = fs::read_dir(&mcp_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    let fname = match path.file_name().and_then(|s| s.to_str()) {
+                        Some(s) => s.to_string(),
+                        None => continue,
+                    };
+                    let (stem, enabled) = if let Some(s) = fname.strip_suffix(".json") {
+                        (s.to_string(), true)
+                    } else if let Some(s) = fname.strip_suffix(".json.disabled") {
+                        (s.to_string(), false)
+                    } else {
+                        continue;
+                    };
+                    let body = fs::read_to_string(&path).unwrap_or_default();
+                    let parsed: serde_json::Value =
+                        serde_json::from_str(&body).unwrap_or_else(|_| serde_json::json!({}));
+                    let command = parsed
+                        .get("command")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let args: Vec<String> = parsed
+                        .get("args")
+                        .and_then(|v| v.as_array())
+                        .map(|a| {
+                            a.iter()
+                                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    servers.push(McpServer {
+                        name: stem,
+                        command,
+                        args,
+                        source: "config".to_string(),
+                        enabled,
+                        path: path.to_string_lossy().to_string(),
+                    });
+                }
+            }
+        }
+
+        // 2. Plugin-bundled MCPs from settings.json#/enabledPlugins.
+        // Format: { "engram@engram": true, ... }. The key is plugin@source.
+        if let Some(settings_path) = claude_settings_path() {
+            if let Ok(body) = fs::read_to_string(&settings_path) {
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
+                    if let Some(plugins) = json.get("enabledPlugins").and_then(|v| v.as_object()) {
+                        for (key, val) in plugins {
+                            servers.push(McpServer {
+                                name: key.clone(),
+                                command: String::new(),
+                                args: vec![],
+                                source: "plugin".to_string(),
+                                enabled: val.as_bool().unwrap_or(false),
+                                path: settings_path.to_string_lossy().to_string(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        servers.sort_by(|a, b| a.name.cmp(&b.name));
+        Ok(servers)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn toggle_mcp_server(name: String, source: String, enabled: bool) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        match source.as_str() {
+            "config" => {
+                let mcp_dir = claude_mcp_dir().ok_or("home dir unavailable")?;
+                let active = mcp_dir.join(format!("{name}.json"));
+                let disabled = mcp_dir.join(format!("{name}.json.disabled"));
+                if enabled {
+                    if disabled.exists() {
+                        fs::rename(&disabled, &active)
+                            .map_err(|e| format!("rename to enable: {e}"))?;
+                    }
+                } else if active.exists() {
+                    fs::rename(&active, &disabled)
+                        .map_err(|e| format!("rename to disable: {e}"))?;
+                }
+                Ok(())
+            }
+            "plugin" => {
+                let settings_path = claude_settings_path().ok_or("home dir unavailable")?;
+                let body = fs::read_to_string(&settings_path)
+                    .map_err(|e| format!("read settings.json: {e}"))?;
+                let mut json: serde_json::Value = serde_json::from_str(&body)
+                    .map_err(|e| format!("parse settings.json: {e}"))?;
+                let plugins = json
+                    .as_object_mut()
+                    .ok_or("settings.json is not an object")?
+                    .entry("enabledPlugins")
+                    .or_insert_with(|| serde_json::json!({}));
+                if let Some(map) = plugins.as_object_mut() {
+                    map.insert(name, serde_json::Value::Bool(enabled));
+                }
+                let pretty = serde_json::to_string_pretty(&json)
+                    .map_err(|e| format!("serialize settings.json: {e}"))?;
+                fs::write(&settings_path, pretty)
+                    .map_err(|e| format!("write settings.json: {e}"))?;
+                Ok(())
+            }
+            other => Err(format!("unknown MCP source: {other}")),
+        }
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 // ─── Update channel ──────────────────────────────────────────────────────
 //
 // We don't ship a signed Tauri auto-updater bundle yet (no signing keys, no
@@ -1104,7 +1426,10 @@ pub fn run() {
             open_url,
             check_app_update,
             check_gentle_ai_update,
-            apply_gentle_ai_update
+            apply_gentle_ai_update,
+            list_claude_skills,
+            list_mcp_servers,
+            toggle_mcp_server
         ])
         .setup(|app| {
             let show_i = MenuItem::with_id(app, "show", "Mostrar ventana", true, None::<&str>)?;

@@ -708,6 +708,216 @@ export function CleanupViewV3() {
 // =====================================================================
 // CompanionsView (settings for the on-screen companion)
 // =====================================================================
+// =====================================================================
+// ClaudeView (skills + MCP servers)
+// =====================================================================
+interface ClaudeSkill {
+  name: string;
+  description: string;
+  path: string;
+  usage_count: number;
+}
+
+interface McpServer {
+  name: string;
+  command: string;
+  args: string[];
+  source: "config" | "plugin" | string;
+  enabled: boolean;
+  path: string;
+}
+
+export function ClaudeViewV3() {
+  const [skills, setSkills] = useState<ClaudeSkill[]>([]);
+  const [mcps, setMcps] = useState<McpServer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshNonce, setRefreshNonce] = useState(0);
+  // Per-row pending state so toggling one MCP doesn't disable every switch.
+  const [togglingName, setTogglingName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!IS_TAURI) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      invoke<ClaudeSkill[]>("list_claude_skills").catch(() => [] as ClaudeSkill[]),
+      invoke<McpServer[]>("list_mcp_servers").catch(() => [] as McpServer[]),
+    ])
+      .then(([s, m]) => {
+        if (cancelled) return;
+        setSkills(s);
+        setMcps(m);
+      })
+      .catch((e) => !cancelled && setError(friendlyErrorEn(e)))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshNonce]);
+
+  const openSkill = (path: string) =>
+    invoke("open_in_vscode", { path }).catch((e) => setError(friendlyErrorEn(e)));
+
+  const toggleMcp = async (mcp: McpServer) => {
+    setTogglingName(mcp.name);
+    try {
+      await invoke("toggle_mcp_server", {
+        name: mcp.name,
+        source: mcp.source,
+        enabled: !mcp.enabled,
+      });
+      setRefreshNonce((n) => n + 1);
+    } catch (e) {
+      setError(friendlyErrorEn(e));
+    } finally {
+      setTogglingName(null);
+    }
+  };
+
+  // Highest-usage skill drives the badge color so the most-used row pops
+  // visually without making everything orange.
+  const maxUsage = useMemo(
+    () => skills.reduce((m, s) => Math.max(m, s.usage_count), 0),
+    [skills]
+  );
+
+  return (
+    <div className="v3-view">
+      <header className="v3-view-head">
+        <div>
+          <h1 className="v3-greeting">Claude</h1>
+          <p className="v3-subtitle">
+            Skills available to Claude Code and MCP servers configured on this
+            machine.
+          </p>
+        </div>
+        <div className="v3-view-tools">
+          <button
+            type="button"
+            className="v3-link"
+            onClick={() => setRefreshNonce((n) => n + 1)}
+            disabled={loading}
+          >
+            <RefreshCw size={12} strokeWidth={2.4} />
+            {loading ? " Refreshing…" : " Refresh"}
+          </button>
+        </div>
+      </header>
+
+      {error && (
+        <div className="v3-error" role="alert" aria-live="assertive">
+          {error}
+        </div>
+      )}
+
+      <article className="v3-card">
+        <header className="v3-card-head">
+          <h2 className="v3-card-title">Skills</h2>
+          <span className="v3-row-dim">
+            {skills.length} {skills.length === 1 ? "skill" : "skills"} · sorted
+            by recent usage
+          </span>
+        </header>
+        {loading ? (
+          <div className="v3-empty">Loading skills…</div>
+        ) : skills.length === 0 ? (
+          <div className="v3-empty">No skills found in ~/.claude/skills/.</div>
+        ) : (
+          <ul className="v3-list">
+            {skills.map((s) => (
+              <li key={s.name} className="v3-claude-row">
+                <div className="v3-claude-row-body">
+                  <div className="v3-claude-row-title">
+                    <span className="v3-claude-row-name">{s.name}</span>
+                    {s.usage_count > 0 && (
+                      <span
+                        className={
+                          "v3-usage-badge " +
+                          (s.usage_count === maxUsage
+                            ? "v3-usage-badge-top"
+                            : "v3-usage-badge-some")
+                        }
+                        title={`${s.usage_count} mentions in the last 30 days`}
+                      >
+                        {s.usage_count}
+                      </span>
+                    )}
+                  </div>
+                  <div className="v3-claude-row-meta">
+                    {s.description || "No description provided."}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="v3-btn-ghost"
+                  onClick={() => openSkill(s.path)}
+                >
+                  <ExternalLink size={13} strokeWidth={2} />
+                  Open
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
+
+      <article className="v3-card">
+        <header className="v3-card-head">
+          <h2 className="v3-card-title">MCP servers</h2>
+          <span className="v3-row-dim">
+            {mcps.filter((m) => m.enabled).length} active of {mcps.length}
+          </span>
+        </header>
+        {loading ? (
+          <div className="v3-empty">Loading MCP servers…</div>
+        ) : mcps.length === 0 ? (
+          <div className="v3-empty">
+            No MCP servers configured under ~/.claude/mcp/ or settings.json.
+          </div>
+        ) : (
+          <ul className="v3-list">
+            {mcps.map((m) => (
+              <li key={`${m.source}:${m.name}`} className="v3-claude-row">
+                <div className="v3-claude-row-body">
+                  <div className="v3-claude-row-title">
+                    <span className="v3-claude-row-name">{m.name}</span>
+                    <span
+                      className={
+                        "v3-pill v3-pill-soft v3-pill-source-" + m.source
+                      }
+                    >
+                      {m.source}
+                    </span>
+                  </div>
+                  <div className="v3-claude-row-meta">
+                    {m.command
+                      ? `${m.command} ${m.args.join(" ")}`.trim()
+                      : "Bundled plugin — no explicit command."}
+                  </div>
+                </div>
+                <label className="v3-switch" aria-label={`Toggle ${m.name}`}>
+                  <input
+                    type="checkbox"
+                    checked={m.enabled}
+                    disabled={togglingName === m.name}
+                    onChange={() => toggleMcp(m)}
+                  />
+                  <span className="v3-switch-slider" aria-hidden="true" />
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+      </article>
+    </div>
+  );
+}
+
 interface CompanionsViewV3Props {
   name: string;
   image: string | null;
