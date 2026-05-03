@@ -24,7 +24,7 @@ import type {
   ProjectEnrichment,
 } from "../types";
 import {
-  activityLabelEn,
+  activityLabelT,
   formatBytes,
   formatDate,
   friendlyErrorEn,
@@ -40,7 +40,7 @@ import {
 import type { V3Theme } from "../lib/themes";
 import { parseAuditFindings } from "../lib/audit";
 import { useUpdates } from "../lib/useUpdates";
-import { useT } from "../lib/i18n";
+import { plural, useT } from "../lib/i18n";
 import type { LangPref } from "../lib/i18n";
 
 const IS_TAURI =
@@ -60,6 +60,7 @@ function useDebouncedValue<T>(value: T, delayMs = 200): T {
 // ProjectsView
 // =====================================================================
 export function ProjectsViewV3() {
+  const { t } = useT();
   const [projects, setProjects] = useState<Project[]>([]);
   const [enrichment, setEnrichment] = useState<Record<string, ProjectEnrichment>>(
     {}
@@ -132,13 +133,20 @@ export function ProjectsViewV3() {
     <div className="v3-view">
       <header className="v3-view-head">
         <div>
-          <h1 className="v3-greeting">Projects</h1>
+          <h1 className="v3-greeting">{t("projects.title")}</h1>
           <p className="v3-subtitle">
             {loading
-              ? "Scanning…"
-              : `${filtered.length} of ${projects.length} project${
-                  projects.length === 1 ? "" : "s"
-                } in the last ${windowDays} days.`}
+              ? t("projects.scanning")
+              : t(
+                  projects.length === 1
+                    ? "projects.summary_one"
+                    : "projects.summary_other",
+                  {
+                    filtered: filtered.length,
+                    total: projects.length,
+                    days: windowDays,
+                  }
+                )}
           </p>
         </div>
         <div className="v3-view-tools">
@@ -146,12 +154,12 @@ export function ProjectsViewV3() {
             className="v3-select"
             value={windowDays}
             onChange={(e) => setWindowDays(Number(e.target.value))}
-            aria-label="Time window"
+            aria-label={t("projects.time_window")}
           >
-            <option value={7}>7 days</option>
-            <option value={14}>14 days</option>
-            <option value={30}>30 days</option>
-            <option value={90}>90 days</option>
+            <option value={7}>{t("projects.window_7d")}</option>
+            <option value={14}>{t("projects.window_14d")}</option>
+            <option value={30}>{t("projects.window_30d")}</option>
+            <option value={90}>{t("projects.window_90d")}</option>
           </select>
         </div>
       </header>
@@ -160,8 +168,8 @@ export function ProjectsViewV3() {
         <Search size={14} strokeWidth={2} />
         <input
           type="text"
-          placeholder="Search projects…"
-          aria-label="Search projects"
+          placeholder={t("projects.search_placeholder")}
+          aria-label={t("projects.search_aria")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -170,12 +178,12 @@ export function ProjectsViewV3() {
       {error && <div className="v3-error" role="alert" aria-live="assertive">{error}</div>}
 
       {loading ? (
-        <div className="v3-empty">Loading projects…</div>
+        <div className="v3-empty">{t("projects.loading")}</div>
       ) : filtered.length === 0 ? (
         <div className="v3-empty">
           {projects.length === 0
-            ? `No projects detected in the last ${windowDays} days.`
-            : `No projects match "${query}".`}
+            ? t("projects.empty_window", { days: windowDays })
+            : t("projects.empty_search", { q: query })}
         </div>
       ) : (
         <div className="v3-list">
@@ -212,6 +220,7 @@ function ProjectListRow({
   onOpen: () => void;
   onOpenExplorer: () => void;
 }) {
+  const { t } = useT();
   return (
     <article className="v3-row v3-row-project">
       <div className="v3-row-icon" aria-hidden="true">
@@ -239,16 +248,16 @@ function ProjectListRow({
         )}
       </div>
       <div className="v3-row-end">
-        <span className="v3-pill v3-pill-soft">{activityLabelEn(project.days_ago)}</span>
+        <span className="v3-pill v3-pill-soft">{activityLabelT(project.days_ago, t)}</span>
         <div className="v3-row-actions">
           <button className="v3-btn-primary v3-btn-sm" onClick={onOpen}>
-            Open
+            {t("common.open")}
           </button>
           <button
             className="v3-btn-ghost v3-btn-sm v3-btn-icon"
             onClick={onOpenExplorer}
-            title="Open in Explorer"
-            aria-label="Open in Explorer"
+            title={t("projects.open_in_explorer")}
+            aria-label={t("projects.open_in_explorer")}
           >
             <FolderOpen size={13} strokeWidth={2} />
           </button>
@@ -262,6 +271,7 @@ function ProjectListRow({
 // PrsView
 // =====================================================================
 export function PrsViewV3() {
+  const { t } = useT();
   const [prs, setPrs] = useState<GhPullRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -310,9 +320,11 @@ export function PrsViewV3() {
     <div className="v3-view">
       <header className="v3-view-head">
         <div>
-          <h1 className="v3-greeting">Pull Requests</h1>
+          <h1 className="v3-greeting">{t("prs.title")}</h1>
           <p className="v3-subtitle">
-            {loading ? "Loading…" : `${prs.length} PR${prs.length === 1 ? "" : "s"} awaiting your review.`}
+            {loading
+              ? t("common.loading")
+              : plural(t, prs.length, "prs.summary_one", "prs.summary_other")}
           </p>
         </div>
       </header>
@@ -321,8 +333,8 @@ export function PrsViewV3() {
         <Search size={14} strokeWidth={2} />
         <input
           type="text"
-          placeholder="Search PRs by title, repo, or author…"
-          aria-label="Search pull requests"
+          placeholder={t("prs.search_placeholder")}
+          aria-label={t("prs.search_aria")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -331,12 +343,12 @@ export function PrsViewV3() {
       {error && <div className="v3-error" role="alert" aria-live="assertive">{error}</div>}
 
       {loading ? (
-        <div className="v3-empty">Loading pull requests…</div>
+        <div className="v3-empty">{t("prs.loading")}</div>
       ) : filtered.length === 0 ? (
         <div className="v3-empty">
           {prs.length === 0
-            ? "No PRs awaiting your review. Inbox zero."
-            : `No PRs match "${query}".`}
+            ? t("prs.inbox_zero")
+            : t("prs.empty_search", { q: query })}
         </div>
       ) : (
         <div className="v3-list">
@@ -353,7 +365,7 @@ export function PrsViewV3() {
               }}
               role="button"
               tabIndex={0}
-              aria-label={`Open pull request ${pr.title}`}
+              aria-label={t("prs.open_label", { title: pr.title })}
             >
               <div className="v3-row-icon" aria-hidden="true">
                 <GitPullRequest size={16} strokeWidth={2} />
@@ -369,14 +381,14 @@ export function PrsViewV3() {
                         <span className="v3-row-dot" aria-hidden="true">·</span>
                         <span>{pr.repository}</span>
                         <span className="v3-row-dot" aria-hidden="true">·</span>
-                        <span>by {pr.author}</span>
+                        <span>{t("prs.by_author", { author: pr.author })}</span>
                       </>
                     );
                   })()}
                 </div>
               </div>
               <div className="v3-row-end">
-                <span className="v3-pr-pill v3-pr-pill-open">Open</span>
+                <span className="v3-pr-pill v3-pr-pill-open">{t("prs.open")}</span>
                 <ExternalLink size={14} strokeWidth={2} className="v3-row-extra" />
               </div>
             </article>
@@ -391,6 +403,7 @@ export function PrsViewV3() {
 // AuditView
 // =====================================================================
 export function AuditViewV3() {
+  const { t } = useT();
   const [findings, setFindings] = useState<AuditFinding[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -440,11 +453,11 @@ export function AuditViewV3() {
     <div className="v3-view">
       <header className="v3-view-head">
         <div>
-          <h1 className="v3-greeting">Audit</h1>
+          <h1 className="v3-greeting">{t("audit.title")}</h1>
           <p className="v3-subtitle">
             {loading
-              ? "Running audit…"
-              : `${findings.length} finding${findings.length === 1 ? "" : "s"} across your workspace.`}
+              ? t("audit.running")
+              : plural(t, findings.length, "audit.summary_one", "audit.summary_other")}
           </p>
         </div>
         <div className="v3-view-tools">
@@ -453,7 +466,7 @@ export function AuditViewV3() {
             onClick={() => setRefreshNonce((n) => n + 1)}
           >
             <RefreshCw size={13} strokeWidth={2} />
-            Re-run
+            {t("audit.rerun")}
           </button>
         </div>
       </header>
@@ -462,24 +475,24 @@ export function AuditViewV3() {
         <FilterChip
           active={filter === "all"}
           onClick={() => setFilter("all")}
-          label={`All ${counts.all}`}
+          label={t("audit.filter_all", { n: counts.all })}
         />
         <FilterChip
           active={filter === "CRIT"}
           onClick={() => setFilter("CRIT")}
-          label={`Critical ${counts.crit}`}
+          label={t("audit.filter_critical", { n: counts.crit })}
           tint="crit"
         />
         <FilterChip
           active={filter === "WARN"}
           onClick={() => setFilter("WARN")}
-          label={`Warning ${counts.warn}`}
+          label={t("audit.filter_warning", { n: counts.warn })}
           tint="warn"
         />
         <FilterChip
           active={filter === "INFO"}
           onClick={() => setFilter("INFO")}
-          label={`Info ${counts.info}`}
+          label={t("audit.filter_info", { n: counts.info })}
           tint="info"
         />
       </div>
@@ -487,12 +500,10 @@ export function AuditViewV3() {
       {error && <div className="v3-error" role="alert" aria-live="assertive">{error}</div>}
 
       {loading ? (
-        <div className="v3-empty">Running audit…</div>
+        <div className="v3-empty">{t("audit.running")}</div>
       ) : grouped.length === 0 ? (
         <div className="v3-empty">
-          {findings.length === 0
-            ? "Audit clean. Nothing to report."
-            : "No findings match the current filter."}
+          {findings.length === 0 ? t("audit.clean") : t("audit.no_match")}
         </div>
       ) : (
         <div className="v3-audit-groups">
@@ -568,6 +579,7 @@ function FindingRow({ finding }: { finding: AuditFinding }) {
 // CleanupView
 // =====================================================================
 export function CleanupViewV3() {
+  const { t } = useT();
   const [items, setItems] = useState<CleanupItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -627,15 +639,18 @@ export function CleanupViewV3() {
     <div className="v3-view">
       <header className="v3-view-head">
         <div>
-          <h1 className="v3-greeting">Cleanup</h1>
+          <h1 className="v3-greeting">{t("cleanup.title")}</h1>
           <p className="v3-subtitle">
             {loading
-              ? "Scanning…"
+              ? t("cleanup.scanning")
               : items.length === 0
-              ? "Nothing to clean. Disk is tidy."
-              : `${items.length} stale item${
-                  items.length === 1 ? "" : "s"
-                } · ${formatBytes(totalBytes)} can be freed.`}
+              ? t("cleanup.tidy")
+              : t(
+                  items.length === 1
+                    ? "cleanup.summary_one"
+                    : "cleanup.summary_other",
+                  { n: items.length, bytes: formatBytes(totalBytes) }
+                )}
           </p>
         </div>
         <div className="v3-view-tools">
@@ -646,7 +661,7 @@ export function CleanupViewV3() {
               disabled={running}
             >
               <Trash2 size={13} strokeWidth={2} />
-              {running ? "Cleaning…" : "Clean all"}
+              {running ? t("cleanup.cleaning") : t("cleanup.clean_all")}
             </button>
           )}
         </div>
@@ -656,10 +671,13 @@ export function CleanupViewV3() {
         <div className="v3-success" role="status" aria-live="polite">
           <Check size={14} strokeWidth={2.4} />
           <span>
-            Deleted <strong>{result.deleted}</strong> item
-            {result.deleted === 1 ? "" : "s"}, freed{" "}
-            <strong>{formatBytes(result.freed_bytes)}</strong>
-            {result.failed > 0 && ` · ${result.failed} failed`}
+            {t(
+              result.deleted === 1
+                ? "cleanup.deleted_one"
+                : "cleanup.deleted_other",
+              { n: result.deleted, bytes: formatBytes(result.freed_bytes) }
+            )}
+            {result.failed > 0 && t("cleanup.failed_suffix", { n: result.failed })}
           </span>
         </div>
       )}
@@ -667,9 +685,9 @@ export function CleanupViewV3() {
       {error && <div className="v3-error" role="alert" aria-live="assertive">{error}</div>}
 
       {loading ? (
-        <div className="v3-empty">Scanning workspace…</div>
+        <div className="v3-empty">{t("cleanup.scanning_workspace")}</div>
       ) : grouped.length === 0 ? (
-        <div className="v3-empty">Nothing to clean.</div>
+        <div className="v3-empty">{t("cleanup.nothing")}</div>
       ) : (
         <div className="v3-list">
           {grouped.map(([category, list]) => {
@@ -679,8 +697,10 @@ export function CleanupViewV3() {
                 <header className="v3-card-head">
                   <h2 className="v3-card-title">{category}</h2>
                   <span className="v3-row-dim">
-                    {list.length} item{list.length === 1 ? "" : "s"} ·{" "}
-                    {formatBytes(catBytes)}
+                    {t(
+                      list.length === 1 ? "cleanup.items_one" : "cleanup.items_other",
+                      { n: list.length, bytes: formatBytes(catBytes) }
+                    )}
                   </span>
                 </header>
                 <ul className="v3-cleanup-files">
@@ -697,7 +717,7 @@ export function CleanupViewV3() {
                   ))}
                   {list.length > 10 && (
                     <li className="v3-row-dim">
-                      … and {list.length - 10} more
+                      {t("cleanup.and_more", { n: list.length - 10 })}
                     </li>
                   )}
                 </ul>
@@ -733,6 +753,7 @@ interface McpServer {
 }
 
 export function ClaudeViewV3() {
+  const { t } = useT();
   const [skills, setSkills] = useState<ClaudeSkill[]>([]);
   const [mcps, setMcps] = useState<McpServer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -825,11 +846,8 @@ export function ClaudeViewV3() {
     <div className="v3-view">
       <header className="v3-view-head">
         <div>
-          <h1 className="v3-greeting">Claude</h1>
-          <p className="v3-subtitle">
-            Skills available to Claude Code and MCP servers configured on this
-            machine.
-          </p>
+          <h1 className="v3-greeting">{t("claude.title")}</h1>
+          <p className="v3-subtitle">{t("claude.subtitle")}</p>
         </div>
         <div className="v3-view-tools">
           <button
@@ -839,7 +857,7 @@ export function ClaudeViewV3() {
             disabled={loading}
           >
             <RefreshCw size={12} strokeWidth={2.4} />
-            {loading ? " Refreshing…" : " Refresh"}
+            {loading ? ` ${t("claude.refreshing")}` : ` ${t("claude.refresh")}`}
           </button>
         </div>
       </header>
@@ -852,17 +870,18 @@ export function ClaudeViewV3() {
 
       <article className="v3-card">
         <header className="v3-card-head">
-          <h2 className="v3-card-title">MCP servers</h2>
+          <h2 className="v3-card-title">{t("claude.mcp_title")}</h2>
           <span className="v3-row-dim">
-            {mcps.filter((m) => m.enabled).length} active of {mcps.length}
+            {t("claude.mcp_active", {
+              active: mcps.filter((m) => m.enabled).length,
+              total: mcps.length,
+            })}
           </span>
         </header>
         {loading ? (
-          <div className="v3-empty">Loading MCP servers…</div>
+          <div className="v3-empty">{t("claude.mcp_loading")}</div>
         ) : mcps.length === 0 ? (
-          <div className="v3-empty">
-            No MCP servers configured under ~/.claude/mcp/ or settings.json.
-          </div>
+          <div className="v3-empty">{t("claude.mcp_empty")}</div>
         ) : (
           <ul className="v3-list">
             {mcps.map((m) => (
@@ -881,10 +900,13 @@ export function ClaudeViewV3() {
                   <div className="v3-claude-row-meta">
                     {m.command
                       ? `${m.command} ${m.args.join(" ")}`.trim()
-                      : "Bundled plugin — no explicit command."}
+                      : t("claude.mcp_bundled")}
                   </div>
                 </div>
-                <label className="v3-switch" aria-label={`Toggle ${m.name}`}>
+                <label
+                  className="v3-switch"
+                  aria-label={t("claude.mcp_toggle", { name: m.name })}
+                >
                   <input
                     type="checkbox"
                     checked={m.enabled}
@@ -901,16 +923,20 @@ export function ClaudeViewV3() {
 
       <article className="v3-card">
         <header className="v3-card-head">
-          <h2 className="v3-card-title">Skills</h2>
+          <h2 className="v3-card-title">{t("claude.skills_title")}</h2>
           <span className="v3-row-dim">
-            {skills.length} {skills.length === 1 ? "skill" : "skills"} · sorted
-            by recent usage
+            {plural(
+              t,
+              skills.length,
+              "claude.skills_count_one",
+              "claude.skills_count_other"
+            )}
           </span>
         </header>
         {loading ? (
-          <div className="v3-empty">Loading skills…</div>
+          <div className="v3-empty">{t("claude.skills_loading")}</div>
         ) : skills.length === 0 ? (
-          <div className="v3-empty">No skills found in ~/.claude/skills/.</div>
+          <div className="v3-empty">{t("claude.skills_empty")}</div>
         ) : (
           <ul className="v3-list">
             {skills.map((s) => (
@@ -926,14 +952,14 @@ export function ClaudeViewV3() {
                             ? "v3-usage-badge-top"
                             : "v3-usage-badge-some")
                         }
-                        title={`${s.usage_count} mentions in the last 30 days`}
+                        title={t("claude.usage_title", { n: s.usage_count })}
                       >
                         {s.usage_count}
                       </span>
                     )}
                   </div>
                   <div className="v3-claude-row-meta">
-                    {s.description || "No description provided."}
+                    {s.description || t("claude.no_description")}
                   </div>
                 </div>
                 <button
@@ -942,7 +968,7 @@ export function ClaudeViewV3() {
                   onClick={() => openSkill(s.path)}
                 >
                   <ExternalLink size={13} strokeWidth={2} />
-                  Open
+                  {t("claude.open")}
                 </button>
               </li>
             ))}
@@ -965,6 +991,7 @@ export function CompanionsViewV3({
   onNameChange,
   onImageChange,
 }: CompanionsViewV3Props) {
+  const { t } = useT();
   const setName = onNameChange;
   const setImage = onImageChange;
   const [imgError, setImgError] = useState<string | null>(null);
@@ -973,18 +1000,18 @@ export function CompanionsViewV3({
     setImgError(null);
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setImgError("File is not an image.");
+      setImgError(t("companions.err_not_image"));
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      setImgError("Image is over 2 MB. Use a smaller one.");
+      setImgError(t("companions.err_too_large"));
       return;
     }
     const r = new FileReader();
     r.onload = () => {
       if (typeof r.result === "string") setImage(r.result);
     };
-    r.onerror = () => setImgError("Could not read file.");
+    r.onerror = () => setImgError(t("companions.err_read"));
     r.readAsDataURL(file);
   };
 
@@ -992,32 +1019,30 @@ export function CompanionsViewV3({
     <div className="v3-view">
       <header className="v3-view-head">
         <div>
-          <h1 className="v3-greeting">Companion</h1>
-          <p className="v3-subtitle">
-            Configure the assistant shown in the right panel.
-          </p>
+          <h1 className="v3-greeting">{t("companions.title")}</h1>
+          <p className="v3-subtitle">{t("companions.subtitle")}</p>
         </div>
       </header>
 
       <article className="v3-card">
         <header className="v3-card-head">
-          <h2 className="v3-card-title">Identity</h2>
+          <h2 className="v3-card-title">{t("companions.identity")}</h2>
         </header>
         <div className="v3-form">
           <label className="v3-form-row">
-            <span className="v3-form-label">Name</span>
+            <span className="v3-form-label">{t("companions.name")}</span>
             <input
               type="text"
               className="v3-input"
               value={name}
               maxLength={48}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Companion"
+              placeholder={t("companions.placeholder")}
             />
           </label>
 
           <div className="v3-form-row">
-            <span className="v3-form-label">Image</span>
+            <span className="v3-form-label">{t("companions.image")}</span>
             <div className="v3-avatar-row">
               <div className="v3-avatar-preview">
                 {image ? (
@@ -1025,13 +1050,13 @@ export function CompanionsViewV3({
                 ) : (
                   <div className="v3-avatar-empty">
                     <ImageIcon size={20} />
-                    <span>no image</span>
+                    <span>{t("companions.no_image")}</span>
                   </div>
                 )}
               </div>
               <div className="v3-avatar-controls">
                 <label className="v3-btn-ghost v3-btn-sm">
-                  Choose image
+                  {t("companions.choose_image")}
                   <input
                     type="file"
                     accept="image/*"
@@ -1045,10 +1070,10 @@ export function CompanionsViewV3({
                     onClick={() => setImage(null)}
                   >
                     <Trash2 size={13} strokeWidth={2} />
-                    Remove
+                    {t("companions.remove")}
                   </button>
                 )}
-                <p className="v3-form-hint">PNG, JPG or WebP — up to 2 MB.</p>
+                <p className="v3-form-hint">{t("companions.image_hint")}</p>
                 {imgError && (
                   <p className="v3-form-error" role="alert" aria-live="polite">
                     {imgError}
@@ -1114,58 +1139,57 @@ export function SettingsViewV3() {
 
       <article className="v3-card">
         <header className="v3-card-head">
-          <h2 className="v3-card-title">Updates</h2>
+          <h2 className="v3-card-title">{t("settings.updates")}</h2>
           <button
             type="button"
             className="v3-link"
             onClick={updates.checkNow}
             disabled={updates.checking}
           >
-            {updates.checking ? "Checking…" : "Check now"}
+            {updates.checking ? t("settings.checking") : t("settings.check_now")}
           </button>
         </header>
         <div className="v3-form">
           <UpdateRow
-            label="Claude Startup Kit"
+            label={t("settings.update_app_label")}
             status={updates.app}
-            notConfiguredHint="No release published yet on GitHub. Configure once a release pipeline ships."
+            notConfiguredHint={t("settings.update_app_hint")}
           />
           <UpdateRow
-            label="gentle-ai"
+            label={t("settings.update_gentle_ai_label")}
             status={updates.gentleAi}
-            notConfiguredHint="gentle-ai is not on PATH. Install it from gentle-ai's repo."
+            notConfiguredHint={t("settings.update_gentle_ai_hint")}
           />
           {updates.error && (
             <div className="v3-error" role="alert" aria-live="assertive">
               {updates.error}
             </div>
           )}
-          <p className="v3-row-meta">
-            Updates are checked automatically once every 24 hours. Click "Check
-            now" to refresh immediately.
-          </p>
+          <p className="v3-row-meta">{t("settings.updates_auto_hint")}</p>
         </div>
       </article>
 
       <article className="v3-card">
         <header className="v3-card-head">
-          <h2 className="v3-card-title">Theme</h2>
-          <span className="v3-row-dim">{V3_THEME_OPTIONS.length} curated palettes</span>
+          <h2 className="v3-card-title">{t("settings.theme")}</h2>
+          <span className="v3-row-dim">
+            {t("settings.curated_palettes", { n: V3_THEME_OPTIONS.length })}
+          </span>
         </header>
         <div className="v3-theme-grid">
-          {V3_THEME_OPTIONS.map((t) => (
+          {V3_THEME_OPTIONS.map((opt) => (
             <button
-              key={t.id}
-              className={"v3-theme-card" + (theme === t.id ? " active" : "")}
-              onClick={() => pick(t.id)}
+              key={opt.id}
+              className={"v3-theme-card" + (theme === opt.id ? " active" : "")}
+              onClick={() => pick(opt.id)}
             >
               <div className="v3-theme-swatch">
-                <span style={{ background: t.swatch[0] }} />
-                <span style={{ background: t.swatch[1] }} />
-                <span style={{ background: t.swatch[2] }} />
+                <span style={{ background: opt.swatch[0] }} />
+                <span style={{ background: opt.swatch[1] }} />
+                <span style={{ background: opt.swatch[2] }} />
               </div>
-              <div className="v3-theme-label">{t.label}</div>
-              {theme === t.id && (
+              <div className="v3-theme-label">{opt.label}</div>
+              {theme === opt.id && (
                 <span className="v3-theme-check" aria-hidden="true">
                   <Check size={12} strokeWidth={3} />
                 </span>
@@ -1177,25 +1201,25 @@ export function SettingsViewV3() {
 
       <article className="v3-card">
         <header className="v3-card-head">
-          <h2 className="v3-card-title">Keyboard Shortcuts</h2>
+          <h2 className="v3-card-title">{t("settings.shortcuts")}</h2>
         </header>
         <div className="v3-form">
           <div className="v3-shortcuts">
             <div className="v3-shortcut">
               <kbd>Ctrl</kbd> + <kbd>1</kbd>…<kbd>7</kbd>
-              <span>Switch tabs (Overview → Settings)</span>
+              <span>{t("settings.shortcut_switch_tabs")}</span>
             </div>
             <div className="v3-shortcut">
               <kbd>Ctrl</kbd> + <kbd>R</kbd>
-              <span>Refresh current tab data</span>
+              <span>{t("settings.shortcut_refresh")}</span>
             </div>
             <div className="v3-shortcut">
               <kbd>Ctrl</kbd> + <kbd>,</kbd>
-              <span>Open Settings</span>
+              <span>{t("settings.shortcut_open_settings")}</span>
             </div>
             <div className="v3-shortcut">
               <kbd>Ctrl</kbd> + <kbd>T</kbd>
-              <span>Cycle theme</span>
+              <span>{t("settings.shortcut_cycle_theme")}</span>
             </div>
           </div>
         </div>
@@ -1329,7 +1353,7 @@ function SyncCard() {
   // the user sees a clear status next to each project.
   const cloneOne = async (p: SyncedProject) => {
     if (!targetDir.trim()) {
-      setError("Set a target directory first");
+      setError(t("sync.target_required"));
       return;
     }
     setCloneResults((prev) => ({
@@ -1363,7 +1387,7 @@ function SyncCard() {
 
   const cloneAll = async () => {
     if (!targetDir.trim()) {
-      setError("Set a target directory first");
+      setError(t("sync.target_required"));
       return;
     }
     setCloningAll(true);
@@ -1576,11 +1600,14 @@ function UpdateRow({
   status: import("../lib/useUpdates").UpdateStatus | null;
   notConfiguredHint: string;
 }) {
+  const { t } = useT();
   if (!status) {
     return (
       <div className="v3-update-row">
         <div className="v3-update-row-label">{label}</div>
-        <div className="v3-update-row-status v3-update-row-status-dim">Loading…</div>
+        <div className="v3-update-row-status v3-update-row-status-dim">
+          {t("common.loading")}
+        </div>
       </div>
     );
   }
@@ -1589,7 +1616,7 @@ function UpdateRow({
       <div className="v3-update-row">
         <div className="v3-update-row-label">{label}</div>
         <div className="v3-update-row-status v3-update-row-status-dim">
-          Not configured
+          {t("settings.update_not_configured")}
           <div className="v3-row-meta">{notConfiguredHint}</div>
         </div>
       </div>
@@ -1609,7 +1636,7 @@ function UpdateRow({
     <div className="v3-update-row">
       <div className="v3-update-row-label">{label}</div>
       <div className="v3-update-row-status v3-update-row-status-ok">
-        v{status.current} · up to date
+        v{status.current} · {t("settings.update_up_to_date")}
       </div>
     </div>
   );

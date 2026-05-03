@@ -44,7 +44,7 @@ export function Sidebar({
       ? plural(t, warnCount, "status.warn_one", "status.warn_other")
       : t("status.operational");
   return (
-    <aside className="v3-sidebar" aria-label="Primary navigation">
+    <aside className="v3-sidebar" aria-label={t("window.primary_nav")}>
       <div className="v3-sidebar-logo">
         <div className="v3-sidebar-logo-mark" aria-hidden="true">
           <img src="/Shield.svg" alt="" draggable={false} />

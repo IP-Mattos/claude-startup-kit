@@ -75,7 +75,9 @@ export default function AppV3() {
     setGentleAiResult(null);
     const after = await updates.applyGentleAi();
     setGentleAiApplying(false);
-    setGentleAiResult(after ? `gentle-ai upgraded to v${after}` : "Update failed");
+    setGentleAiResult(
+      after ? t("banner.gentle_upgraded", { v: after }) : t("banner.update_failed")
+    );
   };
 
   // Companion config — owned here so the right-panel widget updates live when
@@ -276,9 +278,9 @@ export default function AppV3() {
           {updates.app?.available && (
             <div className="v3-update-banner" role="status" aria-live="polite">
               <div className="v3-update-banner-body">
-                <strong>Claude Startup Kit v{updates.app.latest}</strong>{" "}
+                <strong>{t("banner.app_available", { latest: updates.app.latest })}</strong>{" "}
                 <span className="v3-update-banner-meta">
-                  is available (you're on v{updates.app.current})
+                  {t("banner.app_meta", { current: updates.app.current })}
                 </span>
               </div>
               <div className="v3-update-banner-actions">
@@ -287,14 +289,14 @@ export default function AppV3() {
                   className="v3-update-banner-primary"
                   onClick={() => handleOpenUrl(updates.app!.release_url)}
                 >
-                  Open release
+                  {t("banner.open_release")}
                 </button>
                 <button
                   type="button"
                   className="v3-update-banner-ghost"
                   onClick={() => updates.dismissApp(updates.app!.latest)}
                 >
-                  Later
+                  {t("common.later")}
                 </button>
               </div>
             </div>
@@ -302,9 +304,9 @@ export default function AppV3() {
           {updates.gentleAi?.available && (
             <div className="v3-update-banner" role="status" aria-live="polite">
               <div className="v3-update-banner-body">
-                <strong>gentle-ai v{updates.gentleAi.latest}</strong>{" "}
+                <strong>{t("banner.gentle_available", { latest: updates.gentleAi.latest })}</strong>{" "}
                 <span className="v3-update-banner-meta">
-                  is available (you're on v{updates.gentleAi.current})
+                  {t("banner.gentle_meta", { current: updates.gentleAi.current })}
                 </span>
                 {gentleAiResult && (
                   <span className="v3-update-banner-result"> · {gentleAiResult}</span>
@@ -317,7 +319,7 @@ export default function AppV3() {
                   onClick={handleApplyGentleAi}
                   disabled={gentleAiApplying}
                 >
-                  {gentleAiApplying ? "Updating…" : "Update now"}
+                  {gentleAiApplying ? t("common.updating") : t("common.update_now")}
                 </button>
                 <button
                   type="button"
@@ -325,7 +327,7 @@ export default function AppV3() {
                   onClick={() => updates.dismissGentleAi(updates.gentleAi!.latest)}
                   disabled={gentleAiApplying}
                 >
-                  Later
+                  {t("common.later")}
                 </button>
               </div>
             </div>
@@ -333,7 +335,7 @@ export default function AppV3() {
           {fetchErrors.length > 0 && (
             <div className="v3-fetch-banner" role="alert" aria-live="polite">
               <div className="v3-fetch-banner-body">
-                <strong>Some data failed to load.</strong>{" "}
+                <strong>{t("banner.fetch_failed")}</strong>{" "}
                 <span>
                   {fetchErrors.map((e, i) => (
                     <span key={e.source}>
@@ -348,7 +350,7 @@ export default function AppV3() {
                 className="v3-fetch-banner-retry"
                 onClick={handleRunAudit}
               >
-                Retry
+                {t("banner.retry")}
               </button>
             </div>
           )}
@@ -382,7 +384,7 @@ export default function AppV3() {
           )}
           {tab === "settings" && <SettingsViewV3 />}
         </main>
-        <aside className="appv3-rightpanel" aria-label="Companion panel">
+        <aside className="appv3-rightpanel" aria-label={t("window.companion_panel")}>
           <CompanionWidget
             companionName={companionName}
             companionImage={companionImage}

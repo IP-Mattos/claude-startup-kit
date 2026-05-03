@@ -55,6 +55,14 @@ export function activityLabelEn(daysAgo: number): string {
   return `${daysAgo}d ago`;
 }
 
+// Translator-based activity label. Use from V3 components so text reflects
+// the active locale.
+export function activityLabelT(daysAgo: number, t: Translator): string {
+  if (daysAgo <= 0) return t("activity.today");
+  if (daysAgo === 1) return t("activity.yesterday");
+  return t("activity.days_ago", { n: daysAgo });
+}
+
 // FNV-1a hash → 4-byte hex ID. Stable, fast, looks like a memory address.
 export function hexId(input: string): string {
   let h = 0x811c9dc5;

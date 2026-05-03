@@ -165,6 +165,281 @@ const STRINGS = {
   "settings.language_auto": { en: "System", es: "Sistema" },
   "settings.language_en": { en: "English", es: "Inglés" },
   "settings.language_es": { en: "Spanish", es: "Español" },
+  "settings.updates": { en: "Updates", es: "Actualizaciones" },
+  "settings.check_now": { en: "Check now", es: "Buscar ahora" },
+  "settings.checking": { en: "Checking…", es: "Buscando…" },
+  "settings.updates_auto_hint": {
+    en: 'Updates are checked automatically once every 24 hours. Click "Check now" to refresh immediately.',
+    es: "Las actualizaciones se buscan automáticamente cada 24 horas. Tocá \"Buscar ahora\" para refrescar al toque.",
+  },
+  "settings.theme": { en: "Theme", es: "Tema" },
+  "settings.curated_palettes": { en: "{n} curated palettes", es: "{n} paletas curadas" },
+  "settings.shortcuts": { en: "Keyboard Shortcuts", es: "Atajos de teclado" },
+  "settings.shortcut_switch_tabs": {
+    en: "Switch tabs (Overview → Settings)",
+    es: "Cambiar pestañas (Resumen → Ajustes)",
+  },
+  "settings.shortcut_refresh": {
+    en: "Refresh current tab data",
+    es: "Refrescar la pestaña actual",
+  },
+  "settings.shortcut_open_settings": { en: "Open Settings", es: "Abrir Ajustes" },
+  "settings.shortcut_cycle_theme": { en: "Cycle theme", es: "Cambiar tema" },
+  "settings.update_not_configured": { en: "Not configured", es: "No configurado" },
+  "settings.update_up_to_date": { en: "up to date", es: "al día" },
+  "settings.update_app_hint": {
+    en: "No release published yet on GitHub. Configure once a release pipeline ships.",
+    es: "Todavía no hay release publicado en GitHub. Configurá cuando haya pipeline de releases.",
+  },
+  "settings.update_gentle_ai_hint": {
+    en: "gentle-ai is not on PATH. Install it from gentle-ai's repo.",
+    es: "gentle-ai no está en el PATH. Instalalo desde el repo de gentle-ai.",
+  },
+  "settings.update_app_label": { en: "Claude Startup Kit", es: "Claude Startup Kit" },
+  "settings.update_gentle_ai_label": { en: "gentle-ai", es: "gentle-ai" },
+
+  // Banners (top of content area)
+  "banner.app_available": {
+    en: "Claude Startup Kit v{latest}",
+    es: "Claude Startup Kit v{latest}",
+  },
+  "banner.app_meta": {
+    en: "is available (you're on v{current})",
+    es: "está disponible (vos estás en v{current})",
+  },
+  "banner.gentle_available": {
+    en: "gentle-ai v{latest}",
+    es: "gentle-ai v{latest}",
+  },
+  "banner.gentle_meta": {
+    en: "is available (you're on v{current})",
+    es: "está disponible (vos estás en v{current})",
+  },
+  "banner.open_release": { en: "Open release", es: "Abrir release" },
+  "banner.fetch_failed": { en: "Some data failed to load.", es: "Algunos datos no cargaron." },
+  "banner.retry": { en: "Retry", es: "Reintentar" },
+  "banner.gentle_upgraded": {
+    en: "gentle-ai upgraded to v{v}",
+    es: "gentle-ai actualizado a v{v}",
+  },
+  "banner.update_failed": { en: "Update failed", es: "Falló la actualización" },
+
+  // Window controls
+  "window.minimize": { en: "Minimize", es: "Minimizar" },
+  "window.maximize": { en: "Maximize", es: "Maximizar" },
+  "window.restore": { en: "Restore", es: "Restaurar" },
+  "window.close": { en: "Close", es: "Cerrar" },
+  "window.companion_panel": { en: "Companion panel", es: "Panel del compañero" },
+  "window.primary_nav": { en: "Primary navigation", es: "Navegación principal" },
+  "common.cycle_theme": { en: "Cycle theme", es: "Cambiar tema" },
+  "common.cycle_theme_title": { en: "Cycle theme (Ctrl+T)", es: "Cambiar tema (Ctrl+T)" },
+  "common.open_settings": { en: "Open settings", es: "Abrir ajustes" },
+  "common.settings_title": { en: "Settings (Ctrl+,)", es: "Ajustes (Ctrl+,)" },
+
+  // Overview
+  "overview.subtitle": {
+    en: "Here's what's happening across your workspace.",
+    es: "Esto es lo que está pasando en tu workspace.",
+  },
+  "overview.stat_projects": { en: "Projects", es: "Proyectos" },
+  "overview.stat_prs": { en: "Pull Requests", es: "Pull Requests" },
+  "overview.stat_findings": { en: "Audit Findings", es: "Hallazgos" },
+  "overview.stat_health": { en: "Health Score", es: "Salud" },
+  "overview.this_week": { en: "{n} this week", es: "{n} esta semana" },
+  "overview.open_count": { en: "{n} open", es: "{n} abiertas" },
+  "overview.high_priority": { en: "{n} high priority", es: "{n} alta prioridad" },
+  "overview.zero_critical": { en: "0 critical", es: "0 críticos" },
+  "overview.n_critical": { en: "{n} critical", es: "{n} críticos" },
+  "overview.recent_projects": { en: "Recent Projects", es: "Proyectos recientes" },
+  "overview.recent_prs": { en: "Recent Pull Requests", es: "Pull Requests recientes" },
+  "overview.audit_summary": { en: "Audit Summary", es: "Resumen de auditoría" },
+  "overview.view_all": { en: "View all", es: "Ver todos" },
+  "overview.loading_projects": { en: "Loading projects…", es: "Cargando proyectos…" },
+  "overview.loading_prs": { en: "Loading PRs…", es: "Cargando PRs…" },
+  "overview.no_recent_projects": { en: "No recent projects detected.", es: "No se detectaron proyectos recientes." },
+  "overview.no_prs": { en: "No PRs awaiting your review.", es: "No hay PRs esperando tu review." },
+  "overview.audit_clean": { en: "Audit clean. No findings.", es: "Auditoría limpia. Sin hallazgos." },
+  "overview.tile_critical": { en: "Critical", es: "Críticos" },
+  "overview.tile_warning": { en: "Warning", es: "Advertencias" },
+  "overview.tile_info": { en: "Info", es: "Info" },
+  "overview.total_findings": { en: "total findings", es: "hallazgos totales" },
+  "overview.crit_attention_one": {
+    en: "{n} critical issue needs your attention",
+    es: "{n} problema crítico necesita tu atención",
+  },
+  "overview.crit_attention_other": {
+    en: "{n} critical issues need your attention",
+    es: "{n} problemas críticos necesitan tu atención",
+  },
+  "overview.audit_bar_label": {
+    en: "{total} audit findings: {crit} critical, {warn} warnings, {info} info",
+    es: "{total} hallazgos: {crit} críticos, {warn} advertencias, {info} info",
+  },
+  "overview.open_pr_label": { en: "Open pull request {title}", es: "Abrir pull request {title}" },
+  "overview.open_project_label": { en: "Open project {name}", es: "Abrir proyecto {name}" },
+
+  // Activity labels (today/yesterday/Nd ago)
+  "activity.today": { en: "today", es: "hoy" },
+  "activity.yesterday": { en: "yesterday", es: "ayer" },
+  "activity.days_ago": { en: "{n}d ago", es: "hace {n}d" },
+
+  // Projects view
+  "projects.title": { en: "Projects", es: "Proyectos" },
+  "projects.scanning": { en: "Scanning…", es: "Escaneando…" },
+  "projects.summary_one": {
+    en: "{filtered} of {total} project in the last {days} days.",
+    es: "{filtered} de {total} proyecto en los últimos {days} días.",
+  },
+  "projects.summary_other": {
+    en: "{filtered} of {total} projects in the last {days} days.",
+    es: "{filtered} de {total} proyectos en los últimos {days} días.",
+  },
+  "projects.search_placeholder": { en: "Search projects…", es: "Buscar proyectos…" },
+  "projects.search_aria": { en: "Search projects", es: "Buscar proyectos" },
+  "projects.time_window": { en: "Time window", es: "Rango de tiempo" },
+  "projects.window_7d": { en: "7 days", es: "7 días" },
+  "projects.window_14d": { en: "14 days", es: "14 días" },
+  "projects.window_30d": { en: "30 days", es: "30 días" },
+  "projects.window_90d": { en: "90 days", es: "90 días" },
+  "projects.loading": { en: "Loading projects…", es: "Cargando proyectos…" },
+  "projects.empty_window": {
+    en: "No projects detected in the last {days} days.",
+    es: "No se detectaron proyectos en los últimos {days} días.",
+  },
+  "projects.empty_search": {
+    en: 'No projects match "{q}".',
+    es: 'Ningún proyecto coincide con "{q}".',
+  },
+  "projects.open_in_explorer": { en: "Open in Explorer", es: "Abrir en Explorer" },
+
+  // PRs view
+  "prs.title": { en: "Pull Requests", es: "Pull Requests" },
+  "prs.summary_one": { en: "{n} PR awaiting your review.", es: "{n} PR esperando tu review." },
+  "prs.summary_other": { en: "{n} PRs awaiting your review.", es: "{n} PRs esperando tu review." },
+  "prs.search_placeholder": {
+    en: "Search PRs by title, repo, or author…",
+    es: "Buscar PRs por título, repo o autor…",
+  },
+  "prs.search_aria": { en: "Search pull requests", es: "Buscar pull requests" },
+  "prs.loading": { en: "Loading pull requests…", es: "Cargando pull requests…" },
+  "prs.inbox_zero": {
+    en: "No PRs awaiting your review. Inbox zero.",
+    es: "No hay PRs esperando review. Inbox zero.",
+  },
+  "prs.empty_search": {
+    en: 'No PRs match "{q}".',
+    es: 'Ningún PR coincide con "{q}".',
+  },
+  "prs.open": { en: "Open", es: "Abrir" },
+  "prs.by_author": { en: "by {author}", es: "por {author}" },
+  "prs.open_label": { en: "Open pull request {title}", es: "Abrir pull request {title}" },
+
+  // Audit view
+  "audit.title": { en: "Audit", es: "Auditoría" },
+  "audit.running": { en: "Running audit…", es: "Corriendo auditoría…" },
+  "audit.summary_one": {
+    en: "{n} finding across your workspace.",
+    es: "{n} hallazgo en tu workspace.",
+  },
+  "audit.summary_other": {
+    en: "{n} findings across your workspace.",
+    es: "{n} hallazgos en tu workspace.",
+  },
+  "audit.rerun": { en: "Re-run", es: "Re-ejecutar" },
+  "audit.filter_all": { en: "All {n}", es: "Todos {n}" },
+  "audit.filter_critical": { en: "Critical {n}", es: "Críticos {n}" },
+  "audit.filter_warning": { en: "Warning {n}", es: "Advertencias {n}" },
+  "audit.filter_info": { en: "Info {n}", es: "Info {n}" },
+  "audit.clean": { en: "Audit clean. Nothing to report.", es: "Auditoría limpia. Nada para reportar." },
+  "audit.no_match": { en: "No findings match the current filter.", es: "Ningún hallazgo coincide con el filtro." },
+
+  // Cleanup view
+  "cleanup.title": { en: "Cleanup", es: "Limpieza" },
+  "cleanup.scanning": { en: "Scanning…", es: "Escaneando…" },
+  "cleanup.tidy": { en: "Nothing to clean. Disk is tidy.", es: "Nada para limpiar. Disco prolijo." },
+  "cleanup.summary_one": {
+    en: "{n} stale item · {bytes} can be freed.",
+    es: "{n} ítem viejo · {bytes} para liberar.",
+  },
+  "cleanup.summary_other": {
+    en: "{n} stale items · {bytes} can be freed.",
+    es: "{n} ítems viejos · {bytes} para liberar.",
+  },
+  "cleanup.cleaning": { en: "Cleaning…", es: "Limpiando…" },
+  "cleanup.clean_all": { en: "Clean all", es: "Limpiar todo" },
+  "cleanup.deleted_one": {
+    en: "Deleted {n} item, freed {bytes}",
+    es: "Borraste {n} ítem, liberaste {bytes}",
+  },
+  "cleanup.deleted_other": {
+    en: "Deleted {n} items, freed {bytes}",
+    es: "Borraste {n} ítems, liberaste {bytes}",
+  },
+  "cleanup.failed_suffix": { en: " · {n} failed", es: " · {n} fallaron" },
+  "cleanup.scanning_workspace": { en: "Scanning workspace…", es: "Escaneando workspace…" },
+  "cleanup.nothing": { en: "Nothing to clean.", es: "Nada para limpiar." },
+  "cleanup.items_one": { en: "{n} item · {bytes}", es: "{n} ítem · {bytes}" },
+  "cleanup.items_other": { en: "{n} items · {bytes}", es: "{n} ítems · {bytes}" },
+  "cleanup.and_more": { en: "… and {n} more", es: "… y {n} más" },
+
+  // Claude view
+  "claude.title": { en: "Claude", es: "Claude" },
+  "claude.subtitle": {
+    en: "Skills available to Claude Code and MCP servers configured on this machine.",
+    es: "Skills disponibles para Claude Code y servidores MCP configurados en esta máquina.",
+  },
+  "claude.refreshing": { en: "Refreshing…", es: "Refrescando…" },
+  "claude.refresh": { en: "Refresh", es: "Refrescar" },
+  "claude.mcp_title": { en: "MCP servers", es: "Servidores MCP" },
+  "claude.mcp_active": { en: "{active} active of {total}", es: "{active} activos de {total}" },
+  "claude.mcp_loading": { en: "Loading MCP servers…", es: "Cargando servidores MCP…" },
+  "claude.mcp_empty": {
+    en: "No MCP servers configured under ~/.claude/mcp/ or settings.json.",
+    es: "Sin servidores MCP configurados en ~/.claude/mcp/ ni en settings.json.",
+  },
+  "claude.mcp_bundled": {
+    en: "Bundled plugin — no explicit command.",
+    es: "Plugin incluido — sin comando explícito.",
+  },
+  "claude.mcp_toggle": { en: "Toggle {name}", es: "Activar/desactivar {name}" },
+  "claude.skills_title": { en: "Skills", es: "Skills" },
+  "claude.skills_count_one": { en: "{n} skill · sorted by recent usage", es: "{n} skill · ordenadas por uso reciente" },
+  "claude.skills_count_other": { en: "{n} skills · sorted by recent usage", es: "{n} skills · ordenadas por uso reciente" },
+  "claude.skills_loading": { en: "Loading skills…", es: "Cargando skills…" },
+  "claude.skills_empty": {
+    en: "No skills found in ~/.claude/skills/.",
+    es: "Sin skills en ~/.claude/skills/.",
+  },
+  "claude.no_description": { en: "No description provided.", es: "Sin descripción." },
+  "claude.usage_title": {
+    en: "{n} mentions in the last 30 days",
+    es: "{n} menciones en los últimos 30 días",
+  },
+  "claude.open": { en: "Open", es: "Abrir" },
+
+  // Companions view
+  "companions.title": { en: "Companion", es: "Compañero" },
+  "companions.subtitle": {
+    en: "Configure the assistant shown in the right panel.",
+    es: "Configurá el asistente que aparece en el panel derecho.",
+  },
+  "companions.identity": { en: "Identity", es: "Identidad" },
+  "companions.name": { en: "Name", es: "Nombre" },
+  "companions.image": { en: "Image", es: "Imagen" },
+  "companions.no_image": { en: "no image", es: "sin imagen" },
+  "companions.choose_image": { en: "Choose image", es: "Elegir imagen" },
+  "companions.remove": { en: "Remove", es: "Quitar" },
+  "companions.image_hint": { en: "PNG, JPG or WebP — up to 2 MB.", es: "PNG, JPG o WebP — hasta 2 MB." },
+  "companions.err_not_image": { en: "File is not an image.", es: "El archivo no es una imagen." },
+  "companions.err_too_large": {
+    en: "Image is over 2 MB. Use a smaller one.",
+    es: "La imagen pesa más de 2 MB. Usá una más chica.",
+  },
+  "companions.err_read": { en: "Could not read file.", es: "No se pudo leer el archivo." },
+  "companions.placeholder": { en: "Companion", es: "Compañero" },
+
+  // Sync view extras
+  "sync.target_required": { en: "Set a target directory first", es: "Configurá un directorio destino primero" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

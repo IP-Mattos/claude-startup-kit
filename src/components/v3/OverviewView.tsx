@@ -12,7 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import {
-  activityLabelEn,
+  activityLabelT,
   onKeyboardActivate,
   prNumberFromUrl,
   projectName,
@@ -23,6 +23,7 @@ import type {
   Project,
 } from "../../types";
 import type { V3Tab } from "../../v3/v3types";
+import { plural, useT } from "../../lib/i18n";
 
 // =============================================================
 // Sub-components (only used by OverviewView, kept co-located).
@@ -69,12 +70,14 @@ function RecentProjectCard({
   ago,
   freshness,
   onOpen,
+  ariaLabel,
 }: {
   name: string;
   desc: string;
   ago: string;
   freshness: number;
   onOpen: () => void;
+  ariaLabel: string;
 }) {
   const tint: "green" | "amber" = freshness >= 80 ? "green" : "amber";
   return (
@@ -84,7 +87,7 @@ function RecentProjectCard({
       onKeyDown={onKeyboardActivate(onOpen)}
       role="button"
       tabIndex={0}
-      aria-label={`Open project ${name}`}
+      aria-label={ariaLabel}
     >
       <header className="v3-recent-project-head">
         <span className="v3-recent-project-icon" aria-hidden="true">
@@ -106,11 +109,15 @@ function PrRow({
   repo,
   num,
   onOpen,
+  ariaLabel,
+  openLabel,
 }: {
   title: string;
   repo: string;
   num: number | null;
   onOpen: () => void;
+  ariaLabel: string;
+  openLabel: string;
 }) {
   return (
     <div
@@ -119,7 +126,7 @@ function PrRow({
       onKeyDown={onKeyboardActivate(onOpen)}
       role="button"
       tabIndex={0}
-      aria-label={`Open pull request ${title}`}
+      aria-label={ariaLabel}
     >
       <span className="v3-pr-icon" aria-hidden="true">
         <GitPullRequest size={14} strokeWidth={2} />
@@ -131,7 +138,7 @@ function PrRow({
           {repo}
         </div>
       </div>
-      <span className="v3-pr-pill v3-pr-pill-open">Open</span>
+      <span className="v3-pr-pill v3-pr-pill-open">{openLabel}</span>
     </div>
   );
 }
@@ -177,6 +184,7 @@ export function OverviewView({
   onJump: (tab: V3Tab) => void;
   onCycleTheme: () => void;
 }) {
+  const { t } = useT();
   const recentProjects = projects.slice(0, 3);
   const recentPrs = prs.slice(0, 4);
   const projectsThisWeek = projects.filter((p) => p.days_ago <= 7).length;
@@ -184,31 +192,31 @@ export function OverviewView({
 
   // Health delta — placeholder until we track history. Static label.
   const healthDelta =
-    stats.crit === 0 ? "0 critical" : `${stats.crit} critical`;
+    stats.crit === 0
+      ? t("overview.zero_critical")
+      : t("overview.n_critical", { n: stats.crit });
 
   return (
     <div className="v3-view v3-view-overview">
       <header className="v3-view-head">
         <div>
           <h1 className="v3-greeting">{greeting}</h1>
-          <p className="v3-subtitle">
-            Here's what's happening across your workspace.
-          </p>
+          <p className="v3-subtitle">{t("overview.subtitle")}</p>
         </div>
         <div className="v3-view-tools">
           <button
             className="v3-icon-btn"
             onClick={onCycleTheme}
-            aria-label="Cycle theme"
-            title="Cycle theme (Ctrl+T)"
+            aria-label={t("common.cycle_theme")}
+            title={t("common.cycle_theme_title")}
           >
             <Palette size={16} strokeWidth={1.8} />
           </button>
           <button
             className="v3-icon-btn"
             onClick={() => onJump("settings")}
-            aria-label="Open settings"
-            title="Settings (Ctrl+,)"
+            aria-label={t("common.open_settings")}
+            title={t("common.settings_title")}
           >
             <Cog size={16} strokeWidth={1.8} />
           </button>
@@ -218,31 +226,31 @@ export function OverviewView({
       <section className="v3-stats-row">
         <StatCard
           Icon={FolderOpen}
-          label="Projects"
+          label={t("overview.stat_projects")}
           value={loading ? "—" : String(projects.length)}
-          delta={`${projectsThisWeek} this week`}
+          delta={t("overview.this_week", { n: projectsThisWeek })}
           tint="orange"
           severity={projectsThisWeek === 0 ? "warn" : "good"}
         />
         <StatCard
           Icon={Code2}
-          label="Pull Requests"
+          label={t("overview.stat_prs")}
           value={loading ? "—" : String(openPrs)}
-          delta={`${openPrs} open`}
+          delta={t("overview.open_count", { n: openPrs })}
           tint="purple"
           severity={openPrs > 5 ? "warn" : "good"}
         />
         <StatCard
           Icon={ShieldCheck}
-          label="Audit Findings"
+          label={t("overview.stat_findings")}
           value={loading ? "—" : String(stats.total)}
-          delta={`${stats.crit} high priority`}
+          delta={t("overview.high_priority", { n: stats.crit })}
           tint="amber"
           severity={stats.crit > 0 ? "crit" : "good"}
         />
         <StatCard
           Icon={Activity}
-          label="Health Score"
+          label={t("overview.stat_health")}
           value={loading ? "—" : `${stats.health}%`}
           delta={healthDelta}
           tint="green"
@@ -254,15 +262,15 @@ export function OverviewView({
 
       <section className="v3-card v3-recent-projects">
         <header className="v3-card-head">
-          <h2 className="v3-card-title">Recent Projects</h2>
+          <h2 className="v3-card-title">{t("overview.recent_projects")}</h2>
           <button className="v3-link" onClick={() => onJump("projects")}>
-            View all
+            {t("overview.view_all")}
           </button>
         </header>
         {loading ? (
-          <div className="v3-empty">Loading projects…</div>
+          <div className="v3-empty">{t("overview.loading_projects")}</div>
         ) : recentProjects.length === 0 ? (
-          <div className="v3-empty">No recent projects detected.</div>
+          <div className="v3-empty">{t("overview.no_recent_projects")}</div>
         ) : (
           <div className="v3-recent-projects-grid">
             {recentProjects.map((p) => {
@@ -273,9 +281,10 @@ export function OverviewView({
                   key={p.path}
                   name={name}
                   desc={goal ?? p.last_date}
-                  ago={activityLabelEn(p.days_ago)}
+                  ago={activityLabelT(p.days_ago, t)}
                   freshness={freshnessScore(p.days_ago)}
                   onOpen={() => onOpenProject(p.path)}
+                  ariaLabel={t("overview.open_project_label", { name })}
                 />
               );
             })}
@@ -286,15 +295,15 @@ export function OverviewView({
       <section className="v3-row-2col">
         <article className="v3-card">
           <header className="v3-card-head">
-            <h2 className="v3-card-title">Recent Pull Requests</h2>
+            <h2 className="v3-card-title">{t("overview.recent_prs")}</h2>
             <button className="v3-link" onClick={() => onJump("prs")}>
-              View all
+              {t("overview.view_all")}
             </button>
           </header>
           {loading ? (
-            <div className="v3-empty">Loading PRs…</div>
+            <div className="v3-empty">{t("overview.loading_prs")}</div>
           ) : recentPrs.length === 0 ? (
-            <div className="v3-empty">No PRs awaiting your review.</div>
+            <div className="v3-empty">{t("overview.no_prs")}</div>
           ) : (
             <div className="v3-pr-list">
               {recentPrs.map((pr) => (
@@ -304,6 +313,8 @@ export function OverviewView({
                   repo={pr.repository}
                   num={prNumberFromUrl(pr.url)}
                   onOpen={() => onOpenUrl(pr.url)}
+                  ariaLabel={t("overview.open_pr_label", { title: pr.title })}
+                  openLabel={t("prs.open")}
                 />
               ))}
             </div>
@@ -312,20 +323,25 @@ export function OverviewView({
 
         <article className="v3-card">
           <header className="v3-card-head">
-            <h2 className="v3-card-title">Audit Summary</h2>
+            <h2 className="v3-card-title">{t("overview.audit_summary")}</h2>
             <button className="v3-link" onClick={() => onJump("audit")}>
-              View all
+              {t("overview.view_all")}
             </button>
           </header>
           {stats.total === 0 ? (
-            <div className="v3-empty">Audit clean. No findings.</div>
+            <div className="v3-empty">{t("overview.audit_clean")}</div>
           ) : (
             <>
               {/* Stacked bar: proportional widths per severity, no donut. */}
               <div
                 className="v3-audit-bar"
                 role="progressbar"
-                aria-label={`${stats.total} audit findings: ${stats.crit} critical, ${stats.warn} warnings, ${stats.info} info`}
+                aria-label={t("overview.audit_bar_label", {
+                  total: stats.total,
+                  crit: stats.crit,
+                  warn: stats.warn,
+                  info: stats.info,
+                })}
               >
                 {stats.crit > 0 && (
                   <span
@@ -351,34 +367,38 @@ export function OverviewView({
                   <span className="v3-audit-tile-stripe" aria-hidden="true" />
                   <div className="v3-audit-tile-body">
                     <div className="v3-audit-tile-num">{stats.crit}</div>
-                    <div className="v3-audit-tile-label">Critical</div>
+                    <div className="v3-audit-tile-label">{t("overview.tile_critical")}</div>
                   </div>
                 </div>
                 <div className="v3-audit-tile v3-audit-tile-warn">
                   <span className="v3-audit-tile-stripe" aria-hidden="true" />
                   <div className="v3-audit-tile-body">
                     <div className="v3-audit-tile-num">{stats.warn}</div>
-                    <div className="v3-audit-tile-label">Warning</div>
+                    <div className="v3-audit-tile-label">{t("overview.tile_warning")}</div>
                   </div>
                 </div>
                 <div className="v3-audit-tile v3-audit-tile-info">
                   <span className="v3-audit-tile-stripe" aria-hidden="true" />
                   <div className="v3-audit-tile-body">
                     <div className="v3-audit-tile-num">{stats.info}</div>
-                    <div className="v3-audit-tile-label">Info</div>
+                    <div className="v3-audit-tile-label">{t("overview.tile_info")}</div>
                   </div>
                 </div>
               </div>
               <footer className="v3-audit-meta">
                 <span className="v3-audit-meta-num">{stats.total}</span>
-                <span className="v3-audit-meta-label">total findings</span>
+                <span className="v3-audit-meta-label">{t("overview.total_findings")}</span>
               </footer>
               {stats.crit > 0 && (
                 <footer className="v3-audit-foot">
                   <AlertTriangle size={14} strokeWidth={2} />
                   <span>
-                    {stats.crit} critical issue{stats.crit === 1 ? "" : "s"}{" "}
-                    need{stats.crit === 1 ? "s" : ""} your attention
+                    {plural(
+                      t,
+                      stats.crit,
+                      "overview.crit_attention_one",
+                      "overview.crit_attention_other"
+                    )}
                   </span>
                   <ChevronRight size={14} strokeWidth={2} className="v3-chev" />
                 </footer>

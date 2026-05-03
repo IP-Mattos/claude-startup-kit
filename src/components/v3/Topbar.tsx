@@ -79,21 +79,21 @@ export function Topbar({
         <button
           className="v3-wc"
           onClick={() => win?.minimize()}
-          aria-label="Minimize"
+          aria-label={t("window.minimize")}
         >
           <Minus size={14} strokeWidth={2.4} />
         </button>
         <button
           className="v3-wc"
           onClick={() => win?.toggleMaximize()}
-          aria-label={maximized ? "Restore" : "Maximize"}
+          aria-label={maximized ? t("window.restore") : t("window.maximize")}
         >
           <Square size={12} strokeWidth={2.2} />
         </button>
         <button
           className="v3-wc v3-wc-close"
           onClick={() => win?.close()}
-          aria-label="Close"
+          aria-label={t("window.close")}
         >
           <X size={14} strokeWidth={2.4} />
         </button>
