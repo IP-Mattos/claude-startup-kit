@@ -2,22 +2,67 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, desktopapp]
   pull_request:
-    branches: [main]
+    branches: [main, desktopapp]
   workflow_dispatch:
 
 jobs:
-  validate:
+  frontend:
+    name: Frontend typecheck
     runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate PowerShell syntax (.ps1)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+  rust:
+    name: Rust check
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: cargo check
+        working-directory: src-tauri
+        run: cargo check --locked
+
+  legacy-validate:
+    name: Legacy PowerShell syntax
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate PowerShell syntax (legacy/**/*.ps1)
         shell: pwsh
         run: |
-          $files = Get-ChildItem -Path . -Recurse -Include *.ps1 -File | Where-Object { $_.FullName -notmatch '\\.git\\' }
+          $files = Get-ChildItem -Path legacy -Recurse -Include *.ps1 -File -ErrorAction SilentlyContinue
+          if (-not $files) { Write-Host "No legacy .ps1 files found"; exit 0 }
           $failed = @()
           foreach ($f in $files) {
             $errors = $null
@@ -32,86 +77,3 @@ jobs:
             }
           }
           if ($failed.Count -gt 0) { exit 1 }
-
-      - name: Validate shell scripts (.sh)
-        shell: bash
-        run: |
-          set -e
-          fail=0
-          for f in $(find . -name '*.sh' -not -path './.git/*'); do
-            if bash -n "$f"; then
-              echo "OK  $f"
-            else
-              echo "::error file=$f::bash -n failed"
-              fail=1
-            fi
-          done
-          exit $fail
-
-      - name: Validate batch files (basic check)
-        shell: pwsh
-        run: |
-          # Batch files don't have a standard linter; do a minimal check that they exist + are readable + have reasonable structure
-          $bats = Get-ChildItem -Path . -Recurse -Include *.bat -File | Where-Object { $_.FullName -notmatch '\\.git\\' }
-          $fail = 0
-          foreach ($b in $bats) {
-            $content = Get-Content $b.FullName -Raw
-            if (-not $content) {
-              Write-Host "::error file=$($b.FullName)::empty .bat file"
-              $fail = 1
-              continue
-            }
-            # Sanity: must contain @echo off or start or some recognizable command
-            if ($content -notmatch '(?i)(echo|start|cmd|powershell|chcp)') {
-              Write-Host "::warning file=$($b.FullName)::.bat looks empty of recognizable commands"
-            }
-            Write-Host "OK  $($b.FullName)"
-          }
-          if ($fail -gt 0) { exit 1 }
-
-      - name: Validate JSON snippets
-        shell: pwsh
-        run: |
-          $jsons = Get-ChildItem -Path . -Recurse -Include *.json -File | Where-Object { $_.FullName -notmatch '\\.git\\' }
-          $fail = 0
-          foreach ($j in $jsons) {
-            try {
-              $null = Get-Content $j.FullName -Raw | ConvertFrom-Json -ErrorAction Stop
-              Write-Host "OK  $($j.FullName)"
-            } catch {
-              Write-Host "::error file=$($j.FullName)::invalid JSON: $($_.Exception.Message)"
-              $fail = 1
-            }
-          }
-          if ($fail -gt 0) { exit 1 }
-
-      - name: Install Pester
-        shell: pwsh
-        run: |
-          Install-Module -Name Pester -Force -SkipPublisherCheck -Scope CurrentUser
-          Import-Module Pester
-          Get-Module Pester | Select-Object Name, Version | Format-Table
-
-      - name: Run Pester tests
-        shell: pwsh
-        run: |
-          $cfg = New-PesterConfiguration
-          $cfg.Run.Path = './tests'
-          $cfg.Run.PassThru = $true
-          $cfg.Output.Verbosity = 'Detailed'
-          $cfg.TestResult.Enabled = $true
-          $cfg.TestResult.OutputPath = './pester-results.xml'
-          $r = Invoke-Pester -Configuration $cfg
-          if ($r.FailedCount -gt 0) {
-            Write-Host "::error::$($r.FailedCount) tests failed"
-            exit 1
-          }
-          Write-Host "Pester: $($r.PassedCount) passed, $($r.FailedCount) failed, $($r.SkippedCount) skipped"
-
-      - name: Upload Pester results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pester-results
-          path: pester-results.xml
-          if-no-files-found: ignore
