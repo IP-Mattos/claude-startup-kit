@@ -33,7 +33,11 @@ import {
   projectName,
 } from "../lib/format";
 import { enrichProjects } from "../lib/enrichProjects";
-import { isV3Theme, loadV3Theme } from "../lib/themes";
+import {
+  V3_THEME_OPTIONS,
+  applyAndPersistV3Theme,
+  readSavedV3Theme,
+} from "../lib/themes";
 import type { V3Theme } from "../lib/themes";
 import { parseAuditFindings } from "../lib/audit";
 import { useUpdates } from "../lib/useUpdates";
@@ -1063,45 +1067,17 @@ export function CompanionsViewV3({
 // =====================================================================
 // SettingsView
 // =====================================================================
-// V3Theme + V3_THEME_ORDER live in lib/themes — single source of truth.
-// V3_THEMES below carries the visual catalog (swatches + labels) used by the
-// theme picker grid; its `id` field is constrained to V3Theme for safety.
-const V3_THEMES: { id: V3Theme; label: string; swatch: string[] }[] = [
-  { id: "light", label: "Light", swatch: ["#F8F9FB", "#FFFFFF", "#ED7B26"] },
-  { id: "dark",  label: "Dark",  swatch: ["#0F172A", "#1E293B", "#ED7B26"] },
-];
-
-function applyV3Theme(theme: V3Theme) {
-  void loadV3Theme(theme);
-  try {
-    localStorage.setItem("csk-theme-v3", theme);
-  } catch {
-    /* ignore */
-  }
-}
-
-function readV3Theme(): V3Theme {
-  try {
-    const saved = localStorage.getItem("csk-theme-v3");
-    if (saved && isV3Theme(saved)) return saved;
-  } catch {
-    /* ignore */
-  }
-  return "light";
-}
-
 export function SettingsViewV3({
   onJumpCompanion,
 }: {
   onJumpCompanion: () => void;
 }) {
-  const [theme, setTheme] = useState<V3Theme>(() => readV3Theme());
+  const [theme, setTheme] = useState<V3Theme>(() => readSavedV3Theme());
   const updates = useUpdates();
   const { t, pref, setPref } = useT();
 
-  const pick = (t: V3Theme) => {
-    setTheme(t);
-    applyV3Theme(t);
+  const pick = (next: V3Theme) => {
+    setTheme(applyAndPersistV3Theme(next));
   };
 
   const langOptions: { value: LangPref; label: string }[] = [
@@ -1179,10 +1155,10 @@ export function SettingsViewV3({
       <article className="v3-card">
         <header className="v3-card-head">
           <h2 className="v3-card-title">Theme</h2>
-          <span className="v3-row-dim">{V3_THEMES.length} curated palettes</span>
+          <span className="v3-row-dim">{V3_THEME_OPTIONS.length} curated palettes</span>
         </header>
         <div className="v3-theme-grid">
-          {V3_THEMES.map((t) => (
+          {V3_THEME_OPTIONS.map((t) => (
             <button
               key={t.id}
               className={"v3-theme-card" + (theme === t.id ? " active" : "")}

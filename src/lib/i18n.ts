@@ -27,15 +27,6 @@ const STRINGS = {
   "nav.companions": { en: "Companions", es: "Compañeros" },
   "nav.settings": { en: "Settings", es: "Ajustes" },
 
-  // Topbar tabs (often shorter than the nav label)
-  "topbar.overview": { en: "Overview", es: "Resumen" },
-  "topbar.projects": { en: "Projects", es: "Proyectos" },
-  "topbar.prs": { en: "PRs", es: "PRs" },
-  "topbar.audit": { en: "Audit", es: "Auditoría" },
-  "topbar.cleanup": { en: "Cleanup", es: "Limpieza" },
-  "topbar.claude": { en: "Claude", es: "Claude" },
-  "topbar.settings": { en: "Settings", es: "Ajustes" },
-
   // System status (sidebar bottom card)
   "status.operational": { en: "All systems operational", es: "Todo funcionando" },
   "status.idle": { en: "Awaiting first audit", es: "Esperando primera auditoría" },
@@ -73,6 +64,15 @@ const STRINGS = {
   "ago.minutes": { en: "{n}m ago", es: "hace {n}m" },
   "ago.hours": { en: "{n}h ago", es: "hace {n}h" },
   "ago.days": { en: "{n}d ago", es: "hace {n}d" },
+
+  // Companion widget — single-line nudge, never the same data the System
+  // Status card already shows.
+  "companion.online": { en: "Online", es: "En línea" },
+  "companion.idle": { en: "Ready when you need me.", es: "Listo cuando lo necesites." },
+  "companion.has_crits": { en: "Critical issues to review.", es: "Hay cosas críticas para revisar." },
+  "companion.has_warns": { en: "Some warnings to look at.", es: "Hay advertencias para mirar." },
+  "companion.has_prs": { en: "PRs awaiting your review.", es: "PRs esperando tu review." },
+  "companion.today": { en: "Working on {project} today.", es: "Estás en {project} hoy." },
 
   // Settings
   "settings.title": { en: "Settings", es: "Ajustes" },

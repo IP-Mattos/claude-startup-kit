@@ -9,8 +9,7 @@ import type {
 } from "../types";
 import { activityLabelEn, projectName, friendlyErrorEn, prNumberFromUrl } from "../lib/format";
 import { parseAuditFindings } from "../lib/audit";
-import { nextV3Theme, loadV3Theme, readV3ThemeFromBody } from "../lib/themes";
-import type { V3Theme } from "../lib/themes";
+import { nextV3Theme, applyAndPersistV3Theme, readV3ThemeFromBody } from "../lib/themes";
 import { enrichProjects } from "../lib/enrichProjects";
 import { useUpdates } from "../lib/useUpdates";
 import { useT, plural } from "../lib/i18n";
@@ -39,7 +38,6 @@ import {
   Activity,
   AlertTriangle,
   ArrowUp,
-  BarChart3,
   Bot,
   ChevronRight,
   Code2,
@@ -49,9 +47,7 @@ import {
   GitPullRequest,
   Home,
   Minus,
-  RefreshCw,
   ShieldCheck,
-  Sparkles,
   Square,
   Trash2,
   Boxes,
@@ -69,19 +65,9 @@ type V3Tab =
   | "companions"
   | "settings";
 
-// Tab catalogs use translation keys instead of hardcoded labels. The id
+// Sidebar nav uses translation keys instead of hardcoded labels. The id
 // stays English (canonical state); the label is resolved per render via
 // useT() inside the component that consumes the array.
-const TOPBAR_TABS: { id: V3Tab; topKey: import("../lib/i18n").StringKey }[] = [
-  { id: "overview", topKey: "topbar.overview" },
-  { id: "projects", topKey: "topbar.projects" },
-  { id: "prs", topKey: "topbar.prs" },
-  { id: "audit", topKey: "topbar.audit" },
-  { id: "cleanup", topKey: "topbar.cleanup" },
-  { id: "claude", topKey: "topbar.claude" },
-  { id: "settings", topKey: "topbar.settings" },
-];
-
 const SIDEBAR_NAV: {
   id: V3Tab;
   navKey: import("../lib/i18n").StringKey;
@@ -97,14 +83,10 @@ const SIDEBAR_NAV: {
   { id: "settings", navKey: "nav.settings", Icon: Cog },
 ];
 
-// ===== Topbar (with Tauri drag region + window controls) =====
-function TopbarV3({
-  activeTab,
-  onTab,
-}: {
-  activeTab: V3Tab;
-  onTab: (t: V3Tab) => void;
-}) {
+// ===== Topbar — drag region + window controls only =====
+// Sidebar owns brand + navigation; the topbar is intentionally minimal so
+// the chrome stops competing with content.
+function TopbarV3() {
   const [maximized, setMaximized] = useState(false);
   useEffect(() => {
     const win = safeGetCurrentWindow();
@@ -126,29 +108,10 @@ function TopbarV3({
     };
   }, []);
   const win = safeGetCurrentWindow();
-  const { t } = useT();
 
   return (
     <header className="v3-topbar" data-tauri-drag-region>
-      <div className="v3-topbar-brand" data-tauri-drag-region>
-        <span className="v3-brand-mark" aria-hidden="true">
-          <img src="/Shield.svg" alt="" draggable={false} />
-        </span>
-        <span className="v3-brand-name">Claude Startup Kit</span>
-      </div>
-
-      <nav className="v3-topbar-nav" data-tauri-drag-region>
-        {TOPBAR_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            className={"v3-topbar-tab" + (activeTab === tab.id ? " active" : "")}
-            onClick={() => onTab(tab.id)}
-          >
-            {t(tab.topKey)}
-          </button>
-        ))}
-      </nav>
-
+      <div className="v3-topbar-spacer" data-tauri-drag-region />
       <div className="v3-window-controls">
         <button
           className="v3-wc"
@@ -454,6 +417,9 @@ function freshnessScore(daysAgo: number): number {
 }
 
 // ===== Companion widget =====
+// Sidebar System Status already carries the crit/warn/scan counts. The
+// companion is intentionally a soft nudge — single line that names the
+// next thing worth looking at, never repeats the numbers themselves.
 function CompanionWidget({
   companionName,
   companionImage,
@@ -461,7 +427,6 @@ function CompanionWidget({
   warnCount,
   prCount,
   todayProject,
-  onRunAudit,
 }: {
   companionName: string;
   companionImage: string | null;
@@ -469,50 +434,18 @@ function CompanionWidget({
   warnCount: number;
   prCount: number;
   todayProject: string | null;
-  onRunAudit: () => void;
 }) {
-  // Pick the most relevant single insight based on signals.
-  let messageBody: React.ReactNode;
-  if (critCount > 0) {
-    messageBody = (
-      <>
-        I've analyzed your workspace.
-        <br />
-        There are{" "}
-        <strong className="v3-companion-emph">
-          {critCount} critical issue{critCount === 1 ? "" : "s"}
-        </strong>{" "}
-        that should be addressed.
-      </>
-    );
-  } else if (warnCount > 0) {
-    messageBody = (
-      <>
-        Audit clean on critical. {warnCount} warning
-        {warnCount === 1 ? "" : "s"} you can address when you have time.
-      </>
-    );
-  } else if (prCount > 0) {
-    messageBody = (
-      <>
-        Workspace healthy. You have{" "}
-        <strong className="v3-companion-emph">
-          {prCount} pull request{prCount === 1 ? "" : "s"}
-        </strong>{" "}
-        waiting for review.
-      </>
-    );
-  } else if (todayProject) {
-    messageBody = (
-      <>
-        You've been working on{" "}
-        <strong className="v3-companion-emph">{todayProject}</strong> today. Audit's
-        clean.
-      </>
-    );
-  } else {
-    messageBody = <>All systems clear. Nothing to flag right now.</>;
-  }
+  const { t } = useT();
+  const message =
+    critCount > 0
+      ? t("companion.has_crits")
+      : warnCount > 0
+      ? t("companion.has_warns")
+      : prCount > 0
+      ? t("companion.has_prs")
+      : todayProject
+      ? t("companion.today", { project: todayProject })
+      : t("companion.idle");
 
   const avatarSrc = companionImage ?? "/Sia2.webp";
 
@@ -522,7 +455,7 @@ function CompanionWidget({
         <span className="v3-companion-title">{companionName}</span>
         <span className="v3-companion-status">
           <span className="v3-status-dot" aria-hidden="true" />
-          Online
+          {t("companion.online")}
         </span>
       </header>
       <div className="v3-companion-stage">
@@ -530,66 +463,23 @@ function CompanionWidget({
           <img src={avatarSrc} alt="" draggable={false} />
         </div>
       </div>
-      <div className="v3-companion-message">{messageBody}</div>
-      <div className="v3-companion-actions">
-        <button className="v3-btn-primary" onClick={onRunAudit}>
-          <Sparkles size={13} strokeWidth={2} />
-          Run Smart Audit
-        </button>
-      </div>
-    </section>
-  );
-}
-
-// ===== Quick actions =====
-function QuickActions({
-  onJump,
-  onRefreshAll,
-}: {
-  onJump: (tab: V3Tab) => void;
-  onRefreshAll: () => void;
-}) {
-  const items: { Icon: typeof Home; label: string; onClick: () => void }[] = [
-    { Icon: FolderOpen, label: "Browse Projects", onClick: () => onJump("projects") },
-    { Icon: GitPullRequest, label: "Open PR Queue", onClick: () => onJump("prs") },
-    { Icon: Trash2, label: "Run Cleanup", onClick: () => onJump("cleanup") },
-    { Icon: BarChart3, label: "View Audit", onClick: () => onJump("audit") },
-    { Icon: RefreshCw, label: "Refresh Overview", onClick: onRefreshAll },
-  ];
-  return (
-    <section className="v3-quick-actions">
-      <header className="v3-quick-actions-head">Quick Actions</header>
-      <div className="v3-quick-actions-list">
-        {items.map(({ Icon, label, onClick }) => (
-          <button key={label} className="v3-quick-action" onClick={onClick}>
-            <Icon size={14} strokeWidth={1.8} />
-            <span>{label}</span>
-          </button>
-        ))}
-      </div>
+      <div className="v3-companion-message">{message}</div>
     </section>
   );
 }
 
 // ===== Status bar =====
-// Right side carries real, live signals (project count, finding count, clock)
-// instead of fake editor-style metadata. The clock ticks once a minute.
-function StatusBarV3({
-  projectCount,
-  findingCount,
-  lastScanAgo,
-}: {
-  projectCount: number;
-  findingCount: number;
-  lastScanAgo: string;
-}) {
+// Statusbar is reduced to identity (version + ready state) on the left and
+// a live clock + activity dot on the right. Project/finding counts moved
+// out — they're already shown in the sidebar System Status card and the
+// per-tab headers.
+function StatusBarV3() {
   const [now, setNow] = useState<Date>(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
   const { t, lang } = useT();
-  // Match the clock format to the active locale (24h for es by default).
   const time = now.toLocaleTimeString(lang === "es" ? "es-AR" : "en-US", {
     hour: "2-digit",
     minute: "2-digit",
@@ -602,9 +492,6 @@ function StatusBarV3({
         <span className="v3-statusbar-state">{t("statusbar.ready")}</span>
       </div>
       <div className="v3-statusbar-right">
-        <span>{plural(t, projectCount, "statusbar.projects_one", "statusbar.projects_other")}</span>
-        <span>{plural(t, findingCount, "statusbar.findings_one", "statusbar.findings_other")}</span>
-        <span>{t("statusbar.scan", { ago: lastScanAgo })}</span>
         <span>{time}</span>
         <span className="v3-statusbar-dot" aria-hidden="true" />
       </div>
@@ -843,16 +730,6 @@ function pickGreeting(
   return t("greeting.evening");
 }
 
-// V3 themes — must match the keys in AppV3.css and views.tsx picker.
-function applyV3ThemeToBody(theme: V3Theme) {
-  void loadV3Theme(theme);
-  try {
-    localStorage.setItem("csk-theme-v3", theme);
-  } catch {
-    /* ignore */
-  }
-}
-
 // Tab order matches sidebar (8 entries → Ctrl+1..8).
 const KEYBOARD_TAB_ORDER: ReadonlyArray<V3Tab> = [
   "overview",
@@ -1033,7 +910,7 @@ export default function AppV3() {
   const handleRunAudit = () => setRefreshNonce((n) => n + 1);
 
   const handleCycleTheme = () => {
-    applyV3ThemeToBody(nextV3Theme(readV3ThemeFromBody()));
+    applyAndPersistV3Theme(nextV3Theme(readV3ThemeFromBody()));
   };
 
   // Keyboard shortcuts
@@ -1076,7 +953,7 @@ export default function AppV3() {
 
   return (
     <div className="appv3">
-      <TopbarV3 activeTab={tab} onTab={setTab} />
+      <TopbarV3 />
       <div className="appv3-body">
         <SidebarV3
           activeTab={tab}
@@ -1206,16 +1083,10 @@ export default function AppV3() {
             warnCount={stats.warn}
             prCount={prs.length}
             todayProject={todayProject}
-            onRunAudit={handleRunAudit}
           />
-          <QuickActions onJump={setTab} onRefreshAll={handleRunAudit} />
         </aside>
       </div>
-      <StatusBarV3
-        projectCount={projects.length}
-        findingCount={findings.length}
-        lastScanAgo={agoLabel(lastScanAt, t)}
-      />
+      <StatusBarV3 />
     </div>
   );
 }

@@ -6,6 +6,43 @@ export const V3_THEME_ORDER = ["light", "dark"] as const;
 
 export type V3Theme = (typeof V3_THEME_ORDER)[number];
 
+// Visual catalog for the Settings theme picker. Co-located with the type so
+// the swatch data and the order can't drift apart.
+export interface V3ThemeOption {
+  id: V3Theme;
+  label: string;
+  swatch: [string, string, string];
+}
+export const V3_THEME_OPTIONS: V3ThemeOption[] = [
+  { id: "light", label: "Light", swatch: ["#F8F9FB", "#FFFFFF", "#ED7B26"] },
+  { id: "dark", label: "Dark", swatch: ["#0F172A", "#1E293B", "#ED7B26"] },
+];
+
+// One-shot apply: load CSS + persist + set body attribute. Both the cycle
+// shortcut (AppV3) and the picker (views) call this. Returns the resolved
+// theme so callers can update local state without re-reading.
+export function applyAndPersistV3Theme(theme: V3Theme): V3Theme {
+  void loadV3Theme(theme);
+  try {
+    localStorage.setItem("csk-theme-v3", theme);
+  } catch {
+    /* localStorage unavailable — applied to body, not persisted */
+  }
+  return theme;
+}
+
+// Read the saved preference or fall back to whatever <body> has now (for
+// when localStorage is wiped but the boot script already attached a theme).
+export function readSavedV3Theme(): V3Theme {
+  try {
+    const saved = localStorage.getItem("csk-theme-v3");
+    if (saved && isV3Theme(saved)) return saved;
+  } catch {
+    /* ignore */
+  }
+  return readV3ThemeFromBody();
+}
+
 // Vite import.meta.glob with eager:false returns lazy module loaders that
 // trigger a network request only when called. This is what gives us the
 // per-theme code-split chunks. No `as: "url"` — Vite injects the CSS into
