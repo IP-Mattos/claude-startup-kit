@@ -1206,6 +1206,14 @@ body.v3-layout #root {
   justify-content: space-between;
   margin-bottom: 14px;
 }
+/* Right-side button cluster inside a card header. Used by Settings → Stack
+   tools to place "Check now" + "Update all" side by side without forcing
+   each card that uses a single link/button to wrap in a container. */
+.v3-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .v3-card-title {
   margin: 0;
   font-size: 15px;

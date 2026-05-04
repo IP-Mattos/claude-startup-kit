@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.14 — 2026-05-05
+
+### Added
+- **Stack tools card in Settings → Updates** — new section that maps over `check_stack_updates()` and lists every tool gentle-ai manages (engram, gga, opencode-subagent-statusline, opencode-sdd-engram-manage, gentle-ai itself). Each row shows name, current/latest versions, and per-row state (`up to date`, `vX.Y → vX.Y+1`, or `not installed`). When upstream gentle-ai adds a new tool to its catalog, it appears here automatically — zero CSK code changes required.
+- **"Update all" button** that runs `gentle-ai upgrade` across the whole stack in one click. Gated behind a `<ConfirmModal>` because it kills running tool processes (engram, gga) so Windows can replace the binaries.
+- **`useStackUpdates` hook** with the same 24h-cooldown pattern as `useUpdates`, persisted in localStorage; manual "Buscar ahora" forces a refresh.
+- ~10 new i18n keys (en + es): `settings.stack_*`.
+
+### Changed
+- **`apply_stack_updates` now kills `engram.exe` / `gga.exe` before delegating to `gentle-ai upgrade`** — gentle-ai upstream doesn't do this dance itself, so on Windows the upgrade was failing with "rename ...engram-upgrade-N" because the binary was live (MCP servers spawned by every active Claude Code session). CSK fills the gap so single-click stack updates actually work.
+- **Settings → Updates card no longer shows the per-row gentle-ai entry** — gentle-ai is part of the Stack tools card now. CSK self-update stays in Updates because Tauri-plugin atomic-restart is conceptually distinct.
+
+### Note
+Single source of truth for the stack is now `gentle-ai update`. CSK parses its table — no `--json` flag needed (the format is regular). When gentle-ai upstream gets a `--json` flag, swap the parser; rest of the flow is the same.
+
 ## 0.1.13 — 2026-05-05
 
 ### Added (backend only — UI lands in v0.1.14)

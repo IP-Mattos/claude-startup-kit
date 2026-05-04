@@ -12,8 +12,11 @@ import {
 } from "../../lib/themes";
 import type { V3Theme } from "../../lib/themes";
 import { useUpdates } from "../../lib/useUpdates";
+import { useStackUpdates } from "../../lib/useStackUpdates";
+import type { StackToolStatus } from "../../lib/useStackUpdates";
 import { useT } from "../../lib/i18n";
 import type { LangPref } from "../../lib/i18n";
+import { ConfirmModal } from "../../components/v3/ConfirmModal";
 
 const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -21,6 +24,8 @@ const IS_TAURI =
 export function SettingsView() {
   const [theme, setTheme] = useState<V3Theme>(() => readSavedV3Theme());
   const updates = useUpdates();
+  const stack = useStackUpdates();
+  const [confirmingApplyAll, setConfirmingApplyAll] = useState(false);
   const { t, pref, setPref } = useT();
 
   // Autostart state: read once from the OS on mount, then mirror locally
@@ -120,15 +125,6 @@ export function SettingsView() {
             }}
             applying={updates.applyingApp}
           />
-          <UpdateRow
-            label={t("settings.update_gentle_ai_label")}
-            status={updates.gentleAi}
-            notConfiguredHint={t("settings.update_gentle_ai_hint")}
-            onApply={() => {
-              void updates.applyGentleAi();
-            }}
-            applying={updates.checking}
-          />
           {updates.error && (
             <div className="v3-error" role="alert" aria-live="assertive">
               {updates.error}
@@ -137,6 +133,69 @@ export function SettingsView() {
           <p className="v3-row-meta">{t("settings.updates_auto_hint")}</p>
         </div>
       </article>
+
+      <article className="v3-card">
+        <header className="v3-card-head">
+          <h2 className="v3-card-title">{t("settings.stack_title")}</h2>
+          <div className="v3-card-actions">
+            <button
+              type="button"
+              className="v3-link"
+              onClick={stack.checkNow}
+              disabled={stack.loading || stack.applying}
+            >
+              {stack.loading ? t("settings.checking") : t("settings.check_now")}
+            </button>
+            <button
+              type="button"
+              className="v3-btn-primary v3-btn-sm"
+              onClick={() => setConfirmingApplyAll(true)}
+              disabled={
+                stack.applying ||
+                stack.loading ||
+                !stack.tools.some((t) => t.state === "update_available")
+              }
+              title={t("settings.stack_apply_all_title")}
+            >
+              {stack.applying
+                ? t("settings.stack_applying")
+                : t("settings.stack_apply_all")}
+            </button>
+          </div>
+        </header>
+        <div className="v3-form">
+          {stack.tools.length === 0 ? (
+            <div className="v3-row-meta">
+              {stack.loading
+                ? t("common.loading")
+                : t("settings.stack_empty")}
+            </div>
+          ) : (
+            stack.tools.map((tool) => (
+              <StackToolRow key={tool.name} tool={tool} />
+            ))
+          )}
+          {stack.error && (
+            <div className="v3-error" role="alert" aria-live="assertive">
+              {stack.error}
+            </div>
+          )}
+          <p className="v3-row-meta">{t("settings.stack_hint")}</p>
+        </div>
+      </article>
+
+      <ConfirmModal
+        open={confirmingApplyAll}
+        title={t("settings.stack_confirm_title")}
+        message={t("settings.stack_confirm_message")}
+        confirmLabel={t("settings.stack_apply_all")}
+        cancelLabel={t("common.cancel")}
+        onCancel={() => setConfirmingApplyAll(false)}
+        onConfirm={() => {
+          setConfirmingApplyAll(false);
+          void stack.applyAll();
+        }}
+      />
 
       <article className="v3-card">
         <header className="v3-card-head">
@@ -292,6 +351,44 @@ function UpdateRow({
       <div className="v3-update-row-label">{label}</div>
       <div className="v3-update-row-status v3-update-row-status-ok">
         v{status.current} · {t("settings.update_up_to_date")}
+      </div>
+    </div>
+  );
+}
+
+// Renders one row of the Stack tools card. Visual contract mirrors
+// `<UpdateRow>` so the two cards (CSK self-update vs gentle-ai-managed
+// stack) feel like one continuous list. We deliberately don't surface a
+// per-row "Update" button here — `gentle-ai upgrade` is all-or-nothing
+// upstream; the global "Actualizar todo" button does the work.
+function StackToolRow({ tool }: { tool: StackToolStatus }) {
+  const { t } = useT();
+  if (tool.state === "not_installed") {
+    return (
+      <div className="v3-update-row">
+        <div className="v3-update-row-label">{tool.name}</div>
+        <div className="v3-update-row-status v3-update-row-status-dim">
+          {t("settings.stack_state_not_installed", { latest: tool.latest })}
+        </div>
+      </div>
+    );
+  }
+  if (tool.state === "update_available") {
+    return (
+      <div className="v3-update-row">
+        <div className="v3-update-row-label">{tool.name}</div>
+        <div className="v3-update-row-status v3-update-row-status-warn">
+          v{tool.installed} → v{tool.latest}
+        </div>
+      </div>
+    );
+  }
+  // up_to_date or unknown future state — render as if up to date.
+  return (
+    <div className="v3-update-row">
+      <div className="v3-update-row-label">{tool.name}</div>
+      <div className="v3-update-row-status v3-update-row-status-ok">
+        v{tool.installed ?? tool.latest} · {t("settings.update_up_to_date")}
       </div>
     </div>
   );
