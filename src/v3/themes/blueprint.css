@@ -1,0 +1,253 @@
+/* =============================================================
+   V3 Theme: BLUEPRINT
+   Identity: deep blueprint-blue paper with thin white component
+   lines, faint drafting grid, dimension-line accents. Reads like
+   a mechanical drawing — orthographic, labeled, schematic.
+   Reference moods: AutoCAD model space, IKEA assembly diagrams,
+   KiCad schematic capture, mid-century engineering blueprints.
+   Differentiator vs lunar-hud: drafting paper, not HUD telemetry.
+   ============================================================= */
+
+/* Body background: classic cyanotype indigo. */
+body.v3-layout[data-theme-v3="blueprint"] {
+  background: #0B2545;
+}
+
+body[data-theme-v3="blueprint"] .appv3 {
+  /* ── Surface — blueprint paper stack ─────────────────────── */
+  --v3-bg:            #0B2545;          /* deep cyanotype indigo */
+  --v3-surface:       #103968;          /* drafting sheet */
+  --v3-surface-2:     #134678;          /* raised callout panel */
+  --v3-hover:         #1A5490;          /* hovered drawing region */
+  --v3-border:        #2E5C8A;          /* dimension-line blue */
+  --v3-border-strong: #6FA8DC;          /* component outline (visible white-blue) */
+
+  /* ── Type — chalk/ink on blueprint ───────────────────────── */
+  /* #B8D4F0 on #103968 ≈ 7.2:1 — AAA. #8FB4D8 on surface ≈ 4.9:1 — AA. */
+  --v3-text:   #F5FAFF;                 /* drafting white — never pure */
+  --v3-text-2: #D6E6F5;                 /* annotation primary */
+  --v3-text-3: #8FB4D8;                 /* dimension label / metadata */
+  --v3-text-4: #5C7FA3;                 /* erased construction lines */
+
+  /* ── Accent — DRAFTING WHITE-CYAN (the ink) ──────────────── */
+  /* The pen itself: a near-white line with a hair of cyan. This is
+     what makes blueprints feel like drawings instead of HUDs. */
+  --v3-accent:       #E8F4FF;
+  --v3-accent-hover: #FFFFFF;
+  --v3-accent-tint:  rgba(232, 244, 255, 0.08);
+  --v3-accent-soft:  rgba(232, 244, 255, 0.14);
+
+  /* ── Semantic — restrained, drafting-ink palette ─────────── */
+  --v3-success:      #7FD8A8;           /* mild revision-stamp green */
+  --v3-success-tint: rgba(127, 216, 168, 0.14);
+  --v3-warn:         #F5C572;           /* tracing-paper amber */
+  --v3-warn-tint:    rgba(245, 197, 114, 0.14);
+  --v3-info:         #82B8FF;           /* secondary callout blue */
+  --v3-info-tint:    rgba(130, 184, 255, 0.14);
+  --v3-crit:         #FF8A8A;           /* red-pencil correction */
+  --v3-crit-tint:    rgba(255, 138, 138, 0.13);
+
+  /* ── Shadows — flat. Blueprints don't cast shadows. ──────── */
+  /* Reduced on purpose: the drawing aesthetic is 2D. We trade
+     depth-shadows for crisper outline borders. */
+  --v3-shadow-1: 0 0 0 1px rgba(111, 168, 220, 0.12);
+  --v3-shadow-2: 0 1px 0 0 rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(111, 168, 220, 0.18);
+  --v3-shadow-3: 0 2px 0 0 rgba(0, 0, 0, 0.30), 0 0 0 1px rgba(111, 168, 220, 0.30);
+}
+
+/* ── Body wash: subtle vignette so edges feel like paper ────── */
+body.v3-layout[data-theme-v3="blueprint"] .appv3 {
+  background: radial-gradient(ellipse 130% 90% at 50% 0%, #103968 0%, #0B2545 70%);
+}
+
+/* ── Content area: drafting-paper grid (10px minor / 50px major) */
+/* Two stacked repeating-linear-gradients build a fine-line grid
+   overlay. White-blue ink at very low opacity so it reads as
+   "graph paper" rather than noise. The 50px major lines are 2x
+   denser, evoking architectural drafting sheets. */
+body[data-theme-v3="blueprint"] .appv3-content {
+  background-color: var(--v3-bg);
+  background-image:
+    /* major vertical */
+    repeating-linear-gradient(90deg,
+      rgba(232, 244, 255, 0.055) 0px,
+      rgba(232, 244, 255, 0.055) 1px,
+      transparent 1px,
+      transparent 50px),
+    /* major horizontal */
+    repeating-linear-gradient(0deg,
+      rgba(232, 244, 255, 0.055) 0px,
+      rgba(232, 244, 255, 0.055) 1px,
+      transparent 1px,
+      transparent 50px),
+    /* minor vertical */
+    repeating-linear-gradient(90deg,
+      rgba(232, 244, 255, 0.022) 0px,
+      rgba(232, 244, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 10px),
+    /* minor horizontal */
+    repeating-linear-gradient(0deg,
+      rgba(232, 244, 255, 0.022) 0px,
+      rgba(232, 244, 255, 0.022) 1px,
+      transparent 1px,
+      transparent 10px);
+}
+
+/* ── Topbar: title-block bar, double rule like a drawing sheet  */
+body[data-theme-v3="blueprint"] .v3-topbar {
+  border-bottom-color: transparent;
+  box-shadow:
+    0 1px 0 0 var(--v3-border-strong),
+    0 3px 0 0 rgba(111, 168, 220, 0.25);   /* second rule = title-block */
+}
+
+/* ── Stat cards: white component-line outline, never filled ─── */
+/* Idle state already shows the component outline crisply — the
+   blueprint move is that everything is drawn with lines. */
+body[data-theme-v3="blueprint"] .v3-stat-card {
+  background: var(--v3-surface);
+  background-image: none;
+  border-color: var(--v3-border-strong);
+  border-width: 1px;
+  position: relative;
+}
+body[data-theme-v3="blueprint"] .v3-stat-card:hover {
+  border-color: var(--v3-accent);
+  box-shadow:
+    0 0 0 1px var(--v3-accent),
+    inset 0 0 0 1px rgba(232, 244, 255, 0.10);
+}
+
+/* Tick-mark dimension brackets at corners on hover — like a
+   dimensioned part on a drawing. */
+body[data-theme-v3="blueprint"] .v3-stat-card::before,
+body[data-theme-v3="blueprint"] .v3-stat-card::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 1px;
+  background: var(--v3-accent);
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+body[data-theme-v3="blueprint"] .v3-stat-card::before { top: -1px; left: -1px; box-shadow: 0 0 0 0, 1px 0 0 var(--v3-accent), 0 1px 0 var(--v3-accent), 0 9px 0 var(--v3-accent); }
+body[data-theme-v3="blueprint"] .v3-stat-card::after  { bottom: -1px; right: -1px; box-shadow: -1px 0 0 var(--v3-accent), 0 -1px 0 var(--v3-accent), 0 -9px 0 var(--v3-accent); }
+body[data-theme-v3="blueprint"] .v3-stat-card:hover::before,
+body[data-theme-v3="blueprint"] .v3-stat-card:hover::after { opacity: 1; }
+
+/* ── Rows: white outline on hover (no glow — drawings are flat) */
+body[data-theme-v3="blueprint"] .v3-row:hover {
+  border-color: var(--v3-accent);
+  box-shadow: 0 0 0 1px rgba(232, 244, 255, 0.55);
+}
+
+/* ── Sidebar active link: dimension-line leader on the left ──  */
+body[data-theme-v3="blueprint"] .v3-side-link.active {
+  background: var(--v3-accent-tint);
+  color: var(--v3-accent);
+  box-shadow: inset 3px 0 0 var(--v3-accent), inset 4px 0 0 var(--v3-bg), inset 5px 0 0 var(--v3-accent);
+}
+
+/* ── Companion stage: cool indigo wash from below ───────────── */
+body[data-theme-v3="blueprint"] .v3-companion-stage {
+  background: radial-gradient(ellipse 90% 80% at 50% 100%,
+    rgba(232, 244, 255, 0.07) 0%,
+    rgba(232, 244, 255, 0.02) 50%,
+    transparent 100%);
+}
+
+/* ── Focus visible: thin white drafting outline ─────────────── */
+body[data-theme-v3="blueprint"] .appv3 button:focus-visible,
+body[data-theme-v3="blueprint"] .appv3 a:focus-visible,
+body[data-theme-v3="blueprint"] .appv3 input:focus-visible,
+body[data-theme-v3="blueprint"] .appv3 select:focus-visible {
+  outline: 1px dashed var(--v3-accent);     /* dashed = construction line */
+  outline-offset: 3px;
+  box-shadow: 0 0 0 1px rgba(232, 244, 255, 0.20);
+}
+
+/* ── Stat icon tints — re-skinned to ink-on-blueprint ───────── */
+body[data-theme-v3="blueprint"] .v3-stat-icon-orange {
+  background: rgba(232, 244, 255, 0.10);
+  color: var(--v3-accent);
+}
+body[data-theme-v3="blueprint"] .v3-stat-icon-purple {
+  background: rgba(180, 200, 240, 0.12);
+  color: #C8D4F0;
+}
+body[data-theme-v3="blueprint"] .v3-stat-icon-amber {
+  background: rgba(245, 197, 114, 0.14);
+  color: var(--v3-warn);
+}
+body[data-theme-v3="blueprint"] .v3-stat-icon-green {
+  background: rgba(127, 216, 168, 0.14);
+  color: var(--v3-success);
+}
+
+/* ── PR pill / row icon ─────────────────────────────────────── */
+body[data-theme-v3="blueprint"] .v3-pr-pill-review {
+  background: rgba(180, 200, 240, 0.14);
+  color: #C8D4F0;
+}
+body[data-theme-v3="blueprint"] .v3-row-pr .v3-row-icon {
+  background: rgba(180, 200, 240, 0.12);
+  color: #C8D4F0;
+}
+
+/* ── Audit alert banner ─────────────────────────────────────── */
+body[data-theme-v3="blueprint"] .v3-audit-foot {
+  background: rgba(245, 197, 114, 0.10);
+  border-color: rgba(245, 197, 114, 0.40);
+  color: var(--v3-warn);
+}
+body[data-theme-v3="blueprint"] .v3-audit-foot .v3-chev { color: var(--v3-warn); }
+
+/* ── Audit findings — drafted with thin colored leaders ─────── */
+body[data-theme-v3="blueprint"] .v3-finding-crit {
+  border-color: rgba(255, 138, 138, 0.40);
+  background: rgba(255, 138, 138, 0.06);
+}
+body[data-theme-v3="blueprint"] .v3-finding-warn {
+  border-color: rgba(245, 197, 114, 0.40);
+  background: rgba(245, 197, 114, 0.06);
+}
+body[data-theme-v3="blueprint"] .v3-finding-info {
+  border-color: rgba(130, 184, 255, 0.40);
+  background: rgba(130, 184, 255, 0.06);
+}
+body[data-theme-v3="blueprint"] .v3-finding-ok {
+  border-color: rgba(127, 216, 168, 0.40);
+  background: rgba(127, 216, 168, 0.06);
+}
+
+/* ── Banners ────────────────────────────────────────────────── */
+body[data-theme-v3="blueprint"] .v3-error {
+  background: rgba(255, 138, 138, 0.10);
+  border-color: rgba(255, 138, 138, 0.40);
+  color: #FFB3B3;
+}
+body[data-theme-v3="blueprint"] .v3-success {
+  background: rgba(127, 216, 168, 0.10);
+  border-color: rgba(127, 216, 168, 0.38);
+  color: #A8E6C5;
+}
+
+/* ── Chip.active — drawing-stamp inversion ──────────────────── */
+body[data-theme-v3="blueprint"] .v3-chip.active {
+  background: var(--v3-accent);
+  border-color: var(--v3-accent);
+  color: var(--v3-bg);
+}
+
+/* ── Scrollbar: thin white ink line ─────────────────────────── */
+body[data-theme-v3="blueprint"] .appv3 ::-webkit-scrollbar-thumb {
+  background: rgba(232, 244, 255, 0.30);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+body[data-theme-v3="blueprint"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: rgba(232, 244, 255, 0.55);
+  background-clip: content-box;
+}

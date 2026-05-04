@@ -1,0 +1,245 @@
+/* =============================================================
+   V3 Theme: SATELLITE
+   Identity: ground-station mission control. Deep navy panels,
+   signal-cyan readouts, thin technical hairlines. Reads like a
+   GPS-receiver rack or NASA telemetry console — not a HUD,
+   not a game UI. Bloomberg-dark calm, instrument-grade.
+   Reference moods: SpaceX flight control, Apollo MOCR, GNSS
+   ground racks, Bloomberg Terminal dark, GPredict.
+   ============================================================= */
+
+/* ── Body background: deep navy, near-black at edges ─────────── */
+body.v3-layout[data-theme-v3="satellite"] {
+  background: #050B14;            /* near-black space-blue */
+}
+
+body[data-theme-v3="satellite"] .appv3 {
+  /* ── Surface: navy stack, no warmth, flat panels ─────────── */
+  --v3-bg:            #060D17;    /* deep ops navy */
+  --v3-surface:       #0B1422;    /* primary panel — rack-mount blue */
+  --v3-surface-2:     #0F1B2D;    /* card surface — one stop lifted */
+  --v3-hover:         #14253B;    /* hover: a touch more cyan-saturated */
+  --v3-border:        #1B2C44;    /* hairline navy */
+  --v3-border-strong: #2B4366;    /* visible but cool */
+
+  /* ── Type: cool slate, never warm ────────────────────────── */
+  /* #8FA8C9 on #0B1422 ≈ 6.4:1 — AA. #6A82A3 on surface ≈ 4.7:1 — AA. */
+  --v3-text:   #DCE8F7;           /* off-white — slight cyan cast */
+  --v3-text-2: #ADC0DC;           /* readout primary */
+  --v3-text-3: #8FA8C9;           /* meta / labels */
+  --v3-text-4: #6A82A3;           /* dim / decorative */
+
+  /* ── Accent: SIGNAL CYAN — telemetry green-cyan, not icy ── */
+  --v3-accent:       #2DD4D4;     /* signal cyan — saturated, alive */
+  --v3-accent-hover: #4DEAEA;
+  --v3-accent-tint:  rgba(45, 212, 212, 0.10);
+  --v3-accent-soft:  rgba(45, 212, 212, 0.18);
+
+  /* ── Semantic: instrument-panel palette ──────────────────── */
+  --v3-success:      #4ADE80;     /* lock-acquired green */
+  --v3-success-tint: rgba(74, 222, 128, 0.14);
+  --v3-warn:         #F5A524;     /* caution amber — heavier than HUD */
+  --v3-warn-tint:    rgba(245, 165, 36, 0.14);
+  /* Info: a deeper sky blue — distinct from the cyan accent */
+  --v3-info:         #5B9BFF;
+  --v3-info-tint:    rgba(91, 155, 255, 0.14);
+  --v3-crit:         #FF5577;     /* alert red — slightly pinker than HUD red */
+  --v3-crit-tint:    rgba(255, 85, 119, 0.14);
+
+  /* ── Shadows: cool, deep — like rack shadows in a dark NOC ─ */
+  --v3-shadow-1: 0 1px 2px rgba(0, 8, 20, 0.55);
+  --v3-shadow-2: 0 2px 10px rgba(0, 8, 20, 0.65), 0 1px 2px rgba(0, 0, 0, 0.40);
+  --v3-shadow-3: 0 10px 32px rgba(0, 8, 20, 0.75), 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Body: subtle navy gradient, top-anchored cool glow ──────── */
+body.v3-layout[data-theme-v3="satellite"] .appv3 {
+  background: radial-gradient(ellipse 130% 50% at 50% 0%, #0B1422 0%, #060D17 65%);
+}
+
+/* ── Content area: faint orbital grid (10px x 40px) ──────────── */
+/* Suggests a coordinate grid on a tracking display — barely visible. */
+body[data-theme-v3="satellite"] .appv3-content {
+  background-color: var(--v3-bg);
+  background-image:
+    repeating-linear-gradient(0deg,   rgba(45, 212, 212, 0.018) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(90deg,  rgba(45, 212, 212, 0.018) 0 1px, transparent 1px 40px);
+}
+
+/* ── Topbar: thin signal-cyan hairline on bottom ─────────────── */
+body[data-theme-v3="satellite"] .v3-topbar {
+  border-bottom-color: transparent;
+  box-shadow:
+    0 1px 0 0 var(--v3-border),
+    inset 0 -1px 0 0 rgba(45, 212, 212, 0.10);
+}
+
+/* ── Stat cards: instrument bezel — corner tick marks on hover ─ */
+body[data-theme-v3="satellite"] .v3-stat-card {
+  background: var(--v3-surface-2);
+  position: relative;
+}
+body[data-theme-v3="satellite"] .v3-stat-card:hover {
+  border-color: rgba(45, 212, 212, 0.40);
+  box-shadow:
+    var(--v3-shadow-2),
+    0 0 0 1px rgba(45, 212, 212, 0.22),
+    0 0 24px -8px rgba(45, 212, 212, 0.30);
+}
+/* Single tick mark — top-right corner — like a calibration mark on a dial */
+body[data-theme-v3="satellite"] .v3-stat-card::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 1px;
+  background: var(--v3-accent);
+  opacity: 0;
+  transition: opacity 160ms ease;
+  box-shadow: 0 2px 0 0 var(--v3-accent);  /* second tick stacked below */
+}
+body[data-theme-v3="satellite"] .v3-stat-card:hover::after {
+  opacity: 0.85;
+}
+
+/* ── Rows: cyan ring on hover, subtle ────────────────────────── */
+body[data-theme-v3="satellite"] .v3-row:hover {
+  border-color: rgba(45, 212, 212, 0.32);
+  box-shadow:
+    var(--v3-shadow-2),
+    0 0 0 1px rgba(45, 212, 212, 0.18);
+}
+
+/* ── Sidebar active link: solid cyan rail + tint ─────────────── */
+body[data-theme-v3="satellite"] .v3-side-link.active {
+  background: var(--v3-accent-tint);
+  color: var(--v3-accent);
+  box-shadow: inset 3px 0 0 var(--v3-accent);
+}
+
+/* ── Companion stage: cool cyan radial from below ────────────── */
+body[data-theme-v3="satellite"] .v3-companion-stage {
+  background: radial-gradient(
+    ellipse 90% 80% at 50% 100%,
+    rgba(45, 212, 212, 0.10) 0%,
+    rgba(45, 212, 212, 0.03) 50%,
+    transparent 100%
+  );
+}
+
+/* ── Focus visible: cyan instrument outline ──────────────────── */
+body[data-theme-v3="satellite"] .appv3 button:focus-visible,
+body[data-theme-v3="satellite"] .appv3 a:focus-visible,
+body[data-theme-v3="satellite"] .appv3 input:focus-visible,
+body[data-theme-v3="satellite"] .appv3 select:focus-visible {
+  outline: 1px solid var(--v3-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(45, 212, 212, 0.18);
+}
+
+/* ── Stat icon tints: cool palette across the board ──────────── */
+body[data-theme-v3="satellite"] .v3-stat-icon-orange {
+  background: rgba(45, 212, 212, 0.14);
+  color: var(--v3-accent);
+}
+body[data-theme-v3="satellite"] .v3-stat-icon-purple {
+  background: rgba(91, 155, 255, 0.14);
+  color: #8AB4FF;                 /* shifted toward sky-blue, not violet */
+}
+body[data-theme-v3="satellite"] .v3-stat-icon-amber {
+  background: rgba(245, 165, 36, 0.14);
+  color: var(--v3-warn);
+}
+body[data-theme-v3="satellite"] .v3-stat-icon-green {
+  background: rgba(74, 222, 128, 0.14);
+  color: var(--v3-success);
+}
+
+/* ── PR pill / row icon ──────────────────────────────────────── */
+body[data-theme-v3="satellite"] .v3-pr-pill-review {
+  background: rgba(91, 155, 255, 0.16);
+  color: #8AB4FF;
+}
+body[data-theme-v3="satellite"] .v3-row-pr .v3-row-icon {
+  background: rgba(91, 155, 255, 0.14);
+  color: #8AB4FF;
+}
+
+/* ── Audit alert banner ──────────────────────────────────────── */
+body[data-theme-v3="satellite"] .v3-audit-foot {
+  background: rgba(245, 165, 36, 0.10);
+  border-color: rgba(245, 165, 36, 0.32);
+  color: var(--v3-warn);
+}
+body[data-theme-v3="satellite"] .v3-audit-foot .v3-chev {
+  color: var(--v3-warn);
+}
+
+/* ── Audit findings ──────────────────────────────────────────── */
+body[data-theme-v3="satellite"] .v3-finding-crit {
+  border-color: rgba(255, 85, 119, 0.30);
+  background: rgba(255, 85, 119, 0.07);
+}
+body[data-theme-v3="satellite"] .v3-finding-warn {
+  border-color: rgba(245, 165, 36, 0.30);
+  background: rgba(245, 165, 36, 0.07);
+}
+body[data-theme-v3="satellite"] .v3-finding-info {
+  border-color: rgba(91, 155, 255, 0.28);
+  background: rgba(91, 155, 255, 0.07);
+}
+body[data-theme-v3="satellite"] .v3-finding-ok {
+  border-color: rgba(74, 222, 128, 0.28);
+  background: rgba(74, 222, 128, 0.07);
+}
+
+/* ── Banners ─────────────────────────────────────────────────── */
+body[data-theme-v3="satellite"] .v3-error {
+  background: rgba(255, 85, 119, 0.10);
+  border-color: rgba(255, 85, 119, 0.32);
+  color: #FF96AB;
+}
+body[data-theme-v3="satellite"] .v3-success {
+  background: rgba(74, 222, 128, 0.10);
+  border-color: rgba(74, 222, 128, 0.30);
+  color: #86E8A6;
+}
+
+/* ── Chip.active inverts to signal cyan ──────────────────────── */
+body[data-theme-v3="satellite"] .v3-chip.active {
+  background: var(--v3-accent);
+  border-color: var(--v3-accent);
+  color: #042020;
+}
+
+/* ── Statusbar: ground-station black-box readout ─────────────── */
+/* Solid black strip with a thin cyan top hairline — feels like the
+   bottom of a piece of rack-mounted gear. */
+body[data-theme-v3="satellite"] .v3-statusbar {
+  background: #03070D;
+  border-top: 1px solid rgba(45, 212, 212, 0.18);
+  color: var(--v3-text-3);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+/* ── Scrollbar: thin cyan rail, no fade — instrument-style ───── */
+body[data-theme-v3="satellite"] .appv3 ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+body[data-theme-v3="satellite"] .appv3 ::-webkit-scrollbar-track {
+  background: rgba(45, 212, 212, 0.04);
+}
+body[data-theme-v3="satellite"] .appv3 ::-webkit-scrollbar-thumb {
+  background: rgba(45, 212, 212, 0.45);
+  border-radius: 0;             /* squared — no rounded thumb */
+}
+body[data-theme-v3="satellite"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: rgba(45, 212, 212, 0.75);
+}
+body[data-theme-v3="satellite"] .appv3 {
+  scrollbar-color: rgba(45, 212, 212, 0.45) rgba(45, 212, 212, 0.04);
+  scrollbar-width: thin;
+}

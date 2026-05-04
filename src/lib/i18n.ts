@@ -406,6 +406,31 @@ const STRINGS = {
   "audit.filter_info": { en: "Info {n}", es: "Info {n}" },
   "audit.clean": { en: "Audit clean. Nothing to report.", es: "Auditoría limpia. Nada para reportar." },
   "audit.no_match": { en: "No findings match the current filter.", es: "Ningún hallazgo coincide con el filtro." },
+  "audit.resolve": { en: "Fix", es: "Resolver" },
+  "audit.action_done": { en: "Done.", es: "Hecho." },
+  "audit.confirm_kill_title": { en: "Kill process?", es: "¿Matar proceso?" },
+  "audit.confirm_kill_message": {
+    en: "About to terminate PID {pid}. Unsaved data may be lost.",
+    es: "Vas a terminar el PID {pid}. Podés perder datos sin guardar.",
+  },
+  "audit.confirm_delete_title": { en: "Delete file?", es: "¿Borrar archivo?" },
+  "audit.confirm_delete_message": {
+    en: "Permanently delete {path}? This cannot be undone.",
+    es: "¿Borrar definitivamente {path}? No se puede deshacer.",
+  },
+  "audit.confirm_restore_title": {
+    en: "Restore settings backup?",
+    es: "¿Restaurar backup de settings?",
+  },
+  "audit.confirm_restore_message": {
+    en: "settings.json will be replaced with the most recent backup. Current file is overwritten.",
+    es: "settings.json se reemplaza con el último backup. El archivo actual se sobreescribe.",
+  },
+  "audit.confirm_reinstall_title": { en: "Reinstall kit?", es: "¿Reinstalar kit?" },
+  "audit.confirm_reinstall_message": {
+    en: "Runs install.ps1 from the cloned repo. Existing config is preserved by the installer.",
+    es: "Corre install.ps1 desde el repo clonado. La config existente la preserva el installer.",
+  },
 
   // Cleanup view
   "cleanup.title": { en: "Cleanup", es: "Limpieza" },
