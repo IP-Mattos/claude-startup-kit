@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.9 — 2026-05-04
+
+### Added
+- **Cyber Terminal theme** — 15th theme in Settings → Theme, inspired by a user reference mockup. Monochrome retro-CRT aesthetic: deep olive background `#1F2014`, phosphor pale-lime text, gray-green muted borders, full monospace, hard 1px borders (no radii). Signature moves: corner-bracket frames on every `.v3-card` (top-left + bottom-right via `::before`/`::after`), terminal-prompt `>_` prefix on the greeting, faint CRT scanlines overlay on the content canvas, `[OK]`-style square pills, and a blinking block cursor on primary-button hover.
+
+### Note
+Components shown in the reference mockup that don't exist in the app yet (radar widget, sprite mascot, log_stream strip, memory_map bar) are out of scope for a CSS-only theme — those would be React component additions.
+
 ## 0.1.8 — 2026-05-04
 
 ### Fixed
