@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.12 — 2026-05-05
+
+### Changed
+- **Audit checks reimplemented natively in Rust.** The Tauri backend's `run_audit` no longer shells out to `~/.claude/scripts/claude-audit.ps1` — every category (PROCESSES, HOOKS, PERMISSIONS, SCRIPTS, PLUGINS, LOGS, DISK, DRIFT, ENV, STARTUP, KIT) runs in-process via `std::fs` + `std::env` + a small handful of `silent_command` calls. The app no longer requires the legacy script's presence to render the Audit tab.
+- Title strings preserved verbatim so the existing `infer_action` mapper keeps dispatching the right resolve buttons (`Restore settings backup`, `Reinstall kit`, `Delete file`, etc.) — no UX regression.
+
+### Limitations / TODO
+- **NETWORK** category is intentionally a stub on this pass: a single INFO line plus a `// TODO` for a future Win32 `iphlpapi`/`GetExtendedTcpTable` integration (pure-Rust TCP-table enumeration would otherwise require a new dep). The legacy script's network checks were Windows-only too.
+- **PROCESSES** still uses one `silent_command("powershell")` call to read `Get-Process`/`StartTime` — replacing it with the `sysinfo` crate is a small follow-up.
+
 ## 0.1.11 — 2026-05-04
 
 ### Fixed
