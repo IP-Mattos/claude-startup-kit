@@ -804,6 +804,87 @@ body.v3-layout #root {
   margin-top: 2px;
 }
 
+/* In-app confirm dialog. Replaces `window.confirm()` so we don't get the
+   browser's "tauri.localhost dice…" chrome stomping on the theme. The
+   backdrop dims everything, the modal floats centered, and ESC + backdrop
+   click both resolve as cancel (handled in ConfirmModal.tsx). */
+.v3-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+.v3-modal {
+  background: var(--v3-card-bg);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  max-width: 460px;
+  width: 100%;
+  padding: 22px 24px;
+  color: var(--v3-text);
+  font: inherit;
+}
+.v3-modal-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--v3-text);
+}
+.v3-modal-message {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--v3-text-2);
+}
+.v3-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.v3-modal-cancel,
+.v3-modal-confirm {
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--v3-radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid transparent;
+}
+.v3-modal-cancel {
+  background: transparent;
+  color: var(--v3-text-2);
+}
+.v3-modal-cancel:hover {
+  background: var(--v3-hover);
+  color: var(--v3-text);
+}
+.v3-modal-confirm {
+  background: var(--v3-accent);
+  color: #FFFFFF;
+  border-color: var(--v3-accent);
+}
+.v3-modal-confirm:hover {
+  background: var(--v3-accent-hover);
+}
+.v3-modal-confirm-danger {
+  background: var(--v3-crit, #d9534f);
+  border-color: var(--v3-crit, #d9534f);
+}
+.v3-modal-confirm-danger:hover {
+  filter: brightness(1.1);
+}
+.v3-modal-cancel:focus-visible,
+.v3-modal-confirm:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 2px;
+}
+
 /* Update banner — sits above content for both app and gentle-ai update
    prompts. Accent-tinted (vs the warn-tinted fetch banner) so it reads as
    a positive nudge, not a failure. Both banners stack when present. */

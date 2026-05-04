@@ -59,6 +59,8 @@ const STRINGS = {
   "common.update_now": { en: "Update now", es: "Actualizar" },
   "common.updating": { en: "Updating…", es: "Actualizando…" },
   "common.open": { en: "Open", es: "Abrir" },
+  "common.continue": { en: "Continue", es: "Seguir" },
+  "common.cancel": { en: "Cancel", es: "Cancelar" },
   "common.never": { en: "never", es: "nunca" },
   "common.just_now": { en: "just now", es: "recién" },
   "ago.seconds": { en: "{n}s ago", es: "hace {n}s" },
@@ -115,9 +117,17 @@ const STRINGS = {
   "sync.import_now": { en: "Pull from remote", es: "Bajar del remoto" },
   "sync.importing": { en: "Pulling…", es: "Bajando…" },
   "sync.disconnect": { en: "Disconnect", es: "Desconectar" },
+  "sync.confirm_import_title": {
+    en: "Pull from remote",
+    es: "Bajar del remoto",
+  },
   "sync.confirm_import": {
     en: "This will overwrite engram memory on this machine with the remote. Continue?",
     es: "Esto va a pisar la memoria de engram en esta máquina con la del remoto. ¿Seguir?",
+  },
+  "sync.confirm_disconnect_title": {
+    en: "Disconnect sync",
+    es: "Desconectar sync",
   },
   "sync.confirm_disconnect": {
     en: "Stop syncing? The remote repo stays on GitHub — you can re-attach later.",
