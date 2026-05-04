@@ -2603,6 +2603,131 @@ async fn apply_gentle_ai_update() -> Result<String, String> {
     Ok(after)
 }
 
+// ─── Stack updates via gentle-ai (single source of truth) ────────────────
+//
+// gentle-ai already manages every CLI tool in the Gentle stack (engram, gga,
+// opencode-*, gentle-ai itself). Instead of having CSK reimplement each
+// channel separately we delegate: parse `gentle-ai update` for state and
+// fire `gentle-ai upgrade` to apply. New tools added by gentle-ai upstream
+// show up here automatically with no app changes — that's the whole point.
+//
+// CSK's own self-update stays separate (Tauri updater plugin), since it has
+// to swap the running binary atomically with signature verification.
+
+#[derive(Serialize, Clone)]
+pub struct StackToolStatus {
+    pub name: String,
+    /// `None` when gentle-ai prints "-" (tool isn't installed locally).
+    pub installed: Option<String>,
+    pub latest: String,
+    /// `up_to_date` | `update_available` | `not_installed`. We stringify so
+    /// the renderer can render unknown variants without breaking if gentle-ai
+    /// adds a new state down the line.
+    pub state: String,
+}
+
+/// Parse one line of `gentle-ai update`. Returns `None` for header / footer
+/// lines or anything that doesn't match `[STATE] NAME ... installed: X ... latest: Y`.
+///
+/// Examples accepted:
+///   `  [ok] gentle-ai     installed: 1.25.4      latest: 1.25.4`
+///   `  [--] gga           installed: -           latest: 2.8.1`
+///   `  [!]  engram        installed: 1.15.0      latest: 1.15.4`
+///
+/// We avoid the `regex` crate (no extra dep) — the format is regular enough
+/// for byte-level parsing.
+fn parse_gentle_ai_update_line(line: &str) -> Option<StackToolStatus> {
+    let trimmed = line.trim_start();
+    if !trimmed.starts_with('[') {
+        return None;
+    }
+    let close = trimmed.find(']')?;
+    let marker = trimmed[1..close].trim();
+    let rest = trimmed[close + 1..].trim_start();
+    let installed_idx = rest.find("installed:")?;
+    let name = rest[..installed_idx].trim();
+    if name.is_empty() {
+        return None;
+    }
+    let after_installed = &rest[installed_idx + "installed:".len()..];
+    let latest_idx = after_installed.find("latest:")?;
+    let installed_raw = after_installed[..latest_idx].trim();
+    let latest = after_installed[latest_idx + "latest:".len()..].trim();
+    if latest.is_empty() {
+        return None;
+    }
+    let installed = if installed_raw == "-" || installed_raw.is_empty() {
+        None
+    } else {
+        Some(installed_raw.to_string())
+    };
+    // Marker semantics. `ok` = up to date, `--` = not installed.
+    // Anything else (`!`, `up`, `↑`, etc.) we conservatively treat as
+    // "update available" so the UI surfaces an actionable row.
+    let state = match marker {
+        "ok" => "up_to_date",
+        "--" => "not_installed",
+        _ => "update_available",
+    };
+    Some(StackToolStatus {
+        name: name.to_string(),
+        installed,
+        latest: latest.to_string(),
+        state: state.to_string(),
+    })
+}
+
+/// Run `gentle-ai update` and parse the table into structured rows.
+/// Returns an empty vec (not an error) if `gentle-ai` isn't on PATH so the UI
+/// can render "stack tooling not configured" without surfacing a noisy error.
+#[tauri::command]
+async fn check_stack_updates() -> Result<Vec<StackToolStatus>, String> {
+    tokio::task::spawn_blocking(|| -> Result<Vec<StackToolStatus>, String> {
+        let out = match silent_command("gentle-ai").arg("update").output() {
+            Ok(o) => o,
+            // gentle-ai missing entirely — soft-fail with empty list.
+            Err(_) => return Ok(Vec::new()),
+        };
+        if !out.status.success() {
+            // gentle-ai exited non-zero — usually a transient network issue
+            // when checking remote releases. Surface as error so the renderer
+            // can show a "Reintentar" affordance.
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            return Err(format!("gentle-ai update failed: {}", stderr.trim()));
+        }
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let rows = stdout
+            .lines()
+            .filter_map(parse_gentle_ai_update_line)
+            .collect::<Vec<_>>();
+        Ok(rows)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+/// Run `gentle-ai upgrade` (applies updates to ALL managed tools in one call).
+/// Returns the upgrade output as a string so the renderer can display the
+/// post-run summary or stash it in a log panel. `gentle-ai upgrade` is
+/// idempotent — running it when everything's already current is a no-op.
+#[tauri::command]
+async fn apply_stack_updates() -> Result<String, String> {
+    tokio::task::spawn_blocking(|| -> Result<String, String> {
+        let out = silent_command("gentle-ai")
+            .arg("upgrade")
+            .output()
+            .map_err(|e| format!("spawn gentle-ai: {e}"))?;
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            return Err(format!("gentle-ai upgrade exited {}:\n{stderr}\n{stdout}", out.status));
+        }
+        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 // ─── Workspace sync (Engram-only over a private GitHub repo) ─────────────
 //
 // Sync only the engram export — not Claude Code's raw JSONL transcripts.
@@ -3135,6 +3260,8 @@ pub fn run() {
             apply_app_update,
             check_gentle_ai_update,
             apply_gentle_ai_update,
+            check_stack_updates,
+            apply_stack_updates,
             workspace_summary,
             sync_status,
             sync_setup,
