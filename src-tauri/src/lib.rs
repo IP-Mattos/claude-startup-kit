@@ -2706,13 +2706,39 @@ async fn check_stack_updates() -> Result<Vec<StackToolStatus>, String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+/// Tools whose binaries can be live when the upgrade runs. On Windows a
+/// running .exe can't be renamed/replaced, so `gentle-ai upgrade` fails with
+/// "rename ...engram-upgrade-NNN" errors. We taskkill these before delegating
+/// to gentle-ai. The upstream tool doesn't do this dance itself; CSK fills
+/// the gap so the user gets a clean single-click "update all" experience.
+///
+/// Claude Code re-spawns its MCP servers (engram, etc.) on the next session,
+/// so killing them mid-app is recoverable — the user just won't have engram
+/// available in *currently open* Claude Code instances until they reload.
+const STACK_TOOL_PROCESS_NAMES: &[&str] = &["engram", "gga"];
+
 /// Run `gentle-ai upgrade` (applies updates to ALL managed tools in one call).
-/// Returns the upgrade output as a string so the renderer can display the
-/// post-run summary or stash it in a log panel. `gentle-ai upgrade` is
-/// idempotent — running it when everything's already current is a no-op.
+///
+/// Pre-step: kill known managed tool processes so Windows doesn't block the
+/// rename-then-replace inside the upgrade. Returns the upgrade output as a
+/// string so the renderer can display the post-run summary. `gentle-ai
+/// upgrade` is idempotent — running it when everything's already current is
+/// a no-op.
 #[tauri::command]
 async fn apply_stack_updates() -> Result<String, String> {
     tokio::task::spawn_blocking(|| -> Result<String, String> {
+        // Kill any live instances of managed tool binaries. Errors here are
+        // best-effort (process might already be gone, or `taskkill` might
+        // need admin for some) — they don't block the upgrade attempt.
+        for name in STACK_TOOL_PROCESS_NAMES {
+            let _ = silent_command("taskkill")
+                .args(["/IM", &format!("{}.exe", name), "/F"])
+                .output();
+        }
+        // Tiny delay so Windows fully releases the file handles before
+        // gentle-ai tries to write.
+        std::thread::sleep(Duration::from_millis(800));
+
         let out = silent_command("gentle-ai")
             .arg("upgrade")
             .output()

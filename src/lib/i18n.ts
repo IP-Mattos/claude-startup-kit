@@ -252,6 +252,35 @@ const STRINGS = {
   "settings.update_app_label": { en: "Claude Startup Kit", es: "Claude Startup Kit" },
   "settings.update_gentle_ai_label": { en: "gentle-ai", es: "gentle-ai" },
 
+  // Stack tools card — managed by gentle-ai, surfaced via check_stack_updates
+  "settings.stack_title": { en: "Stack tools", es: "Herramientas del stack" },
+  "settings.stack_hint": {
+    en: "Managed by gentle-ai. New tools appear here automatically as the upstream catalog grows.",
+    es: "Lo gestiona gentle-ai. Las herramientas nuevas aparecen acá solas cuando crece el catálogo upstream.",
+  },
+  "settings.stack_empty": {
+    en: "No managed tools detected. Install gentle-ai to populate the list.",
+    es: "No se detectaron herramientas gestionadas. Instalá gentle-ai para poblar la lista.",
+  },
+  "settings.stack_apply_all": { en: "Update all", es: "Actualizar todo" },
+  "settings.stack_applying": { en: "Updating…", es: "Actualizando…" },
+  "settings.stack_apply_all_title": {
+    en: "Run gentle-ai upgrade across every managed tool",
+    es: "Corre gentle-ai upgrade sobre todas las herramientas gestionadas",
+  },
+  "settings.stack_confirm_title": {
+    en: "Update the whole stack?",
+    es: "¿Actualizar todo el stack?",
+  },
+  "settings.stack_confirm_message": {
+    en: "Will close any running engram / gga processes (Claude Code re-spawns them) and run gentle-ai upgrade. Safe to run when everything is up to date.",
+    es: "Se van a cerrar los procesos engram / gga abiertos (Claude Code los relanza solo) y se va a correr gentle-ai upgrade. Seguro aunque ya esté todo al día.",
+  },
+  "settings.stack_state_not_installed": {
+    en: "Not installed (latest: v{latest})",
+    es: "No instalada (última: v{latest})",
+  },
+
   // Banners (top of content area)
   "banner.app_available": {
     en: "Claude Startup Kit v{latest}",
