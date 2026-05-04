@@ -129,6 +129,27 @@ jobs:
             Write-Error "latest.json missing after download at: $latestPath"
             exit 1
           }
+
+          # Rewrite the asset URLs inside latest.json so they point at the
+          # PUBLIC mirror, not the private source repo. tauri-action emits
+          # absolute URLs that match the repo it just published to (private),
+          # but the in-app updater fetches the manifest from the public
+          # endpoint and tries to download the listed bundles. If the URLs
+          # still point at the private repo, the bundle GET hits a 404
+          # because GitHub doesn't serve private release assets without
+          # auth. Replace the host+org+repo prefix in-place.
+          $manifest = Get-Content $latestPath -Raw
+          $privateUrlBase = "https://github.com/$env:PRIVATE_REPO/releases/"
+          $publicUrlBase  = "https://github.com/$env:PUBLIC_REPO/releases/"
+          $rewritten = $manifest.Replace($privateUrlBase, $publicUrlBase)
+          if ($rewritten -eq $manifest) {
+            Write-Host "WARNING: latest.json contained no occurrences of $privateUrlBase to rewrite. The manifest may already be public-facing, or tauri-action changed its URL format."
+          } else {
+            Write-Host "Rewrote private repo URLs in latest.json -> $env:PUBLIC_REPO"
+          }
+          # Persist with the same encoding tauri-action uses (UTF-8, no BOM).
+          [System.IO.File]::WriteAllText($latestPath, $rewritten, [System.Text.UTF8Encoding]::new($false))
+
           $files += Get-Item $latestPath
 
           Write-Host "Will mirror $($files.Count) file(s) to $env:PUBLIC_REPO ($env:TAG):"

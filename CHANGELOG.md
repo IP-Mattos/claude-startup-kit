@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.10 — 2026-05-04
+
+### Fixed
+- **Auto-updater downloaded a 404** because the `latest.json` published to the public mirror still referenced the **private** repo's release URLs (e.g. `github.com/IP-Mattos/claude-startup-kit/releases/download/...`). The plugin updater fetched the manifest from the public endpoint correctly and showed the right "v0.1.X → latest" banner, but clicking "Update now" tried to download the bundle from the private repo and got a 404. Symptoms: red banner `Download request failed with status: 404 Not Found`.
+- The mirror step now **rewrites the `latest.json`** in-place before re-uploading: replaces every `https://github.com/<PRIVATE_REPO>/releases/` prefix with `https://github.com/<PUBLIC_REPO>/releases/`. Deterministic string replace, no JSON parsing, fail-loud if no matches were found (in case `tauri-action` ever changes the URL format).
+- Hot-fixed the v0.1.9 manifest manually so existing v0.1.7 / v0.1.8 installs can update without waiting for v0.1.10 to land. Future releases inherit the corrected pipeline.
+
 ## 0.1.9 — 2026-05-04
 
 ### Added
