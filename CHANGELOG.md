@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.15 — 2026-05-05
+
+### Fixed
+- **"Update all" did nothing when the only pending update was gentle-ai itself.** `gentle-ai upgrade` cannot replace its own running binary on Windows; it logs `manual update required` and exits 0 with `1 skipped`. CSK was returning that output verbatim and the table showed "everything done" while gentle-ai stayed on the old version. `apply_stack_updates` now detects the self-skip and falls back to running `irm install.ps1 | iex` (same flow as the per-row gentle-ai update button), all in one click.
+- **Stack-update parser absorbed the install hint into the `latest` version string.** When gentle-ai upstream updated its `update` output to inline the install command after the version (`latest: 1.25.6 irm https://...install.ps1 | iex`), the greedy `trim()` captured the whole hint and the UI rendered `v1.25.5 → v1.25.6 irm https://raw.githubusercontent.com/...`. Now we tokenize and take only the first whitespace-delimited word for both `installed:` and `latest:`.
+- **Projects tab listed umbrella directories as workspaces.** Claude Code records a session at every cwd you launch it from — paths like `C:\Users\darkm\OneDrive\Desktop` or `~` produced JSONL entries CSK was scanning into "projects". Clicking "Open" then attached VS Code to the whole tree, which broke the Claude Code VS Code extension with `An error occurred while loading view: claudeVSCodeSidebarSecondary`. `scan_projects` now requires at least one project-marker file (`.git`, `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, `pom.xml`, `build.gradle`, `composer.json`, `Gemfile`, `requirements.txt`, `pubspec.yaml`, `mix.exs`, `tsconfig.json`, `deno.json`, `.project`, `*.sln`) to consider a directory a workspace.
+
 ## 0.1.14 — 2026-05-05
 
 ### Added

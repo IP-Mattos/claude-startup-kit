@@ -111,6 +111,56 @@ fn strip_unc_prefix(p: PathBuf) -> PathBuf {
     p
 }
 
+/// Files that mark a directory as a real "project" — at least one of these
+/// has to exist for us to list the directory in the Projects tab. The list
+/// is intentionally broad (covers JS/TS, Rust, Python, Go, Java, Ruby,
+/// PHP, .NET, Flutter, Elixir) so legit projects across stacks survive,
+/// while umbrella dirs (`Desktop`, `~`, `Documents`, etc.) that Claude Code
+/// happens to track because the user opened a session there get filtered
+/// out — those produce JSONLs but aren't navigable workspaces in VS Code.
+const PROJECT_MARKERS: &[&str] = &[
+    ".git",
+    "package.json",
+    "Cargo.toml",
+    "pyproject.toml",
+    "go.mod",
+    "pom.xml",
+    "build.gradle",
+    "build.gradle.kts",
+    "composer.json",
+    "Gemfile",
+    "requirements.txt",
+    "pubspec.yaml",
+    "mix.exs",
+    "tsconfig.json",
+    "deno.json",
+    ".project",       // Eclipse / Generic IDE marker
+    "*.sln",          // Pattern handled below — checked separately
+];
+
+/// True if `dir` contains at least one project-marker file. The `*.sln`
+/// pattern is handled separately because it requires a glob-style match.
+fn has_project_marker(dir: &Path) -> bool {
+    for marker in PROJECT_MARKERS {
+        if *marker == "*.sln" {
+            continue; // handled below
+        }
+        if dir.join(marker).exists() {
+            return true;
+        }
+    }
+    // *.sln (Visual Studio solution) — any file ending in `.sln` counts.
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if p.extension().and_then(|s| s.to_str()) == Some("sln") {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 fn scan_projects_blocking(window_days: u64) -> Vec<Project> {
     let Some(root) = claude_projects_dir() else {
         return vec![];
@@ -154,6 +204,15 @@ fn scan_projects_blocking(window_days: u64) -> Vec<Project> {
             Err(_) => PathBuf::from(&cwd),
         };
         if !canonical.is_dir() {
+            continue;
+        }
+        // Filter out umbrella directories that aren't real projects. A path
+        // like `C:\Users\darkm\OneDrive\Desktop` (or `~`) shows up here
+        // because Claude Code recorded a session at that cwd, but opening it
+        // in VS Code attaches the editor to the entire folder tree, which
+        // breaks the Claude Code extension's per-workspace view. Require at
+        // least one well-known project marker to consider this a workspace.
+        if !has_project_marker(&canonical) {
             continue;
         }
         let canonical_str = canonical.to_string_lossy().to_string();
@@ -2649,10 +2708,22 @@ fn parse_gentle_ai_update_line(line: &str) -> Option<StackToolStatus> {
     if name.is_empty() {
         return None;
     }
+    // gentle-ai update line looks like:
+    //   `installed: 1.25.5    latest: 1.25.6 irm https://.../install.ps1 | iex`
+    // After "installed:" we want the first whitespace-delimited token (the
+    // version); same for "latest:". Greedy trim-to-end captured the whole
+    // install hint as the "latest" version and rendered it in the UI as
+    // "v1.25.6 irm https://...".
     let after_installed = &rest[installed_idx + "installed:".len()..];
     let latest_idx = after_installed.find("latest:")?;
-    let installed_raw = after_installed[..latest_idx].trim();
-    let latest = after_installed[latest_idx + "latest:".len()..].trim();
+    let installed_raw = after_installed[..latest_idx]
+        .split_whitespace()
+        .next()
+        .unwrap_or("");
+    let latest = after_installed[latest_idx + "latest:".len()..]
+        .split_whitespace()
+        .next()
+        .unwrap_or("");
     if latest.is_empty() {
         return None;
     }
@@ -2720,10 +2791,18 @@ const STACK_TOOL_PROCESS_NAMES: &[&str] = &["engram", "gga"];
 /// Run `gentle-ai upgrade` (applies updates to ALL managed tools in one call).
 ///
 /// Pre-step: kill known managed tool processes so Windows doesn't block the
-/// rename-then-replace inside the upgrade. Returns the upgrade output as a
-/// string so the renderer can display the post-run summary. `gentle-ai
-/// upgrade` is idempotent — running it when everything's already current is
-/// a no-op.
+/// rename-then-replace inside the upgrade.
+///
+/// Post-step: detect gentle-ai's "manual update required" self-skip and run
+/// the upstream PowerShell installer directly to actually bring gentle-ai
+/// itself up to date. gentle-ai upstream can't replace its own running
+/// binary on Windows; it logs "manual update required" and exits 0 with
+/// "1 skipped". Without this branch, "Update all" silently does nothing
+/// when the only thing pending IS gentle-ai itself.
+///
+/// Returns the upgrade output as a string so the renderer can display the
+/// post-run summary. `gentle-ai upgrade` is idempotent — running it when
+/// everything's already current is a no-op.
 #[tauri::command]
 async fn apply_stack_updates() -> Result<String, String> {
     tokio::task::spawn_blocking(|| -> Result<String, String> {
@@ -2739,6 +2818,7 @@ async fn apply_stack_updates() -> Result<String, String> {
         // gentle-ai tries to write.
         std::thread::sleep(Duration::from_millis(800));
 
+        // Phase 1 — `gentle-ai upgrade` for everything except gentle-ai itself.
         let out = silent_command("gentle-ai")
             .arg("upgrade")
             .output()
@@ -2748,7 +2828,36 @@ async fn apply_stack_updates() -> Result<String, String> {
             let stdout = String::from_utf8_lossy(&out.stdout);
             return Err(format!("gentle-ai upgrade exited {}:\n{stderr}\n{stdout}", out.status));
         }
-        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+        let mut log = String::from_utf8_lossy(&out.stdout).into_owned();
+
+        // Phase 2 — if gentle-ai self-skipped (Windows can't replace the
+        // running .exe), bootstrap it via the upstream installer. Detected by
+        // the literal phrase the upstream prints; if upstream rewords it
+        // someday this branch becomes a no-op (we just don't self-upgrade —
+        // not a regression).
+        let needs_self_upgrade = log.contains("manual update required")
+            && log.contains("gentle-ai");
+        if needs_self_upgrade {
+            let installer_cmd = format!("irm {GENTLE_AI_INSTALLER_URL} | iex");
+            let installer_out = silent_command("powershell")
+                .args(["-NoProfile", "-NonInteractive", "-Command", &installer_cmd])
+                .output()
+                .map_err(|e| format!("spawn powershell: {e}"))?;
+            let installer_stdout = String::from_utf8_lossy(&installer_out.stdout);
+            let installer_stderr = String::from_utf8_lossy(&installer_out.stderr);
+            log.push_str("\n--- gentle-ai self-upgrade via installer ---\n");
+            log.push_str(&installer_stdout);
+            if !installer_out.status.success() {
+                log.push_str("\n[stderr]\n");
+                log.push_str(&installer_stderr);
+                return Err(format!(
+                    "gentle-ai installer exited {}: see log\n{log}",
+                    installer_out.status
+                ));
+            }
+        }
+
+        Ok(log)
     })
     .await
     .map_err(|e| format!("task join: {e}"))?
