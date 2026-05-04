@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { friendlyErrorEn } from "../../lib/format";
 import { useT } from "../../lib/i18n";
+import { ConfirmModal } from "../../components/v3/ConfirmModal";
 
 const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -56,6 +57,14 @@ function SyncCard() {
   const [cloneResults, setCloneResults] = useState<Record<string, CloneResult>>({});
   const [cloningAll, setCloningAll] = useState(false);
 
+  // Pending confirmation. We keep the action ("import" or "disconnect") in
+  // state and the modal renders/hides accordingly. The actual side-effect
+  // is fired in the modal's `onConfirm` so we can preserve the original
+  // happy path of each handler (state, busy flags, error capture).
+  const [confirming, setConfirming] = useState<"import" | "disconnect" | null>(
+    null,
+  );
+
   // Load both status + listed projects once on mount, and re-fetch
   // projects after every successful sync action.
   const refreshProjects = () => {
@@ -100,8 +109,7 @@ function SyncCard() {
     }
   };
 
-  const handleImport = async () => {
-    if (!window.confirm(t("sync.confirm_import"))) return;
+  const runImport = async () => {
     setBusy("import");
     setError(null);
     try {
@@ -116,6 +124,7 @@ function SyncCard() {
       setBusy(null);
     }
   };
+  const handleImport = () => setConfirming("import");
 
   // Clone one repo. Updates the per-row map regardless of outcome so
   // the user sees a clear status next to each project.
@@ -171,8 +180,7 @@ function SyncCard() {
     }
   };
 
-  const handleDisconnect = async () => {
-    if (!window.confirm(t("sync.confirm_disconnect"))) return;
+  const runDisconnect = async () => {
     try {
       await invoke("sync_disconnect");
       setState({
@@ -187,6 +195,7 @@ function SyncCard() {
       setError(friendlyErrorEn(e));
     }
   };
+  const handleDisconnect = () => setConfirming("disconnect");
 
   const lastSyncLabel = state?.last_sync_at
     ? new Date(state.last_sync_at * 1000).toLocaleString()
@@ -355,6 +364,33 @@ function SyncCard() {
           {error}
         </div>
       )}
+
+      <ConfirmModal
+        open={confirming === "import"}
+        title={t("sync.confirm_import_title")}
+        message={t("sync.confirm_import")}
+        confirmLabel={t("common.continue")}
+        cancelLabel={t("common.cancel")}
+        danger
+        onConfirm={() => {
+          setConfirming(null);
+          void runImport();
+        }}
+        onCancel={() => setConfirming(null)}
+      />
+      <ConfirmModal
+        open={confirming === "disconnect"}
+        title={t("sync.confirm_disconnect_title")}
+        message={t("sync.confirm_disconnect")}
+        confirmLabel={t("common.continue")}
+        cancelLabel={t("common.cancel")}
+        danger
+        onConfirm={() => {
+          setConfirming(null);
+          void runDisconnect();
+        }}
+        onCancel={() => setConfirming(null)}
+      />
     </article>
   );
 }
