@@ -1,16 +1,22 @@
 name: Release
 
-# Triggered by pushing a `v*` tag (e.g. `v0.1.2`).
+# Triggered by pushing a `v*` tag (e.g. `v0.1.6`).
 #
-# Builds the Windows bundle with `tauri-apps/tauri-action`, which also:
-#   - signs the .msi/-setup.exe with the updater private key (env vars below),
-#   - emits the `latest.json` manifest the in-app updater pulls from
-#     `releases/latest/download/latest.json`,
-#   - uploads everything as release assets in one step.
+# Pipeline:
+#   1. tauri-action builds the Windows bundle, signs the .msi / -setup.exe
+#      with the updater private key, emits `latest.json`, and publishes
+#      everything as a release on THIS (private) repo.
+#   2. A second step re-uploads the signed binaries + `latest.json` to the
+#      public mirror repo `IP-Mattos/claude-startup-kit-releases` so the
+#      Tauri auto-updater (which pulls without auth) can reach the assets.
+#      Source code stays private; only signed installers go public.
 #
-# To make this run end-to-end, the repo needs two GitHub Actions secrets:
-#   - TAURI_SIGNING_PRIVATE_KEY           (full content of the private key file)
-#   - TAURI_SIGNING_PRIVATE_KEY_PASSWORD  (the passphrase chosen at key gen)
+# Required secrets:
+#   - TAURI_SIGNING_PRIVATE_KEY           (private key file content)
+#   - TAURI_SIGNING_PRIVATE_KEY_PASSWORD  (passphrase from key gen)
+#   - RELEASES_REPO_TOKEN                 (PAT with `Contents: Write` on
+#                                          IP-Mattos/claude-startup-kit-releases;
+#                                          GITHUB_TOKEN can't reach a sibling repo)
 on:
   push:
     tags:
@@ -18,6 +24,9 @@ on:
 
 permissions:
   contents: write
+
+env:
+  PUBLIC_RELEASES_REPO: IP-Mattos/claude-startup-kit-releases
 
 jobs:
   build-windows:
@@ -49,7 +58,7 @@ jobs:
       - name: Install frontend deps
         run: pnpm install --frozen-lockfile
 
-      - name: Build, sign, and publish
+      - name: Build, sign, and publish (private repo)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -64,6 +73,64 @@ jobs:
           releaseDraft: false
           prerelease: false
           # Generates `latest.json` (the manifest the in-app updater reads) and
-          # uploads it alongside the .msi / -setup.exe. Without this, signed
-          # bundles still publish but the updater plugin has nothing to read.
+          # uploads it alongside the .msi / -setup.exe.
           includeUpdaterJson: true
+
+      - name: Mirror signed assets to public release repo
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          PUBLIC_REPO: ${{ env.PUBLIC_RELEASES_REPO }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bundle = "src-tauri/target/release/bundle"
+          if (-not (Test-Path $bundle)) {
+            Write-Error "Bundle directory not found: $bundle"
+            exit 1
+          }
+
+          # Collect the assets that the auto-updater needs. We deliberately
+          # mirror ONLY signed installers + the manifest — no source code,
+          # no debug symbols.
+          $patterns = @(
+            "$bundle/msi/*.msi",
+            "$bundle/msi/*.msi.sig",
+            "$bundle/nsis/*-setup.exe",
+            "$bundle/nsis/*-setup.exe.sig",
+            "$bundle/latest.json",
+            "$bundle/msi/latest.json",
+            "$bundle/nsis/latest.json"
+          )
+          $files = @()
+          foreach ($p in $patterns) {
+            $files += Get-ChildItem -Path $p -ErrorAction SilentlyContinue
+          }
+          if ($files.Count -eq 0) {
+            Write-Error "No installer artifacts to mirror. Patterns checked: $($patterns -join ', ')"
+            exit 1
+          }
+          Write-Host "Will mirror $($files.Count) file(s) to $env:PUBLIC_REPO ($env:TAG):"
+          $files | ForEach-Object { Write-Host "  $($_.FullName)" }
+
+          # Create the public release. If it already exists (re-running the
+          # workflow), just continue and re-upload assets with --clobber.
+          gh release create $env:TAG --repo $env:PUBLIC_REPO `
+            --title $env:TAG `
+            --notes "Auto-mirrored signed installers. Source code at https://github.com/IP-Mattos/claude-startup-kit (private)." `
+            --verify-tag=false 2>&1 | Tee-Object -Variable createOut
+          if ($LASTEXITCODE -ne 0) {
+            $msg = ($createOut -join "`n")
+            if ($msg -notmatch "already_exists|already exists") {
+              Write-Error "gh release create failed: $msg"
+              exit 1
+            }
+            Write-Host "Release already exists, will re-upload assets with --clobber."
+          }
+
+          foreach ($f in $files) {
+            Write-Host "Uploading $($f.Name)..."
+            gh release upload $env:TAG $f.FullName --repo $env:PUBLIC_REPO --clobber
+            if ($LASTEXITCODE -ne 0) { Write-Error "upload failed for $($f.Name)"; exit 1 }
+          }
+          Write-Host "Mirror complete."
