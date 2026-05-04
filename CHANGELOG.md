@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.13 — 2026-05-05
+
+### Added (backend only — UI lands in v0.1.14)
+- **Stack updates via gentle-ai** — two new IPC commands that delegate the entire managed-CLI ecosystem (engram, gga, opencode-subagent-statusline, opencode-sdd-engram-manage, gentle-ai itself) to a single source of truth instead of reimplementing each channel:
+  - `check_stack_updates` — runs `gentle-ai update`, parses the table into `StackToolStatus { name, installed, latest, state }` rows where `state` is `up_to_date | update_available | not_installed`. Soft-fails to an empty list if `gentle-ai` isn't on PATH.
+  - `apply_stack_updates` — runs `gentle-ai upgrade` and returns the captured stdout for the renderer to display.
+- Lightweight in-house parser (no `regex` dep) keys off the `[STATE]` marker + `installed:` / `latest:` literals, so new tools the upstream gentle-ai adds in the future surface here automatically with zero code changes here.
+- CSK self-update (the Tauri updater plugin) stays separate by design — atomic binary swap with Ed25519 verification is conceptually different from the `gentle-ai upgrade` rolling upgrade.
+
 ## 0.1.12 — 2026-05-05
 
 ### Changed
