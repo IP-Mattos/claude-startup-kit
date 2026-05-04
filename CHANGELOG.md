@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7 — 2026-05-04
+
+### Fixed
+- **Release-mirror workflow failed on v0.1.6** with two underlying issues:
+  1. `latest.json` is uploaded directly to GitHub by `tauri-action` and not left on disk, so the disk-pattern scan in the mirror step never found it. Fixed by downloading `latest.json` from the just-published private release into `RUNNER_TEMP` before re-uploading to the public mirror.
+  2. The public mirror repo had no commits, so `gh release create` returned `HTTP 422: Repository is empty`. Fixed by seeding the public repo with a `README.md` (one-time, manual).
+- The mirror step now uses two separate tokens — `GITHUB_TOKEN` to download from the private repo, `RELEASES_REPO_TOKEN` to upload to the public — and toggles `$env:GH_TOKEN` between calls.
+
 ## 0.1.6 — 2026-05-04
 
 ### Fixed

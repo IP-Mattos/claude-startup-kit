@@ -79,28 +79,29 @@ jobs:
       - name: Mirror signed assets to public release repo
         shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          # GH_TOKEN_PRIVATE is the default token for the current (private)
+          # repo — needed to DOWNLOAD assets that tauri-action just published.
+          GH_TOKEN_PRIVATE: ${{ secrets.GITHUB_TOKEN }}
+          # GH_TOKEN_PUBLIC owns the public mirror repo — needed to UPLOAD.
+          GH_TOKEN_PUBLIC: ${{ secrets.RELEASES_REPO_TOKEN }}
           PUBLIC_REPO: ${{ env.PUBLIC_RELEASES_REPO }}
+          PRIVATE_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
         run: |
           $ErrorActionPreference = 'Stop'
+
+          # Collect signed installers from the bundle directory. tauri-action
+          # leaves the .msi / .exe / .sig files on disk after build.
           $bundle = "src-tauri/target/release/bundle"
           if (-not (Test-Path $bundle)) {
             Write-Error "Bundle directory not found: $bundle"
             exit 1
           }
-
-          # Collect the assets that the auto-updater needs. We deliberately
-          # mirror ONLY signed installers + the manifest — no source code,
-          # no debug symbols.
           $patterns = @(
             "$bundle/msi/*.msi",
             "$bundle/msi/*.msi.sig",
             "$bundle/nsis/*-setup.exe",
-            "$bundle/nsis/*-setup.exe.sig",
-            "$bundle/latest.json",
-            "$bundle/msi/latest.json",
-            "$bundle/nsis/latest.json"
+            "$bundle/nsis/*-setup.exe.sig"
           )
           $files = @()
           foreach ($p in $patterns) {
@@ -110,15 +111,38 @@ jobs:
             Write-Error "No installer artifacts to mirror. Patterns checked: $($patterns -join ', ')"
             exit 1
           }
+
+          # latest.json is NOT left on disk by tauri-action — it's uploaded
+          # directly to the GitHub release. Download it from the private
+          # release we just created so we can mirror it to the public repo.
+          $latestDir = Join-Path $env:RUNNER_TEMP "latest-json"
+          New-Item -ItemType Directory -Path $latestDir -Force | Out-Null
+          Write-Host "Downloading latest.json from $env:PRIVATE_REPO ($env:TAG)..."
+          $env:GH_TOKEN = $env:GH_TOKEN_PRIVATE
+          gh release download $env:TAG --repo $env:PRIVATE_REPO --pattern "latest.json" --dir $latestDir
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Could not download latest.json from private release."
+            exit 1
+          }
+          $latestPath = Join-Path $latestDir "latest.json"
+          if (-not (Test-Path $latestPath)) {
+            Write-Error "latest.json missing after download at: $latestPath"
+            exit 1
+          }
+          $files += Get-Item $latestPath
+
           Write-Host "Will mirror $($files.Count) file(s) to $env:PUBLIC_REPO ($env:TAG):"
           $files | ForEach-Object { Write-Host "  $($_.FullName)" }
 
+          # Switch to the public-repo token for create + upload calls.
+          $env:GH_TOKEN = $env:GH_TOKEN_PUBLIC
+
           # Create the public release. If it already exists (re-running the
-          # workflow), just continue and re-upload assets with --clobber.
-          gh release create $env:TAG --repo $env:PUBLIC_REPO `
+          # workflow), continue and re-upload assets with --clobber.
+          $createOut = gh release create $env:TAG --repo $env:PUBLIC_REPO `
             --title $env:TAG `
             --notes "Auto-mirrored signed installers. Source code at https://github.com/IP-Mattos/claude-startup-kit (private)." `
-            --verify-tag=false 2>&1 | Tee-Object -Variable createOut
+            --verify-tag=false 2>&1
           if ($LASTEXITCODE -ne 0) {
             $msg = ($createOut -join "`n")
             if ($msg -notmatch "already_exists|already exists") {
