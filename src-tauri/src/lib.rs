@@ -1727,8 +1727,52 @@ async fn apply_app_update(app: tauri::AppHandle) -> Result<(), String> {
     app.restart()
 }
 
+// Locate the gentle-ai binary. Why this isn't just `silent_command("gentle-ai")`:
+// after a Tauri auto-update, the new app instance can inherit a PATH that
+// excludes user-scoped install dirs (`%LOCALAPPDATA%\gentle-ai\bin\` etc.),
+// so `gentle-ai` resolves nowhere even though the binary is installed.
+// We check the PATH ourselves first, then fall back to well-known install
+// locations the upstream installer drops the binary into. Returns the program
+// argument to pass to `silent_command` — either the bare name (when PATH
+// resolves it) or an absolute path.
+fn resolve_gentle_ai() -> Option<String> {
+    // 1. Check PATH manually so we don't depend on the inherited PATH being
+    //    fully expanded. If `where gentle-ai` would find it, return the bare
+    //    name — Command::new will resolve it the same way.
+    if let Some(path_var) = std::env::var_os("PATH") {
+        for dir in std::env::split_paths(&path_var) {
+            for candidate in ["gentle-ai.exe", "gentle-ai"] {
+                if dir.join(candidate).is_file() {
+                    return Some("gentle-ai".to_string());
+                }
+            }
+        }
+    }
+    // 2. Fall back to known install dirs the gentle-ai installer writes to.
+    //    These are the locations the upstream `irm | iex` PowerShell installer
+    //    targets (LOCALAPPDATA primary, USERPROFILE-scoped alternatives).
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+        candidates.push(PathBuf::from(&local).join("gentle-ai\\bin\\gentle-ai.exe"));
+    }
+    if let Some(home) = dirs_home() {
+        candidates.push(home.join(".local").join("bin").join("gentle-ai.exe"));
+        candidates.push(home.join("go").join("bin").join("gentle-ai.exe"));
+        candidates.push(home.join("AppData").join("Local").join("gentle-ai").join("bin").join("gentle-ai.exe"));
+    }
+    candidates
+        .into_iter()
+        .find(|p| p.is_file())
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
 fn read_gentle_ai_version() -> String {
-    let out = silent_command("gentle-ai").arg("version").output();
+    // No binary found anywhere — propagate as empty so the UI surfaces
+    // "not configured" with the install hint instead of a noisy error.
+    let Some(program) = resolve_gentle_ai() else {
+        return String::new();
+    };
+    let out = silent_command(&program).arg("version").output();
     let bytes = match out {
         Ok(o) if o.status.success() => o.stdout,
         _ => return String::new(),
