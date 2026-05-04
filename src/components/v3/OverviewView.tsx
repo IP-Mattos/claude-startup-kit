@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -10,6 +11,8 @@ import {
   Home,
   Palette,
   ShieldCheck,
+  Sparkles,
+  X,
 } from "lucide-react";
 import {
   activityLabelT,
@@ -190,6 +193,28 @@ export function OverviewView({
   const projectsThisWeek = projects.filter((p) => p.days_ago <= 7).length;
   const openPrs = prs.length;
 
+  // Welcome card shown only on first launch. Dismissible — once dismissed
+  // never reappears. We use localStorage so the flag survives reinstalls
+  // (the user identity is the same browser/account on this machine).
+  const ONBOARDING_KEY = "csk-onboarding-dismissed";
+  const [onboardingDismissed, setOnboardingDismissed] = useState<boolean>(
+    () => {
+      try {
+        return localStorage.getItem(ONBOARDING_KEY) === "1";
+      } catch {
+        return true;
+      }
+    },
+  );
+  const dismissOnboarding = () => {
+    try {
+      localStorage.setItem(ONBOARDING_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    setOnboardingDismissed(true);
+  };
+
   // Health delta — placeholder until we track history. Static label.
   const healthDelta =
     stats.crit === 0
@@ -222,6 +247,43 @@ export function OverviewView({
           </button>
         </div>
       </header>
+
+      {!onboardingDismissed && (
+        <article className="v3-onboarding-card" role="region" aria-label={t("onboarding.aria")}>
+          <div className="v3-onboarding-icon" aria-hidden="true">
+            <Sparkles size={18} strokeWidth={2} />
+          </div>
+          <div className="v3-onboarding-body">
+            <h2 className="v3-onboarding-title">{t("onboarding.title")}</h2>
+            <p className="v3-onboarding-message">{t("onboarding.message")}</p>
+            <div className="v3-onboarding-actions">
+              <button
+                type="button"
+                className="v3-btn-ghost v3-btn-sm"
+                onClick={() => onJump("sync")}
+              >
+                {t("onboarding.cta_sync")}
+              </button>
+              <button
+                type="button"
+                className="v3-btn-ghost v3-btn-sm"
+                onClick={() => onJump("settings")}
+              >
+                {t("onboarding.cta_settings")}
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="v3-onboarding-close"
+            onClick={dismissOnboarding}
+            aria-label={t("onboarding.dismiss")}
+            title={t("onboarding.dismiss")}
+          >
+            <X size={14} strokeWidth={2} />
+          </button>
+        </article>
+      )}
 
       <section className="v3-stats-row">
         <StatCard

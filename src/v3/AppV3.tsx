@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import {
+  enable as enableAutostart,
+  isEnabled as isAutostartEnabled,
+} from "@tauri-apps/plugin-autostart";
 import type {
   AuditFinding,
   GhPullRequest,
@@ -62,6 +66,35 @@ export default function AppV3() {
   // i18n hook — every helper that produces user-facing strings (greeting,
   // ago labels, headlines) takes `t` as a parameter so they stay pure.
   const { t } = useT();
+
+  // First-run autostart bootstrap. The user explicitly asked for the app
+  // to launch with Windows; we honor that on the very first launch IF the
+  // user hasn't been prompted yet (tracked in localStorage). After this
+  // they're free to toggle it off in Settings — we never re-enable on
+  // subsequent runs, only the very first one.
+  useEffect(() => {
+    if (!IS_TAURI) return;
+    const FLAG = "csk-autostart-first-run-done";
+    if (localStorage.getItem(FLAG) === "1") return;
+    isAutostartEnabled()
+      .then((already) => {
+        if (already) {
+          localStorage.setItem(FLAG, "1");
+          return;
+        }
+        return enableAutostart()
+          .then(() => localStorage.setItem(FLAG, "1"))
+          .catch(() => {
+            // Silent failure on first-run nudge — the user can still flip
+            // the toggle in Settings manually.
+            localStorage.setItem(FLAG, "1");
+          });
+      })
+      .catch(() => {
+        // Probably a non-Tauri preview; mark as done so we don't loop.
+        localStorage.setItem(FLAG, "1");
+      });
+  }, []);
 
   // Update channels (this app + gentle-ai). 24h cooldown is internal to the
   // hook; banners below render from the returned state.

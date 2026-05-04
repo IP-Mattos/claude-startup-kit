@@ -714,10 +714,92 @@ body.v3-layout #root {
   font-size: 11.5px;
   font-weight: 500;
   margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .v3-sync-project-status-ok { color: var(--v3-success); }
 .v3-sync-project-status-dim { color: var(--v3-text-3); }
 .v3-sync-project-status-crit { color: var(--v3-crit); }
+.v3-sync-project-alias {
+  font-size: 11px;
+  color: var(--v3-text-3);
+  margin-top: 1px;
+}
+
+/* Spinner used inline next to the "Cloning…" status. Slow rotation so the
+   row doesn't get visually loud when several clones run at once. */
+@keyframes v3-spin {
+  to { transform: rotate(360deg); }
+}
+.v3-spin {
+  animation: v3-spin 1s linear infinite;
+}
+
+/* Folder picker row — keeps the read-only path next to the "Choose folder…"
+   button so they read as one control. */
+.v3-input-with-action {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+}
+.v3-input-with-action .v3-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* First-launch welcome card on Overview — accent-tinted, dismissible. */
+.v3-onboarding-card {
+  margin: 0 0 18px;
+  padding: 14px 18px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: var(--v3-accent-tint);
+  border: 1px solid var(--v3-accent);
+  border-radius: var(--v3-radius);
+  position: relative;
+}
+.v3-onboarding-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--v3-accent);
+}
+.v3-onboarding-body { flex: 1; min-width: 0; }
+.v3-onboarding-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--v3-text);
+}
+.v3-onboarding-message {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--v3-text-2);
+}
+.v3-onboarding-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.v3-onboarding-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--v3-text-3);
+  padding: 4px;
+  border-radius: var(--v3-radius-sm);
+}
+.v3-onboarding-close:hover {
+  background: var(--v3-hover);
+  color: var(--v3-text);
+}
 
 /* Settings → Updates card — one row per channel (app, gentle-ai). */
 .v3-update-row {
