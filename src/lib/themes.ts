@@ -17,6 +17,7 @@ export const V3_THEME_ORDER = [
   "neural",
   "ps2-glow",
   "blueprint",
+  "cyber-terminal",
 ] as const;
 
 export type V3Theme = (typeof V3_THEME_ORDER)[number];
@@ -43,6 +44,7 @@ export const V3_THEME_OPTIONS: V3ThemeOption[] = [
   { id: "neural",         label: "Neural",         swatch: ["#050908", "#0B1311", "#6EFFA8"] },
   { id: "ps2-glow",       label: "PS2 Glow",       swatch: ["#050B1A", "#0E1F38", "#5CC8FF"] },
   { id: "blueprint",      label: "Blueprint",      swatch: ["#0B2545", "#103968", "#E8F4FF"] },
+  { id: "cyber-terminal", label: "Cyber Terminal", swatch: ["#1F2014", "#2A2C1B", "#D9D766"] },
 ];
 
 // One-shot apply: load CSS + persist + set body attribute. Both the cycle
