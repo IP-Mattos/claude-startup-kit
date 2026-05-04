@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.8 — 2026-05-04
+
+### Fixed
+- **Audit "Resolver" actions had no visible feedback.** Read-only actions like `OpenInVscode` would fire correctly (the file did open in VS Code) but the user couldn't tell — the spinner cleared too fast and nothing in the app surfaced "this happened". Especially confusing when the file opened on a different monitor or behind another window.
+
+### Added
+- **"Hecho ✓" pill** rendered in place of the "Resolver" button for ~2.5 s after every successful audit action. Pure feedback — green tinted, with a check icon and a fade-out animation. Both read-only and destructive actions get the indicator.
+
+### Note
+This is the **first release that should reach you via the in-app auto-updater alone**. After installing v0.1.7 manually, you should see a banner or `Update now` button in Settings → Updates that pulls v0.1.8 atomically — no manual MSI download.
+
 ## 0.1.7 — 2026-05-04
 
 ### Fixed
