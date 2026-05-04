@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.11 — 2026-05-04
+
+### Fixed
+- **gentle-ai showed "No configurado" after auto-update**, even when the binary was installed and reachable from a fresh terminal. Root cause: the Tauri auto-updater spawns the new app instance with a parent-inherited PATH that lacks user-scoped install dirs (`%LOCALAPPDATA%\gentle-ai\bin\` etc.), so `silent_command("gentle-ai")` resolved nowhere.
+- **PATH-scan + known-install-dir fallback**: new `resolve_gentle_ai()` helper iterates the inherited PATH manually (so even truncated PATH inheritance still finds it) and, if that fails, checks `%LOCALAPPDATA%\gentle-ai\bin\gentle-ai.exe`, `%USERPROFILE%\.local\bin\`, `%USERPROFILE%\go\bin\`, and `%USERPROFILE%\AppData\Local\gentle-ai\bin\` for the binary. `read_gentle_ai_version` now uses the resolver, so the Settings → Updates row goes back to "v1.X.X · al día" when gentle-ai is genuinely installed regardless of how the parent process expanded PATH.
+
 ## 0.1.10 — 2026-05-04
 
 ### Fixed
