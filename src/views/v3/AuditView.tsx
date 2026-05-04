@@ -57,6 +57,11 @@ export function AuditView({ onJump }: AuditViewProps) {
   // action at a time — we don't queue. The button on every other row stays
   // active so the user can keep working in parallel-ish flow.
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
+  // Set to a finding key for ~2.5s after a successful action so the row can
+  // flash a green "Hecho ✓" pill — without this the user can't tell whether
+  // a read-only action like `open_in_vscode` actually fired (the spinner
+  // disappears too quickly to register).
+  const [recentlyDoneId, setRecentlyDoneId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
 
   useEffect(() => {
@@ -140,6 +145,14 @@ export function AuditView({ onJump }: AuditViewProps) {
           setRefreshNonce((n) => n + 1);
           break;
       }
+      // Mark this row as just-completed for ~2.5s so the user gets visible
+      // feedback. The setTimeout closure captures `id` directly; the cleanup
+      // guard makes sure a fast-fired second action on a different row
+      // doesn't clobber the indicator on the first one.
+      setRecentlyDoneId(id);
+      setTimeout(() => {
+        setRecentlyDoneId((curr) => (curr === id ? null : curr));
+      }, 2500);
     } catch (e) {
       setError(friendlyErrorEn(e));
     } finally {
@@ -264,8 +277,10 @@ export function AuditView({ onJump }: AuditViewProps) {
                       key={`${category}-${i}`}
                       finding={f}
                       pending={pendingActionId === key}
+                      done={recentlyDoneId === key}
                       onResolve={handleResolve}
                       resolveLabel={t("audit.resolve")}
+                      doneLabel={t("audit.action_done")}
                     />
                   );
                 })}
@@ -323,13 +338,17 @@ function FilterChip({
 function FindingRow({
   finding,
   pending,
+  done,
   onResolve,
   resolveLabel,
+  doneLabel,
 }: {
   finding: AuditFinding;
   pending: boolean;
+  done: boolean;
   onResolve: (f: AuditFinding) => void;
   resolveLabel: string;
+  doneLabel: string;
 }) {
   const Icon =
     finding.level === "CRIT"
@@ -350,17 +369,28 @@ function FindingRow({
         <div className="v3-finding-detail">{finding.detail}</div>
       </div>
       {finding.action && (
-        <button
-          type="button"
-          className="v3-finding-resolve"
-          onClick={() => onResolve(finding)}
-          disabled={pending}
-        >
-          {pending ? (
-            <Loader2 size={12} strokeWidth={2.25} className="v3-finding-resolve-spin" />
-          ) : null}
-          {resolveLabel}
-        </button>
+        done ? (
+          // Transient confirmation pill — replaces the resolve button for
+          // ~2.5s after the action completes so the user can tell something
+          // happened (especially for read-only actions like opening a file
+          // in VS Code, where the app itself doesn't visibly change).
+          <span className="v3-finding-done" role="status" aria-live="polite">
+            <Check size={12} strokeWidth={2.5} />
+            {doneLabel}
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="v3-finding-resolve"
+            onClick={() => onResolve(finding)}
+            disabled={pending}
+          >
+            {pending ? (
+              <Loader2 size={12} strokeWidth={2.25} className="v3-finding-resolve-spin" />
+            ) : null}
+            {resolveLabel}
+          </button>
+        )
       )}
       <span className={`v3-level-pill v3-level-${tint}`}>{finding.level}</span>
     </div>
