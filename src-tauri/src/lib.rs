@@ -1745,6 +1745,27 @@ fn git_in(repo: &Path, args: &[&str]) -> Result<String, String> {
     Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
+// Returns the authenticated `gh` user's login. Used in SyncView to preview
+// the full repo path the user is about to create (`<login>/<repo_name>`)
+// without having to run the actual `sync_setup` first. Returns an empty
+// string if `gh` isn't authenticated — the renderer falls back to a
+// generic placeholder rather than surfacing a noisy error.
+#[tauri::command]
+async fn gh_username() -> Result<String, String> {
+    tokio::task::spawn_blocking(|| -> Result<String, String> {
+        let out = silent_command("gh")
+            .args(["api", "user", "--jq", ".login"])
+            .output()
+            .map_err(|e| format!("spawn gh: {e}"))?;
+        if !out.status.success() {
+            return Ok(String::new());
+        }
+        Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 // `gh repo create` runs through the user's existing gh auth.
 #[tauri::command]
 async fn sync_setup(repo_name: String) -> Result<SyncState, String> {
@@ -2061,6 +2082,7 @@ async fn sync_disconnect() -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         // Autostart: persists to HKCU\Software\Microsoft\Windows\CurrentVersion\Run on
         // Windows. The toggle is exposed in Settings; disabled by default so the user
@@ -2090,6 +2112,7 @@ pub fn run() {
             workspace_summary,
             sync_status,
             sync_setup,
+            gh_username,
             sync_export,
             sync_import,
             sync_disconnect,

@@ -1,8 +1,26 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { FolderOpen, Loader2 } from "lucide-react";
 import { friendlyErrorEn } from "../../lib/format";
 import { useT } from "../../lib/i18n";
 import { ConfirmModal } from "../../components/v3/ConfirmModal";
+
+// Pull the actual repo name out of a clone URL — `https://host/owner/foo.git` → `foo`.
+// We use this to render the directory name that will land on disk, which can
+// differ from the optional display `name` carried in projects.json.
+function repoNameFromUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const last = u.pathname.split("/").filter(Boolean).pop() ?? "";
+    return last.replace(/\.git$/i, "");
+  } catch {
+    return url
+      .split("/")
+      .pop()
+      ?.replace(/\.git$/i, "") ?? url;
+  }
+}
 
 const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -23,7 +41,10 @@ interface SyncedProject {
 interface CloneResult {
   remote_url: string;
   path: string;
-  status: "cloned" | "exists" | "error";
+  // `cloning` is renderer-only — the backend never returns it. We set it
+  // optimistically when an invoke is in flight so the row shows a spinner
+  // instead of a spurious red "error · ...".
+  status: "cloning" | "cloned" | "exists" | "error";
   message: string;
 }
 
@@ -65,6 +86,11 @@ function SyncCard() {
     null,
   );
 
+  // GitHub login of the authenticated `gh` user — fetched once when the
+  // sync setup form is visible so we can show a live preview of the full
+  // repo path that's about to be created. Empty string = not authed yet.
+  const [ghUser, setGhUser] = useState<string>("");
+
   // Load both status + listed projects once on mount, and re-fetch
   // projects after every successful sync action.
   const refreshProjects = () => {
@@ -80,6 +106,11 @@ function SyncCard() {
       .then(setState)
       .catch((e) => setError(friendlyErrorEn(e)));
     refreshProjects();
+    // Preview the GitHub login for the setup form. Best-effort — if `gh`
+    // isn't authed we just leave the preview empty.
+    invoke<string>("gh_username")
+      .then(setGhUser)
+      .catch(() => setGhUser(""));
   }, []);
 
   const handleSetup = async () => {
@@ -126,27 +157,32 @@ function SyncCard() {
   };
   const handleImport = () => setConfirming("import");
 
-  // Clone one repo. Updates the per-row map regardless of outcome so
-  // the user sees a clear status next to each project.
+  // Clone one repo. Updates the per-row map regardless of outcome so the user
+  // sees a clear status next to each project. The "Clone" button is already
+  // gated on `targetDir.trim()` from the JSX, so we don't re-check here —
+  // the previous redundant guard set an error string the user couldn't see
+  // (the disabled button never fired the handler).
+  //
+  // We use the actual directory name git creates on disk (derived from the
+  // clone URL) instead of the optional display `name` from projects.json,
+  // because the backend used to write `<targetDir>/<display name>` which
+  // produced confusing folders like "PolyMarket" pointing at PolyTry.git.
   const cloneOne = async (p: SyncedProject) => {
-    if (!targetDir.trim()) {
-      setError(t("sync.target_required"));
-      return;
-    }
+    const dirName = repoNameFromUrl(p.remote_url);
     setCloneResults((prev) => ({
       ...prev,
       [p.remote_url]: {
         remote_url: p.remote_url,
         path: "",
-        status: "error",
-        message: "...",
+        status: "cloning",
+        message: "",
       },
     }));
     try {
       const res = await invoke<CloneResult>("clone_project", {
         remoteUrl: p.remote_url,
         targetDir,
-        name: p.name,
+        name: dirName,
       });
       setCloneResults((prev) => ({ ...prev, [p.remote_url]: res }));
     } catch (e) {
@@ -159,6 +195,21 @@ function SyncCard() {
           message: friendlyErrorEn(e),
         },
       }));
+    }
+  };
+
+  const pickTargetDir = async () => {
+    try {
+      const picked = await openDialog({
+        directory: true,
+        multiple: false,
+        title: t("sync.target_picker_title"),
+      });
+      if (typeof picked === "string" && picked.length > 0) {
+        setTargetDir(picked);
+      }
+    } catch (e) {
+      setError(friendlyErrorEn(e));
     }
   };
 
@@ -262,17 +313,31 @@ function SyncCard() {
             ) : (
               <>
                 <p className="v3-row-meta">{t("sync.projects_lead")}</p>
-                <label className="v3-form-row">
+                <div className="v3-form-row">
                   <span className="v3-form-label">{t("sync.target_label")}</span>
-                  <input
-                    type="text"
-                    className="v3-input"
-                    value={targetDir}
-                    onChange={(e) => setTargetDir(e.target.value)}
-                    placeholder={t("sync.target_placeholder")}
-                    disabled={cloningAll}
-                  />
-                </label>
+                  <div className="v3-input-with-action">
+                    <input
+                      type="text"
+                      className="v3-input"
+                      value={targetDir}
+                      onChange={(e) => setTargetDir(e.target.value)}
+                      placeholder={t("sync.target_placeholder")}
+                      disabled={cloningAll}
+                      readOnly
+                    />
+                    <button
+                      type="button"
+                      className="v3-btn-ghost v3-btn-sm"
+                      onClick={() => {
+                        void pickTargetDir();
+                      }}
+                      disabled={cloningAll}
+                    >
+                      <FolderOpen size={13} strokeWidth={2} />
+                      {t("sync.target_pick")}
+                    </button>
+                  </div>
+                </div>
                 <div className="v3-sync-actions">
                   <button
                     type="button"
@@ -291,6 +356,8 @@ function SyncCard() {
                         ? "v3-sync-project-status-ok"
                         : result?.status === "exists"
                         ? "v3-sync-project-status-dim"
+                        : result?.status === "cloning"
+                        ? "v3-sync-project-status-dim"
                         : result?.status === "error"
                         ? "v3-sync-project-status-crit"
                         : "";
@@ -299,18 +366,42 @@ function SyncCard() {
                         ? t("sync.clone_status_cloned")
                         : result?.status === "exists"
                         ? t("sync.clone_status_exists")
+                        : result?.status === "cloning"
+                        ? t("sync.clone_status_cloning")
                         : result?.status === "error"
                         ? t("sync.clone_status_error")
                         : "";
+                    const realName = repoNameFromUrl(p.remote_url);
+                    // Show the on-disk directory name as the primary label
+                    // (it's what the user will actually see in Explorer).
+                    // The display name from projects.json appears as a hint
+                    // only when it differs.
+                    const showDisplayHint =
+                      p.name && p.name.toLowerCase() !== realName.toLowerCase();
+                    const isCloning = result?.status === "cloning";
                     return (
                       <li key={p.remote_url} className="v3-sync-project-row">
                         <div className="v3-sync-project-body">
-                          <div className="v3-sync-project-name">{p.name}</div>
+                          <div className="v3-sync-project-name">{realName}</div>
+                          {showDisplayHint && (
+                            <div className="v3-sync-project-alias">
+                              {t("sync.alias_label")}: {p.name}
+                            </div>
+                          )}
                           <div className="v3-sync-project-remote">{p.remote_url}</div>
                           {result && (
                             <div className={`v3-sync-project-status ${statusClass}`}>
+                              {isCloning && (
+                                <Loader2
+                                  size={11}
+                                  strokeWidth={2.5}
+                                  className="v3-spin"
+                                />
+                              )}
                               {statusLabel}
-                              {result.message && result.status !== "cloned"
+                              {result.message &&
+                              result.status !== "cloned" &&
+                              result.status !== "cloning"
                                 ? ` · ${result.message}`
                                 : ""}
                             </div>
@@ -320,9 +411,11 @@ function SyncCard() {
                           type="button"
                           className="v3-btn-ghost v3-sync-btn"
                           onClick={() => cloneOne(p)}
-                          disabled={cloningAll || !targetDir.trim()}
+                          disabled={cloningAll || isCloning || !targetDir.trim()}
                         >
-                          {t("sync.clone_one")}
+                          {isCloning
+                            ? t("sync.clone_status_cloning")
+                            : t("sync.clone_one")}
                         </button>
                       </li>
                     );
@@ -346,6 +439,15 @@ function SyncCard() {
             />
           </label>
           <p className="v3-row-meta">{t("sync.repo_hint")}</p>
+          {repoName.trim() !== "" && (
+            <p className="v3-row-meta">
+              {ghUser
+                ? t("sync.repo_preview", {
+                    full: `${ghUser}/${repoName.trim()}`,
+                  })
+                : t("sync.repo_preview_no_user", { name: repoName.trim() })}
+            </p>
+          )}
           <div className="v3-sync-actions">
             <button
               type="button"

@@ -4,6 +4,7 @@ import { Check, Trash2 } from "lucide-react";
 import type { CleanupItem, CleanupResult } from "../../types";
 import { formatBytes, formatDate, friendlyErrorEn } from "../../lib/format";
 import { useT } from "../../lib/i18n";
+import { ConfirmModal } from "../../components/v3/ConfirmModal";
 
 const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -16,6 +17,7 @@ export function CleanupView() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<CleanupResult | null>(null);
   const [refreshNonce, setRefreshNonce] = useState(0);
+  const [confirmingClean, setConfirmingClean] = useState(false);
 
   useEffect(() => {
     if (!IS_TAURI) {
@@ -49,7 +51,7 @@ export function CleanupView() {
     [items]
   );
 
-  const runCleanup = async () => {
+  const runCleanupNow = async () => {
     if (!IS_TAURI || items.length === 0 || running) return;
     setRunning(true);
     setResult(null);
@@ -64,6 +66,9 @@ export function CleanupView() {
       setRunning(false);
     }
   };
+  // Wrapper for the button — opens the confirm modal first instead of
+  // wiping files on a single click.
+  const runCleanup = () => setConfirmingClean(true);
 
   return (
     <div className="v3-view">
@@ -156,6 +161,23 @@ export function CleanupView() {
           })}
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmingClean}
+        title={t("cleanup.confirm_title")}
+        message={t("cleanup.confirm_message", {
+          n: items.length,
+          bytes: formatBytes(totalBytes),
+        })}
+        confirmLabel={t("cleanup.clean_all")}
+        cancelLabel={t("common.cancel")}
+        danger
+        onConfirm={() => {
+          setConfirmingClean(false);
+          void runCleanupNow();
+        }}
+        onCancel={() => setConfirmingClean(false)}
+      />
     </div>
   );
 }

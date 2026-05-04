@@ -133,6 +133,41 @@ const STRINGS = {
     en: "Stop syncing? The remote repo stays on GitHub — you can re-attach later.",
     es: "¿Detener el sync? El repo remoto queda en GitHub, podés re-conectar después.",
   },
+  "sync.target_pick": { en: "Choose folder…", es: "Elegir carpeta…" },
+  "sync.target_picker_title": {
+    en: "Pick a folder to clone projects into",
+    es: "Elegí una carpeta para clonar los proyectos",
+  },
+  "sync.alias_label": { en: "alias", es: "alias" },
+  "sync.clone_status_cloning": { en: "Cloning…", es: "Clonando…" },
+  "sync.repo_preview": {
+    en: "Will create a private repo at github.com/{full}",
+    es: "Se va a crear un repo privado en github.com/{full}",
+  },
+  "sync.repo_preview_no_user": {
+    en: "Will create a private repo named {name} (gh login pending)",
+    es: "Se va a crear un repo privado llamado {name} (falta login en gh)",
+  },
+  "cleanup.confirm_title": {
+    en: "Delete files?",
+    es: "¿Borrar archivos?",
+  },
+  "cleanup.confirm_message": {
+    en: "About to delete {n} item(s) · {bytes} of disk. This cannot be undone.",
+    es: "Vas a borrar {n} elemento(s) · {bytes} de disco. No se puede deshacer.",
+  },
+  "onboarding.aria": { en: "Welcome card", es: "Tarjeta de bienvenida" },
+  "onboarding.title": {
+    en: "Welcome to Claude Startup Kit",
+    es: "Bienvenido a Claude Startup Kit",
+  },
+  "onboarding.message": {
+    en: "We turned on launch-on-startup so the app is ready every time you log in. Sync your engram memory to GitHub to share it across machines, or tweak the rest in Settings.",
+    es: "Activamos el inicio automático con Windows para que la app esté lista cada vez que prendas la PC. Sincronizá tu memoria de engram con GitHub para compartirla entre máquinas, o ajustá el resto en Configuración.",
+  },
+  "onboarding.cta_sync": { en: "Set up sync", es: "Configurar sync" },
+  "onboarding.cta_settings": { en: "Open Settings", es: "Abrir Configuración" },
+  "onboarding.dismiss": { en: "Dismiss", es: "Cerrar" },
   // Project clone section (shown when projects.json has entries)
   "sync.projects_title": { en: "Projects on this remote", es: "Proyectos en este remoto" },
   "sync.projects_empty": {
