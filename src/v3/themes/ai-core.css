@@ -1,0 +1,286 @@
+/* =============================================================
+   V3 Theme: AI-CORE
+   Identity: AI consciousness UI. Near-black canvas, hairline
+   geometry, mono-leaning typography, single phosphor-green
+   accent. The interface feels like a calm machine thinking —
+   terminal-pure but premium.
+   Reference moods: GitHub Copilot Chat dark, Vercel CLI,
+   Claude.app dark, OpenAI playground.
+   Font cue: ui-monospace for telemetry, system sans for prose.
+   ============================================================= */
+
+/* ── Body background: deepest ink ───────────────────────────── */
+body.v3-layout[data-theme-v3="ai-core"] {
+  background: #07080A;
+}
+
+body[data-theme-v3="ai-core"] .appv3 {
+  /* ── Surface ─────────────────────────────────────────────── */
+  /* Tight luminance ladder: 6 steps inside 14 points of L*.
+     Keeps the UI calm and "thinking" rather than busy. */
+  --v3-bg:            #0A0B0D;
+  --v3-surface:       #101216;        /* card base */
+  --v3-surface-2:     #14171C;        /* nested */
+  --v3-hover:         #1A1E25;
+  --v3-border:        #1E2229;        /* hairline only — never structural */
+  --v3-border-strong: #2A2F38;
+
+  /* ── Type ────────────────────────────────────────────────── */
+  /* #8A93A3 on #101216 ≈ 5.4:1 — AA. text-4 is decorative; never
+     used for content. We deliberately avoid pure white (#FFF)
+     so the canvas can stay dark without eye strain. */
+  --v3-text:   #E6E8EC;               /* off-white, ~94% L */
+  --v3-text-2: #B6BCC7;               /* prose secondary */
+  --v3-text-3: #8A93A3;               /* meta / labels */
+  --v3-text-4: #5C6470;               /* hints, decorative */
+
+  /* ── Accent: PHOSPHOR GREEN ──────────────────────────────── */
+  /* A single low-saturation green (#7FE0A8) used sparingly —
+     enough to feel like a console cursor without going
+     full Matrix. Tints sit deliberately low so the accent
+     reads as "presence" not "alert". */
+  --v3-accent:       #7FE0A8;
+  --v3-accent-hover: #9AE9BA;
+  --v3-accent-tint:  rgba(127, 224, 168, 0.08);
+  --v3-accent-soft:  rgba(127, 224, 168, 0.14);
+
+  /* ── Semantic ────────────────────────────────────────────── */
+  /* Semantic palette is desaturated by intent. On a calm
+     interface, screaming reds break the meditation. These
+     still hit AA against surface but feel introspective. */
+  --v3-success:      #6FD49C;
+  --v3-success-tint: rgba(111, 212, 156, 0.12);
+  --v3-warn:         #E5C07B;                    /* warm sand, not amber */
+  --v3-warn-tint:    rgba(229, 192, 123, 0.12);
+  --v3-info:         #88B4E8;                    /* paled sky */
+  --v3-info-tint:    rgba(136, 180, 232, 0.12);
+  --v3-crit:         #E07B7B;                    /* dimmed coral, not red */
+  --v3-crit-tint:    rgba(224, 123, 123, 0.12);
+
+  /* ── Shadows: shallow, almost imperceptible ──────────────── */
+  /* On near-black, big shadows look like blur artifacts.
+     We keep them tight and use ringed borders for elevation. */
+  --v3-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.55);
+  --v3-shadow-2: 0 2px 6px rgba(0, 0, 0, 0.65), 0 1px 2px rgba(0, 0, 0, 0.40);
+  --v3-shadow-3: 0 8px 24px rgba(0, 0, 0, 0.75), 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Body: imperceptible top vignette ───────────────────────── */
+/* Just enough lift at the top of the canvas to suggest the
+   interface "wakes up" toward the user. */
+body.v3-layout[data-theme-v3="ai-core"] .appv3 {
+  background: radial-gradient(ellipse 100% 50% at 50% 0%, #0C0E12 0%, #07080A 70%);
+}
+
+/* ── Content area: 1px dot grid (very faint) ────────────────── */
+/* The grid evokes a console buffer. Almost invisible — you
+   only notice it on large empty surfaces. */
+body[data-theme-v3="ai-core"] .appv3-content {
+  background-color: var(--v3-bg);
+  background-image:
+    radial-gradient(rgba(127, 224, 168, 0.035) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: 0 0;
+}
+
+/* ── Mono-leaning typography for technical readouts ─────────── */
+/* Anything that smells numeric or meta gets the monospace
+   treatment with tight tabular nums. This is the theme's
+   typographic spine. */
+body[data-theme-v3="ai-core"] .appv3 .v3-stat-value,
+body[data-theme-v3="ai-core"] .appv3 .v3-stat-meta,
+body[data-theme-v3="ai-core"] .appv3 .v3-row-meta,
+body[data-theme-v3="ai-core"] .appv3 .v3-statusbar,
+body[data-theme-v3="ai-core"] .appv3 .v3-version,
+body[data-theme-v3="ai-core"] .appv3 [class*="-meta"],
+body[data-theme-v3="ai-core"] .appv3 [class*="-time"],
+body[data-theme-v3="ai-core"] .appv3 [class*="-count"] {
+  font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* ── Topbar: hairline only, no glow ─────────────────────────── */
+body[data-theme-v3="ai-core"] .v3-topbar {
+  border-bottom-color: transparent;
+  box-shadow: 0 1px 0 0 var(--v3-border);
+}
+
+/* ── Stat cards: hairline ring + caret on hover ─────────────── */
+/* Idle cards are nearly invisible — just a 1px frame. On
+   hover they sprout a left-edge phosphor caret like an
+   active prompt line in a terminal. */
+body[data-theme-v3="ai-core"] .v3-stat-card {
+  background: var(--v3-surface);
+  background-image: none;
+  position: relative;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+body[data-theme-v3="ai-core"] .v3-stat-card:hover {
+  border-color: var(--v3-border-strong);
+  box-shadow: var(--v3-shadow-1), inset 2px 0 0 var(--v3-accent);
+}
+
+/* ── Rows: same hairline-caret treatment ────────────────────── */
+body[data-theme-v3="ai-core"] .v3-row:hover {
+  border-color: var(--v3-border-strong);
+  box-shadow: inset 2px 0 0 rgba(127, 224, 168, 0.55);
+}
+
+/* ── Sidebar active link: blinking-cursor caret ─────────────── */
+/* The active link gets a phosphor inset bar plus a small
+   solid square that mimics a terminal cursor. No animation —
+   stillness is the point. */
+body[data-theme-v3="ai-core"] .v3-side-link {
+  position: relative;
+}
+body[data-theme-v3="ai-core"] .v3-side-link.active {
+  background: var(--v3-accent-tint);
+  color: var(--v3-text);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
+}
+body[data-theme-v3="ai-core"] .v3-side-link.active::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  background: var(--v3-accent);
+  pointer-events: none;
+}
+
+/* ── Companion stage: faint phosphor pool from below ────────── */
+body[data-theme-v3="ai-core"] .v3-companion-stage {
+  background: radial-gradient(
+    ellipse 90% 80% at 50% 100%,
+    rgba(127, 224, 168, 0.07) 0%,
+    rgba(127, 224, 168, 0.02) 50%,
+    transparent 100%
+  );
+}
+
+/* ── Focus visible: 1px phosphor outline + soft halo ────────── */
+body[data-theme-v3="ai-core"] .appv3 button:focus-visible,
+body[data-theme-v3="ai-core"] .appv3 a:focus-visible,
+body[data-theme-v3="ai-core"] .appv3 input:focus-visible,
+body[data-theme-v3="ai-core"] .appv3 select:focus-visible {
+  outline: 1px solid var(--v3-accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(127, 224, 168, 0.14);
+}
+
+/* ── Stat icon tints: re-skinned to phosphor-friendly tones ─── */
+body[data-theme-v3="ai-core"] .v3-stat-icon-orange {
+  background: var(--v3-accent-tint);
+  color: var(--v3-accent);                   /* unify under one accent */
+}
+body[data-theme-v3="ai-core"] .v3-stat-icon-purple {
+  background: rgba(180, 170, 220, 0.10);
+  color: #C7BEE0;
+}
+body[data-theme-v3="ai-core"] .v3-stat-icon-amber {
+  background: rgba(229, 192, 123, 0.10);
+  color: var(--v3-warn);
+}
+body[data-theme-v3="ai-core"] .v3-stat-icon-green {
+  background: rgba(111, 212, 156, 0.10);
+  color: var(--v3-success);
+}
+
+/* ── PR pill / row icon ─────────────────────────────────────── */
+body[data-theme-v3="ai-core"] .v3-pr-pill-review {
+  background: rgba(180, 170, 220, 0.12);
+  color: #C7BEE0;
+}
+body[data-theme-v3="ai-core"] .v3-row-pr .v3-row-icon {
+  background: rgba(180, 170, 220, 0.10);
+  color: #C7BEE0;
+}
+
+/* ── Audit alert banner ─────────────────────────────────────── */
+body[data-theme-v3="ai-core"] .v3-audit-foot {
+  background: rgba(229, 192, 123, 0.08);
+  border-color: rgba(229, 192, 123, 0.28);
+  color: var(--v3-warn);
+}
+body[data-theme-v3="ai-core"] .v3-audit-foot .v3-chev {
+  color: var(--v3-warn);
+}
+
+/* ── Audit findings ─────────────────────────────────────────── */
+body[data-theme-v3="ai-core"] .v3-finding-crit {
+  border-color: rgba(224, 123, 123, 0.28);
+  background: rgba(224, 123, 123, 0.06);
+}
+body[data-theme-v3="ai-core"] .v3-finding-warn {
+  border-color: rgba(229, 192, 123, 0.28);
+  background: rgba(229, 192, 123, 0.06);
+}
+body[data-theme-v3="ai-core"] .v3-finding-info {
+  border-color: rgba(136, 180, 232, 0.25);
+  background: rgba(136, 180, 232, 0.05);
+}
+body[data-theme-v3="ai-core"] .v3-finding-ok {
+  border-color: rgba(111, 212, 156, 0.25);
+  background: rgba(111, 212, 156, 0.05);
+}
+
+/* ── Banners ────────────────────────────────────────────────── */
+body[data-theme-v3="ai-core"] .v3-error {
+  background: rgba(224, 123, 123, 0.08);
+  border-color: rgba(224, 123, 123, 0.28);
+  color: #EFA0A0;
+}
+body[data-theme-v3="ai-core"] .v3-success {
+  background: rgba(111, 212, 156, 0.08);
+  border-color: rgba(111, 212, 156, 0.26);
+  color: #9CE5BD;
+}
+
+/* ── Chip.active: invert to accent fill ─────────────────────── */
+body[data-theme-v3="ai-core"] .v3-chip.active {
+  background: var(--v3-accent);
+  border-color: var(--v3-accent);
+  color: #07120D;
+}
+
+/* ── Statusbar: dim console footer ──────────────────────────── */
+body[data-theme-v3="ai-core"] .v3-statusbar {
+  background: #06070A;
+  border-top: 1px solid var(--v3-border);
+  color: var(--v3-text-3);
+  font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+}
+
+/* ── Section labels: "›" prompt prefix ──────────────────────── */
+/* A subtle chevron prefix on labels makes each section read
+   like a prompt line in a REPL, without altering layout. */
+body[data-theme-v3="ai-core"] .appv3 .v3-section-label::before,
+body[data-theme-v3="ai-core"] .appv3 .v3-side-section::before {
+  content: "› ";
+  color: var(--v3-text-4);
+  font-family: ui-monospace, monospace;
+}
+
+/* ── Custom scrollbar: 3px phosphor sliver ──────────────────── */
+body[data-theme-v3="ai-core"] .appv3 ::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+body[data-theme-v3="ai-core"] .appv3 ::-webkit-scrollbar-track {
+  background: transparent;
+}
+body[data-theme-v3="ai-core"] .appv3 ::-webkit-scrollbar-thumb {
+  background: rgba(127, 224, 168, 0.30);
+  border-radius: 0;                          /* squared — terminal-pure */
+}
+body[data-theme-v3="ai-core"] .appv3 ::-webkit-scrollbar-thumb:hover {
+  background: rgba(127, 224, 168, 0.65);
+}
+body[data-theme-v3="ai-core"] .appv3 {
+  scrollbar-color: rgba(127, 224, 168, 0.30) transparent;
+  scrollbar-width: thin;
+}

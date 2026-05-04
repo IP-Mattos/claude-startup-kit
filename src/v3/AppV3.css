@@ -2102,6 +2102,40 @@ body.v3-layout #root {
   font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
   word-break: break-word;
 }
+/* Per-finding "Resolve" action. Sits between the body and the level pill —
+   small, primary-tinted, and disables to a flat opacity while the action is
+   in flight. The spinner inherits color from the button so it works across
+   the 50+ themes without per-theme overrides. */
+.v3-finding-resolve {
+  align-self: center;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--v3-radius-sm);
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--v3-accent);
+  color: #FFFFFF;
+  border: 1px solid var(--v3-accent);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+}
+.v3-finding-resolve:hover:not([disabled]) {
+  background: var(--v3-accent-hover);
+  border-color: var(--v3-accent-hover);
+}
+.v3-finding-resolve[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+.v3-finding-resolve-spin {
+  animation: v3-finding-spin 750ms linear infinite;
+}
+@keyframes v3-finding-spin {
+  to { transform: rotate(360deg); }
+}
 .v3-level-pill {
   padding: 3px 8px;
   border-radius: 999px;

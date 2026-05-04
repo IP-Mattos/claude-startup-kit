@@ -407,7 +407,7 @@ export default function AppV3() {
           )}
           {tab === "projects" && <ProjectsView />}
           {tab === "prs" && <PrsView />}
-          {tab === "audit" && <AuditView />}
+          {tab === "audit" && <AuditView onJump={setTab} />}
           {tab === "cleanup" && <CleanupView />}
           {tab === "sync" && <SyncView />}
           {tab === "claude" && <ClaudeView />}

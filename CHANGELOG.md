@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.5 — 2026-05-04
+
+### Added
+- **Six new themes** in Settings → Theme — all built to the same standards as the existing eight (full token set + signature selectors per theme):
+  - **AI Core** — near-black canvas with a 24px dot grid, hairline borders, phosphor-green prompt-line carets on hover. Mood: terminal-pure consciousness.
+  - **Satellite** — deep navy mission-control with cyan accents, faint orbital coordinate grid overlay, calibration tick marks on stat-card hover.
+  - **Unix '90** — flat steel CDE/Motif tiles, hard 1px hairlines, desaturated teal accent. The deliberate inverse of `chrome95`'s 3D bevels.
+  - **Neural** — almost-black bio-interface with bioluminescent green halos on hover and amber axon-spark accents on rows.
+  - **PS2 Glow** — brushed-aluminium gradient topbar with luminous cyan hairline; diffuse cyan underglow everywhere on hover.
+  - **Blueprint** — drafting-paper deep blue with a 4-layer 10px/50px white-cyan grid, dashed construction-line focus outlines, dimension-bracket hover marks.
+- **Resolvable audit findings** — every WARN / CRIT finding that the backend recognizes now carries an `action`, and the row gets a "Resolver" button that:
+  - **Navigates** to the relevant tab for cleanup-style findings (`~/.claude > 5 GB`, large JSONLs).
+  - **Opens** `settings.json` in VS Code for hook-timeout / risky-permission findings.
+  - **Opens Explorer** for non-kit files in `lib/`.
+  - **Kills the offending process** (with confirmation) for "PROCESSES > Xh" findings.
+  - **Restores `settings.json`** from the most recent kit backup (with confirmation) when the JSON is invalid.
+  - **Reinstalls the kit** (with confirmation) when no `.kit-version` marker exists.
+  - All destructive actions go through `<ConfirmModal>`. New backend commands `kill_process`, `restore_settings_backup`, `reinstall_kit`. Mapping logic lives in Rust (`infer_action`) — the legacy `claude-audit.ps1` stays agnostic.
+
 ## 0.1.4 — 2026-05-04
 
 ### Added

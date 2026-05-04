@@ -527,12 +527,176 @@ fn open_url(url: String) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Serialize, Clone, Debug)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum AuditAction {
+    NavigateTo { tab: String },
+    OpenInExplorer { path: String },
+    OpenInVscode { path: String },
+    KillProcess { pid: u32 },
+    DeleteFile { path: String },
+    RestoreSettingsBackup,
+    ReinstallKit,
+}
+
 #[derive(Serialize, Clone)]
 pub struct AuditFinding {
     pub level: String,
     pub category: String,
     pub title: String,
     pub detail: String,
+    pub action: Option<AuditAction>,
+}
+
+/// Resolve `~/.claude/<rel>` as a string path with the user's home directory
+/// substituted. Returns empty string on failure (caller decides how to handle).
+fn claude_path_string(rel: &str) -> String {
+    dirs_home()
+        .map(|h| h.join(".claude").join(rel).to_string_lossy().to_string())
+        .unwrap_or_default()
+}
+
+/// Best-effort scan for a Windows-style absolute path inside a free-form string.
+/// Looks for `<drive-letter>:\` or `<drive-letter>:/` and grabs everything up to
+/// the next quote, newline, or end of string. Returns None if no path is found.
+fn extract_windows_path(s: &str) -> Option<String> {
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    while i + 2 < bytes.len() {
+        let c0 = bytes[i] as char;
+        let c1 = bytes[i + 1];
+        let c2 = bytes[i + 2];
+        if c0.is_ascii_alphabetic() && c1 == b':' && (c2 == b'\\' || c2 == b'/') {
+            // Make sure char before isn't another letter (avoid grabbing inside a longer token)
+            if i > 0 {
+                let prev = bytes[i - 1] as char;
+                if prev.is_ascii_alphanumeric() {
+                    i += 1;
+                    continue;
+                }
+            }
+            // Walk forward until we hit a terminator.
+            let mut j = i;
+            while j < bytes.len() {
+                let ch = bytes[j];
+                if ch == b'\n' || ch == b'\r' || ch == b'"' || ch == b'\'' {
+                    break;
+                }
+                j += 1;
+            }
+            // Trim trailing punctuation like '.', ')', ',', whitespace.
+            let mut end = j;
+            while end > i {
+                let c = bytes[end - 1];
+                if c == b' ' || c == b'\t' || c == b'.' || c == b',' || c == b')' || c == b';' {
+                    end -= 1;
+                } else {
+                    break;
+                }
+            }
+            if end > i + 3 {
+                return Some(s[i..end].to_string());
+            }
+        }
+        i += 1;
+    }
+    None
+}
+
+/// Map a finding's `(category, title, detail)` triple to an optional follow-up
+/// action the frontend can render as a "Fix" button. INFO-level findings are
+/// filtered upstream — this function does not check level.
+fn infer_action(category: &str, title: &str, detail: &str) -> Option<AuditAction> {
+    match category {
+        "DISK" => {
+            if title.starts_with("~/.claude is over") {
+                Some(AuditAction::NavigateTo {
+                    tab: "cleanup".to_string(),
+                })
+            } else if title.starts_with("Large JSONL:") {
+                // Try to extract a path from the title first, then the detail.
+                let path = extract_windows_path(title).or_else(|| extract_windows_path(detail));
+                match path {
+                    Some(p) => Some(AuditAction::OpenInExplorer { path: p }),
+                    None => Some(AuditAction::NavigateTo {
+                        tab: "cleanup".to_string(),
+                    }),
+                }
+            } else {
+                None
+            }
+        }
+        "PROCESSES" => {
+            // Title shape: "<name> (PID <pid>) running for <h>h"
+            if let Some(start) = title.find("(PID ") {
+                let rest = &title[start + 5..];
+                let end = rest.find(')').unwrap_or(rest.len());
+                let pid_str = rest[..end].trim();
+                if let Ok(pid) = pid_str.parse::<u32>() {
+                    return Some(AuditAction::KillProcess { pid });
+                }
+            }
+            None
+        }
+        "DRIFT" => {
+            if title == "settings.local.json exists — overrides settings.json" {
+                Some(AuditAction::OpenInVscode {
+                    path: claude_path_string("settings.local.json"),
+                })
+            } else {
+                None
+            }
+        }
+        "HOOKS" => {
+            if title.contains("settings.json invalid JSON") {
+                Some(AuditAction::RestoreSettingsBackup)
+            } else if title.starts_with("Hook timeout > 300s") {
+                Some(AuditAction::OpenInVscode {
+                    path: claude_path_string("settings.json"),
+                })
+            } else {
+                None
+            }
+        }
+        "PERMISSIONS" => {
+            if title.starts_with("Allow rule matches risky pattern:") {
+                Some(AuditAction::OpenInVscode {
+                    path: claude_path_string("settings.json"),
+                })
+            } else {
+                None
+            }
+        }
+        "SCRIPTS" => {
+            // Title shape: "Non-kit file in lib/: foo.ps1"
+            let prefix = "Non-kit file in lib/:";
+            if let Some(rest) = title.strip_prefix(prefix) {
+                let filename = rest.trim();
+                if !filename.is_empty() {
+                    let full = claude_path_string(&format!("scripts/lib/{filename}"));
+                    return Some(AuditAction::OpenInExplorer { path: full });
+                }
+            }
+            None
+        }
+        "LOGS" => {
+            if title.ends_with("ERROR entries in last 200 log lines") {
+                Some(AuditAction::OpenInVscode {
+                    path: claude_path_string("logs/startup-kit.log"),
+                })
+            } else {
+                None
+            }
+        }
+        "KIT" => {
+            if title == "No .kit-version marker — kit may not be installed" {
+                Some(AuditAction::ReinstallKit)
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
 }
 
 fn run_audit_blocking() -> Result<Vec<AuditFinding>, String> {
@@ -571,27 +735,40 @@ fn run_audit_blocking() -> Result<Vec<AuditFinding>, String> {
     let arr = raw.as_array().ok_or("audit output is not an array")?;
     let findings = arr
         .iter()
-        .map(|item| AuditFinding {
-            level: item
+        .map(|item| {
+            let level = item
                 .get("Level")
                 .and_then(|v| v.as_str())
                 .unwrap_or("INFO")
-                .to_string(),
-            category: item
+                .to_string();
+            let category = item
                 .get("Category")
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
-                .to_string(),
-            title: item
+                .to_string();
+            let title = item
                 .get("Title")
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
-                .to_string(),
-            detail: item
+                .to_string();
+            let detail = item
                 .get("Detail")
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
-                .to_string(),
+                .to_string();
+            // INFO findings are informational — never offer a fix action.
+            let action = if level == "INFO" {
+                None
+            } else {
+                infer_action(&category, &title, &detail)
+            };
+            AuditFinding {
+                level,
+                category,
+                title,
+                detail,
+                action,
+            }
         })
         .collect();
     Ok(findings)
@@ -602,6 +779,148 @@ async fn run_audit() -> Result<Vec<AuditFinding>, String> {
     tokio::task::spawn_blocking(run_audit_blocking)
         .await
         .map_err(|e| format!("audit task join error: {e}"))?
+}
+
+// ---------- audit follow-up actions ----------
+
+#[tauri::command]
+async fn kill_process(pid: u32) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let output = silent_command("taskkill")
+            .args(["/PID", &pid.to_string(), "/F"])
+            .output()
+            .map_err(|e| format!("failed to spawn taskkill: {e}"))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let msg = if !stderr.trim().is_empty() {
+                stderr.into_owned()
+            } else if !stdout.trim().is_empty() {
+                stdout.into_owned()
+            } else {
+                format!(
+                    "taskkill exited with status {}",
+                    output.status.code().unwrap_or(-1)
+                )
+            };
+            return Err(msg.trim().to_string());
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("kill task join error: {e}"))?
+}
+
+#[tauri::command]
+async fn restore_settings_backup() -> Result<String, String> {
+    tokio::task::spawn_blocking(|| -> Result<String, String> {
+        let home = dirs_home().ok_or_else(|| "home directory not resolvable".to_string())?;
+        let backups_root = home.join(".claude").join("backups");
+        if !backups_root.exists() {
+            return Err(format!(
+                "no backups directory at {}",
+                backups_root.display()
+            ));
+        }
+        // Collect candidate backup directories: name starts with "startup-kit-"
+        // AND contains settings.json. Pick the one with the most recent mtime.
+        let mut candidates: Vec<(SystemTime, PathBuf)> = fs::read_dir(&backups_root)
+            .map_err(|e| format!("read backups dir: {e}"))?
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+            .filter(|e| {
+                e.file_name()
+                    .to_string_lossy()
+                    .starts_with("startup-kit-")
+            })
+            .filter(|e| e.path().join("settings.json").exists())
+            .filter_map(|e| {
+                let m = e.metadata().ok()?.modified().ok()?;
+                Some((m, e.path()))
+            })
+            .collect();
+        if candidates.is_empty() {
+            return Err("no startup-kit-* backup with settings.json found".to_string());
+        }
+        candidates.sort_by(|a, b| b.0.cmp(&a.0));
+        let (_, chosen) = &candidates[0];
+        let src = chosen.join("settings.json");
+        let dest = home.join(".claude").join("settings.json");
+        fs::copy(&src, &dest).map_err(|e| {
+            format!(
+                "copy {} -> {}: {e}",
+                src.display(),
+                dest.display()
+            )
+        })?;
+        let name = chosen
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| chosen.to_string_lossy().to_string());
+        Ok(name)
+    })
+    .await
+    .map_err(|e| format!("restore task join error: {e}"))?
+}
+
+#[tauri::command]
+async fn reinstall_kit() -> Result<(), String> {
+    tokio::task::spawn_blocking(|| -> Result<(), String> {
+        let home = dirs_home().ok_or_else(|| "home directory not resolvable".to_string())?;
+        let config_path = home
+            .join(".claude")
+            .join("scripts")
+            .join("startup-kit-config.json");
+        if !config_path.exists() {
+            return Err(format!(
+                "kit config not found at {}",
+                config_path.display()
+            ));
+        }
+        let text = fs::read_to_string(&config_path)
+            .map_err(|e| format!("read kit config: {e}"))?;
+        let json: serde_json::Value = serde_json::from_str(&text)
+            .map_err(|e| format!("parse kit config: {e}"))?;
+        let repo_path = json
+            .get("selfUpdate")
+            .and_then(|v| v.get("repoPath"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        if repo_path.is_empty() {
+            return Err("selfUpdate.repoPath missing or empty in kit config".to_string());
+        }
+        let installer = Path::new(&repo_path).join("install.ps1");
+        let output = silent_command("powershell")
+            .args([
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                &installer.to_string_lossy(),
+            ])
+            .output()
+            .map_err(|e| format!("failed to spawn installer: {e}"))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let msg = if !stderr.trim().is_empty() {
+                stderr.into_owned()
+            } else if !stdout.trim().is_empty() {
+                stdout.into_owned()
+            } else {
+                format!(
+                    "installer exited with status {}",
+                    output.status.code().unwrap_or(-1)
+                )
+            };
+            return Err(msg.trim().to_string());
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("reinstall task join error: {e}"))?
 }
 
 // ---------- engram known-projects cache (5-minute TTL) ----------
@@ -2099,6 +2418,9 @@ pub fn run() {
             engram_project_goal,
             enrich_projects,
             run_audit,
+            kill_process,
+            restore_settings_backup,
+            reinstall_kit,
             github_review_queue,
             cleanup_plan,
             cleanup_apply,
