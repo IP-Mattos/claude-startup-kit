@@ -699,79 +699,739 @@ fn infer_action(category: &str, title: &str, detail: &str) -> Option<AuditAction
     }
 }
 
-fn run_audit_blocking() -> Result<Vec<AuditFinding>, String> {
-    let script = dirs_home()
-        .map(|h| h.join(".claude").join("scripts").join("claude-audit.ps1"))
-        .ok_or_else(|| "no home directory".to_string())?;
-    if !script.exists() {
-        return Err(format!("audit script not found at {}", script.display()));
-    }
-    let output = silent_command("powershell")
-        .args([
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-File",
-            &script.to_string_lossy(),
-            "-Json",
-            "-NoNetwork",
-        ])
+// =============================================================================
+// AUDIT — native Rust port of legacy/scripts/claude-audit.ps1
+// =============================================================================
+// Each helper below corresponds to a numbered block in the legacy PS script.
+// Helpers push findings into a shared Vec via &mut. Title strings MUST match
+// the PS script verbatim where `infer_action()` keys off them — see comments
+// at each call site.
+// =============================================================================
+
+/// Push a finding without an action (the action is inferred later, except for
+/// INFO findings which never carry actions).
+fn push_finding(out: &mut Vec<AuditFinding>, level: &str, category: &str, title: String, detail: String) {
+    let action = if level == "INFO" {
+        None
+    } else {
+        infer_action(category, &title, &detail)
+    };
+    out.push(AuditFinding {
+        level: level.to_string(),
+        category: category.to_string(),
+        title,
+        detail,
+        action,
+    });
+}
+
+/// 1. PROCESSES — long-running watched processes (engram/gentle-ai/claude/etc).
+///
+/// We shell out to PowerShell's `Get-Process` because pure-Rust process
+/// enumeration with start times on Windows requires either a new dep
+/// (e.g. `sysinfo`) or hand-rolled Win32 calls. The legacy script was
+/// Windows-only too — same compromise.
+fn audit_processes(out: &mut Vec<AuditFinding>) {
+    // Names match the PS script's $watchedNames — keep in sync.
+    let watched = ["Code", "gentle-ai", "engram", "powershell", "pwsh", "cmd", "claude"];
+    let names_csv = watched
+        .iter()
+        .map(|n| format!("'{n}'"))
+        .collect::<Vec<_>>()
+        .join(",");
+    // Emit one CSV-ish line per process: name|pid|ISO-start-time
+    let script = format!(
+        "$names = @({names}); foreach ($n in $names) {{ $ps = Get-Process -Name $n -ErrorAction SilentlyContinue; foreach ($p in $ps) {{ try {{ $st = $p.StartTime.ToString('o'); Write-Output ($n + '|' + $p.Id + '|' + $st) }} catch {{}} }} }}",
+        names = names_csv
+    );
+    let output = match silent_command("powershell")
+        .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &script])
         .output()
-        .map_err(|e| format!("failed to run audit: {e}"))?;
+    {
+        Ok(o) => o,
+        Err(_) => return, // silent on transient PS failure — same as PS script's try/catch
+    };
     if !output.status.success() {
-        return Err(format!(
-            "audit exited with status {}",
-            output.status.code().unwrap_or(-1)
-        ));
+        return;
     }
     let text = String::from_utf8_lossy(&output.stdout);
-    let trimmed = text.trim();
-    if trimmed.is_empty() {
-        return Ok(Vec::new());
+    let now = Utc::now();
+    for line in text.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let parts: Vec<&str> = line.splitn(3, '|').collect();
+        if parts.len() != 3 {
+            continue;
+        }
+        let name = parts[0];
+        let pid_str = parts[1];
+        let start_iso = parts[2];
+        let Ok(start) = DateTime::parse_from_rfc3339(start_iso) else {
+            continue;
+        };
+        let runtime = now.signed_duration_since(start.with_timezone(&Utc));
+        let hours = runtime.num_hours();
+        if hours > 48 {
+            // VERBATIM TITLE — `infer_action` matches "(PID <pid>)" + "running for Xh".
+            push_finding(
+                out,
+                "WARN",
+                "PROCESSES",
+                format!("{name} (PID {pid_str}) running for {hours}h"),
+                "Long-running. If you don't recognize it, consider killing it.".to_string(),
+            );
+        } else if hours > 12 {
+            push_finding(
+                out,
+                "INFO",
+                "PROCESSES",
+                format!("{name} (PID {pid_str}) running for {hours}h"),
+                String::new(),
+            );
+        }
     }
-    // PowerShell JSON uses PascalCase fields; deserialize into a generic Value first.
-    let raw: serde_json::Value =
-        serde_json::from_str(trimmed).map_err(|e| format!("audit JSON parse: {e}"))?;
-    let arr = raw.as_array().ok_or("audit output is not an array")?;
-    let findings = arr
-        .iter()
-        .map(|item| {
-            let level = item
-                .get("Level")
-                .and_then(|v| v.as_str())
-                .unwrap_or("INFO")
-                .to_string();
-            let category = item
-                .get("Category")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
-            let title = item
-                .get("Title")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
-            let detail = item
-                .get("Detail")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
-            // INFO findings are informational — never offer a fix action.
-            let action = if level == "INFO" {
-                None
+}
+
+/// Read settings.json into a serde_json::Value. Returns:
+///   - Ok(Some(value))   — file exists and parsed
+///   - Ok(None)          — file does not exist
+///   - Err(message)      — file exists but is invalid JSON; message is the parse error
+fn load_settings(claude_dir: &Path) -> Result<Option<serde_json::Value>, String> {
+    let path = claude_dir.join("settings.json");
+    if !path.exists() {
+        return Ok(None);
+    }
+    let text = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let v: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    Ok(Some(v))
+}
+
+/// Iterate every hook entry in `settings.hooks.<event>[].hooks[]`. Calls `cb`
+/// with `(event, type, command, timeout_or_None)`.
+fn for_each_hook(
+    settings: &serde_json::Value,
+    mut cb: impl FnMut(&str, &str, &str, Option<i64>),
+) {
+    let Some(hooks_obj) = settings.get("hooks").and_then(|v| v.as_object()) else {
+        return;
+    };
+    for (event, entries) in hooks_obj {
+        let Some(entries_arr) = entries.as_array() else { continue };
+        for entry in entries_arr {
+            let Some(inner) = entry.get("hooks").and_then(|v| v.as_array()) else { continue };
+            for h in inner {
+                let typ = h.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                let cmd = h.get("command").and_then(|v| v.as_str()).unwrap_or("");
+                let to = h.get("timeout").and_then(|v| v.as_i64());
+                cb(event, typ, cmd, to);
+            }
+        }
+    }
+}
+
+/// 2. HOOKS — count + flag non-kit hooks. Also 13. HOOK TIMEOUTS — flag >300s.
+fn audit_hooks(
+    out: &mut Vec<AuditFinding>,
+    settings: Option<&serde_json::Value>,
+    settings_invalid: Option<&str>,
+) {
+    if let Some(err) = settings_invalid {
+        // VERBATIM TITLE — `infer_action` keys off "settings.json invalid JSON".
+        push_finding(
+            out,
+            "CRIT",
+            "HOOKS",
+            "settings.json invalid JSON".to_string(),
+            err.to_string(),
+        );
+        return;
+    }
+    let Some(settings) = settings else { return };
+
+    // Build expected hook commands from $USERPROFILE -> bash-style path.
+    // Mirrors PS: $bashHome = ($env:USERPROFILE -replace '\\', '/').Replace('C:', '/c')
+    let bash_home = std::env::var("USERPROFILE")
+        .ok()
+        .map(|p| {
+            let with_fwd = p.replace('\\', "/");
+            // Replace leading "C:" (case-insensitive on first 2 chars) with "/c"
+            if with_fwd.len() >= 2 && with_fwd.as_bytes()[1] == b':' {
+                let drive = with_fwd.as_bytes()[0].to_ascii_lowercase() as char;
+                format!("/{drive}{}", &with_fwd[2..])
             } else {
-                infer_action(&category, &title, &detail)
-            };
-            AuditFinding {
-                level,
-                category,
-                title,
-                detail,
-                action,
+                with_fwd
             }
         })
-        .collect();
-    Ok(findings)
+        .unwrap_or_default();
+    let expected = [
+        format!("bash {bash_home}/.claude/scripts/check-gentle-ai.sh"),
+        format!("bash {bash_home}/.claude/scripts/daily-brief.sh"),
+    ];
+
+    // First pass: count + flag non-kit. Second pass: timeouts. We do both in one
+    // walk to keep ordering close to the PS script's emission order.
+    let mut all: Vec<(String, String, Option<i64>)> = Vec::new();
+    for_each_hook(settings, |event, _typ, cmd, to| {
+        all.push((event.to_string(), cmd.to_string(), to));
+    });
+
+    push_finding(
+        out,
+        "INFO",
+        "HOOKS",
+        format!("{} hook(s) registered", all.len()),
+        String::new(),
+    );
+    for (event, cmd, _to) in &all {
+        if !expected.iter().any(|e| e == cmd) {
+            push_finding(
+                out,
+                "WARN",
+                "HOOKS",
+                format!("Non-kit hook on {event}"),
+                cmd.clone(),
+            );
+        }
+    }
+    // Block 13 — timeout > 300s.
+    for (event, cmd, to) in &all {
+        if let Some(t) = to {
+            if *t > 300 {
+                push_finding(
+                    out,
+                    "WARN",
+                    "HOOKS",
+                    format!("Hook timeout > 300s ({t}s) on {event}"),
+                    cmd.clone(),
+                );
+            }
+        }
+    }
+}
+
+/// 3. PERMISSIONS — flag dangerous regex patterns inside `permissions.allow`.
+fn audit_permissions(out: &mut Vec<AuditFinding>, settings: Option<&serde_json::Value>) {
+    let Some(settings) = settings else { return };
+    let Some(perms) = settings.get("permissions") else { return };
+
+    // (substring-or-regex-style pattern, human note). The PS script uses regex
+    // matching; we use simple substring checks because the patterns are simple
+    // enough — except for `..\..` and `rm -rf` which we lower below.
+    let danger: &[(&str, &str)] = &[
+        ("rm -rf",          "destructive recursive delete"),
+        ("rm  -rf",         "destructive recursive delete"),
+        ("sudo",            "elevated privileges"),
+        ("curl",            "remote script execution"),
+        ("iex",             "PowerShell remote-exec idiom (Invoke-Expression)"),
+        ("Invoke-Expression", "PowerShell exec from string"),
+        ("..\\..",          "path traversal"),
+        ("../..",           "path traversal"),
+    ];
+
+    if let Some(allow) = perms.get("allow").and_then(|v| v.as_array()) {
+        for rule_v in allow {
+            let Some(rule) = rule_v.as_str() else { continue };
+            let lower = rule.to_lowercase();
+            let mut emitted_notes: Vec<&str> = Vec::new();
+            for (pat, note) in danger {
+                let pat_lower = pat.to_lowercase();
+                let mut hit = lower.contains(&pat_lower);
+                // Special-case `curl ... | bash` — PS regex was `curl.*\|\s*bash`.
+                if *pat == "curl" {
+                    hit = lower.contains("curl") && lower.contains("| bash") || lower.contains("|bash");
+                }
+                // `sudo` — match whole word (`\bsudo\b`).
+                if *pat == "sudo" {
+                    hit = lower.split(|c: char| !c.is_alphanumeric()).any(|w| w == "sudo");
+                }
+                // `iex` — also whole word (`\biex\b`).
+                if *pat == "iex" {
+                    hit = lower.split(|c: char| !c.is_alphanumeric()).any(|w| w == "iex");
+                }
+                if hit && !emitted_notes.contains(note) {
+                    // VERBATIM TITLE PREFIX — `infer_action` matches "Allow rule matches risky pattern:".
+                    push_finding(
+                        out,
+                        "CRIT",
+                        "PERMISSIONS",
+                        format!("Allow rule matches risky pattern: {note}"),
+                        rule.to_string(),
+                    );
+                    emitted_notes.push(note);
+                }
+            }
+        }
+    }
+    let default_mode = perms
+        .get("defaultMode")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    push_finding(
+        out,
+        "INFO",
+        "PERMISSIONS",
+        format!("defaultMode: {default_mode}"),
+        String::new(),
+    );
+}
+
+/// 4. SCRIPTS — flag files in ~/.claude/scripts/ and lib/ that aren't kit-installed.
+fn audit_scripts(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
+    const KIT_WHITELIST: &[&str] = &[
+        "check-gentle-ai.sh", "daily-brief.sh",
+        "startup-brief.ps1", "startup-brief-launcher.bat",
+        "health-check.ps1", "standup.ps1", "claude-audit.ps1", "cleanup.ps1",
+        "brief.cmd",
+        "startup-kit-config.json",
+        ".gentle-ai-last-check", ".daily-brief-last-date",
+        ".gentle-ai-last-seen-version", ".kit-version",
+        "lib",
+    ];
+    const LIB_WHITELIST: &[&str] = &[
+        "config.ps1", "logging.ps1", "scan-projects.ps1", "engram.ps1",
+        "themes.ps1", "git-recent.ps1", "github-prs.ps1", "self-update.ps1",
+        "screen-adapt.ps1", "render-layout.ps1",
+    ];
+
+    let scripts_dir = claude_dir.join("scripts");
+    if !scripts_dir.exists() {
+        return;
+    }
+    if let Ok(entries) = fs::read_dir(&scripts_dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if !KIT_WHITELIST.contains(&name.as_str()) {
+                push_finding(
+                    out,
+                    "INFO",
+                    "SCRIPTS",
+                    format!("Non-kit file in ~/.claude/scripts/: {name}"),
+                    "Created outside the kit. Review if you don't recognize it.".to_string(),
+                );
+            }
+        }
+    }
+    let lib_dir = scripts_dir.join("lib");
+    if lib_dir.exists() {
+        if let Ok(entries) = fs::read_dir(&lib_dir) {
+            for entry in entries.flatten() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                let is_file = entry.file_type().map(|t| t.is_file()).unwrap_or(false);
+                if is_file && !LIB_WHITELIST.contains(&name.as_str()) {
+                    // VERBATIM TITLE PREFIX — `infer_action` keys off "Non-kit file in lib/:".
+                    push_finding(
+                        out,
+                        "WARN",
+                        "SCRIPTS",
+                        format!("Non-kit file in lib/: {name}"),
+                        "lib/ should only contain kit modules. Review.".to_string(),
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// 5. PLUGINS — list enabledPlugins + extraKnownMarketplaces. Mostly INFO.
+fn audit_plugins(out: &mut Vec<AuditFinding>, settings: Option<&serde_json::Value>) {
+    let Some(settings) = settings else { return };
+    if let Some(enabled) = settings.get("enabledPlugins").and_then(|v| v.as_object()) {
+        push_finding(
+            out,
+            "INFO",
+            "PLUGINS",
+            format!("{} plugin(s) enabled", enabled.len()),
+            String::new(),
+        );
+        for (name, val) in enabled {
+            let val_str = match val {
+                serde_json::Value::String(s) => s.clone(),
+                serde_json::Value::Bool(b) => b.to_string(),
+                _ => val.to_string(),
+            };
+            push_finding(
+                out,
+                "INFO",
+                "PLUGINS",
+                format!("  - {name}: {val_str}"),
+                String::new(),
+            );
+        }
+    }
+    if let Some(markets) = settings
+        .get("extraKnownMarketplaces")
+        .and_then(|v| v.as_object())
+    {
+        for (name, mp) in markets {
+            let src = mp.get("source");
+            let src_type = src.and_then(|s| s.get("source")).and_then(|v| v.as_str()).unwrap_or("");
+            let repo = src.and_then(|s| s.get("repo")).and_then(|v| v.as_str());
+            let mut detail = format!("type={src_type}");
+            if let Some(r) = repo {
+                detail.push_str(&format!(" repo={r}"));
+            }
+            push_finding(out, "INFO", "PLUGINS", format!("Marketplace: {name}"), detail);
+        }
+    }
+}
+
+/// 6. LOGS — tail startup-kit.log for ERROR/WARN counts.
+fn audit_logs(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
+    let log = claude_dir.join("logs").join("startup-kit.log");
+    if !log.exists() {
+        // Brief was removed — log no longer exists. Keep the legacy INFO line so
+        // the UI doesn't suddenly drop a row.
+        push_finding(
+            out,
+            "INFO",
+            "LOGS",
+            format!("No log file yet at {}", log.display()),
+            String::new(),
+        );
+        return;
+    }
+    let tail = match read_last_n_lines(&log, 200) {
+        Ok(t) => t,
+        Err(_) => return,
+    };
+    let errors: Vec<&String> = tail.iter().filter(|l| l.contains("[ERROR]")).collect();
+    let warns: Vec<&String> = tail.iter().filter(|l| l.contains("[WARN]")).collect();
+    if !errors.is_empty() {
+        // VERBATIM TITLE SUFFIX — `infer_action` matches "ERROR entries in last 200 log lines".
+        push_finding(
+            out,
+            "WARN",
+            "LOGS",
+            format!("{} ERROR entries in last 200 log lines", errors.len()),
+            String::new(),
+        );
+        // Last 3 ERROR lines as INFO context.
+        let last3 = errors.iter().rev().take(3).rev();
+        for e in last3 {
+            push_finding(out, "INFO", "LOGS", format!("  {e}"), String::new());
+        }
+    }
+    if warns.len() > 5 {
+        push_finding(
+            out,
+            "INFO",
+            "LOGS",
+            format!("{} WARN entries in last 200 log lines (>5)", warns.len()),
+            String::new(),
+        );
+    }
+}
+
+/// Read the last `n` lines of a file. Cheap-and-cheerful (read whole file, take
+/// tail) — the audit only inspects 200 lines so a multi-pass seek isn't worth it.
+fn read_last_n_lines(path: &Path, n: usize) -> std::io::Result<Vec<String>> {
+    let f = File::open(path)?;
+    let reader = BufReader::new(f);
+    let mut all: Vec<String> = Vec::new();
+    for line in reader.lines() {
+        all.push(line?);
+    }
+    let start = all.len().saturating_sub(n);
+    Ok(all[start..].to_vec())
+}
+
+/// Recursively sum file sizes under `path`. Returns 0 on missing/error.
+fn dir_size_bytes(path: &Path) -> u64 {
+    if !path.exists() {
+        return 0;
+    }
+    let mut stack = vec![path.to_path_buf()];
+    let mut total: u64 = 0;
+    while let Some(p) = stack.pop() {
+        let Ok(entries) = fs::read_dir(&p) else { continue };
+        for entry in entries.flatten() {
+            let Ok(ft) = entry.file_type() else { continue };
+            if ft.is_dir() {
+                stack.push(entry.path());
+            } else if ft.is_file() {
+                if let Ok(meta) = entry.metadata() {
+                    total = total.saturating_add(meta.len());
+                }
+            }
+        }
+    }
+    total
+}
+
+/// Walk a directory tree yielding file paths matching a predicate.
+fn walk_files(root: &Path, mut on_file: impl FnMut(&Path, u64)) {
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(p) = stack.pop() {
+        let Ok(entries) = fs::read_dir(&p) else { continue };
+        for entry in entries.flatten() {
+            let Ok(ft) = entry.file_type() else { continue };
+            let path = entry.path();
+            if ft.is_dir() {
+                stack.push(path);
+            } else if ft.is_file() {
+                let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+                on_file(&path, size);
+            }
+        }
+    }
+}
+
+/// 7. DISK — total + breakdown of ~/.claude. Also 12. BIG JSONLs.
+fn audit_disk(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
+    let mb = |b: u64| -> f64 { (b as f64) / (1024.0 * 1024.0) };
+    let total = dir_size_bytes(claude_dir);
+    push_finding(
+        out,
+        "INFO",
+        "DISK",
+        format!("~/.claude total: {:.1} MB", mb(total)),
+        String::new(),
+    );
+    let projects_bytes = dir_size_bytes(&claude_dir.join("projects"));
+    push_finding(
+        out,
+        "INFO",
+        "DISK",
+        format!("  projects/ : {:.1} MB (Claude Code session logs)", mb(projects_bytes)),
+        String::new(),
+    );
+    let logs_bytes = dir_size_bytes(&claude_dir.join("logs"));
+    push_finding(
+        out,
+        "INFO",
+        "DISK",
+        format!("  logs/     : {:.1} MB", mb(logs_bytes)),
+        String::new(),
+    );
+    let backups_bytes = dir_size_bytes(&claude_dir.join("backups"));
+    if backups_bytes > 0 {
+        push_finding(
+            out,
+            "INFO",
+            "DISK",
+            format!("  backups/  : {:.1} MB (kit pre-install backups)", mb(backups_bytes)),
+            String::new(),
+        );
+    }
+    if mb(total) > 5000.0 {
+        // VERBATIM TITLE PREFIX — `infer_action` keys off "~/.claude is over".
+        push_finding(
+            out,
+            "WARN",
+            "DISK",
+            "~/.claude is over 5 GB".to_string(),
+            "Consider trimming projects/ or logs/".to_string(),
+        );
+    }
+
+    // Block 12 — large JSONLs under projects/ (>100 MB).
+    let projects = claude_dir.join("projects");
+    if projects.exists() {
+        walk_files(&projects, |path, size| {
+            if size > 100 * 1024 * 1024
+                && path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .map(|e| e.eq_ignore_ascii_case("jsonl"))
+                    .unwrap_or(false)
+            {
+                let name = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("(unknown)");
+                let size_mb = (size as f64) / (1024.0 * 1024.0);
+                // VERBATIM TITLE PREFIX — `infer_action` keys off "Large JSONL:".
+                push_finding(
+                    out,
+                    "WARN",
+                    "DISK",
+                    format!("Large JSONL: {name} ({:.1} MB)", size_mb),
+                    "Consider running cleanup.ps1".to_string(),
+                );
+            }
+        });
+    }
+}
+
+/// 8. NETWORK — TCP connections of watched processes.
+///
+/// SKIPPED on first pass: pure-Rust TCP table enumeration on Windows requires
+/// either `iphlpapi` Win32 calls (`GetExtendedTcpTable`) or a new dep. The PS
+/// script used `Get-NetTCPConnection` which is Windows-only too. Emit a single
+/// INFO so the category isn't silently missing from the UI.
+// TODO: wire native Win32 IP helper (GetExtendedTcpTable) or shell to
+// `Get-NetTCPConnection` for full parity.
+fn audit_network(out: &mut Vec<AuditFinding>) {
+    push_finding(
+        out,
+        "INFO",
+        "NETWORK",
+        "Network checks skipped — Win32 IP helper not yet wired in Rust".to_string(),
+        String::new(),
+    );
+}
+
+/// 9. DRIFT — settings.local.json, undeclared marketplaces.
+fn audit_drift(out: &mut Vec<AuditFinding>, claude_dir: &Path, settings: Option<&serde_json::Value>) {
+    let local = claude_dir.join("settings.local.json");
+    if local.exists() {
+        // VERBATIM TITLE — `infer_action` matches this exact string.
+        push_finding(
+            out,
+            "WARN",
+            "DRIFT",
+            "settings.local.json exists — overrides settings.json".to_string(),
+            format!("Inspect: {}", local.display()),
+        );
+    }
+    // Block 11 — plugin marketplace declared?
+    let Some(settings) = settings else { return };
+    let Some(enabled) = settings.get("enabledPlugins").and_then(|v| v.as_object()) else { return };
+    let declared: Vec<String> = settings
+        .get("extraKnownMarketplaces")
+        .and_then(|v| v.as_object())
+        .map(|o| o.keys().cloned().collect())
+        .unwrap_or_default();
+    for name in enabled.keys() {
+        if let Some(at_idx) = name.rfind('@') {
+            let market = &name[at_idx + 1..];
+            if !declared.iter().any(|d| d == market) {
+                push_finding(
+                    out,
+                    "WARN",
+                    "DRIFT",
+                    format!("Plugin '{name}' uses marketplace '{market}' which isn't declared in extraKnownMarketplaces"),
+                    String::new(),
+                );
+            }
+        }
+    }
+}
+
+/// 10. ENV VARS — relevant CLAUDE_/MCP_/ANTHROPIC_ env vars.
+fn audit_env(out: &mut Vec<AuditFinding>) {
+    let mut matched: Vec<String> = Vec::new();
+    for (k, v) in std::env::vars() {
+        let starts = k.starts_with("CLAUDE_") || k.starts_with("MCP_") || k.starts_with("ANTHROPIC_");
+        if !starts {
+            continue;
+        }
+        let display = if k.contains("KEY") || k.contains("TOKEN") || k.contains("SECRET") {
+            "<redacted>".to_string()
+        } else {
+            v
+        };
+        matched.push(format!("{k} = {display}"));
+    }
+    if !matched.is_empty() {
+        push_finding(
+            out,
+            "INFO",
+            "ENV",
+            format!("{} relevant env var(s)", matched.len()),
+            String::new(),
+        );
+        for m in matched {
+            push_finding(out, "INFO", "ENV", format!("  {m}"), String::new());
+        }
+    }
+}
+
+/// 14. STARTUP — items in the Windows per-user Startup folder.
+fn audit_startup(out: &mut Vec<AuditFinding>) {
+    let Some(appdata) = std::env::var_os("APPDATA") else { return };
+    let startup = PathBuf::from(appdata)
+        .join("Microsoft")
+        .join("Windows")
+        .join("Start Menu")
+        .join("Programs")
+        .join("Startup");
+    if !startup.exists() {
+        return;
+    }
+    let entries: Vec<_> = match fs::read_dir(&startup) {
+        Ok(it) => it
+            .flatten()
+            .filter(|e| e.file_type().map(|t| t.is_file()).unwrap_or(false))
+            .collect(),
+        Err(_) => return,
+    };
+    push_finding(
+        out,
+        "INFO",
+        "STARTUP",
+        format!("{} item(s) in Windows Startup folder", entries.len()),
+        String::new(),
+    );
+    for e in entries {
+        let name = e.file_name().to_string_lossy().to_string();
+        let title = if name == "claude-daily-brief.bat" {
+            format!("  - {name} (kit launcher)")
+        } else {
+            format!("  - {name}")
+        };
+        push_finding(out, "INFO", "STARTUP", title, String::new());
+    }
+}
+
+/// 15. KIT — installed kit version marker.
+fn audit_kit(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
+    let marker = claude_dir.join("scripts").join(".kit-version");
+    if marker.exists() {
+        let v = fs::read_to_string(&marker).unwrap_or_default();
+        let v = v.trim();
+        push_finding(
+            out,
+            "INFO",
+            "KIT",
+            format!("Installed kit version: v{v}"),
+            String::new(),
+        );
+    } else {
+        // VERBATIM TITLE — `infer_action` keys off this exact string for ReinstallKit.
+        push_finding(
+            out,
+            "WARN",
+            "KIT",
+            "No .kit-version marker — kit may not be installed".to_string(),
+            String::new(),
+        );
+    }
+}
+
+fn run_audit_blocking() -> Result<Vec<AuditFinding>, String> {
+    let claude_dir = dirs_home()
+        .map(|h| h.join(".claude"))
+        .ok_or_else(|| "no home directory".to_string())?;
+
+    // Load settings.json once and pass it through the helpers. Track invalid-JSON
+    // separately so audit_hooks can emit the CRIT finding.
+    let (settings, settings_invalid): (Option<serde_json::Value>, Option<String>) =
+        match load_settings(&claude_dir) {
+            Ok(opt) => (opt, None),
+            Err(e) => (None, Some(e)),
+        };
+
+    let mut out: Vec<AuditFinding> = Vec::new();
+
+    // Order matches the legacy PS script — the UI groups by category and renders
+    // top-down, so don't shuffle these.
+    audit_processes(&mut out);
+    audit_hooks(&mut out, settings.as_ref(), settings_invalid.as_deref());
+    audit_permissions(&mut out, settings.as_ref());
+    audit_scripts(&mut out, &claude_dir);
+    audit_plugins(&mut out, settings.as_ref());
+    audit_logs(&mut out, &claude_dir);
+    audit_disk(&mut out, &claude_dir);
+    audit_network(&mut out);
+    audit_drift(&mut out, &claude_dir, settings.as_ref());
+    audit_env(&mut out);
+    audit_startup(&mut out);
+    audit_kit(&mut out, &claude_dir);
+
+    Ok(out)
 }
 
 #[tauri::command]
