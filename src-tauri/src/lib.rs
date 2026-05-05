@@ -14,6 +14,23 @@ use tauri::{
     Manager,
 };
 
+/// Format a `Command::spawn` / `Command::output` IO error into a renderer-
+/// friendly message.
+///
+/// On Windows the raw "program not found" error reads as `"The system
+/// cannot find the file specified. (os error 2)"` — actionable to nobody.
+/// We detect `ErrorKind::NotFound` and emit a localized hint instead. All
+/// other IO errors fall through unchanged so we don't lose signal.
+fn format_spawn_error(program: &str, err: &std::io::Error) -> String {
+    if err.kind() == std::io::ErrorKind::NotFound {
+        format!(
+            "{program} no encontrado en PATH. Si lo instalaste recién, reiniciá Claude Startup Kit para que reconozca el PATH actualizado."
+        )
+    } else {
+        format!("spawn {program}: {err}")
+    }
+}
+
 /// Build a `Command` that does NOT flash a console window on Windows.
 ///
 /// Tauri is a GUI app, but every CLI subprocess (`gh`, `git`, `engram`, ...) it spawns
@@ -1600,7 +1617,13 @@ async fn restore_settings_backup() -> Result<String, String> {
         Ok(name)
     })
     .await
-    .map_err(|e| format!("restore task join error: {e}"))?
+    .map_err(|e| format!("restore task join error: {e}"))
+    .and_then(|res| {
+        // settings.json was just rewritten — workspace_summary parses it
+        // for hook/permission counts, so bust the cache.
+        invalidate_workspace_summary_cache();
+        res
+    })
 }
 
 // ---------- engram known-projects cache (5-minute TTL) ----------
@@ -1614,6 +1637,16 @@ static KNOWN_PROJECTS_CACHE: Lazy<Mutex<Option<KnownProjectsCache>>> =
     Lazy::new(|| Mutex::new(None));
 
 const KNOWN_PROJECTS_TTL: Duration = Duration::from_secs(5 * 60);
+
+/// Bust the engram-projects cache so the next read re-fetches. Call from
+/// IPCs that mutate engram state (sync_import, sync_export, etc.) — without
+/// this, the renderer can show stale projects for up to 5 minutes after
+/// the user just imported a fresh set.
+fn invalidate_known_projects_cache() {
+    if let Ok(mut guard) = KNOWN_PROJECTS_CACHE.lock() {
+        *guard = None;
+    }
+}
 
 fn fetch_known_projects_uncached() -> Vec<String> {
     let Ok(output) = silent_command("engram").args(["projects", "list"]).output() else {
@@ -1902,13 +1935,23 @@ fn validate_open_path(path: &str) -> Result<PathBuf, String> {
 async fn open_in_vscode(path: String) -> Result<(), String> {
     let canonical = validate_open_path(&path)?;
     tokio::task::spawn_blocking(move || -> Result<(), String> {
-        // `--` ends VS Code's option parsing so the path that follows is treated
-        // verbatim and never as a flag, even if a future bypass slips through.
-        silent_command("code.cmd")
-            .arg("--")
-            .arg(&canonical)
+        // Detach VS Code via `cmd /c start "" code.cmd -- <path>`. Plain
+        // `Command::new("code.cmd").spawn()` leaves VS Code linked to
+        // CSK's process tree — the user reported the Claude Code
+        // extension's sidebar (`claudeVSCodeSidebarSecondary`) failing to
+        // load whenever the project is opened from CSK but loading fine
+        // when opened from Windows Explorer. `start` uses the same
+        // ShellExecute-style detach path Explorer uses, which fixes the
+        // sidebar bootstrap.
+        //
+        // `--` ends VS Code's option parsing so the path that follows is
+        // verbatim — `validate_open_path` already rejects leading-`-`
+        // paths, so `start` itself can't misinterpret it as a flag either.
+        let path_str = canonical.to_string_lossy().to_string();
+        silent_command("cmd")
+            .args(["/c", "start", "", "code.cmd", "--", &path_str])
             .spawn()
-            .map_err(|e| format!("failed to launch VS Code: {e}"))?;
+            .map_err(|e| format_spawn_error("VS Code (code.cmd)", &e))?;
         Ok(())
     })
     .await
@@ -2325,7 +2368,13 @@ async fn toggle_mcp_server(name: String, source: String, enabled: bool) -> Resul
         }
     })
     .await
-    .map_err(|e| format!("task join: {e}"))?
+    .map_err(|e| format!("task join: {e}"))
+    .and_then(|res| {
+        // workspace_summary surfaces enabled-MCP counts; bust so the
+        // right-panel widget reflects the toggle immediately.
+        invalidate_workspace_summary_cache();
+        res
+    })
 }
 
 // ─── Update channel ──────────────────────────────────────────────────────
@@ -2405,7 +2454,7 @@ async fn fetch_latest_release(repo: &str) -> Result<GhRelease, String> {
         silent_command("gh")
             .args(["api", &endpoint, "-H", "Accept: application/vnd.github+json"])
             .output()
-            .map_err(|e| format!("spawn gh: {e}"))
+            .map_err(|e| format_spawn_error("gh", &e))
     })
     .await
     .map_err(|e| format!("task join: {e}"))??;
@@ -2465,8 +2514,20 @@ async fn apply_app_update(app: tauri::AppHandle) -> Result<(), String> {
     let update = updater
         .check()
         .await
-        .map_err(|e| format!("update check failed: {e}"))?
-        .ok_or_else(|| "no update available".to_string())?;
+        .map_err(|e| format!("update check failed: {e}"))?;
+    // Mirror-skew guard. The banner shown by `check_app_update` (GitHub
+    // Releases REST API) and `apply_app_update` (`tauri-plugin-updater`
+    // hitting `latest.json` on the public mirror repo) are TWO different
+    // sources of truth. They desync any time the release workflow publishes
+    // the GH Release before pushing `latest.json` to the mirror — the
+    // window where a user sees "v0.1.x → v0.1.y" but Apply returns None.
+    // Surface a distinct, actionable error instead of the cryptic "no
+    // update available" so the user knows to retry instead of opening a
+    // bug.
+    let update = update.ok_or_else(|| {
+        "MIRROR_LAG: el espejo todavía no publicó esta versión. Probá de nuevo en 1-2 min."
+            .to_string()
+    })?;
     update
         .download_and_install(|_chunk, _total| {}, || {})
         .await
@@ -2711,6 +2772,16 @@ static WORKSPACE_SUMMARY_CACHE: Lazy<Mutex<Option<WorkspaceSummaryCache>>> =
 
 const WORKSPACE_SUMMARY_TTL: Duration = Duration::from_secs(5 * 60);
 
+/// Bust the workspace summary cache. Call from IPCs that change anything
+/// the WorkspaceCard reads (gentle-ai version after upgrade, MCP toggles,
+/// settings restore). Without this the right-panel widget can show stale
+/// counts/versions for up to 5 minutes after the user takes action.
+fn invalidate_workspace_summary_cache() {
+    if let Ok(mut guard) = WORKSPACE_SUMMARY_CACHE.lock() {
+        *guard = None;
+    }
+}
+
 // `engram stats` prints lines like:
 //   Engram Memory Stats
 //     Sessions:     20
@@ -2814,7 +2885,7 @@ async fn apply_gentle_ai_update() -> Result<String, String> {
         silent_command("powershell")
             .args(["-NoProfile", "-NonInteractive", "-Command", &cmd])
             .output()
-            .map_err(|e| format!("spawn powershell: {e}"))
+            .map_err(|e| format_spawn_error("powershell", &e))
     })
     .await
     .map_err(|e| format!("task join: {e}"))??;
@@ -2830,6 +2901,10 @@ async fn apply_gentle_ai_update() -> Result<String, String> {
     let after = tokio::task::spawn_blocking(read_gentle_ai_version)
         .await
         .map_err(|e| format!("task join: {e}"))?;
+    // The WorkspaceCard surfaces gentle-ai version via workspace_summary;
+    // without this bust it would keep showing the pre-upgrade version for
+    // up to 5 minutes.
+    invalidate_workspace_summary_cache();
     Ok(after)
 }
 
@@ -3052,7 +3127,7 @@ async fn apply_stack_update() -> Result<String, String> {
             let installer_out = silent_command("powershell")
                 .args(["-NoProfile", "-NonInteractive", "-Command", &installer_cmd])
                 .output()
-                .map_err(|e| format!("spawn powershell: {e}"))?;
+                .map_err(|e| format_spawn_error("powershell", &e))?;
             let installer_stdout = String::from_utf8_lossy(&installer_out.stdout);
             let installer_stderr = String::from_utf8_lossy(&installer_out.stderr);
             log.push_str("\n--- gentle-ai self-upgrade via installer ---\n");
@@ -3070,7 +3145,14 @@ async fn apply_stack_update() -> Result<String, String> {
         Ok(log)
     })
     .await
-    .map_err(|e| format!("task join: {e}"))?
+    .map_err(|e| format!("task join: {e}"))
+    .and_then(|res| {
+        // Stack upgrade can change every managed-tool version, including
+        // gentle-ai itself which is surfaced in workspace_summary. Bust the
+        // cache so the next render fetches fresh.
+        invalidate_workspace_summary_cache();
+        res
+    })
 }
 
 /// Open gentle-ai's interactive install wizard in a NEW visible console
@@ -3264,7 +3346,7 @@ fn git_in(repo: &Path, args: &[&str]) -> Result<String, String> {
         .current_dir(repo)
         .args(args)
         .output()
-        .map_err(|e| format!("spawn git: {e}"))?;
+        .map_err(|e| format_spawn_error("git", &e))?;
     if !out.status.success() {
         let stderr = String::from_utf8_lossy(&out.stderr);
         return Err(format!("git {} failed: {stderr}", args.join(" ")));
@@ -3283,7 +3365,7 @@ async fn gh_username() -> Result<String, String> {
         let out = silent_command("gh")
             .args(["api", "user", "--jq", ".login"])
             .output()
-            .map_err(|e| format!("spawn gh: {e}"))?;
+            .map_err(|e| format_spawn_error("gh", &e))?;
         if !out.status.success() {
             return Ok(String::new());
         }
@@ -3301,7 +3383,7 @@ async fn sync_setup(repo_name: String) -> Result<SyncState, String> {
         let owner_out = silent_command("gh")
             .args(["api", "user", "--jq", ".login"])
             .output()
-            .map_err(|e| format!("spawn gh: {e}"))?;
+            .map_err(|e| format_spawn_error("gh", &e))?;
         if !owner_out.status.success() {
             let stderr = String::from_utf8_lossy(&owner_out.stderr);
             return Err(format!(
@@ -3350,7 +3432,7 @@ async fn sync_setup(repo_name: String) -> Result<SyncState, String> {
                 "Claude Startup Kit — engram memory sync",
             ])
             .output()
-            .map_err(|e| format!("spawn gh repo create: {e}"))?;
+            .map_err(|e| format_spawn_error("gh repo create", &e))?;
         if !create.status.success() {
             let stderr = String::from_utf8_lossy(&create.stderr);
             // If the repo already exists, gh exits non-zero with a helpful
@@ -3366,7 +3448,7 @@ async fn sync_setup(repo_name: String) -> Result<SyncState, String> {
             .args(["clone", &remote_url])
             .arg(&repo_dir)
             .output()
-            .map_err(|e| format!("spawn git clone: {e}"))?;
+            .map_err(|e| format_spawn_error("git clone", &e))?;
         if !clone.status.success() {
             let stderr = String::from_utf8_lossy(&clone.stderr);
             return Err(format!("git clone: {stderr}"));
@@ -3415,7 +3497,7 @@ async fn sync_export() -> Result<SyncState, String> {
             .args(["export"])
             .arg(&target)
             .output()
-            .map_err(|e| format!("spawn engram: {e}"))?;
+            .map_err(|e| format_spawn_error("engram", &e))?;
         if !out.status.success() {
             let stderr = String::from_utf8_lossy(&out.stderr);
             state.last_error = Some(format!("engram export: {stderr}"));
@@ -3439,7 +3521,7 @@ async fn sync_export() -> Result<SyncState, String> {
             .current_dir(&repo_dir)
             .args(["commit", "--amend", "-m", "sync"])
             .output()
-            .map_err(|e| format!("spawn git: {e}"))?;
+            .map_err(|e| format_spawn_error("git", &e))?;
         if !amend.status.success() {
             // No commit to amend (fresh repo) — make the first one.
             git_in(&repo_dir, &["commit", "-m", "sync"])?;
@@ -3495,7 +3577,7 @@ async fn sync_import() -> Result<SyncState, String> {
             .args(["import"])
             .arg(&source)
             .output()
-            .map_err(|e| format!("spawn engram: {e}"))?;
+            .map_err(|e| format_spawn_error("engram", &e))?;
         if !out.status.success() {
             let stderr = String::from_utf8_lossy(&out.stderr);
             state.last_error = Some(format!("engram import: {stderr}"));
@@ -3507,6 +3589,11 @@ async fn sync_import() -> Result<SyncState, String> {
         state.last_sync_kind = Some("import".to_string());
         state.last_error = None;
         write_sync_state(&state)?;
+        // engram now has new project records — bust the cache so
+        // enrich_projects re-resolves goals against the fresh dataset
+        // instead of the pre-import snapshot.
+        invalidate_known_projects_cache();
+        invalidate_workspace_summary_cache();
         Ok(state)
     })
     .await
@@ -3614,7 +3701,7 @@ async fn clone_project(
             .args(["clone", "--", remote_trimmed])
             .arg(&dest)
             .output()
-            .map_err(|e| format!("spawn git clone: {e}"))?;
+            .map_err(|e| format_spawn_error("git clone", &e))?;
         if !out.status.success() {
             let stderr = String::from_utf8_lossy(&out.stderr);
             return Ok(ClonedProject {
@@ -3691,10 +3778,29 @@ fn augment_path_with_user_bin_dirs() {
         to_add.push(home.join(".local").join("bin"));
     }
     if let Some(pf) = std::env::var_os("PROGRAMFILES") {
-        to_add.push(PathBuf::from(pf).join("Microsoft VS Code\\bin"));
+        let pf = PathBuf::from(pf);
+        to_add.push(pf.join("Microsoft VS Code\\bin"));
+        // GitHub CLI default install — used by sync, PR queue, update-check.
+        to_add.push(pf.join("GitHub CLI"));
+        // Git for Windows — used by clone_project, git_last_commit, gentle-ai
+        // self-upgrade. Both `cmd` (where git.exe lives for shell-out) and
+        // `bin` (where bash.exe lives — gga.ps1 wrapper depends on it).
+        to_add.push(pf.join("Git\\cmd"));
+        to_add.push(pf.join("Git\\bin"));
     }
     if let Some(pfx86) = std::env::var_os("PROGRAMFILES(X86)") {
-        to_add.push(PathBuf::from(pfx86).join("Microsoft VS Code\\bin"));
+        let pfx86 = PathBuf::from(pfx86);
+        to_add.push(pfx86.join("Microsoft VS Code\\bin"));
+        to_add.push(pfx86.join("GitHub CLI"));
+        to_add.push(pfx86.join("Git\\cmd"));
+        to_add.push(pfx86.join("Git\\bin"));
+    }
+    // PowerShell + System32 — usually inherited but a stripped post-update
+    // PATH has been observed to lose them. Cheap to insert defensively.
+    if let Some(windir) = std::env::var_os("WINDIR") {
+        let windir = PathBuf::from(windir);
+        to_add.push(windir.join("System32"));
+        to_add.push(windir.join("System32\\WindowsPowerShell\\v1.0"));
     }
 
     let current_path = std::env::var_os("PATH").unwrap_or_default();

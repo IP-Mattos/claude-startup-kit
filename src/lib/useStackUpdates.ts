@@ -109,6 +109,9 @@ export function useStackUpdates(): StackUpdatesState {
       await invoke<string>("apply_stack_update");
       // Force-refresh after upgrade so the table reflects new versions.
       await runCheck(true);
+      // Stack upgrade can shift gentle-ai version; nudge the
+      // right-panel WorkspaceCard.
+      window.dispatchEvent(new Event("csk:workspace-invalidate"));
     } catch (e) {
       setError(String(e));
     } finally {

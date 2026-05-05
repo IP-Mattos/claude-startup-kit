@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.24 — 2026-05-05
+
+Audit-driven CRIT batch from a 12-finding review. Same theme as v0.1.23: stop the **inconsistent-state** class of bugs the user has been hitting (banner shows X, action does Y; cache shows old, reality is new; cryptic error vs actionable message).
+
+### Fixed
+- **VSCode opens detached now** — was launched via `Command::new("code.cmd")` which left VS Code in CSK's process tree. The Claude Code extension's `claudeVSCodeSidebarSecondary` view failed to bootstrap when opened from CSK but loaded fine when opened from Windows Explorer. Switched to `cmd /c start "" code.cmd -- <path>` which detaches the same way `ShellExecute` does. Same `--` end-of-options guard, no security regression.
+- **Mirror-skew has its own error now** — `apply_app_update` used to return `"no update available"` whenever the renderer-facing banner (GitHub Releases REST API) and the Tauri updater (`latest.json` on the public mirror repo) disagreed during the brief publish window. Now returns `"MIRROR_LAG: el espejo todavía no publicó esta versión. Probá de nuevo en 1-2 min."` so the user knows to retry instead of opening a bug.
+- **PATH augmenter completed** — v0.1.23 missed `gh` (`%PROGRAMFILES%\GitHub CLI\`), `git` (`%PROGRAMFILES%\Git\cmd\` and `bin/`), `powershell` (`%WINDIR%\System32\WindowsPowerShell\v1.0\`), and `System32` itself. All added — the entire Sync flow, PR queue, update channel, and gentle-ai self-upgrade are immune to stripped-PATH inheritance now, not just engram and gentle-ai.
+- **Cache invalidation on mutating IPCs** — `apply_gentle_ai_update`, `apply_stack_update`, `sync_import`, `toggle_mcp_server`, and `restore_settings_backup` were all leaving the 5-min `WORKSPACE_SUMMARY_CACHE` and `KNOWN_PROJECTS_CACHE` stale after mutating the underlying state. Now each one busts the relevant cache before returning.
+- **WorkspaceCard re-fetches on `csk:workspace-invalidate`** — even with the backend cache busted, the right-panel widget was bound to its mount-time state. Now listens for a custom event dispatched by `useUpdates.applyGentleAi` and `useStackUpdates.applyAll` so the widget updates immediately.
+- **`spawn X: program not found` errors translated** — was leaking raw Windows IO errors to red banners (`spawn engram: The system cannot find the file specified. (os error 2)`). New `format_spawn_error` helper detects `ErrorKind::NotFound` and emits a localized hint pointing at the most likely cause (recent install + stale PATH). Applied to all 13 shell-out callsites.
+
+### Added
+- **`format_spawn_error(program, err)`** helper in `lib.rs`. Reusable for any future shell-out.
+- **`invalidate_known_projects_cache()`** and **`invalidate_workspace_summary_cache()`** helpers. Tiny but make every mutating IPC's responsibility explicit and grep-able.
+
 ## 0.1.23 — 2026-05-05
 
 Systemic fix for the **"program not found"** class of errors that kept regressing on different IPCs (`engram` from sync's clone, `code.cmd` from Audit's "Resolver" and Projects' "Abrir") after auto-updates.
