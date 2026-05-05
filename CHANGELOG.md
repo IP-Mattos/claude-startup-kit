@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.21 — 2026-05-05
+
+Two follow-ups to the v0.1.20 install wizard release.
+
+### Fixed
+- **Install wizard auto-closes** — was using `cmd /k` which kept the new console window open after the wizard exited (user had to close it manually). Now uses `cmd /c <wizard> & timeout /t 8 /nobreak` with `CREATE_NEW_CONSOLE`: wizard runs, then a visible 8-second countdown, then the window auto-closes. `/nobreak` so the countdown can't be skipped by accident.
+- **`gga` (and any tool installed as a PowerShell wrapper or .cmd shim) now detected** — the v0.1.19 detection-override only looked for `<name>.exe` on PATH + a small list of fallback dirs. gentle-ai's installer drops `gga` as a bash script next to a `gga.ps1` wrapper in `~\bin\`, so the resolver missed it. Now scans `.exe` / `.cmd` / `.bat` / `.ps1` extensions and adds `%APPDATA%\npm\` (npm-global target) to the fallback dir list. `read_managed_tool_version` invokes via `cmd /c` for `.cmd`/`.bat` and `powershell -NoProfile -Command "& '<path>'"` for `.ps1`.
+
 ## 0.1.20 — 2026-05-05
 
 Per-row "Instalar" button on the Stack tools card. Closes the missing-affordance gap when gentle-ai reports a managed tool as not installed — before this you could see "No instalada" but had no way to act on it from the app.
