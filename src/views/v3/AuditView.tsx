@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   AlertOctagon,
@@ -12,11 +12,9 @@ import type { AuditAction, AuditFinding } from "../../types";
 import { friendlyErrorEn } from "../../lib/format";
 import { parseAuditFindings } from "../../lib/audit";
 import { plural, useT } from "../../lib/i18n";
+import { IS_TAURI } from "../../lib/env";
 import { ConfirmModal } from "../../components/v3/ConfirmModal";
 import type { V3Tab } from "../../v3/v3types";
-
-const IS_TAURI =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 // We tag pending findings by `title + category` because the Rust side doesn't
 // emit a stable id today and the pair is unique enough in practice (audit
@@ -63,6 +61,11 @@ export function AuditView({ onJump }: AuditViewProps) {
   // disappears too quickly to register).
   const [recentlyDoneId, setRecentlyDoneId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
+  // Tracks the in-flight "Hecho ✓" pill timer so we can cancel it on unmount
+  // (no setState on a dead component) AND when a fresh action fires before
+  // the previous timer expired (a stale 2.5s timeout would otherwise wipe
+  // the new row's "Done" badge).
+  const doneTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!IS_TAURI) {
@@ -81,6 +84,17 @@ export function AuditView({ onJump }: AuditViewProps) {
       cancelled = true;
     };
   }, [refreshNonce]);
+
+  // Final cleanup — fires only on unmount. The per-action cancellation lives
+  // inside runAction so a fast second click clears the prior timer too.
+  useEffect(() => {
+    return () => {
+      if (doneTimeoutRef.current !== null) {
+        clearTimeout(doneTimeoutRef.current);
+        doneTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   const grouped = useMemo(() => {
     const filtered =
@@ -146,12 +160,16 @@ export function AuditView({ onJump }: AuditViewProps) {
           break;
       }
       // Mark this row as just-completed for ~2.5s so the user gets visible
-      // feedback. The setTimeout closure captures `id` directly; the cleanup
-      // guard makes sure a fast-fired second action on a different row
-      // doesn't clobber the indicator on the first one.
+      // feedback. Cancel any pending timer first — without this, a previous
+      // action's still-running timeout would fire and wipe the freshly-set
+      // "Done" badge on this row before the user could see it.
+      if (doneTimeoutRef.current !== null) {
+        clearTimeout(doneTimeoutRef.current);
+      }
       setRecentlyDoneId(id);
-      setTimeout(() => {
+      doneTimeoutRef.current = setTimeout(() => {
         setRecentlyDoneId((curr) => (curr === id ? null : curr));
+        doneTimeoutRef.current = null;
       }, 2500);
     } catch (e) {
       setError(friendlyErrorEn(e));

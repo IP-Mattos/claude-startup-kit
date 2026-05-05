@@ -11,6 +11,7 @@ import type {
   ProjectEnrichment,
 } from "../types";
 import { agoLabel, pickGreeting, projectName, friendlyErrorEn } from "../lib/format";
+import { IS_TAURI } from "../lib/env";
 import type { V3Tab } from "./v3types";
 import { CompanionWidget } from "../components/v3/CompanionWidget";
 import { OverviewView } from "../components/v3/OverviewView";
@@ -33,20 +34,6 @@ import { CompanionsView } from "../views/v3/CompanionsView";
 import { SettingsView } from "../views/v3/SettingsView";
 import { SyncView } from "../views/v3/SyncView";
 import "./AppV3.css";
-
-// Tauri APIs throw when loaded from a plain browser at localhost:1420
-// (no __TAURI_INTERNALS__ global). Guard so AppV3 still renders for previews.
-const IS_TAURI =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-
-// Topbar, Sidebar, OverviewView, CompanionWidget, WorkspaceCard, StatusBar
-// moved to ../components/v3/. Nav catalogs in ../constants/v3Nav.ts.
-// agoLabel + pickGreeting moved to ../lib/format.ts.
-
-
-
-// agoLabel + pickGreeting moved to ../lib/format.ts
-// KEYBOARD_TAB_ORDER moved to ../constants/v3Nav.ts
 
 // ===== Root =====
 export default function AppV3() {

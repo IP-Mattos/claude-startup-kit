@@ -11,9 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-
-const IS_TAURI =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+import { IS_TAURI } from "./env";
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24h
 const LS_LAST_CHECKED = "csk-update-stack-last-checked";
@@ -33,9 +31,6 @@ export interface StackUpdatesState {
   applying: boolean;
   // Last error, cleared on next successful operation.
   error: string | null;
-  // Last upgrade output (from apply_stack_updates) — useful for surfacing a
-  // log panel once it lands; not rendered yet but exposed for completeness.
-  lastApplyOutput: string | null;
 
   checkNow: () => void;
   applyAll: () => Promise<void>;
@@ -62,7 +57,6 @@ export function useStackUpdates(): StackUpdatesState {
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastApplyOutput, setLastApplyOutput] = useState<string | null>(null);
   const ranOnce = useRef(false);
 
   const runCheck = useCallback(async (force: boolean) => {
@@ -79,7 +73,7 @@ export function useStackUpdates(): StackUpdatesState {
     setLoading(true);
     setError(null);
     try {
-      const next = await invoke<StackToolStatus[]>("check_stack_updates");
+      const next = await invoke<StackToolStatus[]>("check_stack_update");
       setTools(next);
       writeNumber(LS_LAST_CHECKED, Date.now());
     } catch (e) {
@@ -104,8 +98,10 @@ export function useStackUpdates(): StackUpdatesState {
     setApplying(true);
     setError(null);
     try {
-      const out = await invoke<string>("apply_stack_updates");
-      setLastApplyOutput(out);
+      // The upgrade output is discarded — gentle-ai's stdout is already
+      // visible to power users via terminal logs, and the post-run version
+      // table below is the authoritative state surface for everyone else.
+      await invoke<string>("apply_stack_update");
       // Force-refresh after upgrade so the table reflects new versions.
       await runCheck(true);
     } catch (e) {
@@ -115,5 +111,5 @@ export function useStackUpdates(): StackUpdatesState {
     }
   }, [runCheck]);
 
-  return { tools, loading, applying, error, lastApplyOutput, checkNow, applyAll };
+  return { tools, loading, applying, error, checkNow, applyAll };
 }

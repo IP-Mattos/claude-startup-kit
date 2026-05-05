@@ -4,10 +4,8 @@ import { Check, Trash2 } from "lucide-react";
 import type { CleanupItem, CleanupResult } from "../../types";
 import { formatBytes, formatDate, friendlyErrorEn } from "../../lib/format";
 import { useT } from "../../lib/i18n";
+import { IS_TAURI } from "../../lib/env";
 import { ConfirmModal } from "../../components/v3/ConfirmModal";
-
-const IS_TAURI =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 export function CleanupView() {
   const { t } = useT();

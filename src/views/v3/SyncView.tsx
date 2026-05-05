@@ -4,6 +4,7 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { FolderOpen, Loader2 } from "lucide-react";
 import { friendlyErrorEn } from "../../lib/format";
 import { useT } from "../../lib/i18n";
+import { IS_TAURI } from "../../lib/env";
 import { ConfirmModal } from "../../components/v3/ConfirmModal";
 
 // Pull the actual repo name out of a clone URL — `https://host/owner/foo.git` → `foo`.
@@ -21,9 +22,6 @@ function repoNameFromUrl(url: string): string {
       ?.replace(/\.git$/i, "") ?? url;
   }
 }
-
-const IS_TAURI =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 interface SyncState {
   configured: boolean;
