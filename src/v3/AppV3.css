@@ -2053,7 +2053,11 @@ body.v3-layout #root {
 }
 .v3-chip-crit.active { background: var(--v3-crit); border-color: var(--v3-crit); }
 .v3-chip-warn.active { background: var(--v3-warn); border-color: var(--v3-warn); color: #1C1917; }
-.v3-chip-info.active { background: #FCD34D; border-color: #FCD34D; color: #92400E; }
+/* INFO chip used to share the WARN amber palette which made the active state
+   indistinguishable when toggling between filters. Use the calm-blue --v3-info
+   token (already defined per-theme) so the three severities stay visually
+   distinct, matching the row tints in `.v3-finding-info` below. */
+.v3-chip-info.active { background: var(--v3-info); border-color: var(--v3-info); color: #FFFFFF; }
 
 /* ========== Audit groups + findings ========== */
 .v3-audit-groups {
