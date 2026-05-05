@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.19 — 2026-05-05
+
+Detection-override for the Stack tools card. gentle-ai's `update` table is the source of truth for *versions*, but its detector occasionally reports a tool as `[--]` (not installed) when the binary is reachable on the user's machine — engram and gga have both hit this. Without a fix, the UI claims "No instalada" right next to a working `engram --version`.
+
+### Fixed
+- **`check_stack_update` overrides false `not_installed` rows** by walking PATH + well-known install dirs the same way `resolve_gentle_ai` already does, then probing `<binary> --version` / `<binary> version`. If a real semver comes back, the row's state is recomputed against `latest` (`up_to_date` vs `update_available`). Fixes engram showing as "No instalada" on machines where `engram --version` works from a fresh terminal.
+
+### Added
+- **`resolve_managed_tool(name)`** — generic resolver mirroring `resolve_gentle_ai`. PATH walk first; falls back to `%LOCALAPPDATA%\<name>\bin\`, `~\.local\bin\`, `~\go\bin\`, `~\bin\`, `~\AppData\Local\<name>\bin\`. All paths derived from env vars — no machine-specific absolutes.
+- **`read_managed_tool_version(program)`** — best-effort version probe trying both `--version` and `version`, scanning stdout then stderr for the first semver triplet. Used by the override path; reusable for any future stack-tool detection.
+
+### Refactored
+- **`extract_semver(text)`** factored out of `read_gentle_ai_version`. Same logic, now shared with the override path.
+
 ## 0.1.18 — 2026-05-05
 
 INFO-tier cleanup pass from the 5-agent audit (memo: engram #875). The two deferred WARN items (AppV3 double-fetch refactor + CSP hardening) move to v0.1.19 — they need careful work that doesn't fit cleanly in a cleanup release.
