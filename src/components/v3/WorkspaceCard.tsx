@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useT } from "../../lib/i18n";
+import { IS_TAURI } from "../../lib/env";
 import type { WorkspaceSummary } from "../../v3/v3types";
-
-const IS_TAURI =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 // Right-panel card: tooling state at a glance — skills usage + engram
 // memory volume + version pins. Distinct from Overview (which carries

@@ -16,10 +16,8 @@ import { useStackUpdates } from "../../lib/useStackUpdates";
 import type { StackToolStatus } from "../../lib/useStackUpdates";
 import { useT } from "../../lib/i18n";
 import type { LangPref } from "../../lib/i18n";
+import { IS_TAURI } from "../../lib/env";
 import { ConfirmModal } from "../../components/v3/ConfirmModal";
-
-const IS_TAURI =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 export function SettingsView() {
   const [theme, setTheme] = useState<V3Theme>(() => readSavedV3Theme());
@@ -125,9 +123,14 @@ export function SettingsView() {
             }}
             applying={updates.applyingApp}
           />
-          {updates.error && (
+          {updates.appError && (
             <div className="v3-error" role="alert" aria-live="assertive">
-              {updates.error}
+              {updates.appError}
+            </div>
+          )}
+          {updates.gentleAiError && (
+            <div className="v3-error" role="alert" aria-live="assertive">
+              {updates.gentleAiError}
             </div>
           )}
           <p className="v3-row-meta">{t("settings.updates_auto_hint")}</p>

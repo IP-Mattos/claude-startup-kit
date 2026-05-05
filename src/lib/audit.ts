@@ -10,7 +10,7 @@ import type { AuditAction, AuditFinding } from "../types";
 
 const KNOWN_LEVELS = new Set<AuditFinding["level"]>(["OK", "INFO", "WARN", "CRIT"]);
 
-let unknownLevelsLogged = new Set<string>();
+const unknownLevelsLogged = new Set<string>();
 
 // Accepts the raw IPC payload (typed as `unknown`) and returns a clean
 // AuditFinding[]. Rows that aren't shaped like findings at all are dropped

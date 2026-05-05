@@ -5,9 +5,7 @@ import type { GhPullRequest } from "../../types";
 import { friendlyErrorEn, prNumberFromUrl } from "../../lib/format";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { plural, useT } from "../../lib/i18n";
-
-const IS_TAURI =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+import { IS_TAURI } from "../../lib/env";
 
 export function PrsView() {
   const { t } = useT();

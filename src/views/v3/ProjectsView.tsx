@@ -10,9 +10,7 @@ import {
 import { enrichProjects } from "../../lib/enrichProjects";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { useT } from "../../lib/i18n";
-
-const IS_TAURI =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+import { IS_TAURI } from "../../lib/env";
 
 export function ProjectsView() {
   const { t } = useT();

@@ -15,9 +15,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-
-const IS_TAURI =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+import { IS_TAURI } from "./env";
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24h
 const LS_LAST_APP = "csk-update-app-last-checked";
@@ -44,15 +42,17 @@ export interface UpdatesState {
   // app's own update. Surfaced separately so the banner can show "Updating…"
   // instead of the regular "Apply" CTA.
   applyingApp: boolean;
-  // Last error from a failed check, if any. Cleared on the next successful
-  // check.
-  error: string | null;
+  // Per-channel last error. Split because the two channels run independently;
+  // a transient gentle-ai failure used to clobber a still-relevant app-update
+  // error (and vice versa) when both shared a single string.
+  appError: string | null;
+  gentleAiError: string | null;
   // Imperative actions.
   checkNow: () => void;
   // Triggers atomic auto-update: download + verify signature + replace
   // binary + restart. On the happy path this resolves AFTER the new process
   // has taken over (the call never actually returns in practice). On error
-  // the promise rejects and `error` is populated.
+  // the promise rejects and `appError` is populated.
   applyApp: () => Promise<void>;
   applyGentleAi: () => Promise<string | null>;
   dismissApp: (version: string) => void;
@@ -109,7 +109,8 @@ export function useUpdates(): UpdatesState {
   const [gentleAi, setGentleAi] = useState<UpdateStatus | null>(null);
   const [checking, setChecking] = useState(false);
   const [applyingApp, setApplyingApp] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [appError, setAppError] = useState<string | null>(null);
+  const [gentleAiError, setGentleAiError] = useState<string | null>(null);
   // Avoid re-running on StrictMode double-mount in dev.
   const ranOnce = useRef(false);
 
@@ -134,7 +135,6 @@ export function useUpdates(): UpdatesState {
       return;
     }
     setChecking(true);
-    setError(null);
     const now = Date.now();
     const dismissApp = readString(LS_DISMISS_APP);
     const dismissGa = readString(LS_DISMISS_GA);
@@ -142,24 +142,26 @@ export function useUpdates(): UpdatesState {
     const tasks: Promise<void>[] = [];
 
     if (force || now - readNumber(LS_LAST_APP) > COOLDOWN_MS) {
+      setAppError(null);
       tasks.push(
         invoke<UpdateStatus>("check_app_update")
           .then((s) => {
             setApp(applyDismissal(s, dismissApp));
             writeNumber(LS_LAST_APP, Date.now());
           })
-          .catch((e) => setError(String(e)))
+          .catch((e) => setAppError(String(e)))
       );
     }
 
     if (force || now - readNumber(LS_LAST_GA) > COOLDOWN_MS) {
+      setGentleAiError(null);
       tasks.push(
         invoke<UpdateStatus>("check_gentle_ai_update")
           .then((s) => {
             setGentleAi(applyDismissal(s, dismissGa));
             writeNumber(LS_LAST_GA, Date.now());
           })
-          .catch((e) => setError(String(e)))
+          .catch((e) => setGentleAiError(String(e)))
       );
     }
 
@@ -180,14 +182,14 @@ export function useUpdates(): UpdatesState {
   const applyApp = useCallback(async (): Promise<void> => {
     if (!IS_TAURI) return;
     setApplyingApp(true);
-    setError(null);
+    setAppError(null);
     try {
       await invoke<void>("apply_app_update");
       // The Rust handler calls app.restart() on success, so this point is
       // typically unreachable. We clear the flag defensively in case the
       // restart fails or is a no-op on some future platform.
     } catch (e) {
-      setError(String(e));
+      setAppError(String(e));
     } finally {
       setApplyingApp(false);
     }
@@ -196,13 +198,14 @@ export function useUpdates(): UpdatesState {
   const applyGentleAi = useCallback(async (): Promise<string | null> => {
     if (!IS_TAURI) return null;
     setChecking(true);
+    setGentleAiError(null);
     try {
       const newVersion = await invoke<string>("apply_gentle_ai_update");
       // Re-check both channels after a successful upgrade.
       await runChecks(true);
       return newVersion;
     } catch (e) {
-      setError(String(e));
+      setGentleAiError(String(e));
       return null;
     } finally {
       setChecking(false);
@@ -224,7 +227,8 @@ export function useUpdates(): UpdatesState {
     gentleAi,
     checking,
     applyingApp,
-    error,
+    appError,
+    gentleAiError,
     checkNow,
     applyApp,
     applyGentleAi,

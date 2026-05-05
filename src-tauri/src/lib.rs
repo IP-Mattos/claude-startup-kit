@@ -232,10 +232,13 @@ fn scan_projects_blocking(window_days: u64) -> Vec<Project> {
 }
 
 #[tauri::command]
-async fn scan_projects(window_days: u64) -> Vec<Project> {
+async fn scan_projects(window_days: u64) -> Result<Vec<Project>, String> {
+    // Surface the join error rather than swallowing it as an empty list —
+    // a panic in the blocking scan used to look indistinguishable from
+    // "no projects on disk" in the UI.
     tokio::task::spawn_blocking(move || scan_projects_blocking(window_days))
         .await
-        .unwrap_or_default()
+        .map_err(|e| format!("scan_projects task join: {e}"))
 }
 
 #[derive(Serialize, Clone)]
@@ -1491,15 +1494,29 @@ fn audit_startup(out: &mut Vec<AuditFinding>) {
 fn audit_kit(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
     let marker = claude_dir.join("scripts").join(".kit-version");
     if marker.exists() {
-        let v = fs::read_to_string(&marker).unwrap_or_default();
-        let v = v.trim();
-        push_finding(
-            out,
-            "INFO",
-            "KIT",
-            format!("Installed kit version: v{v}"),
-            String::new(),
-        );
+        // Used to be `unwrap_or_default()` — on a permission/locked-file error
+        // that produced a misleading "Installed kit version: v" finding that
+        // looked successful. Surface the IO error so the user can act.
+        match fs::read_to_string(&marker) {
+            Ok(v) => {
+                push_finding(
+                    out,
+                    "INFO",
+                    "KIT",
+                    format!("Installed kit version: v{}", v.trim()),
+                    String::new(),
+                );
+            }
+            Err(e) => {
+                push_finding(
+                    out,
+                    "WARN",
+                    "KIT",
+                    format!("Could not read .kit-version marker: {e}"),
+                    String::new(),
+                );
+            }
+        }
     } else {
         // VERBATIM TITLE — `infer_action` keys off this exact string for ReinstallKit.
         push_finding(
@@ -2399,9 +2416,13 @@ async fn toggle_mcp_server(name: String, source: String, enabled: bool) -> Resul
                     .ok_or("settings.json is not an object")?
                     .entry("enabledPlugins")
                     .or_insert_with(|| serde_json::json!({}));
-                if let Some(map) = plugins.as_object_mut() {
-                    map.insert(name, serde_json::Value::Bool(enabled));
-                }
+                // Surface the type mismatch instead of silently no-opping —
+                // otherwise the rewrite below would persist `enabledPlugins`
+                // unmodified and the renderer would think the toggle worked.
+                let Some(map) = plugins.as_object_mut() else {
+                    return Err("enabledPlugins is not an object".to_string());
+                };
+                map.insert(name, serde_json::Value::Bool(enabled));
                 let pretty = serde_json::to_string_pretty(&json)
                     .map_err(|e| format!("serialize settings.json: {e}"))?;
                 fs::write(&settings_path, pretty)
@@ -2900,7 +2921,7 @@ fn parse_gentle_ai_update_line(line: &str) -> Option<StackToolStatus> {
 /// UI shows "No managed tools detected" even when gentle-ai is fully
 /// installed and reachable from a fresh terminal.
 #[tauri::command]
-async fn check_stack_updates() -> Result<Vec<StackToolStatus>, String> {
+async fn check_stack_update() -> Result<Vec<StackToolStatus>, String> {
     tokio::task::spawn_blocking(|| -> Result<Vec<StackToolStatus>, String> {
         let Some(program) = resolve_gentle_ai() else {
             // gentle-ai genuinely missing — soft-fail with empty list.
@@ -2955,7 +2976,7 @@ const STACK_TOOL_PROCESS_NAMES: &[&str] = &["engram", "gga"];
 /// post-run summary. `gentle-ai upgrade` is idempotent — running it when
 /// everything's already current is a no-op.
 #[tauri::command]
-async fn apply_stack_updates() -> Result<String, String> {
+async fn apply_stack_update() -> Result<String, String> {
     tokio::task::spawn_blocking(|| -> Result<String, String> {
         // Kill any live instances of managed tool binaries. Errors here are
         // best-effort (process might already be gone, or `taskkill` might
@@ -2970,7 +2991,7 @@ async fn apply_stack_updates() -> Result<String, String> {
         std::thread::sleep(Duration::from_millis(800));
 
         // Resolve gentle-ai's actual install location — same PATH-inheritance
-        // dance as check_stack_updates / read_gentle_ai_version. Without this,
+        // dance as check_stack_update / read_gentle_ai_version. Without this,
         // the upgrade silently no-ops on auto-updated app instances.
         let program = resolve_gentle_ai()
             .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
@@ -3599,8 +3620,8 @@ pub fn run() {
             apply_app_update,
             check_gentle_ai_update,
             apply_gentle_ai_update,
-            check_stack_updates,
-            apply_stack_updates,
+            check_stack_update,
+            apply_stack_update,
             workspace_summary,
             sync_status,
             sync_setup,

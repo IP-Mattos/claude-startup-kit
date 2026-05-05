@@ -3,9 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ExternalLink, RefreshCw } from "lucide-react";
 import { friendlyErrorEn } from "../../lib/format";
 import { plural, useT } from "../../lib/i18n";
-
-const IS_TAURI =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+import { IS_TAURI } from "../../lib/env";
 
 interface ClaudeSkill {
   name: string;

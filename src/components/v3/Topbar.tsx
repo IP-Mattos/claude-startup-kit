@@ -2,13 +2,10 @@ import { useEffect, useState } from "react";
 import { Minus, Square, X } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useT } from "../../lib/i18n";
+import { IS_TAURI } from "../../lib/env";
 import { TOPBAR_NAV } from "../../constants/v3Nav";
 import type { V3Tab } from "../../v3/v3types";
 
-// Tauri APIs throw when loaded from a plain browser at localhost:1420 (no
-// __TAURI_INTERNALS__). Guard so the topbar still renders for previews.
-const IS_TAURI =
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 const safeGetCurrentWindow = () => {
   try {
     return IS_TAURI ? getCurrentWindow() : null;

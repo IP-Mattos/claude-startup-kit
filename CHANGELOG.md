@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.1.18 — 2026-05-05
+
+INFO-tier cleanup pass from the 5-agent audit (memo: engram #875). The two deferred WARN items (AppV3 double-fetch refactor + CSP hardening) move to v0.1.19 — they need careful work that doesn't fit cleanly in a cleanup release.
+
+### Changed
+- **`apply_stack_updates` and `check_stack_updates` renamed** to `apply_stack_update` / `check_stack_update` for symmetry with `apply_app_update`, `apply_gentle_ai_update`. JS callsites in `useStackUpdates.ts` updated; `invoke_handler!` registration follows.
+- **`scan_projects` returns `Result<Vec<Project>, String>`** instead of swallowing join errors with `unwrap_or_default()`. The frontend `AppV3.tsx` already wrapped the call in `trap("Projects", [])` so backend errors now flow into the existing fetch-error banner instead of masquerading as an empty list.
+- **`audit_kit` surfaces IO errors as a WARN finding** instead of pretending success with an empty version string. If `.kit-version` is unreadable (permission, file lock), the audit panel now shows the underlying error.
+
+### Fixed
+- **`AuditView` "Done ✓" timeout cancelled on unmount AND on rapid re-fire** — used to leak a `setRecentlyDoneId(null)` setState onto an unmounted component (React 19 dev warning), and a fast second action could clobber a fresh badge. Now tracked in a `useRef`, cleared in cleanup and at the start of each new action.
+- **`useUpdates` per-channel error state** — was sharing one `error` field, so a transient `gentle-ai` failure overwrote a still-relevant app-update error and vice versa. Split into `appError` / `gentleAiError`. Settings panel renders both independently.
+- **`toggle_mcp_server` plugin branch no longer silently no-ops** when `enabledPlugins` isn't an object — returns `Err("enabledPlugins is not an object")` so the renderer can react.
+
+### Removed
+- **5 dead helpers** in `src/lib/format.ts`: `activityLabel`, `activityLabelEn`, `tierClass`, `hexId`, Spanish `friendlyError`. Unused since the v3 layout migration.
+- **Stale "moved to" relocation comments** in `AppV3.tsx` from a previous refactor. Were duplicated and added noise without informing.
+- **`useStackUpdates.lastApplyOutput`** — exposed in the hook contract but never consumed by any consumer. Dead surface area.
+
+### Refactored
+- **`IS_TAURI` extracted** to `src/lib/env.ts`. The literal `typeof window !== "undefined" && "__TAURI_INTERNALS__" in window` was duplicated VERBATIM in 12 files. Now one source of truth; all 12 files import from `env.ts`.
+- **`audit.ts:13`** — `let unknownLevelsLogged` → `const`. Was never reassigned, only mutated via `.add`.
+
+### Out of scope (v0.1.19)
+- AppV3 + view double-fetch refactor (lift state to context).
+- CSP `'unsafe-inline'` removal with nonce/hash.
+
 ## 0.1.17 — 2026-05-05
 
 WARN-tier follow-up to the v0.1.16 audit-pass. Performance, security, and accessibility wins; INFO-tier cleanup lands in v0.1.18.
