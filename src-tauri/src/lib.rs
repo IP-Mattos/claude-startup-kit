@@ -718,7 +718,14 @@ fn infer_action(category: &str, title: &str, detail: &str) -> Option<AuditAction
         }
         "DRIFT" => {
             if title == "settings.local.json exists — overrides settings.json" {
-                Some(AuditAction::OpenInVscode {
+                // Was OpenInVscode (user reported: clicking Resolver opened
+                // VS Code, showed a "Done" badge, but the finding kept
+                // re-appearing on every audit run because nothing changed).
+                // The actionable resolution is to DELETE the local override —
+                // returns the user to the shared settings.json baseline. The
+                // confirm modal explains the trade-off; user can still bail
+                // and inspect manually if they want to keep local overrides.
+                Some(AuditAction::DeleteFile {
                     path: claude_path_string("settings.local.json"),
                 })
             } else {
@@ -1929,6 +1936,71 @@ fn validate_open_path(path: &str) -> Result<PathBuf, String> {
         .canonicalize()
         .map_err(|e| format!("canonicalize {trimmed}: {e}"))?;
     Ok(canonical)
+}
+
+/// Audit-Resolver-only delete helper for files outside `cleanup_apply`'s
+/// confinement (`~/.claude/{logs,backups,projects}`).
+///
+/// Why this exists: the DRIFT finding "settings.local.json exists — overrides
+/// settings.json" used to map to OpenInVscode (the user reported it never
+/// actually resolved — Resolver opened the file, showed Done, finding kept
+/// reappearing). Now it maps to DeleteFile, but `cleanup_apply` would reject
+/// `~/.claude/settings.local.json` because it's outside the cleanup roots.
+///
+/// Security: explicit hardcoded allowlist of paths the audit is allowed to
+/// resolve via deletion. A renderer-supplied `path` MUST canonicalize to
+/// one of the allowlisted entries, otherwise we reject. We do NOT just trust
+/// the path matches — paths from JSONL or settings can carry `\\?\` UNC
+/// prefixes or symlink games.
+///
+/// Recoverability: the file isn't permanently deleted — it's MOVED to
+/// `~/.claude/backups/audit-<unix-ts>/<filename>` so the user can pull it
+/// back if they regret the resolution. Same backups dir Claude Code uses
+/// for settings backups.
+#[tauri::command]
+async fn audit_resolve_delete(path: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let home = dirs_home().ok_or_else(|| "home dir unavailable".to_string())?;
+        let claude_root = home.join(".claude");
+        let allowed: Vec<PathBuf> = vec![claude_root.join("settings.local.json")];
+
+        let target = Path::new(&path);
+        if !target.exists() {
+            // Idempotent: if the file is already gone we treat as success
+            // so the audit refresh reflects reality without spurious errors.
+            return Ok(());
+        }
+        let canonical_target = target
+            .canonicalize()
+            .map_err(|e| format!("canonicalize target: {e}"))?;
+        let canonical_allowed: Vec<PathBuf> = allowed
+            .iter()
+            .filter_map(|p| fs::canonicalize(p).ok())
+            .collect();
+        if !canonical_allowed
+            .iter()
+            .any(|a| a == &canonical_target)
+        {
+            return Err(format!(
+                "audit_resolve_delete: path not in allowlist: {path}"
+            ));
+        }
+
+        let ts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs().to_string())
+            .unwrap_or_else(|_| "0".to_string());
+        let backup_dir = claude_root.join("backups").join(format!("audit-{ts}"));
+        fs::create_dir_all(&backup_dir).map_err(|e| format!("create backup dir: {e}"))?;
+        let filename = canonical_target
+            .file_name()
+            .ok_or_else(|| "target has no filename".to_string())?;
+        let dest = backup_dir.join(filename);
+        fs::rename(&canonical_target, &dest).map_err(|e| format!("move to backup: {e}"))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
 }
 
 #[tauri::command]
@@ -3851,6 +3923,7 @@ pub fn run() {
             github_review_queue,
             cleanup_plan,
             cleanup_apply,
+            audit_resolve_delete,
             open_in_vscode,
             open_path_in_explorer,
             open_url,
