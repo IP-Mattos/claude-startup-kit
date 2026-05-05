@@ -53,7 +53,6 @@ const KNOWN_ACTION_KINDS = new Set<AuditAction["kind"]>([
   "kill_process",
   "delete_file",
   "restore_settings_backup",
-  "reinstall_kit",
 ]);
 
 function normalizeAction(raw: unknown): AuditAction | null {
@@ -72,7 +71,6 @@ function normalizeAction(raw: unknown): AuditAction | null {
     case "kill_process":
       return typeof a.pid === "number" ? { kind, pid: a.pid } : null;
     case "restore_settings_backup":
-    case "reinstall_kit":
       return { kind };
     default:
       return null;

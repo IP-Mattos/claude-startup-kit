@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.22 — 2026-05-05
+
+Drop the `KIT` audit category. It was a verbatim port of the legacy PowerShell kit's `claude-audit.ps1` that checked for a `~/.claude/scripts/.kit-version` marker file the legacy installer dropped. With the legacy kit retired (it lives under `legacy/` and is no longer the shipping product), the check became a permanent false positive: every fresh user saw "No .kit-version marker — kit may not be installed" and the **Resolver** button failed with "kit config not found at C:\\Users\\\\.claude\\scripts\\startup-kit-config.json" because `reinstall_kit` was hardcoded to drive the legacy installer.
+
+### Removed
+- **`audit_kit`** function and its call site in `run_audit_blocking`.
+- **`KIT` arm** in `infer_action`.
+- **`reinstall_kit` IPC** (Rust async command, registered handler, frontend `invoke` call).
+- **`AuditAction::ReinstallKit`** Rust enum variant.
+- **`{ kind: "reinstall_kit" }`** TypeScript union member, the `KNOWN_ACTION_KINDS` entry, and the matching `normalizeAction` arm.
+- **`PendingConfirm` arm** for `reinstall_kit` and the `confirmStrings` case.
+- **`audit.confirm_reinstall_*`** i18n keys.
+
+### Note
+`.kit-version` stays in `KIT_WHITELIST` of `audit_scripts` — it's a benign filename match that prevents the marker from being re-flagged as a "non-kit file" if a user does still have the legacy kit installed alongside the Tauri app.
+
 ## 0.1.21 — 2026-05-05
 
 Two follow-ups to the v0.1.20 install wizard release.

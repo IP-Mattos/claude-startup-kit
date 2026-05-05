@@ -460,12 +460,6 @@ const STRINGS = {
     en: "settings.json will be replaced with the most recent backup. Current file is overwritten.",
     es: "settings.json se reemplaza con el último backup. El archivo actual se sobreescribe.",
   },
-  "audit.confirm_reinstall_title": { en: "Reinstall kit?", es: "¿Reinstalar kit?" },
-  "audit.confirm_reinstall_message": {
-    en: "Runs install.ps1 from the cloned repo. Existing config is preserved by the installer.",
-    es: "Corre install.ps1 desde el repo clonado. La config existente la preserva el installer.",
-  },
-
   // Cleanup view
   "cleanup.title": { en: "Cleanup", es: "Limpieza" },
   "cleanup.scanning": { en: "Scanning…", es: "Escaneando…" },
