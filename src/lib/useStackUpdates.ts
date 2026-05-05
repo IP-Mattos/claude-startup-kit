@@ -34,6 +34,11 @@ export interface StackUpdatesState {
 
   checkNow: () => void;
   applyAll: () => Promise<void>;
+  // Opens gentle-ai's interactive install wizard in a new console window.
+  // Same wizard for every `not_installed` row — gentle-ai upstream doesn't
+  // expose per-tool install. After the user finishes the wizard, the next
+  // "Buscar ahora" refresh picks up the new state.
+  openInstallWizard: () => Promise<void>;
 }
 
 function readNumber(key: string): number {
@@ -111,5 +116,23 @@ export function useStackUpdates(): StackUpdatesState {
     }
   }, [runCheck]);
 
-  return { tools, loading, applying, error, checkNow, applyAll };
+  const openInstallWizard = useCallback(async (): Promise<void> => {
+    if (!IS_TAURI) return;
+    setError(null);
+    try {
+      await invoke<void>("open_stack_install_wizard");
+    } catch (e) {
+      setError(String(e));
+    }
+  }, []);
+
+  return {
+    tools,
+    loading,
+    applying,
+    error,
+    checkNow,
+    applyAll,
+    openInstallWizard,
+  };
 }

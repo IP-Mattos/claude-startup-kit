@@ -280,6 +280,11 @@ const STRINGS = {
     en: "Not installed (latest: v{latest})",
     es: "No instalada (última: v{latest})",
   },
+  "settings.stack_install": { en: "Install", es: "Instalar" },
+  "settings.stack_install_title": {
+    en: "Open gentle-ai's interactive install wizard",
+    es: "Abre el wizard interactivo de instalación de gentle-ai",
+  },
 
   // Banners (top of content area)
   "banner.app_available": {
