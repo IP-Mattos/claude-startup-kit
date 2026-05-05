@@ -728,11 +728,24 @@ fn infer_action(category: &str, title: &str, detail: &str) -> Option<AuditAction
         }
         "SCRIPTS" => {
             // Title shape: "Non-kit file in lib/: foo.ps1"
-            let prefix = "Non-kit file in lib/:";
-            if let Some(rest) = title.strip_prefix(prefix) {
+            let prefix_lib = "Non-kit file in lib/:";
+            if let Some(rest) = title.strip_prefix(prefix_lib) {
                 let filename = rest.trim();
                 if !filename.is_empty() {
                     let full = claude_path_string(&format!("scripts/lib/{filename}"));
+                    return Some(AuditAction::OpenInExplorer { path: full });
+                }
+            }
+            // Title shape: "Non-kit file in ~/.claude/scripts/: foo.ps1"
+            // Previously this finding was emitted at INFO level so push_finding
+            // skipped action inference entirely — the "Resolver" button
+            // never appeared. Now that audit_scripts emits it at WARN, route
+            // it to OpenInExplorer like the lib/ sibling above.
+            let prefix_scripts = "Non-kit file in ~/.claude/scripts/:";
+            if let Some(rest) = title.strip_prefix(prefix_scripts) {
+                let filename = rest.trim();
+                if !filename.is_empty() {
+                    let full = claude_path_string(&format!("scripts/{filename}"));
                     return Some(AuditAction::OpenInExplorer { path: full });
                 }
             }
@@ -1062,9 +1075,13 @@ fn audit_scripts(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
             if !KIT_WHITELIST.contains(&name.as_str()) {
+                // VERBATIM TITLE PREFIX — `infer_action` keys off
+                // "Non-kit file in ~/.claude/scripts/:". Bumped from INFO to
+                // WARN so the renderer surfaces a "Resolver" button (Open in
+                // Explorer); push_finding skips action inference for INFO.
                 push_finding(
                     out,
-                    "INFO",
+                    "WARN",
                     "SCRIPTS",
                     format!("Non-kit file in ~/.claude/scripts/: {name}"),
                     "Created outside the kit. Review if you don't recognize it.".to_string(),
@@ -1854,7 +1871,9 @@ pub struct EnrichedProject {
 }
 
 #[tauri::command]
-async fn enrich_projects(paths: Vec<String>) -> Vec<EnrichedProject> {
+async fn enrich_projects(
+    paths: Vec<String>,
+) -> std::collections::HashMap<String, EnrichedProject> {
     // Resolve known engram projects ONCE for the whole batch (cached for 5min).
     let known = tokio::task::spawn_blocking(known_projects_cached)
         .await
@@ -1871,10 +1890,16 @@ async fn enrich_projects(paths: Vec<String>) -> Vec<EnrichedProject> {
         }));
     }
 
-    let mut out = Vec::with_capacity(handles.len());
+    // Return a `HashMap<path, EnrichedProject>` instead of `Vec<...>` so the
+    // renderer can do `enrichment[p.path]` directly. Previously the renderer
+    // typed the result as `Record<string, EnrichedProject>` but Rust shipped
+    // a Vec — every `enrichment[p.path]` lookup silently returned undefined,
+    // and project goals never appeared on Overview / Projects.
+    let mut out: std::collections::HashMap<String, EnrichedProject> =
+        std::collections::HashMap::with_capacity(handles.len());
     for h in handles {
         if let Ok(item) = h.await {
-            out.push(item);
+            out.insert(item.path.clone(), item);
         }
     }
     out
@@ -2751,12 +2776,21 @@ fn parse_gentle_ai_update_line(line: &str) -> Option<StackToolStatus> {
 /// Run `gentle-ai update` and parse the table into structured rows.
 /// Returns an empty vec (not an error) if `gentle-ai` isn't on PATH so the UI
 /// can render "stack tooling not configured" without surfacing a noisy error.
+///
+/// Uses `resolve_gentle_ai()` instead of bare `gentle-ai` because the Tauri
+/// auto-updater can hand the new app instance a PATH that's missing
+/// `%LOCALAPPDATA%\gentle-ai\bin\`. Without this, the spawn errors and the
+/// UI shows "No managed tools detected" even when gentle-ai is fully
+/// installed and reachable from a fresh terminal.
 #[tauri::command]
 async fn check_stack_updates() -> Result<Vec<StackToolStatus>, String> {
     tokio::task::spawn_blocking(|| -> Result<Vec<StackToolStatus>, String> {
-        let out = match silent_command("gentle-ai").arg("update").output() {
+        let Some(program) = resolve_gentle_ai() else {
+            // gentle-ai genuinely missing — soft-fail with empty list.
+            return Ok(Vec::new());
+        };
+        let out = match silent_command(&program).arg("update").output() {
             Ok(o) => o,
-            // gentle-ai missing entirely — soft-fail with empty list.
             Err(_) => return Ok(Vec::new()),
         };
         if !out.status.success() {
@@ -2818,8 +2852,14 @@ async fn apply_stack_updates() -> Result<String, String> {
         // gentle-ai tries to write.
         std::thread::sleep(Duration::from_millis(800));
 
+        // Resolve gentle-ai's actual install location — same PATH-inheritance
+        // dance as check_stack_updates / read_gentle_ai_version. Without this,
+        // the upgrade silently no-ops on auto-updated app instances.
+        let program = resolve_gentle_ai()
+            .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
+
         // Phase 1 — `gentle-ai upgrade` for everything except gentle-ai itself.
-        let out = silent_command("gentle-ai")
+        let out = silent_command(&program)
             .arg("upgrade")
             .output()
             .map_err(|e| format!("spawn gentle-ai: {e}"))?;
@@ -3308,7 +3348,42 @@ async fn clone_project(
             fs::create_dir_all(&target_root)
                 .map_err(|e| format!("create target dir: {e}"))?;
         }
-        let dest = target_root.join(&name);
+
+        // Reject path-traversal in `name`: the renderer-supplied repo name
+        // is concatenated to `target_root` via `Path::join`, which on Windows
+        // *replaces* the base when the appended segment is absolute (`C:\...`)
+        // and walks up the tree on `..` segments. A tampered sync mirror
+        // could feed `name = "..\\..\\Startup\\foo"` and write outside the
+        // user's chosen target dir. Allow only basic basename characters.
+        let name_trimmed = name.trim();
+        if name_trimmed.is_empty()
+            || name_trimmed.contains('/')
+            || name_trimmed.contains('\\')
+            || name_trimmed.contains("..")
+            || name_trimmed.contains(':')
+            || name_trimmed.starts_with('-')
+        {
+            return Err(format!(
+                "rejected unsafe project name '{name_trimmed}' — must be a plain folder name"
+            ));
+        }
+        // Reject untrusted clone schemes. `git clone` historically accepted
+        // local paths and, with crafted URLs (`ssh://-oProxyCommand=...`,
+        // `--upload-pack=evil`), can reach RCE. Restrict to https / git over
+        // ssh / git protocol from the start. The `--` separator below is the
+        // belt-and-suspenders defense for the URL itself.
+        let remote_trimmed = remote_url.trim();
+        let allowed_scheme = remote_trimmed.starts_with("https://")
+            || remote_trimmed.starts_with("git@")
+            || remote_trimmed.starts_with("ssh://")
+            || remote_trimmed.starts_with("git://");
+        if !allowed_scheme || remote_trimmed.starts_with('-') {
+            return Err(format!(
+                "rejected remote URL '{remote_trimmed}' — must start with https:// / git@ / ssh:// / git://"
+            ));
+        }
+
+        let dest = target_root.join(name_trimmed);
         if dest.exists() {
             // Idempotent: if the repo's already there, treat as a no-op.
             // The user can manually pull or move it; we don't second-guess.
@@ -3319,8 +3394,12 @@ async fn clone_project(
                 message: "destination already exists, skipped".to_string(),
             });
         }
+        // `--` ends `git clone`'s flag parsing so a URL beginning with `-`
+        // is treated verbatim and never as an option. Combined with the
+        // scheme allowlist above, this rules out every documented git-URL
+        // RCE we know of.
         let out = silent_command("git")
-            .args(["clone", &remote_url])
+            .args(["clone", "--", remote_trimmed])
             .arg(&dest)
             .output()
             .map_err(|e| format!("spawn git clone: {e}"))?;

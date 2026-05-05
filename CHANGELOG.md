@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.16 — 2026-05-05
+
+Audit pass — six critical findings from the 5-agent parallel sweep are fixed in this release. WARN-tier and INFO-tier items land in v0.1.17 / v0.1.18.
+
+### Fixed (security)
+- **Path traversal in `clone_project`** — the renderer-supplied `name` flowed through `Path::join`, which on Windows replaces the base when the segment is absolute (`C:\...`) and walks up the tree on `..`. A tampered sync mirror could feed `name = "..\\Startup\\foo"` and write outside the user's chosen target dir. Now we reject path separators / `..` / `:` / leading `-` in `name`.
+- **`git clone` flag injection in `clone_project` and `sync_setup`** — the URL was passed to `git clone` without `--`, so `--upload-pack=evil` style strings were parsed as flags (historic git RCE class). Now we insert `--` before the URL and reject schemes other than `https://`, `git@`, `ssh://`, `git://`.
+
+### Fixed (functionality)
+- **Project goals never appeared on Overview / Projects** — `enrich_projects` returned `Vec<EnrichedProject>` from Rust but the renderer typed it as `Record<string, EnrichedProject>` and looked up by `enrichment[p.path]`, silently getting `undefined` every time. The Rust side now returns `HashMap<String, EnrichedProject>` so the renderer's lookup actually works.
+- **"Resolver" button never appeared on non-kit-script findings** — `audit_scripts` emitted "Non-kit file in ~/.claude/scripts/: …" at INFO level, but `push_finding` skips action inference for INFO. Bumped that finding to WARN, added the matching `OpenInExplorer` arm in `infer_action`, and routed `~/.claude/scripts/` paths through `claude_path_string` for proper canonicalization.
+- **`check_stack_updates` / `apply_stack_updates` failed silently after auto-update** — both shelled out to bare `gentle-ai` instead of `resolve_gentle_ai()`. The Tauri auto-updater hands the new app instance a PATH that's missing `%LOCALAPPDATA%\gentle-ai\bin\` so the spawn returned ENOENT, the Stack tools card showed "No managed tools detected", and "Update all" silently no-op'd. Both now use the existing `resolve_gentle_ai()` helper.
+
+### Fixed (UX / accessibility)
+- **Filter chip INFO color clashed with WARN** — both rendered amber when active so toggling the filter felt unresponsive. Now `chip-info.active` uses the calm blue `--v3-info` token like the row tints.
+- **`<ConfirmModal>` did not trap focus** — Tab escaped the dialog into background controls, and `aria-modal="true"` was lying. Added: focus moves to Cancel on open, Tab/Shift-Tab cycles between Cancel and Confirm only, focus restores to the previously-active element on close.
+
+### Projects scanner — also from v0.1.15
+- `scan_projects` now requires a project-marker file (`.git`, `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, `pom.xml`, `build.gradle`, `composer.json`, `Gemfile`, `requirements.txt`, `pubspec.yaml`, `mix.exs`, `tsconfig.json`, `deno.json`, `.project`, `*.sln`) so umbrella dirs like `Desktop` / home don't show up as workspaces.
+
 ## 0.1.15 — 2026-05-05
 
 ### Fixed
