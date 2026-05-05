@@ -143,10 +143,13 @@ export function AuditView({ onJump }: AuditViewProps) {
           setRefreshNonce((n) => n + 1);
           break;
         case "delete_file":
-          // Reuse cleanup_apply with a single path — the backend already
-          // handles trash/permanent delete semantics there, no need for a
-          // second specialized command.
-          await invoke("cleanup_apply", { paths: [action.path] });
+          // Audit-resolver deletes go through `audit_resolve_delete` — it
+          // has an explicit allowlist (currently just settings.local.json)
+          // and moves the file to ~/.claude/backups/audit-<ts>/ instead of
+          // permanent delete, so the user can recover. `cleanup_apply` was
+          // the wrong target: it confines to {logs,backups,projects} and
+          // would reject ~/.claude/settings.local.json outright.
+          await invoke("audit_resolve_delete", { path: action.path });
           setRefreshNonce((n) => n + 1);
           break;
         case "restore_settings_backup":
@@ -199,11 +202,23 @@ export function AuditView({ onJump }: AuditViewProps) {
           title: t("audit.confirm_kill_title"),
           message: t("audit.confirm_kill_message", { pid: c.action.pid }),
         };
-      case "delete_file":
-        return {
-          title: t("audit.confirm_delete_title"),
-          message: t("audit.confirm_delete_message", { path: c.action.path }),
-        };
+      case "delete_file": {
+        // Custom copy when the file being deleted is settings.local.json —
+        // the audit's only delete target today. Plain "delete X?" was too
+        // generic for users to know whether deleting was safe.
+        const isSettingsLocal = c.action.path
+          .toLowerCase()
+          .endsWith("settings.local.json");
+        return isSettingsLocal
+          ? {
+              title: t("audit.confirm_delete_settings_local_title"),
+              message: t("audit.confirm_delete_settings_local_message"),
+            }
+          : {
+              title: t("audit.confirm_delete_title"),
+              message: t("audit.confirm_delete_message", { path: c.action.path }),
+            };
+      }
       case "restore_settings_backup":
         return {
           title: t("audit.confirm_restore_title"),

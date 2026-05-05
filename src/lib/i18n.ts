@@ -452,6 +452,14 @@ const STRINGS = {
     en: "Permanently delete {path}? This cannot be undone.",
     es: "¿Borrar definitivamente {path}? No se puede deshacer.",
   },
+  "audit.confirm_delete_settings_local_title": {
+    en: "Delete settings.local.json?",
+    es: "¿Borrar settings.local.json?",
+  },
+  "audit.confirm_delete_settings_local_message": {
+    en: "Removes the local override so settings.json takes effect again. Local-only permissions are LOST. The file is moved to ~/.claude/backups/audit-<timestamp>/ so you can restore it manually if you change your mind.",
+    es: "Elimina el override local — settings.json vuelve a tener efecto. Las permisos locales se PIERDEN. El archivo se mueve a ~/.claude/backups/audit-<timestamp>/ por si querés recuperarlo después.",
+  },
   "audit.confirm_restore_title": {
     en: "Restore settings backup?",
     es: "¿Restaurar backup de settings?",

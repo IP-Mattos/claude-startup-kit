@@ -15,6 +15,11 @@ Audit-driven CRIT batch from a 12-finding review. Same theme as v0.1.23: stop th
 ### Added
 - **`format_spawn_error(program, err)`** helper in `lib.rs`. Reusable for any future shell-out.
 - **`invalidate_known_projects_cache()`** and **`invalidate_workspace_summary_cache()`** helpers. Tiny but make every mutating IPC's responsibility explicit and grep-able.
+- **`audit_resolve_delete` IPC** with explicit allowlist (currently just `~/.claude/settings.local.json`). Moves the file to `~/.claude/backups/audit-<unix-ts>/` instead of permanent delete so the user can recover.
+
+### Fixed (audit Resolver UX)
+- **DRIFT/`settings.local.json` Resolver actually resolves now** — was mapped to `OpenInVscode`, so the user got a "Done ✓" badge but the finding kept reappearing on every audit run because nothing on disk changed (user reported: "le doy resolver y dice hecho y luego vuelve a pedir resolve, no hay feeling, no hay indicador, se abre vscode pero qué haga ahí? eso debería ser automático"). Now mapped to `DeleteFile` → confirm modal with finding-specific copy → file moved to backups → audit refresh → finding gone. Reversible (file is in backups, not deleted).
+- **Confirm modal for `settings.local.json` is finding-specific** — was the generic "Permanently delete X?" copy. Now explains exactly what the local override does, that the local permissions are lost, and where the file goes.
 
 ## 0.1.23 — 2026-05-05
 
