@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.23 — 2026-05-05
+
+Systemic fix for the **"program not found"** class of errors that kept regressing on different IPCs (`engram` from sync's clone, `code.cmd` from Audit's "Resolver" and Projects' "Abrir") after auto-updates.
+
+### Root cause
+After a Tauri auto-update, the new app instance can inherit a `PATH` that's missing per-user install dirs (`%LOCALAPPDATA%\engram\bin`, `%LOCALAPPDATA%\Programs\Microsoft VS Code\bin`, `~\go\bin`, `~\bin`, `%APPDATA%\npm`). Each shell-out — `engram`, `code.cmd`, `git`, `gh`, `bash` — could then fail with "program not found" even though the same command works from a fresh terminal. We had been patching this **per tool** (`resolve_gentle_ai` in v0.1.11, `resolve_managed_tool` in v0.1.19/v0.1.21) but new shell-outs kept regressing.
+
+### Fixed
+- **Process `PATH` augmented at boot** via new `augment_path_with_user_bin_dirs()`, called as the first thing in `run()` before the Tauri builder spins up. Prepends well-known user-scoped bin dirs to `PATH` if they exist AND aren't already there. Every `Command::new(<bare-name>)` downstream — sync's `engram`, audit/projects' `code.cmd`, gentle-ai, gh, git, bash — now resolves correctly without needing per-tool resolvers.
+- All paths are env-var derived (`LOCALAPPDATA`, `APPDATA`, `USERPROFILE`/`HOME`, `PROGRAMFILES`, `PROGRAMFILES(X86)`) so this is universal across machines.
+- No-op on machines where every dir is already in `PATH` (e.g., users who configured everything via system settings).
+
 ## 0.1.22 — 2026-05-05
 
 Drop the `KIT` audit category. It was a verbatim port of the legacy PowerShell kit's `claude-audit.ps1` that checked for a `~/.claude/scripts/.kit-version` marker file the legacy installer dropped. With the legacy kit retired (it lives under `legacy/` and is no longer the shipping product), the check became a permanent false positive: every fresh user saw "No .kit-version marker — kit may not be installed" and the **Resolver** button failed with "kit config not found at C:\\Users\\\\.claude\\scripts\\startup-kit-config.json" because `reinstall_kit` was hardcoded to drive the legacy installer.

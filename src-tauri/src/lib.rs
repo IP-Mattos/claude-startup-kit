@@ -3652,8 +3652,75 @@ async fn sync_disconnect() -> Result<(), String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+/// Prepend well-known user-scoped bin dirs to the process `PATH` so every
+/// `Command::new(<bare-name>)` downstream resolves correctly.
+///
+/// Why this exists: after a Tauri auto-update the new app instance can
+/// inherit a `PATH` that's missing per-user install dirs (`%LOCALAPPDATA%\
+/// engram\bin`, `%LOCALAPPDATA%\Programs\Microsoft VS Code\bin`, `~\go\bin`,
+/// `~\bin`, `%APPDATA%\npm`). Each shell-out — `engram`, `code.cmd`,
+/// `gentle-ai`, `gh`, `git`, `bash` — can then fail with "program not
+/// found" even though the same command works from a fresh terminal. We
+/// were patching this per-tool (`resolve_gentle_ai`, `resolve_managed_tool`)
+/// but new shell-outs kept regressing — sync's `engram` and audit/projects'
+/// `code.cmd` are the latest. One central fix here neutralizes the whole
+/// class.
+///
+/// Every dir is derived from environment variables (`LOCALAPPDATA`,
+/// `APPDATA`, `USERPROFILE`/`HOME`, `PROGRAMFILES`) — universal across
+/// machines. We only prepend dirs that exist AND aren't already in `PATH`,
+/// so this is a no-op on a fully-configured shell environment.
+fn augment_path_with_user_bin_dirs() {
+    let mut to_add: Vec<PathBuf> = Vec::new();
+
+    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+        let local = PathBuf::from(local);
+        // Per-tool installer destinations (gentle-ai, engram, …).
+        to_add.push(local.join("gentle-ai\\bin"));
+        to_add.push(local.join("engram\\bin"));
+        // VS Code default per-user install drops `code.cmd` here.
+        to_add.push(local.join("Programs\\Microsoft VS Code\\bin"));
+    }
+    if let Some(appdata) = std::env::var_os("APPDATA") {
+        // npm install -g target on Windows.
+        to_add.push(PathBuf::from(appdata).join("npm"));
+    }
+    if let Some(home) = dirs_home() {
+        to_add.push(home.join("go").join("bin"));
+        to_add.push(home.join("bin"));
+        to_add.push(home.join(".local").join("bin"));
+    }
+    if let Some(pf) = std::env::var_os("PROGRAMFILES") {
+        to_add.push(PathBuf::from(pf).join("Microsoft VS Code\\bin"));
+    }
+    if let Some(pfx86) = std::env::var_os("PROGRAMFILES(X86)") {
+        to_add.push(PathBuf::from(pfx86).join("Microsoft VS Code\\bin"));
+    }
+
+    let current_path = std::env::var_os("PATH").unwrap_or_default();
+    let existing: Vec<PathBuf> = std::env::split_paths(&current_path).collect();
+
+    let prepend: Vec<PathBuf> = to_add
+        .into_iter()
+        .filter(|p| p.is_dir() && !existing.iter().any(|e| e == p))
+        .collect();
+
+    if prepend.is_empty() {
+        return;
+    }
+
+    let combined: Vec<PathBuf> = prepend
+        .into_iter()
+        .chain(existing.into_iter())
+        .collect();
+    if let Ok(joined) = std::env::join_paths(combined) {
+        std::env::set_var("PATH", joined);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    augment_path_with_user_bin_dirs();
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
