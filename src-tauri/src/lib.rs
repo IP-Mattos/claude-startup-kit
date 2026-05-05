@@ -598,7 +598,6 @@ pub enum AuditAction {
     KillProcess { pid: u32 },
     DeleteFile { path: String },
     RestoreSettingsBackup,
-    ReinstallKit,
 }
 
 #[derive(Serialize, Clone)]
@@ -759,13 +758,6 @@ fn infer_action(category: &str, title: &str, detail: &str) -> Option<AuditAction
                 Some(AuditAction::OpenInVscode {
                     path: claude_path_string("logs/startup-kit.log"),
                 })
-            } else {
-                None
-            }
-        }
-        "KIT" => {
-            if title == "No .kit-version marker — kit may not be installed" {
-                Some(AuditAction::ReinstallKit)
             } else {
                 None
             }
@@ -1490,45 +1482,6 @@ fn audit_startup(out: &mut Vec<AuditFinding>) {
     }
 }
 
-/// 15. KIT — installed kit version marker.
-fn audit_kit(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
-    let marker = claude_dir.join("scripts").join(".kit-version");
-    if marker.exists() {
-        // Used to be `unwrap_or_default()` — on a permission/locked-file error
-        // that produced a misleading "Installed kit version: v" finding that
-        // looked successful. Surface the IO error so the user can act.
-        match fs::read_to_string(&marker) {
-            Ok(v) => {
-                push_finding(
-                    out,
-                    "INFO",
-                    "KIT",
-                    format!("Installed kit version: v{}", v.trim()),
-                    String::new(),
-                );
-            }
-            Err(e) => {
-                push_finding(
-                    out,
-                    "WARN",
-                    "KIT",
-                    format!("Could not read .kit-version marker: {e}"),
-                    String::new(),
-                );
-            }
-        }
-    } else {
-        // VERBATIM TITLE — `infer_action` keys off this exact string for ReinstallKit.
-        push_finding(
-            out,
-            "WARN",
-            "KIT",
-            "No .kit-version marker — kit may not be installed".to_string(),
-            String::new(),
-        );
-    }
-}
-
 fn run_audit_blocking() -> Result<Vec<AuditFinding>, String> {
     let claude_dir = dirs_home()
         .map(|h| h.join(".claude"))
@@ -1557,7 +1510,6 @@ fn run_audit_blocking() -> Result<Vec<AuditFinding>, String> {
     audit_drift(&mut out, &claude_dir, settings.as_ref());
     audit_env(&mut out);
     audit_startup(&mut out);
-    audit_kit(&mut out, &claude_dir);
 
     Ok(out)
 }
@@ -1649,66 +1601,6 @@ async fn restore_settings_backup() -> Result<String, String> {
     })
     .await
     .map_err(|e| format!("restore task join error: {e}"))?
-}
-
-#[tauri::command]
-async fn reinstall_kit() -> Result<(), String> {
-    tokio::task::spawn_blocking(|| -> Result<(), String> {
-        let home = dirs_home().ok_or_else(|| "home directory not resolvable".to_string())?;
-        let config_path = home
-            .join(".claude")
-            .join("scripts")
-            .join("startup-kit-config.json");
-        if !config_path.exists() {
-            return Err(format!(
-                "kit config not found at {}",
-                config_path.display()
-            ));
-        }
-        let text = fs::read_to_string(&config_path)
-            .map_err(|e| format!("read kit config: {e}"))?;
-        let json: serde_json::Value = serde_json::from_str(&text)
-            .map_err(|e| format!("parse kit config: {e}"))?;
-        let repo_path = json
-            .get("selfUpdate")
-            .and_then(|v| v.get("repoPath"))
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .trim()
-            .to_string();
-        if repo_path.is_empty() {
-            return Err("selfUpdate.repoPath missing or empty in kit config".to_string());
-        }
-        let installer = Path::new(&repo_path).join("install.ps1");
-        let output = silent_command("powershell")
-            .args([
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-File",
-                &installer.to_string_lossy(),
-            ])
-            .output()
-            .map_err(|e| format!("failed to spawn installer: {e}"))?;
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            let msg = if !stderr.trim().is_empty() {
-                stderr.into_owned()
-            } else if !stdout.trim().is_empty() {
-                stdout.into_owned()
-            } else {
-                format!(
-                    "installer exited with status {}",
-                    output.status.code().unwrap_or(-1)
-                )
-            };
-            return Err(msg.trim().to_string());
-        }
-        Ok(())
-    })
-    .await
-    .map_err(|e| format!("reinstall task join error: {e}"))?
 }
 
 // ---------- engram known-projects cache (5-minute TTL) ----------
@@ -3783,7 +3675,6 @@ pub fn run() {
             run_audit,
             kill_process,
             restore_settings_backup,
-            reinstall_kit,
             github_review_queue,
             cleanup_plan,
             cleanup_apply,

@@ -23,8 +23,7 @@ export type AuditAction =
   | { kind: "open_in_vscode"; path: string }
   | { kind: "kill_process"; pid: number }
   | { kind: "delete_file"; path: string }
-  | { kind: "restore_settings_backup" }
-  | { kind: "reinstall_kit" };
+  | { kind: "restore_settings_backup" };
 
 export type AuditFinding = {
   level: "OK" | "INFO" | "WARN" | "CRIT";

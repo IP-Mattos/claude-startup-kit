@@ -36,7 +36,6 @@ type PendingConfirm = {
     | { kind: "kill_process" }
     | { kind: "delete_file" }
     | { kind: "restore_settings_backup" }
-    | { kind: "reinstall_kit" }
   >;
 };
 
@@ -154,10 +153,6 @@ export function AuditView({ onJump }: AuditViewProps) {
           await invoke("restore_settings_backup");
           setRefreshNonce((n) => n + 1);
           break;
-        case "reinstall_kit":
-          await invoke("reinstall_kit");
-          setRefreshNonce((n) => n + 1);
-          break;
       }
       // Mark this row as just-completed for ~2.5s so the user gets visible
       // feedback. Cancel any pending timer first — without this, a previous
@@ -188,7 +183,6 @@ export function AuditView({ onJump }: AuditViewProps) {
       case "kill_process":
       case "delete_file":
       case "restore_settings_backup":
-      case "reinstall_kit":
         setConfirm({ finding, action });
         break;
       default:
@@ -214,11 +208,6 @@ export function AuditView({ onJump }: AuditViewProps) {
         return {
           title: t("audit.confirm_restore_title"),
           message: t("audit.confirm_restore_message"),
-        };
-      case "reinstall_kit":
-        return {
-          title: t("audit.confirm_reinstall_title"),
-          message: t("audit.confirm_reinstall_message"),
         };
     }
   }
