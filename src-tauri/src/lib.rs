@@ -2,7 +2,7 @@ use chrono::{DateTime, Local, Utc};
 use once_cell::sync::Lazy;
 use serde::Serialize;
 use std::fs::{self, File};
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
@@ -1200,17 +1200,25 @@ fn audit_logs(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
     }
 }
 
-/// Read the last `n` lines of a file. Cheap-and-cheerful (read whole file, take
-/// tail) — the audit only inspects 200 lines so a multi-pass seek isn't worth it.
+/// Read the last `n` lines of a file. Caps total read at the last 256 KiB so a
+/// multi-GB log never gets fully loaded into memory — the audit only inspects
+/// 200 lines, and 256 KiB comfortably covers that even with very long lines.
 fn read_last_n_lines(path: &Path, n: usize) -> std::io::Result<Vec<String>> {
-    let f = File::open(path)?;
-    let reader = BufReader::new(f);
-    let mut all: Vec<String> = Vec::new();
-    for line in reader.lines() {
-        all.push(line?);
+    const TAIL_CAP: u64 = 256 * 1024;
+    let mut f = File::open(path)?;
+    let len = f.metadata()?.len();
+    let read_from = len.saturating_sub(TAIL_CAP);
+    f.seek(SeekFrom::Start(read_from))?;
+    let mut buf = Vec::with_capacity(TAIL_CAP as usize);
+    f.take(TAIL_CAP).read_to_end(&mut buf)?;
+    // Drop a possibly-truncated leading partial line when we didn't start at byte 0.
+    let text = String::from_utf8_lossy(&buf);
+    let mut lines: Vec<String> = text.lines().map(|s| s.to_string()).collect();
+    if read_from > 0 && !lines.is_empty() {
+        lines.remove(0);
     }
-    let start = all.len().saturating_sub(n);
-    Ok(all[start..].to_vec())
+    let start = lines.len().saturating_sub(n);
+    Ok(lines[start..].to_vec())
 }
 
 /// Recursively sum file sizes under `path`. Returns 0 on missing/error.
@@ -1257,7 +1265,44 @@ fn walk_files(root: &Path, mut on_file: impl FnMut(&Path, u64)) {
 /// 7. DISK — total + breakdown of ~/.claude. Also 12. BIG JSONLs.
 fn audit_disk(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
     let mb = |b: u64| -> f64 { (b as f64) / (1024.0 * 1024.0) };
-    let total = dir_size_bytes(claude_dir);
+
+    // Single recursive walk of ~/.claude that accumulates the total, the
+    // per-bucket breakdown (projects/, logs/, backups/), and the list of
+    // big-JSONL findings in one pass. The previous version walked the tree
+    // 5 times (once for total, once per bucket, once for big-JSONLs) — on a
+    // multi-GB tree that's O(5N) syscalls per audit run.
+    let projects_root = claude_dir.join("projects");
+    let logs_root = claude_dir.join("logs");
+    let backups_root = claude_dir.join("backups");
+
+    let mut total: u64 = 0;
+    let mut projects_bytes: u64 = 0;
+    let mut logs_bytes: u64 = 0;
+    let mut backups_bytes: u64 = 0;
+    let mut big_jsonls: Vec<(PathBuf, u64)> = Vec::new();
+
+    if claude_dir.exists() {
+        walk_files(claude_dir, |path, size| {
+            total = total.saturating_add(size);
+            if path.starts_with(&projects_root) {
+                projects_bytes = projects_bytes.saturating_add(size);
+                if size > 100 * 1024 * 1024
+                    && path
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .map(|e| e.eq_ignore_ascii_case("jsonl"))
+                        .unwrap_or(false)
+                {
+                    big_jsonls.push((path.to_path_buf(), size));
+                }
+            } else if path.starts_with(&logs_root) {
+                logs_bytes = logs_bytes.saturating_add(size);
+            } else if path.starts_with(&backups_root) {
+                backups_bytes = backups_bytes.saturating_add(size);
+            }
+        });
+    }
+
     push_finding(
         out,
         "INFO",
@@ -1265,7 +1310,6 @@ fn audit_disk(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
         format!("~/.claude total: {:.1} MB", mb(total)),
         String::new(),
     );
-    let projects_bytes = dir_size_bytes(&claude_dir.join("projects"));
     push_finding(
         out,
         "INFO",
@@ -1273,7 +1317,6 @@ fn audit_disk(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
         format!("  projects/ : {:.1} MB (Claude Code session logs)", mb(projects_bytes)),
         String::new(),
     );
-    let logs_bytes = dir_size_bytes(&claude_dir.join("logs"));
     push_finding(
         out,
         "INFO",
@@ -1281,7 +1324,6 @@ fn audit_disk(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
         format!("  logs/     : {:.1} MB", mb(logs_bytes)),
         String::new(),
     );
-    let backups_bytes = dir_size_bytes(&claude_dir.join("backups"));
     if backups_bytes > 0 {
         push_finding(
             out,
@@ -1303,31 +1345,24 @@ fn audit_disk(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
     }
 
     // Block 12 — large JSONLs under projects/ (>100 MB).
-    let projects = claude_dir.join("projects");
-    if projects.exists() {
-        walk_files(&projects, |path, size| {
-            if size > 100 * 1024 * 1024
-                && path
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .map(|e| e.eq_ignore_ascii_case("jsonl"))
-                    .unwrap_or(false)
-            {
-                let name = path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or("(unknown)");
-                let size_mb = (size as f64) / (1024.0 * 1024.0);
-                // VERBATIM TITLE PREFIX — `infer_action` keys off "Large JSONL:".
-                push_finding(
-                    out,
-                    "WARN",
-                    "DISK",
-                    format!("Large JSONL: {name} ({:.1} MB)", size_mb),
-                    "Consider running cleanup.ps1".to_string(),
-                );
-            }
-        });
+    for (path, size) in big_jsonls {
+        let name = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("(unknown)")
+            .to_string();
+        let size_mb = (size as f64) / (1024.0 * 1024.0);
+        // VERBATIM TITLE PREFIX — `infer_action` keys off "Large JSONL:".
+        // Include the full path in the detail so `extract_windows_path` can
+        // route the action to OpenInExplorer instead of falling back to
+        // NavigateTo cleanup.
+        push_finding(
+            out,
+            "WARN",
+            "DISK",
+            format!("Large JSONL: {name} ({:.1} MB)", size_mb),
+            format!("{} — consider running cleanup.ps1", path.display()),
+        );
     }
 }
 
@@ -1879,14 +1914,29 @@ async fn enrich_projects(
         .await
         .unwrap_or_default();
 
-    // Fan out: each path runs git+engram in parallel inside spawn_blocking.
+    // Cap concurrency so a workspace with 50+ projects doesn't race the Tokio
+    // blocking pool — each task fires git + engram subprocesses, so unbounded
+    // fan-out starves every other spawn_blocking caller in the app.
+    use std::sync::Arc;
+    use tokio::sync::Semaphore;
+    let sem = Arc::new(Semaphore::new(8));
+
+    // Fan out: each path runs git+engram in parallel inside spawn_blocking,
+    // gated by the semaphore.
     let mut handles = Vec::with_capacity(paths.len());
     for path in paths {
         let known_clone = known.clone();
-        handles.push(tokio::task::spawn_blocking(move || {
-            let git = git_last_commit_blocking(&path);
-            let goal = engram_project_goal_blocking(&path, &known_clone);
-            EnrichedProject { path, git, goal }
+        let sem_clone = sem.clone();
+        handles.push(tokio::spawn(async move {
+            // Permit lives until the spawn_blocking finishes — drop releases it.
+            let _permit = sem_clone.acquire_owned().await.ok()?;
+            tokio::task::spawn_blocking(move || {
+                let git = git_last_commit_blocking(&path);
+                let goal = engram_project_goal_blocking(&path, &known_clone);
+                EnrichedProject { path, git, goal }
+            })
+            .await
+            .ok()
         }));
     }
 
@@ -1898,7 +1948,7 @@ async fn enrich_projects(
     let mut out: std::collections::HashMap<String, EnrichedProject> =
         std::collections::HashMap::with_capacity(handles.len());
     for h in handles {
-        if let Ok(item) = h.await {
+        if let Ok(Some(item)) = h.await {
             out.insert(item.path.clone(), item);
         }
     }
@@ -2073,6 +2123,43 @@ fn parse_skill_frontmatter(text: &str) -> (String, String) {
     (name, description)
 }
 
+// 5-minute TTL cache mirroring KNOWN_PROJECTS_CACHE. WorkspaceCard mounts
+// trigger this on every navigation and the underlying scan can chew through
+// up to 400 MiB of substring matching — caching the keyed result avoids
+// re-paying that cost while the user navigates within a session.
+struct SkillUsageCache {
+    key: Vec<String>,
+    value: std::collections::HashMap<String, u32>,
+    fetched_at: Instant,
+}
+
+static SKILL_USAGE_CACHE: Lazy<Mutex<Option<SkillUsageCache>>> = Lazy::new(|| Mutex::new(None));
+
+const SKILL_USAGE_TTL: Duration = Duration::from_secs(5 * 60);
+
+fn count_skill_usage_cached(skill_names: &[String]) -> std::collections::HashMap<String, u32> {
+    // Cache key is the sorted skill name list — same set of skills should hit
+    // even if call sites pass them in a different order.
+    let mut key = skill_names.to_vec();
+    key.sort();
+    {
+        let guard = SKILL_USAGE_CACHE.lock().unwrap();
+        if let Some(entry) = guard.as_ref() {
+            if entry.key == key && entry.fetched_at.elapsed() < SKILL_USAGE_TTL {
+                return entry.value.clone();
+            }
+        }
+    }
+    let fresh = count_skill_usage(skill_names);
+    let mut guard = SKILL_USAGE_CACHE.lock().unwrap();
+    *guard = Some(SkillUsageCache {
+        key,
+        value: fresh.clone(),
+        fetched_at: Instant::now(),
+    });
+    fresh
+}
+
 // Counts how many times each skill name appears across recent JSONL logs.
 //
 // Heavy users (hundreds of MB of conversation history) made the naive
@@ -2198,7 +2285,7 @@ async fn list_claude_skills() -> Result<Vec<ClaudeSkill>, String> {
 async fn count_claude_skill_usage(
     names: Vec<String>,
 ) -> Result<std::collections::HashMap<String, u32>, String> {
-    tokio::task::spawn_blocking(move || count_skill_usage(&names))
+    tokio::task::spawn_blocking(move || count_skill_usage_cached(&names))
         .await
         .map_err(|e| format!("task join: {e}"))
 }
@@ -2343,6 +2430,9 @@ async fn toggle_mcp_server(name: String, source: String, enabled: bool) -> Resul
 
 const APP_RELEASES_REPO: &str = "IP-Mattos/claude-startup-kit";
 const GENTLE_AI_RELEASES_REPO: &str = "Gentleman-Programming/gentle-ai";
+// TODO(security): pin install.ps1 to a commit SHA — see engram #875 WARN-tier item 6.
+// Today this fetches HEAD of `main`, so an upstream compromise (or a forced
+// branch reset) lands directly in `irm <url> | iex` on the user's box.
 const GENTLE_AI_INSTALLER_URL: &str =
     "https://raw.githubusercontent.com/Gentleman-Programming/gentle-ai/main/scripts/install.ps1";
 
@@ -2579,6 +2669,19 @@ pub struct WorkspaceSummary {
     pub skills_used: u32,
 }
 
+// 5-minute TTL cache. Mirrors KNOWN_PROJECTS_CACHE — every WorkspaceCard mount
+// hits engram + scans up to 200 JSONLs for skill counts (3-5s wall time) so
+// caching the assembled summary keeps repeated navigations cheap.
+struct WorkspaceSummaryCache {
+    value: WorkspaceSummary,
+    fetched_at: Instant,
+}
+
+static WORKSPACE_SUMMARY_CACHE: Lazy<Mutex<Option<WorkspaceSummaryCache>>> =
+    Lazy::new(|| Mutex::new(None));
+
+const WORKSPACE_SUMMARY_TTL: Duration = Duration::from_secs(5 * 60);
+
 // `engram stats` prints lines like:
 //   Engram Memory Stats
 //     Sessions:     20
@@ -2604,7 +2707,15 @@ fn read_engram_stats() -> (Option<u32>, Option<u32>) {
 
 #[tauri::command]
 async fn workspace_summary() -> Result<WorkspaceSummary, String> {
-    tokio::task::spawn_blocking(|| -> Result<WorkspaceSummary, String> {
+    {
+        let guard = WORKSPACE_SUMMARY_CACHE.lock().unwrap();
+        if let Some(entry) = guard.as_ref() {
+            if entry.fetched_at.elapsed() < WORKSPACE_SUMMARY_TTL {
+                return Ok(entry.value.clone());
+            }
+        }
+    }
+    let summary = tokio::task::spawn_blocking(|| -> Result<WorkspaceSummary, String> {
         let app_version = env!("CARGO_PKG_VERSION").to_string();
         let gentle_ai_version = {
             let v = read_gentle_ai_version();
@@ -2642,7 +2753,7 @@ async fn workspace_summary() -> Result<WorkspaceSummary, String> {
                 }
             }
         }
-        let counts = count_skill_usage(&skill_names);
+        let counts = count_skill_usage_cached(&skill_names);
         let skills_used = counts.values().filter(|&&v| v > 0).count() as u32;
 
         Ok(WorkspaceSummary {
@@ -2655,7 +2766,13 @@ async fn workspace_summary() -> Result<WorkspaceSummary, String> {
         })
     })
     .await
-    .map_err(|e| format!("task join: {e}"))?
+    .map_err(|e| format!("task join: {e}"))??;
+    let mut guard = WORKSPACE_SUMMARY_CACHE.lock().unwrap();
+    *guard = Some(WorkspaceSummaryCache {
+        value: summary.clone(),
+        fetched_at: Instant::now(),
+    });
+    Ok(summary)
 }
 
 #[tauri::command]
@@ -3108,16 +3225,24 @@ async fn sync_setup(repo_name: String) -> Result<SyncState, String> {
         if owner.is_empty() {
             return Err("gh returned an empty user".to_string());
         }
-        let bare_name = repo_name.trim().trim_matches('/');
+        let bare_name = repo_name.trim();
         if bare_name.is_empty() {
             return Err("repository name cannot be empty".to_string());
         }
-        // Allow either "name" or "user/name". Normalize to user/name.
-        let full_name = if bare_name.contains('/') {
-            bare_name.to_string()
-        } else {
-            format!("{owner}/{bare_name}")
-        };
+        // Reject any owner-prefixed input (`org/name`) or flag-shaped input
+        // (`-foo`). Without this guard a renderer-typed `org/name` overrides
+        // the resolved gh user — confused-deputy with the user's stored PAT,
+        // and a leading `-` could be parsed as a `gh repo create` flag.
+        // Same shape as `clone_project`'s name validation.
+        if bare_name.contains('/')
+            || bare_name.contains('\\')
+            || bare_name.starts_with('-')
+        {
+            return Err(format!(
+                "rejected unsafe repo name '{bare_name}' — must be a plain repo name (no owner prefix, no leading dash)"
+            ));
+        }
+        let full_name = format!("{owner}/{bare_name}");
 
         let repo_dir = sync_repo_dir().ok_or("home dir unavailable")?;
         if repo_dir.exists() {
