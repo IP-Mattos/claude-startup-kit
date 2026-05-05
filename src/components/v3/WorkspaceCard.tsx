@@ -14,15 +14,31 @@ export function WorkspaceCard() {
   useEffect(() => {
     if (!IS_TAURI) return;
     let cancelled = false;
-    invoke<WorkspaceSummary>("workspace_summary")
-      .then((s) => {
-        if (!cancelled) setSummary(s);
-      })
-      .catch(() => {
-        /* card stays in skeleton state — non-fatal */
-      });
+    let inFlight = false;
+    const fetchSummary = () => {
+      if (inFlight) return;
+      inFlight = true;
+      invoke<WorkspaceSummary>("workspace_summary")
+        .then((s) => {
+          if (!cancelled) setSummary(s);
+        })
+        .catch(() => {
+          /* card stays in skeleton state — non-fatal */
+        })
+        .finally(() => {
+          inFlight = false;
+        });
+    };
+    fetchSummary();
+    // Mutating IPCs (gentle-ai update, stack upgrade, MCP toggle, settings
+    // restore) bust the backend cache AND dispatch this event so the card
+    // re-fetches immediately instead of waiting for the next mount/remount
+    // (which can be never).
+    const onInvalidate = () => fetchSummary();
+    window.addEventListener("csk:workspace-invalidate", onInvalidate);
     return () => {
       cancelled = true;
+      window.removeEventListener("csk:workspace-invalidate", onInvalidate);
     };
   }, []);
 

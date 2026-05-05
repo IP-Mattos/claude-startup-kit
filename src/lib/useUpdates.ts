@@ -203,6 +203,10 @@ export function useUpdates(): UpdatesState {
       const newVersion = await invoke<string>("apply_gentle_ai_update");
       // Re-check both channels after a successful upgrade.
       await runChecks(true);
+      // Tell the WorkspaceCard to re-fetch — backend cache was already
+      // busted by the IPC, but the card's mount-time effect needs a kick
+      // to actually re-call workspace_summary.
+      window.dispatchEvent(new Event("csk:workspace-invalidate"));
       return newVersion;
     } catch (e) {
       setGentleAiError(String(e));
