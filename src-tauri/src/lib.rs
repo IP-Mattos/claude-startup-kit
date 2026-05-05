@@ -2648,55 +2648,102 @@ fn extract_semver(text: &str) -> Option<String> {
     None
 }
 
+/// File extensions a managed tool can present on Windows. `.exe` is native;
+/// `.cmd` / `.bat` are typical npm-global wrappers; `.ps1` is what
+/// gentle-ai's installer drops next to bash scripts so PowerShell can drive
+/// them through Git Bash. Order matters — first match wins, prefer native.
+const MANAGED_TOOL_EXTENSIONS: &[&str] = &["exe", "cmd", "bat", "ps1"];
+
 /// Locate a managed CLI tool (engram, gga, …) the same way `resolve_gentle_ai`
 /// locates gentle-ai itself: PATH first, then well-known install dirs the
 /// upstream installers drop binaries into.
 ///
+/// Returns the absolute path so `read_managed_tool_version` can pick the
+/// right invocation strategy (cmd /c for .cmd/.bat, powershell for .ps1).
+///
 /// Why this exists: gentle-ai's `update` table is the source of truth for
 /// versions, but its detector occasionally lies about installation state on
-/// Windows — for example reporting `engram` as `[--]` (not installed) even
-/// when the binary is reachable from a fresh terminal. We use this resolver
-/// in `check_stack_update` to override that false negative locally.
+/// Windows — for example reporting `engram` as `[--]` or `gga` as `[--]`
+/// even when both are reachable from a fresh terminal. We use this resolver
+/// in `check_stack_update` to override the false negative locally.
 fn resolve_managed_tool(name: &str) -> Option<String> {
-    let exe = format!("{name}.exe");
+    let try_dir = |dir: &Path| -> Option<PathBuf> {
+        for ext in MANAGED_TOOL_EXTENSIONS {
+            let candidate = dir.join(format!("{name}.{ext}"));
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+        None
+    };
+
     if let Some(path_var) = std::env::var_os("PATH") {
         for dir in std::env::split_paths(&path_var) {
-            for candidate in [exe.as_str(), name] {
-                if dir.join(candidate).is_file() {
-                    return Some(name.to_string());
-                }
+            if let Some(found) = try_dir(&dir) {
+                return Some(found.to_string_lossy().into_owned());
             }
         }
     }
-    let mut candidates: Vec<PathBuf> = Vec::new();
+
+    let mut dirs: Vec<PathBuf> = Vec::new();
     if let Some(local) = std::env::var_os("LOCALAPPDATA") {
-        candidates.push(PathBuf::from(&local).join(format!("{name}\\bin\\{exe}")));
+        dirs.push(PathBuf::from(&local).join(name).join("bin"));
+    }
+    if let Some(appdata) = std::env::var_os("APPDATA") {
+        // npm install -g target on Windows.
+        dirs.push(PathBuf::from(&appdata).join("npm"));
     }
     if let Some(home) = dirs_home() {
-        candidates.push(home.join(".local").join("bin").join(&exe));
-        candidates.push(home.join("go").join("bin").join(&exe));
-        candidates.push(home.join("bin").join(&exe));
-        candidates.push(
+        dirs.push(home.join(".local").join("bin"));
+        dirs.push(home.join("go").join("bin"));
+        // Where gentle-ai's installer drops gga.ps1 + the bash script.
+        dirs.push(home.join("bin"));
+        dirs.push(
             home.join("AppData")
                 .join("Local")
                 .join(name)
-                .join("bin")
-                .join(&exe),
+                .join("bin"),
         );
     }
-    candidates
-        .into_iter()
-        .find(|p| p.is_file())
-        .map(|p| p.to_string_lossy().into_owned())
+
+    for dir in dirs {
+        if let Some(found) = try_dir(&dir) {
+            return Some(found.to_string_lossy().into_owned());
+        }
+    }
+    None
 }
 
-/// Best-effort version probe: try `<program> --version` first, then `<program>
-/// version`. Returns `None` if neither succeeds or no semver-shaped triplet is
-/// in the output. Used to confirm a tool is *actually* installed when
-/// gentle-ai's detector reports otherwise.
+/// Best-effort version probe. Picks the right invocation strategy from the
+/// resolved file extension:
+///   .cmd / .bat → `cmd /c <path> <arg>`        (Windows shell needed)
+///   .ps1        → `powershell -NoProfile -Command "& '<path>' <arg>"`
+///   else        → `<path> <arg>`               (native exe)
+///
+/// Tries `--version` first, then `version`. Scans stdout then stderr for the
+/// first semver-shaped triplet. Used to confirm a tool is *actually*
+/// installed when gentle-ai's detector reports otherwise.
 fn read_managed_tool_version(program: &str) -> Option<String> {
+    let lower = program.to_lowercase();
+    let is_shell_wrapper = lower.ends_with(".cmd") || lower.ends_with(".bat");
+    let is_powershell_wrapper = lower.ends_with(".ps1");
+
     for arg in ["--version", "version"] {
-        if let Ok(out) = silent_command(program).arg(arg).output() {
+        let result = if is_shell_wrapper {
+            silent_command("cmd").args(["/c", program, arg]).output()
+        } else if is_powershell_wrapper {
+            // Single-quote the path for PowerShell — escape embedded
+            // quotes by doubling per PS string literal rules.
+            let escaped = program.replace('\'', "''");
+            let line = format!("& '{escaped}' {arg}");
+            silent_command("powershell")
+                .args(["-NoProfile", "-NonInteractive", "-Command", &line])
+                .output()
+        } else {
+            silent_command(program).arg(arg).output()
+        };
+
+        if let Ok(out) = result {
             if out.status.success() {
                 let text = String::from_utf8_lossy(&out.stdout);
                 if let Some(v) = extract_semver(&text) {
@@ -3140,19 +3187,30 @@ async fn apply_stack_update() -> Result<String, String> {
 /// no `gentle-ai install <name>` for non-interactive use, and we won't
 /// hardcode per-tool installer URLs (fragile when upstream moves them).
 ///
-/// We spawn-and-detach via `cmd /c start "" cmd /k <gentle-ai> install`:
-/// `start` detaches so CSK keeps running, and `/k` keeps the window open
-/// after the wizard exits so the user can read the final summary. Failures
-/// here are best-effort — if the spawn itself fails we surface the error;
-/// if the wizard exits non-zero the window stays open so the user sees
-/// what happened.
+/// Spawn shape: `cmd /c <gentle-ai> install & timeout /t 8 /nobreak` with
+/// `CREATE_NEW_CONSOLE`. The wizard runs in the new console; after it
+/// exits, `timeout` shows a visible 8-second countdown so the user reads
+/// the final summary; then the window auto-closes. `/nobreak` ignores
+/// Ctrl-C so the countdown can't be skipped accidentally.
+///
+/// Args are passed individually (not via a quoted shell line) so Rust's
+/// command-line escaping handles spaces in the gentle-ai path correctly
+/// without us hand-rolling cmd.exe's quoting rules.
 #[tauri::command]
 fn open_stack_install_wizard() -> Result<(), String> {
     let program = resolve_gentle_ai()
         .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
-    silent_command("cmd")
-        .args(["/c", "start", "", "cmd", "/k", &program, "install"])
-        .spawn()
+    let mut cmd = std::process::Command::new("cmd");
+    cmd.args([
+        "/c", &program, "install", "&", "timeout", "/t", "8", "/nobreak",
+    ]);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
+        cmd.creation_flags(CREATE_NEW_CONSOLE);
+    }
+    cmd.spawn()
         .map_err(|e| format!("spawn install wizard: {e}"))?;
     Ok(())
 }
