@@ -175,7 +175,11 @@ export function SettingsView() {
             </div>
           ) : (
             stack.tools.map((tool) => (
-              <StackToolRow key={tool.name} tool={tool} />
+              <StackToolRow
+                key={tool.name}
+                tool={tool}
+                onInstall={stack.openInstallWizard}
+              />
             ))
           )}
           {stack.error && (
@@ -364,7 +368,17 @@ function UpdateRow({
 // stack) feel like one continuous list. We deliberately don't surface a
 // per-row "Update" button here — `gentle-ai upgrade` is all-or-nothing
 // upstream; the global "Actualizar todo" button does the work.
-function StackToolRow({ tool }: { tool: StackToolStatus }) {
+//
+// `onInstall` is wired only on `not_installed` rows. It opens gentle-ai's
+// interactive install wizard in a new terminal — same wizard regardless
+// of which row was clicked, since upstream doesn't expose per-tool install.
+function StackToolRow({
+  tool,
+  onInstall,
+}: {
+  tool: StackToolStatus;
+  onInstall: () => Promise<void>;
+}) {
   const { t } = useT();
   if (tool.state === "not_installed") {
     return (
@@ -373,6 +387,16 @@ function StackToolRow({ tool }: { tool: StackToolStatus }) {
         <div className="v3-update-row-status v3-update-row-status-dim">
           {t("settings.stack_state_not_installed", { latest: tool.latest })}
         </div>
+        <button
+          type="button"
+          className="v3-update-row-action"
+          onClick={() => {
+            void onInstall();
+          }}
+          title={t("settings.stack_install_title")}
+        >
+          {t("settings.stack_install")}
+        </button>
       </div>
     );
   }

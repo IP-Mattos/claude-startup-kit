@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.20 — 2026-05-05
+
+Per-row "Instalar" button on the Stack tools card. Closes the missing-affordance gap when gentle-ai reports a managed tool as not installed — before this you could see "No instalada" but had no way to act on it from the app.
+
+### Added
+- **`open_stack_install_wizard` IPC** — spawns `gentle-ai install` (the upstream interactive wizard) in a new visible console window via `cmd /c start "" cmd /k`. Fire-and-forget so CSK stays responsive; `/k` keeps the window open after the wizard exits so the user reads the final summary. There's no `gentle-ai install <name>` upstream — the wizard configures the whole catalog at once, so every per-row "Instalar" button opens the same flow.
+- **`StackToolRow` per-row "Instalar" button** on `not_installed` rows. Visually mirrors the existing per-row "Update now" affordance (`v3-update-row-action` class). Tooltip explains it opens gentle-ai's wizard.
+- **`useStackUpdates.openInstallWizard`** — invokes the IPC, surfaces failures via the existing `error` field.
+
+### Why not per-tool installer URLs
+Hardcoding `irm <url> | iex` per tool is brittle — if Gentleman-Programming moves an installer, CSK starts lying. Delegating to the upstream wizard keeps the source of truth where it belongs.
+
 ## 0.1.19 — 2026-05-05
 
 Detection-override for the Stack tools card. gentle-ai's `update` table is the source of truth for *versions*, but its detector occasionally reports a tool as `[--]` (not installed) when the binary is reachable on the user's machine — engram and gga have both hit this. Without a fix, the UI claims "No instalada" right next to a working `engram --version`.

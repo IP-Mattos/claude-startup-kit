@@ -3134,6 +3134,29 @@ async fn apply_stack_update() -> Result<String, String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+/// Open gentle-ai's interactive install wizard in a NEW visible console
+/// window. The wizard is the only path upstream offers to install managed
+/// tools that aren't on the machine yet (engram, gga, opencode-*) — there's
+/// no `gentle-ai install <name>` for non-interactive use, and we won't
+/// hardcode per-tool installer URLs (fragile when upstream moves them).
+///
+/// We spawn-and-detach via `cmd /c start "" cmd /k <gentle-ai> install`:
+/// `start` detaches so CSK keeps running, and `/k` keeps the window open
+/// after the wizard exits so the user can read the final summary. Failures
+/// here are best-effort — if the spawn itself fails we surface the error;
+/// if the wizard exits non-zero the window stays open so the user sees
+/// what happened.
+#[tauri::command]
+fn open_stack_install_wizard() -> Result<(), String> {
+    let program = resolve_gentle_ai()
+        .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
+    silent_command("cmd")
+        .args(["/c", "start", "", "cmd", "/k", &program, "install"])
+        .spawn()
+        .map_err(|e| format!("spawn install wizard: {e}"))?;
+    Ok(())
+}
+
 // ─── Workspace sync (Engram-only over a private GitHub repo) ─────────────
 //
 // Sync only the engram export — not Claude Code's raw JSONL transcripts.
@@ -3715,6 +3738,7 @@ pub fn run() {
             apply_gentle_ai_update,
             check_stack_update,
             apply_stack_update,
+            open_stack_install_wizard,
             workspace_summary,
             sync_status,
             sync_setup,
