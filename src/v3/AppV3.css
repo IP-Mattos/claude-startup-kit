@@ -813,6 +813,10 @@ body.v3-layout #root {
 .v3-update-row-label {
   font-weight: 600;
   color: var(--v3-text);
+  /* Allow the label to shrink so Spanish copy doesn't push the v{x.y.z} status
+     out of the row. Pairs with `.v3-update-row-status { max-width: 70% }`. */
+  min-width: 0;
+  flex: 0 1 auto;
 }
 .v3-update-row-status {
   font-size: 13px;
@@ -1228,7 +1232,12 @@ body.v3-layout #root {
   color: var(--v3-link, var(--v3-accent));
   font-size: 13px;
   font-weight: 500;
-  padding: 0;
+  /* Used as a primary action ("Ver todos", "Buscar ahora") so the click target
+     must clear WCAG 2.5.5 (>= 24px). Padding + min-height bring it to 32px. */
+  padding: 6px 4px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
 }
 .v3-link:hover {
   text-decoration: underline;
@@ -1296,7 +1305,9 @@ body.v3-layout #root {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.v3-recent-ago { color: var(--v3-text-4); }
+/* --v3-text-4 (#9CA3AF) on light surface = 2.85:1, fails WCAG AA. --v3-text-3
+   (#6B7280) is 4.83:1 and clears AA for small text. */
+.v3-recent-ago { color: var(--v3-text-3); }
 .v3-pct-pill {
   margin-left: auto;
   padding: 2px 8px;
@@ -2124,9 +2135,11 @@ body.v3-layout #root {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px;
+  /* Primary destructive action (Kill / Delete / Restore). Bumped from 5/10 +
+     11.5px to clear WCAG 2.5.5's 24-32px target floor. */
+  padding: 7px 12px;
   border-radius: var(--v3-radius-sm);
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 600;
   background: var(--v3-accent);
   color: #FFFFFF;
@@ -2352,8 +2365,9 @@ body.v3-layout #root {
   font-size: 12px;
 }
 .v3-btn-icon {
-  width: 28px;
-  height: 28px;
+  /* 32x32 minimum to satisfy WCAG 2.5.5 target size for icon-only buttons. */
+  width: 32px;
+  height: 32px;
   padding: 0;
   display: inline-flex;
   align-items: center;

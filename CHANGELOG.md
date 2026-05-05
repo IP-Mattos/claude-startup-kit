@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.1.17 — 2026-05-05
+
+WARN-tier follow-up to the v0.1.16 audit-pass. Performance, security, and accessibility wins; INFO-tier cleanup lands in v0.1.18.
+
+### Performance
+- **`audit_disk` does ONE recursive walk** of `~/.claude` instead of 5. Previously it recursed once for total size, then again for `projects/`, `logs/`, `backups/`, then a fifth time for big-JSONL detection. Single pass now accumulates total + per-bucket totals + collects large JSONLs in one shot. On a multi-GB tree that's roughly ⅕ the syscall cost per audit run.
+- **`workspace_summary` cached for 5 minutes** (mirroring the existing `KNOWN_PROJECTS_CACHE` pattern). The right-panel WorkspaceCard used to fire `engram` + a 200-JSONL scan on every mount (3-5 s wall time). The IPC now early-returns from cache.
+- **`count_skill_usage` cached for 5 minutes.** Used by the WorkspaceCard's "skills used" stat. Was rescanning ~400 MiB of JSONL substrings every mount with no cache.
+- **`enrich_projects` semaphore-capped at 8 concurrent workers** via `tokio::sync::Semaphore`. With 50+ projects, the unbounded fan-out raced the Tokio blocking pool and queued behind a single-threaded engram CLI.
+- **`read_last_n_lines` reads from EOF, capped at 256 KiB.** `audit_logs` was loading the whole `startup-kit.log` into a Vec on every audit run. Now it seeks from the end in 8 KiB chunks until it has N newlines or hits the cap.
+
+### Security
+- **`sync_setup` rejects `repo_name` with `/`, `\`, or leading `-`** — same shape as the v0.1.16 `clone_project` validation. Closes a confused-deputy with the user's `gh` PAT (a renderer-supplied `org/name` would have overridden the resolved gh user).
+- **TODO marker added on `GENTLE_AI_INSTALLER_URL`** — the `irm install.ps1 | iex` flow targets `main` branch unsigned. Pinning to a commit SHA needs upstream coordination; flagged inline so we don't lose it.
+
+### Audit
+- **"Large JSONL" findings now include the full path in detail** so `infer_action`'s `extract_windows_path` resolves to `OpenInExplorer`. Previously the title only had the filename so the explorer-open arm was dead code (fell through to `NavigateTo cleanup`).
+
+### Accessibility
+- **Click-target sizes ≥ 32 px** on `.v3-link`, `.v3-finding-resolve`, and `.v3-btn-icon`. WCAG 2.5.5 / 2.5.8. The link variant ("Buscar ahora", "Ver todos") is used as a button across Settings / Overview / Sync / Claude tabs.
+- **`.v3-recent-ago` contrast fix** — was `--v3-text-4` (`#9CA3AF`) on white, 2.85:1, failing WCAG AA. Now `--v3-text-3` (`#6B7280`, 4.83:1).
+- **`.v3-update-row-label` no longer overflows** when paired with long Spanish status strings on the right side. Added `min-width: 0; flex: 0 1 auto;`.
+
+### Out of scope (v0.1.18)
+- AppV3 + view double-fetch refactor (lift to context) — needs a careful pass to avoid regressions.
+- CSP hardening (`'unsafe-inline'` removal with nonce/hash) — needs Tauri 2 spec verification first.
+
 ## 0.1.16 — 2026-05-05
 
 Audit pass — six critical findings from the 5-agent parallel sweep are fixed in this release. WARN-tier and INFO-tier items land in v0.1.17 / v0.1.18.
