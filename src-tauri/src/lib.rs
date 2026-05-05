@@ -2632,15 +2632,84 @@ fn read_gentle_ai_version() -> String {
         Ok(o) if o.status.success() => o.stdout,
         _ => return String::new(),
     };
-    let text = String::from_utf8_lossy(&bytes);
-    // First semver-shaped triplet wins.
+    extract_semver(&String::from_utf8_lossy(&bytes)).unwrap_or_default()
+}
+
+/// First semver-shaped triplet (M.m.p) in the input wins. Used to scrape
+/// `--version` / `version` output without depending on the layout being
+/// stable across upstream tools.
+fn extract_semver(text: &str) -> Option<String> {
     for token in text.split(|c: char| !c.is_ascii_digit() && c != '.') {
         let parts: Vec<&str> = token.split('.').collect();
         if parts.len() == 3 && parts.iter().all(|p| p.parse::<u32>().is_ok()) {
-            return token.to_string();
+            return Some(token.to_string());
         }
     }
-    String::new()
+    None
+}
+
+/// Locate a managed CLI tool (engram, gga, …) the same way `resolve_gentle_ai`
+/// locates gentle-ai itself: PATH first, then well-known install dirs the
+/// upstream installers drop binaries into.
+///
+/// Why this exists: gentle-ai's `update` table is the source of truth for
+/// versions, but its detector occasionally lies about installation state on
+/// Windows — for example reporting `engram` as `[--]` (not installed) even
+/// when the binary is reachable from a fresh terminal. We use this resolver
+/// in `check_stack_update` to override that false negative locally.
+fn resolve_managed_tool(name: &str) -> Option<String> {
+    let exe = format!("{name}.exe");
+    if let Some(path_var) = std::env::var_os("PATH") {
+        for dir in std::env::split_paths(&path_var) {
+            for candidate in [exe.as_str(), name] {
+                if dir.join(candidate).is_file() {
+                    return Some(name.to_string());
+                }
+            }
+        }
+    }
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+        candidates.push(PathBuf::from(&local).join(format!("{name}\\bin\\{exe}")));
+    }
+    if let Some(home) = dirs_home() {
+        candidates.push(home.join(".local").join("bin").join(&exe));
+        candidates.push(home.join("go").join("bin").join(&exe));
+        candidates.push(home.join("bin").join(&exe));
+        candidates.push(
+            home.join("AppData")
+                .join("Local")
+                .join(name)
+                .join("bin")
+                .join(&exe),
+        );
+    }
+    candidates
+        .into_iter()
+        .find(|p| p.is_file())
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
+/// Best-effort version probe: try `<program> --version` first, then `<program>
+/// version`. Returns `None` if neither succeeds or no semver-shaped triplet is
+/// in the output. Used to confirm a tool is *actually* installed when
+/// gentle-ai's detector reports otherwise.
+fn read_managed_tool_version(program: &str) -> Option<String> {
+    for arg in ["--version", "version"] {
+        if let Ok(out) = silent_command(program).arg(arg).output() {
+            if out.status.success() {
+                let text = String::from_utf8_lossy(&out.stdout);
+                if let Some(v) = extract_semver(&text) {
+                    return Some(v);
+                }
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                if let Some(v) = extract_semver(&stderr) {
+                    return Some(v);
+                }
+            }
+        }
+    }
+    None
 }
 
 #[tauri::command]
@@ -2939,10 +3008,34 @@ async fn check_stack_update() -> Result<Vec<StackToolStatus>, String> {
             return Err(format!("gentle-ai update failed: {}", stderr.trim()));
         }
         let stdout = String::from_utf8_lossy(&out.stdout);
-        let rows = stdout
+        let mut rows = stdout
             .lines()
             .filter_map(parse_gentle_ai_update_line)
             .collect::<Vec<_>>();
+        // Detection-override: gentle-ai's installation detector occasionally
+        // reports a tool as `[--]` (not installed) when the binary is in
+        // fact reachable on the user's machine. When that happens we fall
+        // back to our own resolver — same PATH + well-known-dirs walk we
+        // already use for gentle-ai itself — and probe `--version`/`version`
+        // to confirm. If we find a real version, we re-derive `state` from
+        // the installed-vs-latest comparison so the UI stops lying.
+        for row in rows.iter_mut() {
+            if row.state != "not_installed" {
+                continue;
+            }
+            let Some(program) = resolve_managed_tool(&row.name) else {
+                continue;
+            };
+            let Some(installed) = read_managed_tool_version(&program) else {
+                continue;
+            };
+            row.state = if version_is_newer(&row.latest, &installed) {
+                "update_available".to_string()
+            } else {
+                "up_to_date".to_string()
+            };
+            row.installed = Some(installed);
+        }
         Ok(rows)
     })
     .await
