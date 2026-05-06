@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>CSK · Zen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fafaf7;
+    --ink:#1a1a17;
+    --mute:#807a6e;
+    --line:#e6e2d8;
+    --accent:#2a2a26;
+    --warn:#a8531a;
+    --crit:#8a1c1c;
+    --ok:#4a6b3a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:"Fraunces",Georgia,serif;font-feature-settings:"ss01","ss02";font-weight:400}
+  body{display:flex;justify-content:center;padding:0}
+  .frame{width:1100px;height:760px;background:var(--bg);overflow:hidden;border:1px solid var(--line);position:relative;display:flex;flex-direction:column}
+  /* Top */
+  .top{display:flex;justify-content:space-between;align-items:baseline;padding:34px 56px 0}
+  .brand{font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);font-weight:500}
+  .brand b{color:var(--ink);font-weight:600}
+  .meta{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+  .meta span{color:var(--ink)}
+  /* Hero */
+  .hero{padding:64px 56px 40px;border-bottom:1px solid var(--line)}
+  .greet{font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--mute);margin-bottom:18px}
+  .h1{font-size:64px;line-height:1.02;font-weight:300;letter-spacing:-.02em;font-style:italic}
+  .h1 em{font-style:normal;font-weight:500;border-bottom:1px solid var(--ink);padding-bottom:2px}
+  .sub{margin-top:22px;font-size:17px;color:var(--mute);max-width:640px;line-height:1.5;font-weight:400}
+  /* Numbers strip */
+  .numbers{display:grid;grid-template-columns:repeat(4,1fr);padding:0 56px;border-bottom:1px solid var(--line)}
+  .num{padding:28px 0;border-right:1px solid var(--line)}
+  .num:last-child{border-right:none}
+  .num .v{font-size:38px;font-weight:400;letter-spacing:-.02em}
+  .num .l{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin-top:6px}
+  .num.crit .v{color:var(--crit)}
+  .num.warn .v{color:var(--warn)}
+  /* Activity */
+  .activity{padding:34px 56px;flex:1;overflow:hidden}
+  .sec-label{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--mute);margin-bottom:20px;display:flex;justify-content:space-between}
+  .sec-label a{color:var(--ink);border-bottom:1px solid var(--ink);text-decoration:none;padding-bottom:1px}
+  .row{display:grid;grid-template-columns:140px 1fr 90px;gap:24px;padding:14px 0;border-bottom:1px dotted var(--line);align-items:baseline}
+  .row .when{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+  .row .what{font-size:16px;font-weight:400}
+  .row .what .proj{font-style:italic;color:var(--mute)}
+  .row .tag{font-size:10px;letter-spacing:.16em;text-transform:uppercase;text-align:right;color:var(--mute)}
+  .row .tag.c{color:var(--crit)}
+  .row .tag.w{color:var(--warn)}
+  .row .tag.o{color:var(--ok)}
+  /* Bottom nav as quiet text */
+  .navbar{padding:18px 56px 22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:var(--bg)}
+  .navlinks{display:flex;gap:30px}
+  .navlinks a{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);text-decoration:none}
+  .navlinks a.active{color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:2px}
+  .stamp{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-variant-numeric:tabular-nums}
+  .stamp b{color:var(--ink);font-weight:500}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="top">
+    <div class="brand"><b>Claude</b> · Startup Kit</div>
+    <div class="meta">Martes <span>06.05.26</span> · 09:14</div>
+  </div>
+
+  <section class="hero">
+    <div class="greet">Buen día, Mariano</div>
+    <h1 class="h1">Hoy seguís con<br/><em>PolyMarket</em>, ¿arrancamos por<br/>el último commit?</h1>
+    <p class="sub">Dejaste pendiente refactorizar el resolver de mercados. Hay 2 hallazgos críticos en el workspace y 4 PRs esperando tu review.</p>
+  </section>
+
+  <div class="numbers">
+    <div class="num crit"><div class="v">2</div><div class="l">críticos</div></div>
+    <div class="num warn"><div class="v">11</div><div class="l">warnings</div></div>
+    <div class="num"><div class="v">4</div><div class="l">PRs por revisar</div></div>
+    <div class="num"><div class="v">7</div><div class="l">proyectos activos</div></div>
+  </div>
+
+  <section class="activity">
+    <div class="sec-label"><span>Hoy</span><a href="#">Ver todo</a></div>
+    <div class="row">
+      <div class="when">09:02</div>
+      <div class="what">commit · <span class="proj">PolyMarket</span> — fix odds normalization on settle</div>
+      <div class="tag o">commit</div>
+    </div>
+    <div class="row">
+      <div class="when">08:47</div>
+      <div class="what">PR #128 · <span class="proj">server</span> — añadir rate-limit en /auth</div>
+      <div class="tag">review</div>
+    </div>
+    <div class="row">
+      <div class="when">08:31</div>
+      <div class="what">drift detectado en <span class="proj">PetsNew</span> — hooks/.session-end.ps1 modificado</div>
+      <div class="tag c">crítico</div>
+    </div>
+    <div class="row">
+      <div class="when">ayer</div>
+      <div class="what">permisos amplios en <span class="proj">server</span> — `Bash(*)` sin restringir</div>
+      <div class="tag w">warning</div>
+    </div>
+    <div class="row">
+      <div class="when">ayer</div>
+      <div class="what">limpieza sugerida — 2.4 GB en <span class="proj">~/.claude/logs</span></div>
+      <div class="tag">cleanup</div>
+    </div>
+  </section>
+
+  <nav class="navbar">
+    <div class="navlinks">
+      <a class="active" href="#">Hoy</a>
+      <a href="#">Proyectos</a>
+      <a href="#">PRs</a>
+      <a href="#">Auditoría</a>
+      <a href="#">Limpieza</a>
+      <a href="#">Compañera</a>
+      <a href="#">Ajustes</a>
+    </div>
+    <div class="stamp">último escaneo · <b>09:14</b></div>
+  </nav>
+</div>
+</body>
+</html>

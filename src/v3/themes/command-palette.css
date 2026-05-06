@@ -1,0 +1,212 @@
+/* =============================================================
+   V3 Theme: COMMAND-PALETTE
+   Identity: Linear / Raycast / VS Code Cmd-K. Near-black canvas
+   with cool blue-grey hairlines, JetBrains Mono everywhere, a
+   single mint-green accent that reads like a terminal cursor.
+   The interface feels like a power-user shell — keyboard-first,
+   trustworthy, calm.
+   Reference moods: Linear, Raycast, Vercel CLI dark, Warp.
+   Font cue: JetBrains Mono on UI, system sans on prose blocks.
+
+   Ported from `mockups/02-command-palette.html` — the ⌘K central
+   palette is layout-bound and lives outside this theme; the
+   identity (palette + typography) is what we keep.
+   ============================================================= */
+
+/* ── JetBrains Mono — the spine of the theme ──────────────── */
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+/* ── Body background: deep ink with cool undertone ────────── */
+body.v3-layout[data-theme-v3="command-palette"] {
+  background: #0C0D10;
+}
+
+body[data-theme-v3="command-palette"] .appv3 {
+  /* ── Surface ──────────────────────────────────────────────
+     Cool-grey ladder with a 2-degree hue shift toward blue
+     (vs ai-core's neutral). Lifts the typography subtly so
+     mono numbers read crisp. */
+  --v3-bg:            #0C0D10;
+  --v3-surface:       #13151A;
+  --v3-surface-2:     #191C22;
+  --v3-hover:         #1E222A;
+  --v3-border:        #1C1F25;
+  --v3-border-strong: #22262E;
+
+  /* ── Type ─────────────────────────────────────────────────
+     #E8E9EC on #13151A ≈ 13:1. Same off-white feel as Linear,
+     dim text-3 (#9AA0AA) for meta labels. */
+  --v3-text:   #E8E9EC;
+  --v3-text-2: #BABFC8;
+  --v3-text-3: #9AA0AA;
+  --v3-text-4: #6B7280;
+
+  /* ── Accent: MINT GREEN — Raycast / Linear-style cursor ───
+     Slightly lighter than data-dense's phosphor; reads more
+     "highlight" than "indicator". Used on active states,
+     primary CTA, and the focus caret for the cmd palette. */
+  --v3-accent:       #A4F0C4;
+  --v3-accent-hover: #BAF5D2;
+  --v3-accent-tint:  rgba(164, 240, 196, 0.10);
+  --v3-accent-soft:  rgba(164, 240, 196, 0.16);
+
+  /* ── Semantic: cool tones, lifted lightness for legibility
+     on dark surface. Crit reds stay soft so they don't
+     dominate on a long sidebar of CRIT findings. */
+  --v3-success:      #7AD8A4;
+  --v3-success-tint: rgba(122, 216, 164, 0.12);
+  --v3-warn:         #FFB86B;
+  --v3-warn-tint:    rgba(255, 184, 107, 0.10);
+  --v3-info:         #7AA6FF;          /* the "PR" blue from the mockup */
+  --v3-info-tint:    rgba(122, 166, 255, 0.10);
+  --v3-crit:         #FF6B6B;
+  --v3-crit-tint:    rgba(255, 107, 107, 0.10);
+
+  /* ── Shadows: sharp + tight. Linear uses very little
+     elevation — most lift comes from a 1px ring. */
+  --v3-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.50);
+  --v3-shadow-2: 0 4px 12px rgba(0, 0, 0, 0.55);
+  --v3-shadow-3: 0 12px 32px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* ── JetBrains Mono everywhere ────────────────────────────── */
+body[data-theme-v3="command-palette"] .appv3,
+body[data-theme-v3="command-palette"] .appv3 button,
+body[data-theme-v3="command-palette"] .appv3 input,
+body[data-theme-v3="command-palette"] .appv3 select {
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo,
+    Consolas, monospace;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Keep larger prose blocks (greeting, lead copy) sans-readable
+   so a command-palette aesthetic doesn't punish multi-line
+   reading. */
+body[data-theme-v3="command-palette"] .v3-greeting,
+body[data-theme-v3="command-palette"] .v3-subtitle,
+body[data-theme-v3="command-palette"] .v3-card-title {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Inter, Roboto, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* ── Topbar: hairline border, no shadow ──────────────────── */
+body[data-theme-v3="command-palette"] .v3-topbar {
+  border-bottom: 1px solid var(--v3-border-strong);
+  box-shadow: none;
+  background: var(--v3-bg);
+}
+
+/* ── Sidebar: rail-tight links, mint caret on active ─────── */
+body[data-theme-v3="command-palette"] .v3-sidebar {
+  background: var(--v3-bg);
+  border-right: 1px solid var(--v3-border-strong);
+}
+body[data-theme-v3="command-palette"] .v3-side-link {
+  border-radius: 6px;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+body[data-theme-v3="command-palette"] .v3-side-link.active {
+  background: var(--v3-accent-tint);
+  color: var(--v3-text);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
+}
+body[data-theme-v3="command-palette"] .v3-side-link:hover:not(.active) {
+  background: var(--v3-surface-2);
+  color: var(--v3-text);
+}
+
+/* ── Cards: 1px ring, 10px radius (matches Linear) ───────── */
+body[data-theme-v3="command-palette"] .v3-card,
+body[data-theme-v3="command-palette"] .v3-stat-card,
+body[data-theme-v3="command-palette"] .v3-update-row {
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 10px;
+  box-shadow: none;
+}
+body[data-theme-v3="command-palette"] .v3-stat-card:hover {
+  border-color: var(--v3-text-4);
+  background: var(--v3-surface-2);
+}
+
+/* ── Rows: same ring, mint caret on hover ─────────────────── */
+body[data-theme-v3="command-palette"] .v3-row {
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: 10px;
+}
+body[data-theme-v3="command-palette"] .v3-row:hover {
+  border-color: var(--v3-border-strong);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
+}
+
+/* ── Pills: rounded square monospace, terminal vibe ──────── */
+body[data-theme-v3="command-palette"] .v3-pill,
+body[data-theme-v3="command-palette"] .v3-pill-soft {
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Primary buttons: solid mint, dark ink text ─────────── */
+body[data-theme-v3="command-palette"] .v3-btn-primary,
+body[data-theme-v3="command-palette"] .v3-update-banner-primary,
+body[data-theme-v3="command-palette"] .v3-update-row-action {
+  background: var(--v3-accent);
+  color: #0A0C10;
+  border-radius: 6px;
+  font-weight: 500;
+}
+body[data-theme-v3="command-palette"] .v3-btn-primary:hover,
+body[data-theme-v3="command-palette"] .v3-update-banner-primary:hover {
+  background: var(--v3-accent-hover);
+}
+
+body[data-theme-v3="command-palette"] .v3-btn-ghost {
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 6px;
+  color: var(--v3-text-2);
+}
+body[data-theme-v3="command-palette"] .v3-btn-ghost:hover {
+  border-color: var(--v3-text-4);
+  color: var(--v3-text);
+  background: var(--v3-hover);
+}
+
+/* ── Inputs: terminal-style with a left chevron implied
+   by the JetBrains numerics. Focus ring picks up mint. */
+body[data-theme-v3="command-palette"] .v3-input,
+body[data-theme-v3="command-palette"] .v3-search input,
+body[data-theme-v3="command-palette"] .v3-select {
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 6px;
+  color: var(--v3-text);
+}
+body[data-theme-v3="command-palette"] .v3-input:focus,
+body[data-theme-v3="command-palette"] .v3-search input:focus {
+  border-color: var(--v3-accent);
+  box-shadow: 0 0 0 3px var(--v3-accent-tint);
+  outline: none;
+}
+
+/* ── Statusbar: thin terminal strip ──────────────────────── */
+body[data-theme-v3="command-palette"] .v3-statusbar {
+  background: var(--v3-bg);
+  border-top: 1px solid var(--v3-border-strong);
+  font-size: 11px;
+  color: var(--v3-text-3);
+}
+
+/* ── Topbar logo / brand hint: subtle accent gradient
+   matches the mockup's tile-shaped logo. */
+body[data-theme-v3="command-palette"] .v3-topbar .v3-logo {
+  background: linear-gradient(135deg, var(--v3-accent), var(--v3-info));
+  border-radius: 6px;
+}

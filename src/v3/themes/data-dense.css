@@ -1,0 +1,213 @@
+/* =============================================================
+   V3 Theme: DATA-DENSE
+   Identity: Bloomberg / k9s / Datadog terminal. Near-black canvas
+   with a tight luminance ladder, IBM Plex Mono everywhere meta or
+   numeric, sans for prose. Hairlines, no shadows, tabular nums.
+   The interface feels like a market data terminal — dense, fast,
+   trustworthy.
+   Reference moods: k9s, Bloomberg terminal, Datadog dark, htop.
+   Font cue: IBM Plex Mono on telemetry, IBM Plex Sans on prose.
+
+   Ported from `mockups/04-data-dense.html` — the layout is V3
+   stock; this theme imports that mockup's identity.
+   ============================================================= */
+
+/* ── IBM Plex (Mono + Sans) — sole external dep, ~80 KB ───── */
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+
+/* ── Body background: deepest ink ───────────────────────────── */
+body.v3-layout[data-theme-v3="data-dense"] {
+  background: #0E1014;
+}
+
+body[data-theme-v3="data-dense"] .appv3 {
+  /* ── Surface ──────────────────────────────────────────────
+     Five-step luminance ladder inside ~12 L* — calm under heavy
+     visual load. Hairlines (#252A34) read as separators, not
+     edges; nothing announces itself. */
+  --v3-bg:            #0E1014;
+  --v3-surface:       #13161C;        /* card base */
+  --v3-surface-2:     #181C24;        /* nested */
+  --v3-hover:         #1D212A;
+  --v3-border:        #1D212A;        /* hairline */
+  --v3-border-strong: #252A34;        /* card frame */
+
+  /* ── Type ─────────────────────────────────────────────────
+     #DFE3EA on #13161C ≈ 11.7:1 — comfortable for long sessions
+     of glanceable data. text-3 (8A93A3) is for labels, never
+     content. Avoid pure white so the canvas stays calm. */
+  --v3-text:   #DFE3EA;
+  --v3-text-2: #B6BCC7;
+  --v3-text-3: #8A93A3;
+  --v3-text-4: #5B6473;
+
+  /* ── Accent: phosphor green — `up` direction in market UIs ─
+     Same role as Bloomberg's green: positive deltas, success
+     states, "everything is fine right now". */
+  --v3-accent:       #5DD39E;
+  --v3-accent-hover: #7CDFB1;
+  --v3-accent-tint:  rgba(93, 211, 158, 0.10);
+  --v3-accent-soft:  rgba(93, 211, 158, 0.16);
+
+  /* ── Semantic: terminal-typical, not panicky ──────────────
+     Red is signal, not alarm. Amber is sand, not fire. Blue
+     is paled like a CRT phosphor.  All clear AA on surface. */
+  --v3-success:      #5DD39E;
+  --v3-success-tint: rgba(93, 211, 158, 0.12);
+  --v3-warn:         #FFB454;
+  --v3-warn-tint:    rgba(255, 180, 84, 0.10);
+  --v3-info:         #5CC1FF;
+  --v3-info-tint:    rgba(92, 193, 255, 0.10);
+  --v3-crit:         #FF5D6C;
+  --v3-crit-tint:    rgba(255, 93, 108, 0.10);
+
+  /* ── Shadows: imperceptible. Density relies on hairlines. ─ */
+  --v3-shadow-1: 0 1px 0 0 rgba(0, 0, 0, 0.40);
+  --v3-shadow-2: 0 1px 0 0 rgba(0, 0, 0, 0.55);
+  --v3-shadow-3: 0 2px 0 0 rgba(0, 0, 0, 0.70);
+}
+
+/* ── Mono everywhere meta / numeric / temporal ───────────────
+   The theme's typographic spine. Every label, count, version,
+   timestamp, path — all monospaced + tabular nums so columns
+   align and the eye can read down. Prose surfaces stay sans. */
+body[data-theme-v3="data-dense"] .appv3,
+body[data-theme-v3="data-dense"] .appv3 button,
+body[data-theme-v3="data-dense"] .appv3 input,
+body[data-theme-v3="data-dense"] .appv3 select {
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+body[data-theme-v3="data-dense"] .appv3 .v3-stat-value,
+body[data-theme-v3="data-dense"] .appv3 .v3-stat-meta,
+body[data-theme-v3="data-dense"] .appv3 .v3-row-meta,
+body[data-theme-v3="data-dense"] .appv3 .v3-row-path,
+body[data-theme-v3="data-dense"] .appv3 .v3-statusbar,
+body[data-theme-v3="data-dense"] .appv3 .v3-version,
+body[data-theme-v3="data-dense"] .appv3 .v3-git-hash,
+body[data-theme-v3="data-dense"] .appv3 .v3-pill,
+body[data-theme-v3="data-dense"] .appv3 [class*="-meta"],
+body[data-theme-v3="data-dense"] .appv3 [class*="-time"],
+body[data-theme-v3="data-dense"] .appv3 [class*="-count"],
+body[data-theme-v3="data-dense"] .appv3 [class*="-version"],
+body[data-theme-v3="data-dense"] .appv3 [class*="-status"],
+body[data-theme-v3="data-dense"] .appv3 code {
+  font-family: "IBM Plex Mono", ui-monospace, "JetBrains Mono",
+    "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* ── Density: trim padding so more rows fit per pixel ──────── */
+body[data-theme-v3="data-dense"] .v3-row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+body[data-theme-v3="data-dense"] .v3-stat-card {
+  padding: 12px 14px;
+}
+
+/* ── Hairline frames everywhere; no glow, no shadows ───────── */
+body[data-theme-v3="data-dense"] .v3-card,
+body[data-theme-v3="data-dense"] .v3-stat-card,
+body[data-theme-v3="data-dense"] .v3-update-row {
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border-strong);
+  box-shadow: none;
+  border-radius: 4px;
+}
+
+body[data-theme-v3="data-dense"] .v3-topbar {
+  border-bottom: 1px solid var(--v3-border-strong);
+  box-shadow: none;
+}
+
+body[data-theme-v3="data-dense"] .v3-sidebar {
+  background: var(--v3-bg);
+  border-right: 1px solid var(--v3-border-strong);
+}
+
+/* ── Sidebar active link: 2px green caret on the left ─────── */
+body[data-theme-v3="data-dense"] .v3-side-link.active {
+  background: var(--v3-accent-tint);
+  color: var(--v3-text);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
+  border-radius: 0;
+}
+
+/* ── Stat card hover: tighter ring, no lift ───────────────── */
+body[data-theme-v3="data-dense"] .v3-stat-card {
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+body[data-theme-v3="data-dense"] .v3-stat-card:hover {
+  border-color: var(--v3-text-4);
+  background: var(--v3-surface-2);
+}
+
+/* ── Row hover: same hairline + green caret ──────────────── */
+body[data-theme-v3="data-dense"] .v3-row {
+  border-radius: 0;
+  border-bottom: 1px solid var(--v3-border);
+}
+body[data-theme-v3="data-dense"] .v3-row:hover {
+  background: var(--v3-surface-2);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
+}
+
+/* ── Pills: square monospace tags, terminal-style ─────────── */
+body[data-theme-v3="data-dense"] .v3-pill,
+body[data-theme-v3="data-dense"] .v3-pill-soft {
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 2px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Buttons: square, hairline, no gradient ──────────────── */
+body[data-theme-v3="data-dense"] .v3-btn-primary,
+body[data-theme-v3="data-dense"] .v3-update-banner-primary,
+body[data-theme-v3="data-dense"] .v3-update-row-action {
+  background: var(--v3-accent);
+  color: #0A0C10;
+  border-radius: 3px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+body[data-theme-v3="data-dense"] .v3-btn-ghost {
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 3px;
+  color: var(--v3-text-2);
+}
+body[data-theme-v3="data-dense"] .v3-btn-ghost:hover {
+  border-color: var(--v3-text-4);
+  color: var(--v3-text);
+}
+
+/* ── Inputs: same square hairline aesthetic ──────────────── */
+body[data-theme-v3="data-dense"] .v3-input,
+body[data-theme-v3="data-dense"] .v3-search input,
+body[data-theme-v3="data-dense"] .v3-select {
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 3px;
+  color: var(--v3-text);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+
+/* ── Statusbar: monospaced ticker bar ────────────────────── */
+body[data-theme-v3="data-dense"] .v3-statusbar {
+  background: var(--v3-surface);
+  border-top: 1px solid var(--v3-border-strong);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v3-text-3);
+}
