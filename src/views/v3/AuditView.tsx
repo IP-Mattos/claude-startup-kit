@@ -10,9 +10,7 @@ import {
 } from "lucide-react";
 import type { AuditAction, AuditFinding } from "../../types";
 import { friendlyErrorEn } from "../../lib/format";
-import { parseAuditFindings } from "../../lib/audit";
 import { plural, useT } from "../../lib/i18n";
-import { IS_TAURI } from "../../lib/env";
 import { ConfirmModal } from "../../components/v3/ConfirmModal";
 import type { V3Tab } from "../../v3/v3types";
 
@@ -41,15 +39,27 @@ type PendingConfirm = {
 
 interface AuditViewProps {
   onJump: (tab: V3Tab) => void;
+  /** Findings already fetched at the AppV3 level. */
+  findings: AuditFinding[];
+  /** True while AppV3's bulk fetch is in flight. */
+  loading: boolean;
+  /** Bumps AppV3's refreshNonce so the workspace re-fetches. */
+  onRefresh: () => void;
 }
 
-export function AuditView({ onJump }: AuditViewProps) {
+export function AuditView({
+  onJump,
+  findings,
+  loading,
+  onRefresh,
+}: AuditViewProps) {
   const { t } = useT();
-  const [findings, setFindings] = useState<AuditFinding[]>([]);
-  const [loading, setLoading] = useState(true);
+  // findings/loading come from AppV3 props. Previously this view had its
+  // own state + run_audit fetch on mount, duplicating what AppV3 had
+  // already fetched for Overview. Re-execute via onRefresh which bumps
+  // AppV3's refreshNonce.
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "CRIT" | "WARN" | "INFO">("all");
-  const [refreshNonce, setRefreshNonce] = useState(0);
   // The id of the finding whose action is currently in flight. Exactly one
   // action at a time — we don't queue. The button on every other row stays
   // active so the user can keep working in parallel-ish flow.
@@ -65,24 +75,6 @@ export function AuditView({ onJump }: AuditViewProps) {
   // the previous timer expired (a stale 2.5s timeout would otherwise wipe
   // the new row's "Done" badge).
   const doneTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!IS_TAURI) {
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    invoke<unknown>("run_audit")
-      .then(parseAuditFindings)
-      .then((res) => !cancelled && setFindings(res))
-      .catch((e) => !cancelled && setError(friendlyErrorEn(e)))
-      .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [refreshNonce]);
 
   // Final cleanup — fires only on unmount. The per-action cancellation lives
   // inside runAction so a fast second click clears the prior timer too.
@@ -140,7 +132,7 @@ export function AuditView({ onJump }: AuditViewProps) {
           break;
         case "kill_process":
           await invoke("kill_process", { pid: action.pid });
-          setRefreshNonce((n) => n + 1);
+          onRefresh();
           break;
         case "delete_file":
           // Audit-resolver deletes go through `audit_resolve_delete` — it
@@ -150,11 +142,11 @@ export function AuditView({ onJump }: AuditViewProps) {
           // the wrong target: it confines to {logs,backups,projects} and
           // would reject ~/.claude/settings.local.json outright.
           await invoke("audit_resolve_delete", { path: action.path });
-          setRefreshNonce((n) => n + 1);
+          onRefresh();
           break;
         case "restore_settings_backup":
           await invoke("restore_settings_backup");
-          setRefreshNonce((n) => n + 1);
+          onRefresh();
           break;
       }
       // Mark this row as just-completed for ~2.5s so the user gets visible
@@ -241,7 +233,7 @@ export function AuditView({ onJump }: AuditViewProps) {
         <div className="v3-view-tools">
           <button
             className="v3-btn-ghost v3-btn-sm"
-            onClick={() => setRefreshNonce((n) => n + 1)}
+            onClick={onRefresh}
           >
             <RefreshCw size={13} strokeWidth={2} />
             {t("audit.rerun")}

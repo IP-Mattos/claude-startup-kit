@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.31 — 2026-05-05
+
+Audit-deferred refactor: kill the AppV3-vs-views double-fetch.
+
+### Refactored
+- **`AuditView` no longer fetches `run_audit` independently.** AppV3 had already fetched the same endpoint on mount for the Overview's CRIT/WARN counters; AuditView duplicated the call when the user navigated to its tab. Now accepts `findings` / `loading` / `onRefresh` props from AppV3, drops its own state + effect. The "Re-ejecutar" button bumps AppV3's `refreshNonce` via `onRefresh`, refreshing the workspace once instead of just AuditView's slice.
+- **`PrsView` no longer fetches `github_review_queue` independently.** AppV3 used to fetch with `limit=20`; PrsView fetched again with `limit=50`. Now AppV3 fetches `limit=50` once, PrsView consumes via props, Overview slices what it needs from the same data — one network/IPC call instead of two per session.
+
+### Note (intentionally left)
+- `ProjectsView` still fetches independently because it has a dynamic `windowDays` parameter that AppV3 holds at a fixed 14. Lifting the dropdown state up to AppV3 is the natural follow-up but out of scope for this PR.
+
 ## 0.1.30 — 2026-05-05
 
 CSP hardening — security tier from the deferred audit list.
