@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { FolderOpen, GitBranch, Info, Search } from "lucide-react";
 import type { GitInfo, Project, ProjectEnrichment } from "../../types";
@@ -7,7 +7,6 @@ import {
   friendlyErrorEn,
   projectName,
 } from "../../lib/format";
-import { enrichProjects } from "../../lib/enrichProjects";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { useT } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
@@ -18,18 +17,32 @@ interface DiskGitRepo {
   remote: string;
 }
 
-export function ProjectsView() {
+interface ProjectsViewProps {
+  /** Claude-Code-active projects already fetched at the AppV3 level. */
+  projects: Project[];
+  /** Full enrichment (goal + git) keyed by project path — also from AppV3. */
+  enrichment: Record<string, ProjectEnrichment>;
+  /** True while AppV3's bulk fetch is in flight. */
+  loading: boolean;
+  /** Lifted dropdown state — drives AppV3's scan_projects call. */
+  windowDays: number;
+  setWindowDays: (n: number) => void;
+}
+
+export function ProjectsView({
+  projects,
+  enrichment,
+  loading,
+  windowDays,
+  setWindowDays,
+}: ProjectsViewProps) {
   const { t } = useT();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [enrichment, setEnrichment] = useState<Record<string, ProjectEnrichment>>(
-    {}
-  );
-  const [windowDays, setWindowDays] = useState<number>(() => {
-    const saved = parseInt(localStorage.getItem("csk-window-days") ?? "", 10);
-    return Number.isFinite(saved) && saved > 0 ? saved : 14;
-  });
+  // projects/enrichment/loading/windowDays now come from AppV3 props.
+  // Previously this view had its own scan_projects + enrichProjects
+  // fetch, duplicating what AppV3 did for Overview. AppV3's effect now
+  // depends on windowDays so dropdown changes still re-fetch — just
+  // once, shared with Overview.
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Disk-scan results — repos found by walking common dev parent dirs for
@@ -40,42 +53,6 @@ export function ProjectsView() {
   const [diskScanRunning, setDiskScanRunning] = useState(false);
   const [diskScanError, setDiskScanError] = useState<string | null>(null);
   const [diskScanRan, setDiskScanRan] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem("csk-window-days", String(windowDays));
-  }, [windowDays]);
-
-  useEffect(() => {
-    if (!IS_TAURI) {
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    (async () => {
-      try {
-        // scan_projects + engram_known_projects are independent — kick them
-        // off together to halve perceived load time.
-        const [projectsRes, known] = await Promise.all([
-          invoke<Project[]>("scan_projects", { windowDays }),
-          invoke<string[]>("engram_known_projects").catch(() => [] as string[]),
-        ]);
-        if (cancelled) return;
-        const enr = await enrichProjects(projectsRes, known).catch(() => ({}));
-        if (cancelled) return;
-        setProjects(projectsRes);
-        setEnrichment(enr);
-      } catch (e) {
-        if (!cancelled) setError(friendlyErrorEn(e));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [windowDays]);
 
   const debouncedQuery = useDebouncedValue(query);
   const filtered = useMemo(() => {
