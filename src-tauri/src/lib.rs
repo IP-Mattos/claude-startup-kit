@@ -1948,6 +1948,56 @@ fn validate_open_path(path: &str) -> Result<PathBuf, String> {
     Ok(strip_unc_prefix(canonical))
 }
 
+/// Locate `Code.exe` the same way Windows resolves "Open with Code" —
+/// query the user's registered handler at
+/// `HKCU\Software\Classes\Applications\Code.exe\shell\open\command`,
+/// extract the executable path, fall back to well-known install dirs.
+///
+/// Why we want the absolute Code.exe path (not bare `code.cmd`):
+/// `code.cmd` is a CLI wrapper that runs `Code.exe cli.js …` and flashes a
+/// cmd console window during dispatch. On some setups the cmd window
+/// stays visible until cli.js exits — looks unprofessional and can stick
+/// indefinitely if cli.js' IPC handshake stalls. Code.exe is a pure GUI
+/// app: no console, no flash, no leftover window.
+fn resolve_vscode_exe() -> Option<String> {
+    if let Ok(out) = silent_command("reg")
+        .args([
+            "query",
+            r"HKCU\Software\Classes\Applications\Code.exe\shell\open\command",
+        ])
+        .output()
+    {
+        if out.status.success() {
+            let text = String::from_utf8_lossy(&out.stdout);
+            // Default value line looks like:
+            //   (Predeterminado)/(Default)  REG_SZ  "C:\…\Code.exe" "%1"
+            // Extract the first quoted token — the binary path.
+            if let Some(start) = text.find('"') {
+                if let Some(rel_end) = text[start + 1..].find('"') {
+                    let candidate = &text[start + 1..start + 1 + rel_end];
+                    if Path::new(candidate).is_file() {
+                        return Some(candidate.to_string());
+                    }
+                }
+            }
+        }
+    }
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+        candidates.push(PathBuf::from(&local).join("Programs\\Microsoft VS Code\\Code.exe"));
+    }
+    if let Some(pf) = std::env::var_os("PROGRAMFILES") {
+        candidates.push(PathBuf::from(&pf).join("Microsoft VS Code\\Code.exe"));
+    }
+    if let Some(pfx86) = std::env::var_os("PROGRAMFILES(X86)") {
+        candidates.push(PathBuf::from(&pfx86).join("Microsoft VS Code\\Code.exe"));
+    }
+    candidates
+        .into_iter()
+        .find(|p| p.is_file())
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
 /// Audit-Resolver-only delete helper for files outside `cleanup_apply`'s
 /// confinement (`~/.claude/{logs,backups,projects}`).
 ///
@@ -2017,23 +2067,21 @@ async fn audit_resolve_delete(path: String) -> Result<(), String> {
 async fn open_in_vscode(path: String) -> Result<(), String> {
     let canonical = validate_open_path(&path)?;
     tokio::task::spawn_blocking(move || -> Result<(), String> {
-        // Detach VS Code via `cmd /c start "" code.cmd -- <path>`. Plain
-        // `Command::new("code.cmd").spawn()` leaves VS Code linked to
-        // CSK's process tree — the user reported the Claude Code
-        // extension's sidebar (`claudeVSCodeSidebarSecondary`) failing to
-        // load whenever the project is opened from CSK but loading fine
-        // when opened from Windows Explorer. `start` uses the same
-        // ShellExecute-style detach path Explorer uses, which fixes the
-        // sidebar bootstrap.
-        //
-        // `--` ends VS Code's option parsing so the path that follows is
-        // verbatim — `validate_open_path` already rejects leading-`-`
-        // paths, so `start` itself can't misinterpret it as a flag either.
-        let path_str = canonical.to_string_lossy().to_string();
-        silent_command("cmd")
-            .args(["/c", "start", "", "code.cmd", "--", &path_str])
+        // Spawn `Code.exe` directly — no `code.cmd`, no `cmd /c start`.
+        // Mirrors Explorer's "Open with Code" registered handler at
+        // HKCU\Software\Classes\Applications\Code.exe\shell\open\command,
+        // which is `"…\\Code.exe" "%1"`. Direct GUI launch — no console
+        // flash, no leftover cmd window if the .cmd wrapper's cli.js
+        // hangs. `validate_open_path` already rejects leading-`-`
+        // paths, so we don't need a `--` separator.
+        let program = resolve_vscode_exe().ok_or_else(|| {
+            "VS Code no encontrado. Instalalo desde https://code.visualstudio.com/."
+                .to_string()
+        })?;
+        silent_command(&program)
+            .arg(&canonical)
             .spawn()
-            .map_err(|e| format_spawn_error("VS Code (code.cmd)", &e))?;
+            .map_err(|e| format_spawn_error("VS Code (Code.exe)", &e))?;
         Ok(())
     })
     .await

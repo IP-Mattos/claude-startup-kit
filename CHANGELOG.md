@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.26 — 2026-05-05
+
+### Fixed
+- **No more flashing/sticky cmd window when opening a project**. `open_in_vscode` was launching `code.cmd` (a CLI wrapper that runs `Code.exe cli.js …`) which flashes a console window and on some setups stays visible until cli.js exits — sometimes never. Switched to spawning `Code.exe` directly with `silent_command` (`CREATE_NO_WINDOW`). Mirrors what Explorer's "Open with Code" registered handler does (queried from `HKCU\Software\Classes\Applications\Code.exe\shell\open\command`). New `resolve_vscode_exe()` helper checks the registry first, falls back to `%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe` and the two `Program Files` install dirs. Dropped the `--` end-of-options separator since `Code.exe` doesn't need it and `validate_open_path` already rejects leading-`-` paths.
+
 ## 0.1.25 — 2026-05-05
 
 ROOT CAUSE for the recurring **Claude Code sidebar fails to load** bug the user reported across v0.1.21, v0.1.22, v0.1.23, and v0.1.24.
