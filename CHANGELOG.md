@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.25 — 2026-05-05
+
+ROOT CAUSE for the recurring **Claude Code sidebar fails to load** bug the user reported across v0.1.21, v0.1.22, v0.1.23, and v0.1.24.
+
+### Fixed
+- **`validate_open_path` strips the `\\?\` UNC prefix that `canonicalize` adds on Windows.** Every consumer (`open_in_vscode`, `open_path_in_explorer`) was handing VS Code paths like `\\?\C:\Users\darkm\OneDrive\Desktop\Code\PolyMarket`. VS Code wrote those verbatim into its workspace recents — visible directly in the user's "Recent" list mixed with normal `C:\...` entries. When the Claude Code extension activates and iterates `vscode.workspace.workspaceFolders`, the inconsistency crashes the iterator with `TypeError: V is not iterable` and the `claudeVSCodeSidebarSecondary` view refuses to load (see [anthropics/claude-code#16634](https://github.com/anthropics/claude-code/issues/16634), [#34678](https://github.com/anthropics/claude-code/issues/34678)). Same project opened from Explorer's "Open with Code" never reproduces because Explorer doesn't go through `canonicalize` and produces clean paths.
+
+### Why we shipped 4 wrong fixes first
+- v0.1.23 PATH augmentation (right call, wrong cause)
+- v0.1.24 detach via `cmd /c start` (right call, wrong cause)
+- Two assumptions about extension state and process trees that distracted from the actual evidence: the user's recents list literally showed paths with `\\?\` prefix on the broken entries.
+
+CLAUDE.md already documented the rule: *"`\\?\` UNC prefix is stripped after `fs::canonicalize` on Windows so paths round-trip cleanly through IPC and back into git/explorer."* The codebase has a `strip_unc_prefix` helper used in 1 of 2 canonicalize call sites — `validate_open_path` was the one that forgot to call it.
+
 ## 0.1.24 — 2026-05-05
 
 Audit-driven CRIT batch from a 12-finding review. Same theme as v0.1.23: stop the **inconsistent-state** class of bugs the user has been hitting (banner shows X, action does Y; cache shows old, reality is new; cryptic error vs actionable message).
