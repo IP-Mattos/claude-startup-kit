@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { FolderOpen, Info, Search } from "lucide-react";
+import { FolderOpen, GitBranch, Info, Search } from "lucide-react";
 import type { GitInfo, Project, ProjectEnrichment } from "../../types";
 import {
   activityLabelT,
@@ -11,6 +11,12 @@ import { enrichProjects } from "../../lib/enrichProjects";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { useT } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
+
+interface DiskGitRepo {
+  path: string;
+  name: string;
+  remote: string;
+}
 
 export function ProjectsView() {
   const { t } = useT();
@@ -25,6 +31,15 @@ export function ProjectsView() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Disk-scan results — repos found by walking common dev parent dirs for
+  // `.git/`. Distinct from the JSONL-driven `projects` list above: this
+  // surface includes repos the user has on disk but hasn't touched with
+  // Claude Code recently. Empty until the user clicks "Buscar más".
+  const [diskRepos, setDiskRepos] = useState<DiskGitRepo[]>([]);
+  const [diskScanRunning, setDiskScanRunning] = useState(false);
+  const [diskScanError, setDiskScanError] = useState<string | null>(null);
+  const [diskScanRan, setDiskScanRan] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("csk-window-days", String(windowDays));
@@ -79,6 +94,38 @@ export function ProjectsView() {
     invoke("open_path_in_explorer", { path }).catch((e) =>
       setError(friendlyErrorEn(e))
     );
+
+  // Trigger the disk walk. We resolve sensible default roots from the
+  // backend (Desktop/Code, OneDrive/Desktop, etc. — only those that
+  // exist), then walk each one. Sequential UX: button shows "Buscando…"
+  // until the walk finishes.
+  const runDiskScan = async () => {
+    if (!IS_TAURI) return;
+    setDiskScanRunning(true);
+    setDiskScanError(null);
+    try {
+      const roots = await invoke<string[]>("default_disk_scan_roots");
+      const found = await invoke<DiskGitRepo[]>("disk_scan_git_repos", {
+        roots,
+        maxDepth: 4,
+      });
+      // Filter out repos already in the Claude-active list — by canonical
+      // path (case-insensitive on Windows). Avoids showing the same row
+      // twice once disk-scan runs.
+      const seen = new Set(
+        projects.map((p) => p.path.toLowerCase().replace(/\\/g, "/"))
+      );
+      const filteredFound = found.filter(
+        (r) => !seen.has(r.path.toLowerCase().replace(/\\/g, "/"))
+      );
+      setDiskRepos(filteredFound);
+      setDiskScanRan(true);
+    } catch (e) {
+      setDiskScanError(friendlyErrorEn(e));
+    } finally {
+      setDiskScanRunning(false);
+    }
+  };
 
   return (
     <div className="v3-view">
@@ -156,6 +203,83 @@ export function ProjectsView() {
               />
             );
           })}
+        </div>
+      )}
+
+      {/* Disk scan section — surfaces git repos on disk that don't have
+          recent Claude Code activity. Hidden until the user clicks Buscar,
+          since the walk can take a few seconds on large trees. */}
+      <div className="v3-section-divider">
+        <h2 className="v3-section-title">
+          <GitBranch size={14} strokeWidth={2} />
+          {t("projects.disk_scan_title")}
+        </h2>
+        <button
+          type="button"
+          className="v3-link"
+          onClick={() => {
+            void runDiskScan();
+          }}
+          disabled={diskScanRunning}
+        >
+          {diskScanRunning
+            ? t("projects.disk_scan_running")
+            : diskScanRan
+              ? t("projects.disk_scan_rerun")
+              : t("projects.disk_scan_run")}
+        </button>
+      </div>
+      {diskScanError && (
+        <div className="v3-error" role="alert" aria-live="assertive">
+          {diskScanError}
+        </div>
+      )}
+      {!diskScanError && (
+        <p className="v3-row-meta">{t("projects.disk_scan_lead")}</p>
+      )}
+      {diskScanRan && !diskScanError && diskRepos.length === 0 && (
+        <div className="v3-empty">{t("projects.disk_scan_empty")}</div>
+      )}
+      {diskRepos.length > 0 && (
+        <div className="v3-list">
+          {diskRepos.map((r) => (
+            <article key={r.path} className="v3-row v3-row-project">
+              <div className="v3-row-icon" aria-hidden="true">
+                <GitBranch size={16} strokeWidth={2} />
+              </div>
+              <div className="v3-row-body">
+                <div className="v3-row-title">{r.name}</div>
+                <div className="v3-row-meta">
+                  <span className="v3-row-path" title={r.path}>
+                    {r.path}
+                  </span>
+                </div>
+                {r.remote && (
+                  <div className="v3-row-meta">
+                    <span className="v3-row-dim">{r.remote}</span>
+                  </div>
+                )}
+              </div>
+              <div className="v3-row-end">
+                <div className="v3-row-actions">
+                  <button
+                    className="v3-btn-primary v3-btn-sm"
+                    onClick={() => open(r.path)}
+                  >
+                    {t("common.open")}
+                  </button>
+                  <button
+                    className="v3-btn-ghost v3-btn-sm v3-btn-icon"
+                    onClick={() => openExplorer(r.path)}
+                    title={t("projects.open_in_explorer")}
+                    aria-label={t("projects.open_in_explorer")}
+                  >
+                    <FolderOpen size={13} strokeWidth={2} />
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
       )}
     </div>

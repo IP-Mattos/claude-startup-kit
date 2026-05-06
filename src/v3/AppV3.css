@@ -1751,6 +1751,29 @@ body.v3-layout #root {
   box-shadow: 0 0 0 2px var(--v3-success-tint);
 }
 
+/* ========== Section divider — used inside views to separate two
+   logically-distinct lists that share the same view shell (e.g. Projects
+   showing Claude-active above + disk-scan below). Subtler than a card
+   boundary so the two sections still feel like one page. ========== */
+.v3-section-divider {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 24px 0 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--v3-border);
+}
+.v3-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--v3-text);
+}
+
 /* ========== Empty / loading state ========== */
 .v3-empty {
   padding: 24px 16px;

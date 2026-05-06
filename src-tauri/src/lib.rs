@@ -323,6 +323,188 @@ async fn scan_projects(window_days: u64) -> Result<Vec<Project>, String> {
         .map_err(|e| format!("scan_projects task join: {e}"))
 }
 
+/// One row returned by `disk_scan_git_repos` — a real `.git` directory
+/// found on disk via filesystem walk, regardless of Claude Code activity.
+#[derive(Serialize, Clone)]
+pub struct DiskGitRepo {
+    pub path: String,
+    pub name: String,
+    /// `origin` remote URL if the repo has one; empty string otherwise.
+    pub remote: String,
+}
+
+/// Directory names we never recurse into — keep the walk fast and avoid
+/// false-positive "git repo" hits inside vendor / build / cache trees.
+const DISK_SCAN_PRUNE: &[&str] = &[
+    "node_modules",
+    "target",          // Rust / Cargo
+    "dist",
+    "build",
+    ".next",
+    ".nuxt",
+    "out",
+    ".cache",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".idea",
+    ".vscode",
+    "vendor",          // PHP / Go
+    "Library",         // macOS / WSL artifacts under home
+    "AppData",         // Windows: massive subtree, never user code
+];
+
+fn disk_scan_walk(
+    dir: &Path,
+    depth: u32,
+    max_depth: u32,
+    out: &mut Vec<DiskGitRepo>,
+) {
+    if depth > max_depth {
+        return;
+    }
+    // If this directory IS a git repo (has `.git`), record it and STOP
+    // recursing into subdirs — we don't want to surface every submodule
+    // as its own project.
+    let dot_git = dir.join(".git");
+    if dot_git.exists() {
+        let name = dir
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("repo")
+            .to_string();
+        let remote = silent_command("git")
+            .args(["-C"])
+            .arg(dir)
+            .args(["remote", "get-url", "origin"])
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+            .unwrap_or_default();
+        out.push(DiskGitRepo {
+            path: dir.to_string_lossy().into_owned(),
+            name,
+            remote,
+        });
+        return;
+    }
+    // Otherwise descend into subdirs (bounded by max_depth + prune list).
+    let entries = match fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(_) => return,
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let Some(name) = path.file_name().and_then(|s| s.to_str()) else {
+            continue;
+        };
+        if name.starts_with('.') && name != ".git" {
+            // Skip hidden dirs (.config, .ssh, etc.) — too much noise and
+            // user code rarely lives behind a leading dot. The .git case
+            // is handled above before recursion.
+            continue;
+        }
+        if DISK_SCAN_PRUNE.iter().any(|p| *p == name) {
+            continue;
+        }
+        disk_scan_walk(&path, depth + 1, max_depth, out);
+    }
+}
+
+fn disk_scan_git_repos_blocking(
+    roots: Vec<String>,
+    max_depth: u32,
+) -> Vec<DiskGitRepo> {
+    let mut out: Vec<DiskGitRepo> = Vec::new();
+    let mut seen: std::collections::HashSet<String> = Default::default();
+    for raw in roots {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let root = Path::new(trimmed);
+        if !root.is_dir() {
+            continue;
+        }
+        let canonical = match fs::canonicalize(root) {
+            Ok(c) => strip_unc_prefix(c),
+            Err(_) => root.to_path_buf(),
+        };
+        if !seen.insert(canonical.to_string_lossy().into_owned()) {
+            continue;
+        }
+        disk_scan_walk(&canonical, 0, max_depth, &mut out);
+    }
+    // Sort by name for stable rendering.
+    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    out
+}
+
+/// Sensible starting points for `disk_scan_git_repos`. Returns the
+/// well-known dev parent dirs that ALSO exist on the user's machine
+/// (no point sending the renderer a path that doesn't resolve). All
+/// paths derive from `dirs_home()` so this is universal across users.
+#[tauri::command]
+async fn default_disk_scan_roots() -> Vec<String> {
+    tokio::task::spawn_blocking(|| {
+        let mut out: Vec<String> = Vec::new();
+        let Some(home) = dirs_home() else {
+            return out;
+        };
+        let onedrive = home.join("OneDrive");
+        let candidates: [PathBuf; 8] = [
+            home.join("Desktop").join("Code"),
+            home.join("Desktop"),
+            onedrive.join("Desktop").join("Code"),
+            onedrive.join("Desktop"),
+            home.join("Documents").join("Code"),
+            home.join("Documents").join("GitHub"),
+            home.join("Code"),
+            home.join("dev"),
+        ];
+        for p in candidates {
+            if p.is_dir() {
+                let s = p.to_string_lossy().into_owned();
+                if !out.contains(&s) {
+                    out.push(s);
+                }
+            }
+        }
+        out
+    })
+    .await
+    .unwrap_or_default()
+}
+
+/// Walk a list of root directories looking for `.git` folders. Returns
+/// every git repo found, with optional remote URL.
+///
+/// Used by ProjectsView to surface repos the user has on disk but hasn't
+/// touched with Claude Code recently — those don't appear in the
+/// JSONL-driven `scan_projects` list.
+///
+/// Why bounded `max_depth` (default 4): unbounded walks of a `~` tree
+/// hit `node_modules`, `AppData`, etc. and become unusable. Combined
+/// with `DISK_SCAN_PRUNE` we keep the walk under a couple of seconds
+/// even on a populated `~/Code` tree.
+///
+/// Why we stop descending once `.git` is found: avoids treating
+/// submodules as separate projects.
+#[tauri::command]
+async fn disk_scan_git_repos(
+    roots: Vec<String>,
+    max_depth: Option<u32>,
+) -> Result<Vec<DiskGitRepo>, String> {
+    let depth = max_depth.unwrap_or(4).min(8);
+    tokio::task::spawn_blocking(move || disk_scan_git_repos_blocking(roots, depth))
+        .await
+        .map_err(|e| format!("disk_scan_git_repos task join: {e}"))
+}
+
 #[derive(Serialize, Clone)]
 pub struct CleanupItem {
     pub category: String,
@@ -4247,6 +4429,8 @@ pub fn run() {
         ))
         .invoke_handler(tauri::generate_handler![
             scan_projects,
+            disk_scan_git_repos,
+            default_disk_scan_roots,
             git_last_commit,
             engram_known_projects,
             engram_project_goal,
