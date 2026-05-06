@@ -148,6 +148,27 @@ const STRINGS = {
     en: "Will create a private repo named {name} (gh login pending)",
     es: "Se va a crear un repo privado llamado {name} (falta login en gh)",
   },
+  "sync.gh_repos_title": {
+    en: "All your GitHub repos",
+    es: "Todos tus repos de GitHub",
+  },
+  "sync.gh_repos_lead": {
+    en: "Browse every repo gh sees and clone any of them — independent of sync metadata.",
+    es: "Navegá todos los repos que ve gh y cloná cualquiera — independiente del metadata de sync.",
+  },
+  "sync.gh_repos_search_placeholder": {
+    en: "Filter repos…",
+    es: "Filtrar repos…",
+  },
+  "sync.gh_repos_empty": {
+    en: "No repos visible to gh. Check `gh auth status`.",
+    es: "Ningún repo visible para gh. Revisá `gh auth status`.",
+  },
+  "sync.gh_repos_empty_search": {
+    en: "No repos match the filter.",
+    es: "Ningún repo coincide con el filtro.",
+  },
+  "sync.gh_repo_private": { en: "private", es: "privado" },
   "cleanup.confirm_title": {
     en: "Delete files?",
     es: "¿Borrar archivos?",

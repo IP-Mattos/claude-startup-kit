@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.32 — 2026-05-05
+
+GitHub repo browser — feature.
+
+### Added
+- **"Todos tus repos de GitHub" card in the Sync tab.** Lists every repo `gh` can see (own + collaborator) — independent of sync metadata. Per-row Clone button reuses the existing `clone_project` IPC, so the path-traversal + scheme + flag-injection guards from v0.1.16 still apply. Search filter matches against name, full-name, and description. Privacy badge on private repos.
+- **`gh_list_repos` IPC** — runs `gh repo list --limit 100 --json …`, parses into a renderer-friendly `GhRepo` shape (`name`, `full_name`, `description`, `url`, `clone_url`, `updated_at`, `is_private`). Detects unauthenticated `gh` and surfaces a clear "corré `gh auth login`" hint instead of leaking gh's multi-line stderr.
+
+### Why this is a separate card from "Proyectos en este remoto"
+Different scope and trust model:
+- **Sync card** — projects in YOUR sync mirror (the engram-cloud repo). Curated set, syncs metadata between your machines.
+- **GitHub repos card** — every repo the `gh` user can see, including ones you've never touched in CSK. Lives outside the sync flow so it works without sync setup.
+
+### Limit: 100 repos
+`gh repo list` paginates beyond that; we don't chain pages today. If a user has more than 100 repos we'll add `--paginate` and a streaming loop later — flagged in the IPC comment.
+
 ## 0.1.31 — 2026-05-05
 
 Audit-deferred refactor: kill the AppV3-vs-views double-fetch.
