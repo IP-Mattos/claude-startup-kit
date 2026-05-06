@@ -3800,6 +3800,98 @@ fn sync_status() -> Result<SyncState, String> {
     Ok(read_sync_state())
 }
 
+/// State of the local sync mirror vs the remote — the user's "another
+/// machine has pushed; you should pull" awareness. Returned by
+/// `sync_remote_status` IPC so SyncView can surface a banner without the
+/// user having to remember to import periodically.
+#[derive(Serialize, Clone)]
+pub struct SyncRemoteStatus {
+    pub configured: bool,
+    /// True if the remote HEAD points at a different commit than ours.
+    pub behind: bool,
+    pub remote_sha: String,
+    pub local_sha: String,
+    /// Empty on the happy path. Populated when we couldn't reach the
+    /// remote (offline, auth dropped, etc.) so the renderer can surface
+    /// a passive hint instead of a hard error — sync still works
+    /// manually if the user wants to retry.
+    pub error: String,
+}
+
+/// Compare the local sync mirror's HEAD against the remote's `HEAD` ref
+/// without pulling anything. Used by SyncView to nudge the user when
+/// another machine has pushed since our last import — without this, the
+/// user has to remember to click Import on a schedule.
+///
+/// `git ls-remote origin HEAD` is the cheap path: a single round-trip to
+/// the remote, no fetch, no working-tree update. Comparing the returned
+/// SHA against our local `git rev-parse HEAD` tells us whether we're
+/// behind.
+///
+/// Errors are non-fatal: if `ls-remote` fails (offline, transient gh
+/// auth issue), we surface it via the `error` field but keep
+/// `configured=true` so the UI doesn't pretend sync is broken.
+#[tauri::command]
+async fn sync_remote_status() -> Result<SyncRemoteStatus, String> {
+    tokio::task::spawn_blocking(|| -> Result<SyncRemoteStatus, String> {
+        let state = read_sync_state();
+        if !state.configured {
+            return Ok(SyncRemoteStatus {
+                configured: false,
+                behind: false,
+                remote_sha: String::new(),
+                local_sha: String::new(),
+                error: String::new(),
+            });
+        }
+        let repo_dir = sync_repo_dir()
+            .ok_or_else(|| "home dir unavailable".to_string())?;
+        if !repo_dir.exists() {
+            return Ok(SyncRemoteStatus {
+                configured: true,
+                behind: false,
+                remote_sha: String::new(),
+                local_sha: String::new(),
+                error: "Sync repo missing — run setup again".to_string(),
+            });
+        }
+        let local_sha = git_in(&repo_dir, &["rev-parse", "HEAD"]).unwrap_or_default();
+        let remote_out = silent_command("git")
+            .current_dir(&repo_dir)
+            .args(["ls-remote", "origin", "HEAD"])
+            .output()
+            .map_err(|e| format_spawn_error("git", &e))?;
+        if !remote_out.status.success() {
+            let stderr = String::from_utf8_lossy(&remote_out.stderr);
+            return Ok(SyncRemoteStatus {
+                configured: true,
+                behind: false,
+                remote_sha: String::new(),
+                local_sha,
+                error: format!("git ls-remote: {}", stderr.trim()),
+            });
+        }
+        let remote_text = String::from_utf8_lossy(&remote_out.stdout);
+        let remote_sha = remote_text
+            .split_whitespace()
+            .next()
+            .unwrap_or("")
+            .to_string();
+        let behind = !remote_sha.is_empty()
+            && !local_sha.is_empty()
+            && remote_sha != local_sha;
+        Ok(SyncRemoteStatus {
+            configured: true,
+            behind,
+            remote_sha,
+            local_sha,
+            error: String::new(),
+        })
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 // Run a `git` subcommand inside the sync repo. Returns combined output
 // trimmed of trailing whitespace. Used to keep call sites short.
 fn git_in(repo: &Path, args: &[&str]) -> Result<String, String> {
@@ -4454,6 +4546,7 @@ pub fn run() {
             open_stack_install_wizard,
             workspace_summary,
             sync_status,
+            sync_remote_status,
             sync_setup,
             gh_username,
             sync_export,

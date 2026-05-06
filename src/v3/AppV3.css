@@ -1774,6 +1774,29 @@ body.v3-layout #root {
   color: var(--v3-text);
 }
 
+/* ========== Sync "remote ahead of local" banner. Surfaced at the top of
+   the SyncCard when ls-remote shows the remote HEAD diverged from ours,
+   nudging the user to import. Quieter than .v3-error (it's not a
+   problem, just an FYI) but more prominent than .v3-row-meta. ========== */
+.v3-sync-behind {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  background: var(--v3-warn-tint, #FEF3C7);
+  border: 1px solid var(--v3-warn, #F59E0B);
+  border-radius: var(--v3-radius-sm);
+  color: var(--v3-text);
+  margin-bottom: 8px;
+}
+.v3-sync-behind strong {
+  font-weight: 600;
+}
+.v3-sync-behind p {
+  margin: 4px 0 0;
+}
+
 /* ========== Empty / loading state ========== */
 .v3-empty {
   padding: 24px 16px;

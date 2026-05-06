@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.34 — 2026-05-05
+
+Engram Cloud awareness — completes the multi-machine sync UX.
+
+### Added
+- **`sync_remote_status` IPC.** Cheap `git ls-remote origin HEAD` against the user's sync mirror — no fetch, no working-tree update — comparing the returned SHA against `git rev-parse HEAD` locally. Returns a `SyncRemoteStatus` with `configured`, `behind`, `remote_sha`, `local_sha`, and a non-fatal `error` field (offline, transient gh auth issue → keeps sync usable manually).
+- **"Otra máquina hizo push" banner in SyncCard.** Surfaces when `behind=true` with an Import CTA. Hides on its own once the user imports. Refreshes after every export/import action so it's always current.
+
+### Why this matters
+Before this PR, the multi-machine flow was: machine A exports → machine B has to remember to click Import. No nudge, no awareness. The user could go days without realizing remote engram has new memory. Now CSK pings the remote on mount and surfaces it.
+
+### Why ls-remote and not full fetch
+`ls-remote` is one round-trip and modifies nothing. A full `git fetch` would update `refs/remotes/origin/*` and could surprise the user later if they ran a manual git command in the sync repo. Awareness ≠ side effects.
+
 ## 0.1.33 — 2026-05-05
 
 Disk scan for `.git` repos — feature.
