@@ -3484,6 +3484,31 @@ fn git_in(repo: &Path, args: &[&str]) -> Result<String, String> {
     Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
+/// Run a `git commit` (or any identity-requiring git command) without
+/// depending on the user having `user.name` / `user.email` set globally.
+///
+/// Why: on a fresh Windows install or a dev machine where the user uses
+/// CSK before configuring git, plain `git commit` fails with `Author
+/// identity unknown — Please tell me who you are`. We refuse to touch
+/// the user's global git config (per project policy — see CLAUDE.md and
+/// the global rule "NEVER update the git config"), so we pass the
+/// identity inline via `-c` flags instead.
+///
+/// The identity is a CSK-bot value, not the user's real name/email. Sync
+/// commits get squash-amended on every push so author history isn't
+/// useful anyway; the only thing that matters is that `git commit`
+/// succeeds.
+fn git_commit_in(repo: &Path, args: &[&str]) -> Result<String, String> {
+    let mut prefixed: Vec<&str> = vec![
+        "-c",
+        "user.name=Claude Startup Kit Sync",
+        "-c",
+        "user.email=csk-sync@local",
+    ];
+    prefixed.extend_from_slice(args);
+    git_in(repo, &prefixed)
+}
+
 // Returns the authenticated `gh` user's login. Used in SyncView to preview
 // the full repo path the user is about to create (`<login>/<repo_name>`)
 // without having to run the actual `sync_setup` first. Returns an empty
@@ -3590,7 +3615,7 @@ async fn sync_setup(repo_name: String) -> Result<SyncState, String> {
             fs::write(&initial, "{}").map_err(|e| format!("seed export: {e}"))?;
             git_in(&repo_dir, &["add", SYNC_FILE_NAME])?;
             // Ignore commit errors when there's nothing to commit (rare).
-            let _ = git_in(&repo_dir, &["commit", "-m", "init: csk sync"]);
+            let _ = git_commit_in(&repo_dir, &["commit", "-m", "init: csk sync"]);
             let _ = git_in(&repo_dir, &["push", "-u", "origin", "HEAD"]);
         }
 
@@ -3647,14 +3672,26 @@ async fn sync_export() -> Result<SyncState, String> {
         // Stage + amend (squash history into a single commit). If there's
         // no prior commit yet, fall back to a regular commit.
         git_in(&repo_dir, &["add", SYNC_FILE_NAME, SYNC_PROJECTS_FILE])?;
+        // Both branches need identity injected — without it, `git commit`
+        // fails with "Author identity unknown" on machines where the user
+        // never set `user.name` / `user.email` globally.
         let amend = silent_command("git")
             .current_dir(&repo_dir)
-            .args(["commit", "--amend", "-m", "sync"])
+            .args([
+                "-c",
+                "user.name=Claude Startup Kit Sync",
+                "-c",
+                "user.email=csk-sync@local",
+                "commit",
+                "--amend",
+                "-m",
+                "sync",
+            ])
             .output()
             .map_err(|e| format_spawn_error("git", &e))?;
         if !amend.status.success() {
             // No commit to amend (fresh repo) — make the first one.
-            git_in(&repo_dir, &["commit", "-m", "sync"])?;
+            git_commit_in(&repo_dir, &["commit", "-m", "sync"])?;
         }
         // --force-with-lease refuses if remote moved unexpectedly.
         git_in(&repo_dir, &["push", "--force-with-lease", "origin", "HEAD"])?;

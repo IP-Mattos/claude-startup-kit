@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.27 — 2026-05-05
+
+### Fixed
+- **Sync no longer fails with `Author identity unknown`** on machines where the user never set `user.email` / `user.name` globally. CSK was running plain `git commit` in the sync repo, which git refuses without an identity. New `git_commit_in` helper passes the identity inline via `-c user.name=… -c user.email=…` (CSK-bot values: `Claude Startup Kit Sync <csk-sync@local>`) so the commit succeeds without us touching the user's global git config — same shape as the inline identity we use for release tags. Applied to all three commit callsites: `init: csk sync` first commit, `sync` amend, and the `sync` fallback when there's no prior commit.
+
 ## 0.1.26 — 2026-05-05
 
 ### Fixed
