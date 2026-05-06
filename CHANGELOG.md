@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.1.29 — 2026-05-05
+
+Audit-deferred robustness batch — four resilience fixes against upstream drift, race conditions, and IPC blocking.
+
+### Fixed
+- **`engram_known_projects` no longer blocks the IPC thread on cold cache.** Was a sync `fn` calling `known_projects_cached()` which on cache miss shells out to `engram projects list` — 1-3s on slow disk or first run after machine boot. The sync IPC blocked Tauri's IPC thread, freezing the UI on first AppV3 mount. Now async + `spawn_blocking`.
+- **`apply_stack_update` taskkill list is dynamic.** Was hardcoded to `["engram", "gga"]` (v0.1.14). When gentle-ai upstream adds a new managed tool that runs as a background process (e.g. `opencode-*`), the upgrade silently failed with a "rename" error from a locked binary. New `discover_stack_tool_names()` parses `gentle-ai update` to get the actual installed list. Falls back to the hardcoded names if discovery fails.
+- **`apply_stack_update` taskkill→upgrade race window widened from 800 ms to 1500 ms.** Defender's real-time scan was observed holding handles to just-killed binaries on contended machines, causing the rename inside `gentle-ai upgrade` to fail with "Access is denied". 1.5 s is empirically enough.
+- **Friendly error when an upgrade fails because a binary is locked.** Was leaking the raw stderr ("Access is denied. (os error 5)") to the UI. Now returns: *"Una herramienta del stack tenía un binario bloqueado durante el upgrade. Cerrá Claude Code y todas las terminales abiertas, y dale 'Actualizar todo' otra vez."*
+- **`check_stack_update` parser sentinel.** If `gentle-ai update` printed bracketed table-shape lines (`[ok] foo …`, `[--] bar …`) but `parse_gentle_ai_update_line` matched zero rows, we used to silently return an empty list — looked like "no managed tools" to the user even though tools were there. Now returns a distinct error pointing at upstream format drift, with hint to upgrade gentle-ai.
+
+### Added
+- **`discover_stack_tool_names(program)`** helper — runtime discovery of managed-tool names from `gentle-ai update` output.
+
+### Renamed
+- `STACK_TOOL_PROCESS_NAMES` → `STACK_TOOL_PROCESS_NAMES_FALLBACK` to clarify it's now the fallback path, not the source of truth.
+
+### Out of scope (deferred to v0.1.30)
+- `engram_project_goal` returns silent `None` on engram failure (indistinguishable from "no goal saved"). Real fix is changing the return shape — bigger refactor with frontend impact.
+- AppV3 + view double-fetch refactor (lift state to context).
+- CSP `'unsafe-inline'` hardening.
+
 ## 0.1.28 — 2026-05-05
 
 ### Fixed

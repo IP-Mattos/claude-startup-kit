@@ -1780,8 +1780,16 @@ fn known_projects_cached() -> Vec<String> {
 }
 
 #[tauri::command]
-fn engram_known_projects() -> Vec<String> {
-    known_projects_cached()
+async fn engram_known_projects() -> Vec<String> {
+    // Wrap in spawn_blocking so a cold cache (which shells out to
+    // `engram projects list`, ~1-3s on slow disk / engram first run)
+    // doesn't block the Tauri IPC thread. Without this, AppV3's
+    // mount-time fetch could freeze the UI for the duration. Returns
+    // an empty Vec on join error — caller already treats "no projects"
+    // as a benign empty state.
+    tokio::task::spawn_blocking(known_projects_cached)
+        .await
+        .unwrap_or_default()
 }
 
 fn resolve_engram_project(leaf: &str, known: &[String]) -> String {
@@ -3221,6 +3229,24 @@ async fn check_stack_update() -> Result<Vec<StackToolStatus>, String> {
             .lines()
             .filter_map(parse_gentle_ai_update_line)
             .collect::<Vec<_>>();
+        // Sentinel: if gentle-ai printed lines that LOOK like the table
+        // shape (`[ok] foo …`, `[--] bar …`, `[!] baz …`) but our parser
+        // matched zero rows, the upstream format probably changed. Surface
+        // it loudly instead of silently claiming "no managed tools" — a
+        // silent format drift would gaslight users about what's installed.
+        let bracket_lines = stdout
+            .lines()
+            .filter(|l| {
+                let t = l.trim_start();
+                t.starts_with('[') && t.find(']').is_some_and(|i| i < 8)
+            })
+            .count();
+        if bracket_lines > 0 && rows.is_empty() {
+            return Err(format!(
+                "gentle-ai update output unrecognized: {bracket_lines} bracketed lines but parser matched 0. \
+                 Upstream probably changed the format — actualizá gentle-ai (gentle-ai upgrade) y/o reportá si persiste."
+            ));
+        }
         // Detection-override: gentle-ai's installation detector occasionally
         // reports a tool as `[--]` (not installed) when the binary is in
         // fact reachable on the user's machine. When that happens we fall
@@ -3251,16 +3277,49 @@ async fn check_stack_update() -> Result<Vec<StackToolStatus>, String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
-/// Tools whose binaries can be live when the upgrade runs. On Windows a
-/// running .exe can't be renamed/replaced, so `gentle-ai upgrade` fails with
-/// "rename ...engram-upgrade-NNN" errors. We taskkill these before delegating
-/// to gentle-ai. The upstream tool doesn't do this dance itself; CSK fills
-/// the gap so the user gets a clean single-click "update all" experience.
+/// Fallback list of managed tool process names we know about — used only
+/// when `discover_stack_tool_names()` can't reach `gentle-ai update`. The
+/// runtime discovery path is preferred so new tools added by upstream
+/// (opencode-*, future additions) participate automatically without code
+/// changes here. On Windows a running .exe can't be renamed/replaced, so
+/// `gentle-ai upgrade` fails with "rename ...engram-upgrade-NNN" errors —
+/// we taskkill these before delegating to gentle-ai.
 ///
 /// Claude Code re-spawns its MCP servers (engram, etc.) on the next session,
 /// so killing them mid-app is recoverable — the user just won't have engram
 /// available in *currently open* Claude Code instances until they reload.
-const STACK_TOOL_PROCESS_NAMES: &[&str] = &["engram", "gga"];
+const STACK_TOOL_PROCESS_NAMES_FALLBACK: &[&str] = &["engram", "gga"];
+
+/// Discover which managed-tool binaries are currently installed by parsing
+/// `gentle-ai update`. Returns the names of every tool whose state isn't
+/// `not_installed` — those are the ones that could have a live process
+/// holding their .exe and need a taskkill before the upgrade. Falls back
+/// to the hardcoded list on any failure (gentle-ai missing, format drift,
+/// network issue).
+fn discover_stack_tool_names(program: &str) -> Vec<String> {
+    let output = match silent_command(program).arg("update").output() {
+        Ok(o) if o.status.success() => o,
+        _ => return STACK_TOOL_PROCESS_NAMES_FALLBACK
+            .iter()
+            .map(|s| s.to_string())
+            .collect(),
+    };
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let names: Vec<String> = stdout
+        .lines()
+        .filter_map(parse_gentle_ai_update_line)
+        .filter(|row| row.state != "not_installed")
+        .map(|row| row.name)
+        .collect();
+    if names.is_empty() {
+        STACK_TOOL_PROCESS_NAMES_FALLBACK
+            .iter()
+            .map(|s| s.to_string())
+            .collect()
+    } else {
+        names
+    }
+}
 
 /// Run `gentle-ai upgrade` (applies updates to ALL managed tools in one call).
 ///
@@ -3280,32 +3339,57 @@ const STACK_TOOL_PROCESS_NAMES: &[&str] = &["engram", "gga"];
 #[tauri::command]
 async fn apply_stack_update() -> Result<String, String> {
     tokio::task::spawn_blocking(|| -> Result<String, String> {
-        // Kill any live instances of managed tool binaries. Errors here are
-        // best-effort (process might already be gone, or `taskkill` might
-        // need admin for some) — they don't block the upgrade attempt.
-        for name in STACK_TOOL_PROCESS_NAMES {
+        // Resolve gentle-ai first so we can both discover the runtime
+        // process-name list AND run the upgrade with the same binary.
+        let program = resolve_gentle_ai()
+            .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
+
+        // Kill any live instances of managed tool binaries. Names come
+        // from `gentle-ai update` so new upstream tools participate
+        // automatically — falls back to the hardcoded list if discovery
+        // fails. Errors are best-effort (process might already be gone,
+        // or `taskkill` might need admin for some).
+        let process_names = discover_stack_tool_names(&program);
+        for name in &process_names {
             let _ = silent_command("taskkill")
                 .args(["/IM", &format!("{}.exe", name), "/F"])
                 .output();
         }
-        // Tiny delay so Windows fully releases the file handles before
-        // gentle-ai tries to write.
-        std::thread::sleep(Duration::from_millis(800));
-
-        // Resolve gentle-ai's actual install location — same PATH-inheritance
-        // dance as check_stack_update / read_gentle_ai_version. Without this,
-        // the upgrade silently no-ops on auto-updated app instances.
-        let program = resolve_gentle_ai()
-            .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
+        // Bumped from 800ms — Defender's real-time scan has been observed
+        // holding handles to just-killed binaries on slow/contended
+        // machines, causing the rename-then-replace inside `gentle-ai
+        // upgrade` to fail with "Access is denied". 1.5s is empirically
+        // enough without making the user wait noticeably.
+        std::thread::sleep(Duration::from_millis(1500));
 
         // Phase 1 — `gentle-ai upgrade` for everything except gentle-ai itself.
+        // Reuses the `program` resolved at the top of the function (same
+        // PATH-inheritance dance as check_stack_update / read_gentle_ai_version
+        // — without it, the upgrade silently no-ops on auto-updated app
+        // instances).
         let out = silent_command(&program)
             .arg("upgrade")
             .output()
-            .map_err(|e| format!("spawn gentle-ai: {e}"))?;
+            .map_err(|e| format_spawn_error("gentle-ai", &e))?;
         if !out.status.success() {
             let stderr = String::from_utf8_lossy(&out.stderr);
             let stdout = String::from_utf8_lossy(&out.stdout);
+            // Friendly hint when Windows refused the rename-and-replace
+            // because something held a binary handle (Defender / running
+            // process / open VS Code window). The raw stderr alone says
+            // "Access is denied" with the temp filename — uninformative.
+            let combined = format!("{stderr}\n{stdout}");
+            let lower = combined.to_lowercase();
+            if lower.contains("access is denied")
+                || lower.contains("rename")
+                    && lower.contains("upgrade")
+            {
+                return Err(format!(
+                    "Una herramienta del stack tenía un binario bloqueado durante el upgrade. \
+                     Cerrá Claude Code y todas las terminales abiertas, y dale 'Actualizar todo' otra vez.\n\n\
+                     Detalle:\n{stderr}{stdout}"
+                ));
+            }
             return Err(format!("gentle-ai upgrade exited {}:\n{stderr}\n{stdout}", out.status));
         }
         let mut log = String::from_utf8_lossy(&out.stdout).into_owned();
