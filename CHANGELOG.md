@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.30 — 2026-05-05
+
+CSP hardening — security tier from the deferred audit list.
+
+### Fixed
+- **Dropped `'unsafe-inline'` from `script-src`.** The CSP now reads `script-src 'self'` instead of `script-src 'self' 'unsafe-inline'`. `'unsafe-inline'` allows any inline `<script>…</script>` to execute, which defeats most of CSP's anti-XSS value: a renderer-side injection (XSS in a third-party dep, accidentally `dangerouslySetInnerHTML` of attacker-controlled HTML, etc.) could land arbitrary script in the WebView. With this change, only scripts served from `'self'` (the bundle root) execute — inline payloads are blocked by the WebView before they run.
+
+### Refactored
+- **Anti-FOUC theme bootstrap moved from inline `<script>` in `index.html` to `public/anti-fouc.js`** so the new CSP can take effect. Loaded via `<script src="/anti-fouc.js"></script>` in `<head>` ahead of the main bundle — same paint timing as before, no flash regression. Vite copies `public/*` into the bundle root verbatim, so `'self'` covers it.
+
+### Note (out of scope)
+- `style-src 'unsafe-inline'` stays for now. Removing it requires nonce/hash on every inline `style` attribute and `<style>` tag emitted by React + UI helpers, which is significant churn for a smaller attack surface than scripts. Tracked for a later pass.
+
 ## 0.1.29 — 2026-05-05
 
 Audit-deferred robustness batch — four resilience fixes against upstream drift, race conditions, and IPC blocking.
@@ -17,10 +30,9 @@ Audit-deferred robustness batch — four resilience fixes against upstream drift
 ### Renamed
 - `STACK_TOOL_PROCESS_NAMES` → `STACK_TOOL_PROCESS_NAMES_FALLBACK` to clarify it's now the fallback path, not the source of truth.
 
-### Out of scope (deferred to v0.1.30)
+### Out of scope (deferred)
 - `engram_project_goal` returns silent `None` on engram failure (indistinguishable from "no goal saved"). Real fix is changing the return shape — bigger refactor with frontend impact.
 - AppV3 + view double-fetch refactor (lift state to context).
-- CSP `'unsafe-inline'` hardening.
 
 ## 0.1.28 — 2026-05-05
 
