@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.28 — 2026-05-05
+
+### Fixed
+- **Projects view shows monorepos now**. User reported only 2 of ~7 active projects were appearing. Root cause: `scan_projects` required a project marker (`.git`, `package.json`, etc.) on the folder itself. Folders like `PetsNew/` (a Laravel + landing-page meta-project where the user runs Claude Code at the parent but each child — `pets/composer.json`, `landing/index.html` — carries the marker) were filtered out.
+
+  New filter logic:
+  1. **Hard-reject if the cwd is a known umbrella** (`~`, `~/Desktop`, `~/Documents`, `~/Downloads`, `~/Music`, `~/Pictures`, `~/Videos`, the same set under `~/OneDrive/`, plus `~/OneDrive/Desktop/Code`). All paths derived from `dirs_home()` so they're universal across users.
+  2. **Accept if the folder has a marker OR any immediate subfolder does** (the monorepo case).
+
+  Step 1 is necessary because step 2 would otherwise admit `Desktop` as a "monorepo" — every dev child under it has `.git`. The umbrella blocklist is the explicit cutoff.
+
+### Note (not a bug, addressed in user-facing message)
+- The Sync card's "Proyectos en este remoto" list shows only **local git repos with a configured remote**. If a user has 8 GitHub repos but only 2 cloned locally with `origin` set, only those 2 appear. Sync is for syncing project metadata between the user's machines, not for surfacing arbitrary GitHub repos. The latter would be a separate feature (`gh repo list` browsing) — not shipped in v0.1.28.
+
 ## 0.1.27 — 2026-05-05
 
 ### Fixed
