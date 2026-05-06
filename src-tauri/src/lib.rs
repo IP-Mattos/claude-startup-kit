@@ -4246,12 +4246,18 @@ pub struct GhRepo {
 #[tauri::command]
 async fn gh_list_repos() -> Result<Vec<GhRepo>, String> {
     tokio::task::spawn_blocking(|| -> Result<Vec<GhRepo>, String> {
+        // `--limit 1000` plays nicer than `--paginate` here: gh's
+        // pagination flag streams JSON arrays per page, requiring extra
+        // glue to merge. With a flat 1000 cap we cover virtually every
+        // user (typical accounts have a few hundred repos) in a single
+        // round trip and a single JSON parse. If a user has more than
+        // 1000 repos, an explicit `--paginate` rewrite is the next step.
         let out = silent_command("gh")
             .args([
                 "repo",
                 "list",
                 "--limit",
-                "100",
+                "1000",
                 "--json",
                 "name,nameWithOwner,description,url,updatedAt,isPrivate",
             ])

@@ -42,10 +42,35 @@ export default function AppV3() {
   const [prs, setPrs] = useState<GhPullRequest[]>([]);
   const [findings, setFindings] = useState<AuditFinding[]>([]);
   const [goals, setGoals] = useState<Record<string, string | null>>({});
+  // Full enrichment (goal + git_last_commit) shared with ProjectsView so
+  // it doesn't run a parallel enrichProjects call. OverviewView still
+  // reads the lighter `goals` map (it doesn't need git info).
+  const [enrichment, setEnrichment] = useState<
+    Record<string, ProjectEnrichment>
+  >({});
   const [loading, setLoading] = useState(true);
   const [lastScanAt, setLastScanAt] = useState<number | null>(null);
   const [lastScanTick, setLastScanTick] = useState(0); // forces re-render of "X ago"
   const [refreshNonce, setRefreshNonce] = useState(0);
+  // Window days for scan_projects, lifted from ProjectsView so AppV3 +
+  // Projects share one fetch instead of duplicating it. Persisted to
+  // localStorage so the user's choice survives reloads.
+  const [windowDays, setWindowDays] = useState<number>(() => {
+    const saved = parseInt(
+      typeof window !== "undefined"
+        ? (window.localStorage.getItem("csk-window-days") ?? "")
+        : "",
+      10,
+    );
+    return Number.isFinite(saved) && saved > 0 ? saved : 14;
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("csk-window-days", String(windowDays));
+    } catch {
+      /* storage full / locked — ignore */
+    }
+  }, [windowDays]);
   // Per-source fetch errors — surfaced via the retry banner so backend
   // failures stop masquerading as empty states.
   const [fetchErrors, setFetchErrors] = useState<{ source: string; msg: string }[]>([]);
@@ -145,7 +170,7 @@ export default function AppV3() {
         };
       try {
         const [projectsP, knownP, findingsP, prsP] = [
-          invoke<Project[]>("scan_projects", { windowDays: 14 }).catch(
+          invoke<Project[]>("scan_projects", { windowDays }).catch(
             trap<Project[]>("Projects", [])
           ),
           invoke<string[]>("engram_known_projects").catch(
@@ -182,6 +207,7 @@ export default function AppV3() {
         setPrs(prsRes);
         setFindings(findingsRes);
         setGoals(goalMap);
+        setEnrichment(enrichment);
         setLastScanAt(Date.now());
         setFetchErrors(errors);
       } catch (e) {
@@ -199,7 +225,7 @@ export default function AppV3() {
     return () => {
       cancelled = true;
     };
-  }, [refreshNonce]);
+  }, [refreshNonce, windowDays]);
 
   // Tick for "X ago" updates every 30s.
   useEffect(() => {
@@ -396,7 +422,15 @@ export default function AppV3() {
               onCycleTheme={handleCycleTheme}
             />
           )}
-          {tab === "projects" && <ProjectsView />}
+          {tab === "projects" && (
+            <ProjectsView
+              projects={projects}
+              enrichment={enrichment}
+              loading={loading}
+              windowDays={windowDays}
+              setWindowDays={setWindowDays}
+            />
+          )}
           {tab === "prs" && (
             <PrsView prs={prs} loading={loading} onRefresh={handleRunAudit} />
           )}

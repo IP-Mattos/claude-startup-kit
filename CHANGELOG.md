@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.35 — 2026-05-05
+
+Cleanup batch — finishes the audit refactor + raises the GitHub repo cap.
+
+### Refactored
+- **`ProjectsView` no longer fetches `scan_projects` independently.** AppV3 now owns `windowDays` (lifted from ProjectsView's local state, still persisted to `csk-window-days` in localStorage) and fetches with it. ProjectsView consumes `projects` / `enrichment` / `loading` / `windowDays` / `setWindowDays` as props. The dropdown still drives a re-fetch — but only one, shared with Overview. Closes the last "intentionally left" item from v0.1.31's note.
+- **AppV3 also exposes the full `enrichment` map** (was deriving only `goals`). ProjectsView reads git info + goals from the same map; Overview keeps reading the lighter `goals`.
+
+### Changed
+- **`gh_list_repos --limit 100` → `--limit 1000`.** Removes the 100-repo cap from the GitHub repo browser. Single-round-trip implementation stays simple; if anyone has >1000 repos a future PR can switch to `--paginate`. Comment in the IPC explains the trade-off.
+
 ## 0.1.34 — 2026-05-05
 
 Engram Cloud awareness — completes the multi-machine sync UX.
