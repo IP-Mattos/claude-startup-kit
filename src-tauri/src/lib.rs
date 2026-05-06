@@ -1935,7 +1935,17 @@ fn validate_open_path(path: &str) -> Result<PathBuf, String> {
     let canonical = p
         .canonicalize()
         .map_err(|e| format!("canonicalize {trimmed}: {e}"))?;
-    Ok(canonical)
+    // Strip the `\\?\` UNC long-path prefix that `canonicalize` adds on
+    // Windows. Without this, every consumer of validate_open_path (most
+    // notably `open_in_vscode`) hands VS Code a path like
+    // `\\?\C:\Users\foo\bar`. VS Code stores that verbatim in its
+    // workspace state — when the Claude Code extension's activation
+    // iterates `vscode.workspace.workspaceFolders` it crashes with
+    // `TypeError: V is not iterable` and the sidebar (`claudeVSCodeSidebar*`)
+    // refuses to load. The user reported this was a regression from
+    // opening projects via CSK vs Explorer — Explorer's "Open with Code"
+    // never produces UNC-prefixed paths.
+    Ok(strip_unc_prefix(canonical))
 }
 
 /// Audit-Resolver-only delete helper for files outside `cleanup_apply`'s
