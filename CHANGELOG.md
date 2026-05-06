@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.33 — 2026-05-05
+
+Disk scan for `.git` repos — feature.
+
+### Added
+- **"Más repos en disco" section in the Projects tab.** Below the Claude-Code-activity list, a new section walks common dev parent dirs (`~/Desktop/Code`, `~/OneDrive/Desktop/Code`, `~/Desktop`, `~/OneDrive/Desktop`, `~/Documents/Code`, `~/Documents/GitHub`, `~/Code`, `~/dev` — only the ones that exist) for `.git/` directories. Click "Buscar ahora" to run the walk; results filter out anything already in the Claude-active list. Each row has Open / Explorer buttons (same shape as the existing rows) so the user can act immediately. Closes the gap the user hit on v0.1.28: "claude-startup-kit doesn't appear because I never ran `claude` inside it."
+- **`disk_scan_git_repos(roots, max_depth?)` IPC** — bounded recursive walk that stops descending once a `.git` is found (no submodule double-counting). Default depth 4, capped at 8 in the IPC. Prunes `node_modules`, `target`, `dist`, `build`, `.next`, `.cache`, `.venv`, `vendor`, `AppData`, etc. so the walk stays under a couple of seconds even on populated trees. Returns each repo's `path`, `name`, and `origin` remote (when present).
+- **`default_disk_scan_roots()` IPC** — resolves a sensible starting list of dev parent dirs from `dirs_home()`. Returns only paths that exist on the user's machine, so the renderer doesn't have to enumerate non-existent candidates.
+
+### Why bounded depth + prune list
+Unbounded walks of `~` hit `node_modules` (~100k files), `AppData`, `Library`, etc. and become unusable. Combined with the prune list, the walk stays in user-code territory.
+
+### Why we stop descending once `.git` is found
+Avoids surfacing every git submodule as a separate "project". The user wants their top-level repos, not the `node_modules/foo/.git` pseudo-repo.
+
 ## 0.1.32 — 2026-05-05
 
 GitHub repo browser — feature.

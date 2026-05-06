@@ -420,6 +420,21 @@ const STRINGS = {
     es: 'Ningún proyecto coincide con "{q}".',
   },
   "projects.open_in_explorer": { en: "Open in Explorer", es: "Abrir en Explorer" },
+  "projects.disk_scan_title": {
+    en: "More repos on disk",
+    es: "Más repos en disco",
+  },
+  "projects.disk_scan_lead": {
+    en: "Walks common dev folders looking for .git/. Surfaces repos that aren't in the Claude Code activity list above.",
+    es: "Recorre carpetas dev típicas buscando .git/. Aparecen repos que no están en la lista de actividad de Claude Code de arriba.",
+  },
+  "projects.disk_scan_run": { en: "Search now", es: "Buscar ahora" },
+  "projects.disk_scan_rerun": { en: "Search again", es: "Buscar de nuevo" },
+  "projects.disk_scan_running": { en: "Searching…", es: "Buscando…" },
+  "projects.disk_scan_empty": {
+    en: "No additional git repos found in the default scan locations.",
+    es: "No se encontraron repos git adicionales en las ubicaciones por defecto.",
+  },
 
   // PRs view
   "prs.title": { en: "Pull Requests", es: "Pull Requests" },
