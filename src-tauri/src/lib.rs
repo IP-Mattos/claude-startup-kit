@@ -3944,6 +3944,96 @@ async fn sync_listed_projects() -> Result<Vec<SyncedProject>, String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+/// One row returned by `gh_list_repos` — every repo the authenticated `gh`
+/// user owns or is a collaborator on. Renderer-friendly subset of what
+/// `gh repo list --json` returns.
+#[derive(Serialize, Clone)]
+pub struct GhRepo {
+    pub name: String,
+    /// `owner/name` form — matches Sync's `repo_full_name`.
+    pub full_name: String,
+    pub description: String,
+    pub url: String,
+    /// `https://github.com/<owner>/<name>.git` — what we hand to `git clone`.
+    pub clone_url: String,
+    pub updated_at: String,
+    pub is_private: bool,
+}
+
+/// List every repo the authenticated `gh` user can see (own + collaborator).
+/// Used by SyncView to surface a "Tus repos en GitHub" picker so the user
+/// can clone any of them, not just the small subset already tracked in
+/// the sync mirror.
+///
+/// Bare `gh` shell-out — fails with a friendly hint if the CLI isn't
+/// authenticated. Limit 100 because `gh repo list` paginates beyond that
+/// and we don't want to chain pages today; if the user has more than 100
+/// repos we'll need `--paginate` and a streaming loop later.
+#[tauri::command]
+async fn gh_list_repos() -> Result<Vec<GhRepo>, String> {
+    tokio::task::spawn_blocking(|| -> Result<Vec<GhRepo>, String> {
+        let out = silent_command("gh")
+            .args([
+                "repo",
+                "list",
+                "--limit",
+                "100",
+                "--json",
+                "name,nameWithOwner,description,url,updatedAt,isPrivate",
+            ])
+            .output()
+            .map_err(|e| format_spawn_error("gh", &e))?;
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            // gh's "not authenticated" message is multi-line; flatten + hint.
+            if stderr.to_lowercase().contains("not logged") {
+                return Err(
+                    "gh CLI no autenticado. Corré 'gh auth login' en una terminal y volvé a darle Buscar.".to_string()
+                );
+            }
+            return Err(format!("gh repo list: {}", stderr.trim()));
+        }
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let raw: Vec<serde_json::Value> = serde_json::from_str(&stdout)
+            .map_err(|e| format!("parse gh output: {e}"))?;
+        let result: Vec<GhRepo> = raw
+            .into_iter()
+            .filter_map(|v| {
+                let name = v.get("name")?.as_str()?.to_string();
+                let full = v.get("nameWithOwner")?.as_str()?.to_string();
+                let url = v.get("url")?.as_str()?.to_string();
+                let description = v
+                    .get("description")
+                    .and_then(|d| d.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let updated = v
+                    .get("updatedAt")
+                    .and_then(|d| d.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let is_private = v
+                    .get("isPrivate")
+                    .and_then(|p| p.as_bool())
+                    .unwrap_or(false);
+                let clone_url = format!("https://github.com/{full}.git");
+                Some(GhRepo {
+                    name,
+                    full_name: full,
+                    description,
+                    url,
+                    clone_url,
+                    updated_at: updated,
+                    is_private,
+                })
+            })
+            .collect();
+        Ok(result)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 /// Clone one repo into <target_dir>/<name>. If the destination already
 /// exists, returns status="exists" instead of erroring (the user can
 /// re-run safely). All errors are captured per-row so the frontend can
@@ -4186,6 +4276,7 @@ pub fn run() {
             sync_import,
             sync_disconnect,
             sync_listed_projects,
+            gh_list_repos,
             clone_project,
             list_claude_skills,
             count_claude_skill_usage,
