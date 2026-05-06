@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.37 — 2026-05-05
+
+Cleanup pass after the repo flipped from private to public.
+
+### Sanitized
+- **Replaced `darkm` (Windows account name) with `<user>` placeholder** in 3 places that were exposing the maintainer's local profile path: `CHANGELOG.md` lines 144 + 315 (release-note path examples) and `src-tauri/src/lib.rs:283` (a code comment illustrating an umbrella-dir example). No functional change — these were all narrative/illustrative strings.
+- **Replaced "Mariano" greeting placeholder** in `mockups/01-zen.html` and `mockups/05-companion-first.html` with a generic "Buen día" — the mockups are now in the public repo and shouldn't address a specific person.
+
+### Added
+- **`build-local.ps1`** — manual escape hatch for building a Windows MSI without going through GitHub Actions. Bootstraps MSVC `vcvars64`, activates corepack pnpm, strips Git's GNU coreutils paths so MSVC's `link.exe` wins, and runs `pnpm tauri build`. Useful when CI is unavailable (billing pause, network outage); produces an unsigned bundle so the auto-updater can't install it — install once by hand. Documented in the script header.
+
 ## 0.1.36 — 2026-05-05
 
 ### Added
@@ -141,7 +152,7 @@ Audit-deferred robustness batch — four resilience fixes against upstream drift
 ROOT CAUSE for the recurring **Claude Code sidebar fails to load** bug the user reported across v0.1.21, v0.1.22, v0.1.23, and v0.1.24.
 
 ### Fixed
-- **`validate_open_path` strips the `\\?\` UNC prefix that `canonicalize` adds on Windows.** Every consumer (`open_in_vscode`, `open_path_in_explorer`) was handing VS Code paths like `\\?\C:\Users\darkm\OneDrive\Desktop\Code\PolyMarket`. VS Code wrote those verbatim into its workspace recents — visible directly in the user's "Recent" list mixed with normal `C:\...` entries. When the Claude Code extension activates and iterates `vscode.workspace.workspaceFolders`, the inconsistency crashes the iterator with `TypeError: V is not iterable` and the `claudeVSCodeSidebarSecondary` view refuses to load (see [anthropics/claude-code#16634](https://github.com/anthropics/claude-code/issues/16634), [#34678](https://github.com/anthropics/claude-code/issues/34678)). Same project opened from Explorer's "Open with Code" never reproduces because Explorer doesn't go through `canonicalize` and produces clean paths.
+- **`validate_open_path` strips the `\\?\` UNC prefix that `canonicalize` adds on Windows.** Every consumer (`open_in_vscode`, `open_path_in_explorer`) was handing VS Code paths like `\\?\C:\Users\<user>\OneDrive\Desktop\Code\<project>`. VS Code wrote those verbatim into its workspace recents — visible directly in the user's "Recent" list mixed with normal `C:\...` entries. When the Claude Code extension activates and iterates `vscode.workspace.workspaceFolders`, the inconsistency crashes the iterator with `TypeError: V is not iterable` and the `claudeVSCodeSidebarSecondary` view refuses to load (see [anthropics/claude-code#16634](https://github.com/anthropics/claude-code/issues/16634), [#34678](https://github.com/anthropics/claude-code/issues/34678)). Same project opened from Explorer's "Open with Code" never reproduces because Explorer doesn't go through `canonicalize` and produces clean paths.
 
 ### Why we shipped 4 wrong fixes first
 - v0.1.23 PATH augmentation (right call, wrong cause)
@@ -312,7 +323,7 @@ Audit pass — six critical findings from the 5-agent parallel sweep are fixed i
 ### Fixed
 - **"Update all" did nothing when the only pending update was gentle-ai itself.** `gentle-ai upgrade` cannot replace its own running binary on Windows; it logs `manual update required` and exits 0 with `1 skipped`. CSK was returning that output verbatim and the table showed "everything done" while gentle-ai stayed on the old version. `apply_stack_updates` now detects the self-skip and falls back to running `irm install.ps1 | iex` (same flow as the per-row gentle-ai update button), all in one click.
 - **Stack-update parser absorbed the install hint into the `latest` version string.** When gentle-ai upstream updated its `update` output to inline the install command after the version (`latest: 1.25.6 irm https://...install.ps1 | iex`), the greedy `trim()` captured the whole hint and the UI rendered `v1.25.5 → v1.25.6 irm https://raw.githubusercontent.com/...`. Now we tokenize and take only the first whitespace-delimited word for both `installed:` and `latest:`.
-- **Projects tab listed umbrella directories as workspaces.** Claude Code records a session at every cwd you launch it from — paths like `C:\Users\darkm\OneDrive\Desktop` or `~` produced JSONL entries CSK was scanning into "projects". Clicking "Open" then attached VS Code to the whole tree, which broke the Claude Code VS Code extension with `An error occurred while loading view: claudeVSCodeSidebarSecondary`. `scan_projects` now requires at least one project-marker file (`.git`, `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, `pom.xml`, `build.gradle`, `composer.json`, `Gemfile`, `requirements.txt`, `pubspec.yaml`, `mix.exs`, `tsconfig.json`, `deno.json`, `.project`, `*.sln`) to consider a directory a workspace.
+- **Projects tab listed umbrella directories as workspaces.** Claude Code records a session at every cwd you launch it from — paths like `C:\Users\<user>\OneDrive\Desktop` or `~` produced JSONL entries CSK was scanning into "projects". Clicking "Open" then attached VS Code to the whole tree, which broke the Claude Code VS Code extension with `An error occurred while loading view: claudeVSCodeSidebarSecondary`. `scan_projects` now requires at least one project-marker file (`.git`, `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, `pom.xml`, `build.gradle`, `composer.json`, `Gemfile`, `requirements.txt`, `pubspec.yaml`, `mix.exs`, `tsconfig.json`, `deno.json`, `.project`, `*.sln`) to consider a directory a workspace.
 
 ## 0.1.14 — 2026-05-05
 

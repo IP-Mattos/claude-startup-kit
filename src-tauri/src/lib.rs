@@ -280,7 +280,7 @@ fn scan_projects_blocking(window_days: u64) -> Vec<Project> {
             continue;
         }
         // Filter out umbrella directories that aren't real projects. A path
-        // like `C:\Users\darkm\OneDrive\Desktop` (or `~`) shows up here
+        // like `C:\Users\<user>\OneDrive\Desktop` (or `~`) shows up here
         // because Claude Code recorded a session at that cwd. Two-step
         // check:
         //   1. Hard-reject if the path matches a well-known umbrella
