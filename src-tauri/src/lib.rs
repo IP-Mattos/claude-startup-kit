@@ -178,6 +178,62 @@ fn has_project_marker(dir: &Path) -> bool {
     false
 }
 
+/// Like `has_project_marker` but also accepts the **monorepo** shape: the
+/// folder itself has no marker, but at least one immediate subfolder does.
+/// User reported their `PetsNew` folder (a Laravel + landing-page meta
+/// project) didn't show up because the parent had no marker even though
+/// `pets/composer.json` and `landing/index.html` exist. Looking one level
+/// deep catches that case without descending into deep recursion.
+fn has_project_marker_or_monorepo(dir: &Path) -> bool {
+    if has_project_marker(dir) {
+        return true;
+    }
+    let Ok(entries) = fs::read_dir(dir) else {
+        return false;
+    };
+    for entry in entries.flatten() {
+        let p = entry.path();
+        if p.is_dir() && has_project_marker(&p) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Hardcoded blocklist of well-known umbrella directories that are NEVER
+/// real projects, even if `has_project_marker_or_monorepo` would otherwise
+/// accept them (Desktop is the worst offender — every dev folder under it
+/// is a "subdirectory with marker", so without an explicit reject the
+/// monorepo check would let Desktop through).
+///
+/// All paths derive from `dirs_home()` so they're universal across users.
+fn is_known_umbrella_dir(path: &Path) -> bool {
+    let Some(home) = dirs_home() else {
+        return false;
+    };
+    let onedrive = home.join("OneDrive");
+    let umbrellas: [PathBuf; 15] = [
+        home.clone(),
+        home.join("Desktop"),
+        home.join("Documents"),
+        home.join("Downloads"),
+        home.join("Music"),
+        home.join("Pictures"),
+        home.join("Videos"),
+        onedrive.clone(),
+        onedrive.join("Desktop"),
+        onedrive.join("Documents"),
+        onedrive.join("Downloads"),
+        onedrive.join("Music"),
+        onedrive.join("Pictures"),
+        onedrive.join("Videos"),
+        // Common dev parent that the user runs Claude Code in occasionally
+        // but isn't itself a project — the children are.
+        home.join("OneDrive").join("Desktop").join("Code"),
+    ];
+    umbrellas.iter().any(|u| u == path)
+}
+
 fn scan_projects_blocking(window_days: u64) -> Vec<Project> {
     let Some(root) = claude_projects_dir() else {
         return vec![];
@@ -225,11 +281,20 @@ fn scan_projects_blocking(window_days: u64) -> Vec<Project> {
         }
         // Filter out umbrella directories that aren't real projects. A path
         // like `C:\Users\darkm\OneDrive\Desktop` (or `~`) shows up here
-        // because Claude Code recorded a session at that cwd, but opening it
-        // in VS Code attaches the editor to the entire folder tree, which
-        // breaks the Claude Code extension's per-workspace view. Require at
-        // least one well-known project marker to consider this a workspace.
-        if !has_project_marker(&canonical) {
+        // because Claude Code recorded a session at that cwd. Two-step
+        // check:
+        //   1. Hard-reject if the path matches a well-known umbrella
+        //      (Desktop, Documents, OneDrive\Desktop, etc.). Necessary
+        //      because step 2 would otherwise admit Desktop as a "monorepo"
+        //      since every subfolder has a marker.
+        //   2. Accept if the folder itself has a marker, OR (monorepo case)
+        //      at least one immediate subfolder does. Catches cases like
+        //      `PetsNew/{landing,pets}` where the parent is the
+        //      Claude-Code-recorded cwd but each child carries the marker.
+        if is_known_umbrella_dir(&canonical) {
+            continue;
+        }
+        if !has_project_marker_or_monorepo(&canonical) {
             continue;
         }
         let canonical_str = canonical.to_string_lossy().to_string();
