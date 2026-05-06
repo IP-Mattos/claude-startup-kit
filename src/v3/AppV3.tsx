@@ -154,7 +154,11 @@ export default function AppV3() {
           invoke<unknown>("run_audit")
             .then(parseAuditFindings)
             .catch(trap<AuditFinding[]>("Audit", [])),
-          invoke<GhPullRequest[]>("github_review_queue", { limit: 20 }).catch(
+          // limit=50 because the standalone Pull-requests tab needs the
+          // longer list. Overview slices to its own visible cap from the
+          // same data — avoids a duplicate fetch when the user clicks the
+          // PRs tab.
+          invoke<GhPullRequest[]>("github_review_queue", { limit: 50 }).catch(
             trap<GhPullRequest[]>("Pull requests", [])
           ),
         ];
@@ -393,8 +397,17 @@ export default function AppV3() {
             />
           )}
           {tab === "projects" && <ProjectsView />}
-          {tab === "prs" && <PrsView />}
-          {tab === "audit" && <AuditView onJump={setTab} />}
+          {tab === "prs" && (
+            <PrsView prs={prs} loading={loading} onRefresh={handleRunAudit} />
+          )}
+          {tab === "audit" && (
+            <AuditView
+              onJump={setTab}
+              findings={findings}
+              loading={loading}
+              onRefresh={handleRunAudit}
+            />
+          )}
           {tab === "cleanup" && <CleanupView />}
           {tab === "sync" && <SyncView />}
           {tab === "claude" && <ClaudeView />}

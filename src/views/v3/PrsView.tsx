@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ExternalLink, GitPullRequest, Search } from "lucide-react";
 import type { GhPullRequest } from "../../types";
@@ -7,31 +7,25 @@ import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { plural, useT } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
 
-export function PrsView() {
+interface PrsViewProps {
+  /** Pull requests already fetched at the AppV3 level. */
+  prs: GhPullRequest[];
+  /** True while AppV3's bulk fetch is in flight. */
+  loading: boolean;
+  /** Bumps AppV3's refreshNonce so the workspace re-fetches. */
+  onRefresh: () => void;
+}
+
+export function PrsView({ prs, loading, onRefresh: _onRefresh }: PrsViewProps) {
   const { t } = useT();
-  const [prs, setPrs] = useState<GhPullRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  // No more local fetch — `prs` is owned by AppV3. The standalone tab
+  // used to fetch `github_review_queue` with limit=50 separately, even
+  // though AppV3 had already fetched the same endpoint with limit=20 for
+  // Overview. AppV3 now fetches limit=50 once and shares; Overview slices
+  // what it shows. (`onRefresh` is reserved for a future explicit refresh
+  // button on this view.)
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    if (!IS_TAURI) {
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    invoke<GhPullRequest[]>("github_review_queue", { limit: 50 })
-      .then((res) => {
-        if (!cancelled) setPrs(res);
-      })
-      .catch((e) => !cancelled && setError(friendlyErrorEn(e)))
-      .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const debouncedQuery = useDebouncedValue(query);
   const filtered = useMemo(() => {
