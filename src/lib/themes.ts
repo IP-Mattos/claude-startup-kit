@@ -18,6 +18,8 @@ export const V3_THEME_ORDER = [
   "ps2-glow",
   "blueprint",
   "cyber-terminal",
+  "data-dense",
+  "command-palette",
 ] as const;
 
 export type V3Theme = (typeof V3_THEME_ORDER)[number];
@@ -45,6 +47,8 @@ export const V3_THEME_OPTIONS: V3ThemeOption[] = [
   { id: "ps2-glow",       label: "PS2 Glow",       swatch: ["#050B1A", "#0E1F38", "#5CC8FF"] },
   { id: "blueprint",      label: "Blueprint",      swatch: ["#0B2545", "#103968", "#E8F4FF"] },
   { id: "cyber-terminal", label: "Cyber Terminal", swatch: ["#1F2014", "#2A2C1B", "#D9D766"] },
+  { id: "data-dense",     label: "Data Dense",     swatch: ["#0E1014", "#13161C", "#5DD39E"] },
+  { id: "command-palette",label: "Command Palette",swatch: ["#0C0D10", "#13151A", "#A4F0C4"] },
 ];
 
 // One-shot apply: load CSS + persist + set body attribute. Both the cycle

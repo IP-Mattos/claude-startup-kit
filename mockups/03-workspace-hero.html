@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>CSK · Workspace Hero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;
+    --paper:#fffaf0;
+    --ink:#211d1a;
+    --mute:#7c736a;
+    --line:#d8cdb8;
+    --accent:#c64e1c;
+    --gold:#b08438;
+    --green:#3a6b3f;
+    --red:#a32626;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#2a2520;font-family:"Inter Tight",-apple-system,sans-serif;color:var(--ink)}
+  body{display:flex;justify-content:center}
+  .frame{width:1100px;height:760px;background:var(--bg);overflow:hidden;position:relative;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(33,29,26,.06) 50%, transparent 51%),
+      radial-gradient(1px 1px at 70% 80%, rgba(33,29,26,.05) 50%, transparent 51%),
+      radial-gradient(1px 1px at 45% 55%, rgba(33,29,26,.04) 50%, transparent 51%)}
+  .frame::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0,transparent 31px,rgba(33,29,26,.025) 31px,rgba(33,29,26,.025) 32px);pointer-events:none}
+  /* Top ribbon */
+  .ribbon{display:flex;justify-content:space-between;align-items:center;padding:14px 32px;border-bottom:1px solid var(--line);background:rgba(255,250,240,.5);position:relative;z-index:2}
+  .brand{display:flex;align-items:baseline;gap:10px}
+  .brand .seal{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--ink);display:inline-flex;align-items:center;justify-content:center;font-family:"Instrument Serif",serif;font-style:italic;font-size:14px;transform:translateY(4px)}
+  .brand .name{font-family:"Instrument Serif",serif;font-size:22px;font-style:italic;letter-spacing:-.01em}
+  .brand .tag{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--mute);margin-left:4px}
+  .nav{display:flex;gap:22px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+  .nav .on{color:var(--ink);position:relative}
+  .nav .on::after{content:"";position:absolute;left:-6px;right:-6px;bottom:-6px;height:1px;background:var(--ink)}
+  .date{font-family:"Instrument Serif",serif;font-style:italic;color:var(--mute);font-size:14px}
+  /* Hero card */
+  .hero{margin:24px 32px 18px;background:var(--paper);border:1px solid var(--line);border-radius:2px;box-shadow:0 1px 0 var(--line),0 18px 40px -20px rgba(0,0,0,.18);position:relative;z-index:2;padding:26px 32px 20px}
+  .hero::before{content:"";position:absolute;left:14px;right:14px;top:6px;height:1px;background:var(--line)}
+  .crest{position:absolute;top:14px;right:24px;font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--mute)}
+  .hero .label{font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--mute);margin-bottom:6px}
+  .hero h1{font-family:"Instrument Serif",serif;font-size:54px;line-height:1;font-weight:400;letter-spacing:-.02em;margin-bottom:4px}
+  .hero h1 em{color:var(--accent)}
+  .hero .quill{font-family:"Instrument Serif",serif;font-style:italic;font-size:18px;color:var(--mute);margin-top:14px;border-left:2px solid var(--gold);padding-left:14px;max-width:680px}
+  .hero-row{display:grid;grid-template-columns:1.3fr 1px 1fr 1px 1fr;gap:24px;margin-top:24px;padding-top:18px;border-top:1px dashed var(--line)}
+  .hero-row .vr{background:var(--line);width:1px;height:auto}
+  .field{}
+  .field .k{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--mute);margin-bottom:6px}
+  .field .v{font-size:14px;color:var(--ink);font-weight:500;line-height:1.4}
+  .field .v small{color:var(--mute);font-weight:400;display:block;font-size:12px;margin-top:3px;font-family:"Instrument Serif",serif;font-style:italic}
+  .pulse{display:inline-block;width:7px;height:7px;background:var(--green);border-radius:50%;margin-right:6px;transform:translateY(-1px)}
+  /* Today panels */
+  .panels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:0 32px;position:relative;z-index:2}
+  .panel{background:var(--paper);border:1px solid var(--line);padding:16px;border-radius:2px;min-height:170px}
+  .panel h3{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--mute);margin-bottom:14px;display:flex;justify-content:space-between}
+  .panel h3 .badge{background:var(--ink);color:var(--paper);font-size:9px;padding:1px 6px;letter-spacing:.1em;border-radius:1px}
+  .panel h3 .badge.r{background:var(--red)}
+  .panel h3 .badge.g{background:var(--gold)}
+  .item{padding:8px 0;border-bottom:1px dotted var(--line);font-size:12.5px;display:flex;justify-content:space-between;gap:10px}
+  .item:last-child{border:none}
+  .item .t{flex:1}
+  .item .t b{font-weight:600;color:var(--ink)}
+  .item .t i{font-family:"Instrument Serif",serif;color:var(--mute);font-size:13px}
+  .item .m{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute);white-space:nowrap;align-self:flex-start;margin-top:2px}
+  .item .m.r{color:var(--red)}
+  .item .m.w{color:var(--accent)}
+  /* Foot */
+  .foot{position:absolute;bottom:0;left:0;right:0;padding:10px 32px;border-top:1px solid var(--line);background:rgba(255,250,240,.6);display:flex;justify-content:space-between;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);z-index:2}
+  .foot b{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="ribbon">
+    <div class="brand"><span class="seal">C</span><span class="name">Claude</span><span class="tag">startup kit · vol. iv</span></div>
+    <div class="nav"><span class="on">Hoy</span><span>Proyectos</span><span>PRs</span><span>Auditoría</span><span>Limpieza</span><span>Compañera</span><span>Ajustes</span></div>
+    <div class="date">Martes, 6 de mayo</div>
+  </div>
+
+  <article class="hero">
+    <div class="crest">— hoja del día —</div>
+    <div class="label">El proyecto del día</div>
+    <h1><em>PolyMarket</em></h1>
+    <div class="quill">"fix odds normalization on settle" — el último commit, 09:02. La rama queda limpia, tres commits adelante de main, esperando un push tranquilo.</div>
+
+    <div class="hero-row">
+      <div class="field">
+        <div class="k">objetivo</div>
+        <div class="v">Cerrar resolver de mercados de fútbol<small>marcado en engram hace 2 días</small></div>
+      </div>
+      <div class="vr"></div>
+      <div class="field">
+        <div class="k">estado</div>
+        <div class="v"><span class="pulse"></span>working tree limpio<small>fix/odds-norm · +3 commits</small></div>
+      </div>
+      <div class="vr"></div>
+      <div class="field">
+        <div class="k">próximo paso</div>
+        <div class="v">Abrir PR a main<small>requiere review de @vos</small></div>
+      </div>
+    </div>
+  </article>
+
+  <section class="panels">
+    <div class="panel">
+      <h3>Hallazgos de hoy <span class="badge r">2 crít</span></h3>
+      <div class="item"><div class="t"><b>Drift en hooks</b><br/><i>PetsNew · session-end.ps1 modificado</i></div><div class="m r">crít</div></div>
+      <div class="item"><div class="t"><b>Permisos amplios</b><br/><i>server · Bash(*) sin filtrar</i></div><div class="m w">warn</div></div>
+      <div class="item"><div class="t"><b>Script sin shebang</b><br/><i>PolyMarket · scripts/seed.sh</i></div><div class="m w">warn</div></div>
+    </div>
+    <div class="panel">
+      <h3>PRs por revisar <span class="badge">4</span></h3>
+      <div class="item"><div class="t"><b>#128 server</b><br/><i>añadir rate-limit en /auth</i></div><div class="m">+182 −34</div></div>
+      <div class="item"><div class="t"><b>#41 PetsNew</b><br/><i>refactor de adopciones</i></div><div class="m">+96 −110</div></div>
+      <div class="item"><div class="t"><b>#7 dotfiles</b><br/><i>nvim: lspconfig migration</i></div><div class="m">+41 −12</div></div>
+    </div>
+    <div class="panel">
+      <h3>Limpieza sugerida <span class="badge g">2.6 gb</span></h3>
+      <div class="item"><div class="t"><b>~/.claude/logs</b><br/><i>134 archivos · 2.4 GB</i></div><div class="m">eliminar</div></div>
+      <div class="item"><div class="t"><b>~/.claude/backups</b><br/><i>antes del 01.04</i></div><div class="m">218 mb</div></div>
+      <div class="item"><div class="t"><b>~/.claude/projects</b><br/><i>3 sin actividad &gt;90d</i></div><div class="m">archivar</div></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span>workspace · <b>skills 78%</b> · engram <b>134 obs.</b> · csk <b>v0.4.2</b> · gentle-ai <b>v0.9.1</b></span>
+    <span>último escaneo · <b>09:14:08</b></span>
+  </div>
+</div>
+</body>
+</html>

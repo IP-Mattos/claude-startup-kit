@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>CSK · Command</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c0d10;
+    --bg2:#13151a;
+    --bg3:#191c22;
+    --ink:#e8e9ec;
+    --mute:#6b7280;
+    --dim:#9aa0aa;
+    --line:#22262e;
+    --accent:#a4f0c4;
+    --crit:#ff6b6b;
+    --warn:#ffb86b;
+    --pr:#7aa6ff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#000;color:var(--ink);font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:13px}
+  body{display:flex;justify-content:center;padding:0}
+  .frame{width:1100px;height:760px;background:var(--bg);position:relative;display:flex;overflow:hidden;
+    background-image:radial-gradient(1200px 600px at 70% -10%,rgba(164,240,196,.05),transparent 60%),radial-gradient(800px 400px at 10% 110%,rgba(122,166,255,.04),transparent 60%)}
+  /* Icon rail */
+  .rail{width:48px;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:6px}
+  .rail .logo{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--accent),#7aa6ff);margin-bottom:14px}
+  .rail .ic{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--dim);font-weight:500;font-size:11px;cursor:pointer}
+  .rail .ic.on{background:var(--bg3);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+  .rail .spacer{flex:1}
+  .rail .kbd{font-size:9px;color:var(--mute);margin-top:8px;letter-spacing:.05em}
+  /* Main */
+  .main{flex:1;display:flex;flex-direction:column;position:relative}
+  .top{height:42px;display:flex;align-items:center;padding:0 18px;border-bottom:1px solid var(--line);justify-content:space-between;color:var(--dim);font-size:11px}
+  .crumbs span{color:var(--ink)}
+  .crumbs em{color:var(--mute);font-style:normal;margin:0 8px}
+  .right-meta{display:flex;gap:14px;align-items:center}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent);display:inline-block;margin-right:6px}
+  /* Stage */
+  .stage{flex:1;padding:30px 40px;overflow:hidden;position:relative}
+  .h{font-size:11px;color:var(--mute);letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px}
+  .grid{display:grid;grid-template-columns:1.4fr 1fr;gap:24px;margin-bottom:24px}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:18px}
+  .card h2{font-size:13px;font-weight:500;color:var(--ink);margin-bottom:10px;letter-spacing:.02em}
+  .card .desc{color:var(--dim);font-size:12px;line-height:1.55}
+  .stat-row{display:flex;gap:18px;margin-top:14px}
+  .stat{flex:1;border-left:2px solid var(--line);padding-left:10px}
+  .stat .v{font-size:22px;font-weight:600}
+  .stat .l{font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.14em;margin-top:2px}
+  .stat.c{border-color:var(--crit)} .stat.c .v{color:var(--crit)}
+  .stat.w{border-color:var(--warn)} .stat.w .v{color:var(--warn)}
+  .stat.p{border-color:var(--pr)} .stat.p .v{color:var(--pr)}
+  /* Recent commands */
+  .cmds{margin-top:6px}
+  .cmd{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}
+  .cmd:last-child{border:none}
+  .cmd .t{color:var(--ink)}
+  .cmd .t .arr{color:var(--accent);margin-right:8px}
+  .cmd .k{color:var(--mute);font-size:10px}
+  /* Palette */
+  .palette{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);width:640px;background:#1c1f26;border:1px solid #2c313a;border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px rgba(164,240,196,.08);overflow:hidden;backdrop-filter:blur(20px)}
+  .pal-input{padding:18px 22px;border-bottom:1px solid #2c313a;display:flex;align-items:center;gap:12px;font-size:15px}
+  .pal-input .gt{color:var(--accent);font-weight:600}
+  .pal-input .q{color:var(--ink);flex:1}
+  .pal-input .q i{font-style:normal;background:rgba(164,240,196,.15);padding:1px 4px;border-radius:3px;color:var(--accent)}
+  .pal-input .cur{width:7px;height:16px;background:var(--accent);animation:b 1s steps(2) infinite}
+  @keyframes b{50%{opacity:0}}
+  .pal-list{padding:6px 0;max-height:280px}
+  .pal-item{display:flex;align-items:center;gap:14px;padding:9px 22px;font-size:12.5px;color:var(--dim)}
+  .pal-item .ic{width:18px;height:18px;border-radius:5px;background:#2c313a;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--accent)}
+  .pal-item.on{background:rgba(164,240,196,.07);color:var(--ink)}
+  .pal-item .hk{margin-left:auto;color:var(--mute);font-size:10px}
+  .pal-item b{color:var(--ink);font-weight:500}
+  .pal-item .desc{color:var(--mute);font-size:11px;margin-left:6px}
+  .pal-foot{display:flex;justify-content:space-between;padding:10px 22px;border-top:1px solid #2c313a;font-size:10px;color:var(--mute);background:#171a20}
+  .pal-foot kbd{background:#2c313a;border:1px solid #3a414c;padding:1px 5px;border-radius:3px;color:var(--dim);margin:0 3px}
+  /* Status bar */
+  .sb{height:24px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 14px;color:var(--mute);font-size:10px}
+  .sb b{color:var(--ink);font-weight:500}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="rail">
+    <div class="logo"></div>
+    <div class="ic on" title="Hoy">H</div>
+    <div class="ic" title="Proyectos">P</div>
+    <div class="ic" title="PRs">R</div>
+    <div class="ic" title="Auditoría">A</div>
+    <div class="ic" title="Limpieza">L</div>
+    <div class="ic" title="Compañera">C</div>
+    <div class="spacer"></div>
+    <div class="ic" title="Ajustes">⚙</div>
+    <div class="kbd">⌘K</div>
+  </div>
+
+  <div class="main">
+    <div class="top">
+      <div class="crumbs">CSK <em>›</em> <span>Hoy</span> <em>›</em> PolyMarket</div>
+      <div class="right-meta"><span><span class="dot"></span>engram conectado</span><span>v0.4.2</span></div>
+    </div>
+
+    <div class="stage">
+      <div class="h">— sesión actual</div>
+      <div class="grid">
+        <div class="card">
+          <h2>PolyMarket <span style="color:var(--mute);font-weight:400">· hace 12 min</span></h2>
+          <div class="desc">fix odds normalization on settle — `src/markets/settle.ts`<br/>working tree clean · rama `fix/odds-norm` · 3 commits ahead de main</div>
+          <div class="stat-row">
+            <div class="stat c"><div class="v">2</div><div class="l">críticos</div></div>
+            <div class="stat w"><div class="v">11</div><div class="l">warnings</div></div>
+            <div class="stat p"><div class="v">4</div><div class="l">PRs</div></div>
+            <div class="stat"><div class="v">7</div><div class="l">proyectos</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Atajos sugeridos</h2>
+          <div class="cmds">
+            <div class="cmd"><div class="t"><span class="arr">›</span>resolver crítico — drift en hooks</div><div class="k">⌘⇧R</div></div>
+            <div class="cmd"><div class="t"><span class="arr">›</span>abrir PR #128 — server</div><div class="k">⌘⇧P</div></div>
+            <div class="cmd"><div class="t"><span class="arr">›</span>limpiar logs (2.4 GB)</div><div class="k">⌘⇧L</div></div>
+            <div class="cmd"><div class="t"><span class="arr">›</span>continuar con PolyMarket</div><div class="k">↵</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="h">— recientes</div>
+      <div class="card" style="padding:6px 18px">
+        <div class="cmd"><div class="t"><span class="arr">›</span>commit <b style="color:var(--accent)">fix odds normalization on settle</b> · PolyMarket</div><div class="k">09:02</div></div>
+        <div class="cmd"><div class="t"><span class="arr">›</span>review solicitada — server #128</div><div class="k">08:47</div></div>
+        <div class="cmd"><div class="t"><span class="arr">›</span>drift detectado — PetsNew/.claude/hooks/session-end.ps1</div><div class="k">08:31</div></div>
+        <div class="cmd"><div class="t"><span class="arr">›</span>engram sync ok — 134 observaciones</div><div class="k">08:00</div></div>
+      </div>
+    </div>
+
+    <div class="palette">
+      <div class="pal-input"><span class="gt">›</span><span class="q">resolver <i>crit</i></span><span class="cur"></span></div>
+      <div class="pal-list">
+        <div class="pal-item on"><span class="ic">!</span><b>resolver: drift en hooks</b><span class="desc">PetsNew · session-end.ps1</span><span class="hk">↵</span></div>
+        <div class="pal-item"><span class="ic">!</span><b>resolver: permisos amplios</b><span class="desc">server · Bash(*)</span><span class="hk">⌘1</span></div>
+        <div class="pal-item"><span class="ic">A</span>auditar workspace ahora<span class="desc">escaneo completo</span><span class="hk">⌘2</span></div>
+        <div class="pal-item"><span class="ic">P</span>ir a proyecto…<span class="desc">PolyMarket, server, PetsNew, +4</span><span class="hk">⌘P</span></div>
+        <div class="pal-item"><span class="ic">R</span>revisar PRs pendientes<span class="desc">4 esperando</span><span class="hk">⌘R</span></div>
+      </div>
+      <div class="pal-foot"><span><kbd>↑↓</kbd> navegar · <kbd>↵</kbd> ejecutar · <kbd>esc</kbd> cerrar</span><span>5 resultados</span></div>
+    </div>
+
+    <div class="sb">
+      <span><b>PolyMarket</b> · fix/odds-norm · clean</span>
+      <span>7 proyectos · 13 hallazgos · escaneo <b>09:14</b></span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

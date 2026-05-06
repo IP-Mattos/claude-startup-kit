@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.36 — 2026-05-05
+
+### Added
+- **Two new V3 themes**, both ported from the design mockups under `mockups/`:
+  - **`data-dense`** — Bloomberg / k9s / Datadog terminal. Near-black canvas, IBM Plex Mono on every meta/numeric surface, IBM Plex Sans on prose, hairline-only frames, no shadows, tabular nums, sand/coral/blue/green semantics. The theme's typographic spine is monospace.
+  - **`command-palette`** — Linear / Raycast / VS Code Cmd-K. Cool blue-grey ink, JetBrains Mono everywhere except greetings/headlines, mint-green accent that reads like a focus cursor, Linear-style 10 px ring frames. Greetings stay sans for multi-line legibility.
+- Both registered in `V3_THEME_ORDER` + `V3_THEME_OPTIONS` so they show up in the picker (Settings → Theme) and the keyboard cycle (`Ctrl/Cmd+T`). Each ships as its own lazy-loaded chunk via `import.meta.glob` (no initial-bundle weight).
+
+### Note: themes vs layouts
+The mockups under `mockups/04-data-dense.html` and `mockups/02-command-palette.html` change **layout** as well (sparkline KPIs, central ⌘K palette, dense tables). A theme can only retint surfaces — the structural changes from those mockups are NOT part of v0.1.36 and would need a separate UI pass.
+
 ## 0.1.35 — 2026-05-05
 
 Cleanup batch — finishes the audit refactor + raises the GitHub repo cap.

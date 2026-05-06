@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>CSK · Dense</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e1014;
+    --bg2:#13161c;
+    --bg3:#181c24;
+    --line:#252a34;
+    --line2:#1d212a;
+    --ink:#dfe3ea;
+    --mute:#5b6473;
+    --dim:#8a93a3;
+    --green:#5dd39e;
+    --red:#ff5d6c;
+    --amber:#ffb454;
+    --blue:#5cc1ff;
+    --violet:#b58cff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#000;color:var(--ink);font-family:"IBM Plex Sans",-apple-system,sans-serif;font-size:11.5px;line-height:1.35}
+  body{display:flex;justify-content:center}
+  .mono{font-family:"IBM Plex Mono",monospace}
+  .frame{width:1100px;height:760px;background:var(--bg);position:relative;display:grid;grid-template-rows:30px 1fr 22px;overflow:hidden}
+  /* Top */
+  .top{display:flex;align-items:center;background:var(--bg2);border-bottom:1px solid var(--line);font-size:11px}
+  .top .logo{padding:0 12px;border-right:1px solid var(--line);height:100%;display:flex;align-items:center;gap:6px;color:var(--ink);font-weight:600;letter-spacing:.05em}
+  .top .logo .sq{width:11px;height:11px;background:var(--green)}
+  .top .tabs{display:flex;height:100%}
+  .top .tab{padding:0 14px;display:flex;align-items:center;border-right:1px solid var(--line);color:var(--dim);font-size:10.5px;letter-spacing:.04em;cursor:pointer}
+  .top .tab.on{background:var(--bg);color:var(--ink);box-shadow:inset 0 -2px 0 var(--green)}
+  .top .tab kbd{font-family:"IBM Plex Mono",monospace;color:var(--mute);margin-left:6px;font-size:9px}
+  .top .right{margin-left:auto;display:flex;align-items:center;gap:14px;padding-right:12px;color:var(--mute);font-size:10.5px}
+  .top .right b{color:var(--ink);font-weight:500}
+  .pulse{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);display:inline-block;margin-right:5px}
+  /* Body */
+  .body{display:grid;grid-template-columns:200px 1fr 240px;height:100%;overflow:hidden}
+  /* Sidebar */
+  .side{background:var(--bg2);border-right:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column}
+  .side .sect{padding:8px 12px;font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);border-bottom:1px solid var(--line2);display:flex;justify-content:space-between}
+  .side .sect b{color:var(--dim);font-weight:500}
+  .side .pl{flex:1;overflow:auto}
+  .pj{padding:5px 12px;display:grid;grid-template-columns:1fr auto auto;gap:6px;font-size:11px;border-bottom:1px solid var(--line2);align-items:center;cursor:pointer}
+  .pj.on{background:var(--bg3);box-shadow:inset 2px 0 0 var(--green)}
+  .pj .n{color:var(--ink);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pj .age{color:var(--mute);font-size:9.5px}
+  .pj .dots{display:flex;gap:2px}
+  .pj .d{width:5px;height:5px;border-radius:50%;background:var(--mute)}
+  .pj .d.c{background:var(--red)}
+  .pj .d.w{background:var(--amber)}
+  .pj .d.p{background:var(--blue)}
+  /* Center */
+  .center{overflow:hidden;display:flex;flex-direction:column;background:var(--bg)}
+  .strip{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--line)}
+  .kpi{padding:8px 12px;border-right:1px solid var(--line2)}
+  .kpi:last-child{border-right:none}
+  .kpi .l{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+  .kpi .v{font-size:18px;font-weight:600;font-family:"IBM Plex Mono",monospace;margin-top:2px;letter-spacing:-.02em}
+  .kpi .delta{font-size:9.5px;color:var(--green);margin-left:6px;font-family:"IBM Plex Mono",monospace}
+  .kpi.crit .v{color:var(--red)} .kpi.crit .delta{color:var(--red)}
+  .kpi.warn .v{color:var(--amber)}
+  .spark{margin-top:4px;height:14px}
+  /* Tables */
+  .pane{padding:0;border-bottom:1px solid var(--line)}
+  .pane h{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;background:var(--bg2);border-bottom:1px solid var(--line);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+  .pane h .filt{display:flex;gap:6px}
+  .pane h .filt .pill{font-family:"IBM Plex Mono",monospace;background:var(--bg3);border:1px solid var(--line);color:var(--mute);padding:1px 5px;font-size:9px;border-radius:2px;letter-spacing:.04em}
+  .pane h .filt .pill.on{color:var(--ink);border-color:var(--green)}
+  table{width:100%;border-collapse:collapse;font-family:"IBM Plex Mono",monospace;font-size:10.5px}
+  th{text-align:left;padding:5px 12px;background:var(--bg2);color:var(--mute);font-weight:500;font-size:9px;letter-spacing:.14em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+  td{padding:4px 12px;border-bottom:1px solid var(--line2);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  td.ink{color:var(--ink)}
+  td .sev{display:inline-block;width:34px;font-weight:600}
+  .sev.c{color:var(--red)}.sev.w{color:var(--amber)}.sev.i{color:var(--blue)}
+  td .cat{color:var(--mute);font-size:9.5px;letter-spacing:.06em}
+  td .btn{background:var(--bg3);border:1px solid var(--line);color:var(--dim);padding:0 6px;font-size:9.5px;border-radius:2px;cursor:pointer;font-family:inherit}
+  td .btn:hover{color:var(--ink);border-color:var(--green)}
+  tr:hover td{background:rgba(93,211,158,.04)}
+  /* Right */
+  .right{background:var(--bg2);border-left:1px solid var(--line);padding:0;overflow:hidden}
+  .rh{padding:8px 12px;border-bottom:1px solid var(--line);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);display:flex;justify-content:space-between}
+  .ws{padding:10px 12px;border-bottom:1px solid var(--line2)}
+  .ws .row{display:flex;justify-content:space-between;font-size:10.5px;font-family:"IBM Plex Mono",monospace;padding:2px 0;color:var(--dim)}
+  .ws .row b{color:var(--ink);font-weight:500}
+  .bar{height:4px;background:var(--bg3);border-radius:1px;overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--blue))}
+  .heat{display:grid;grid-template-columns:repeat(14,1fr);gap:2px;padding:10px 12px}
+  .heat i{height:10px;background:var(--bg3);border-radius:1px}
+  .heat i.l1{background:rgba(93,211,158,.25)}
+  .heat i.l2{background:rgba(93,211,158,.5)}
+  .heat i.l3{background:rgba(93,211,158,.75)}
+  .heat i.l4{background:var(--green)}
+  /* Status */
+  .sb{background:var(--bg2);border-top:1px solid var(--line);display:flex;align-items:center;font-size:10px;font-family:"IBM Plex Mono",monospace;color:var(--mute)}
+  .sb .seg{padding:0 10px;border-right:1px solid var(--line2);height:100%;display:flex;align-items:center}
+  .sb .seg b{color:var(--ink);font-weight:500;margin-right:4px}
+  .sb .seg.r{margin-left:auto;border-right:none;border-left:1px solid var(--line2)}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="top">
+    <div class="logo"><span class="sq"></span>CSK</div>
+    <div class="tabs">
+      <div class="tab on">Hoy<kbd>1</kbd></div>
+      <div class="tab">Proyectos<kbd>2</kbd></div>
+      <div class="tab">PRs<kbd>3</kbd></div>
+      <div class="tab">Auditoría<kbd>4</kbd></div>
+      <div class="tab">Limpieza<kbd>5</kbd></div>
+      <div class="tab">Compañera<kbd>6</kbd></div>
+      <div class="tab">Ajustes<kbd>7</kbd></div>
+    </div>
+    <div class="right"><span><span class="pulse"></span>engram <b>134 obs</b></span><span class="mono">v0.4.2</span><span class="mono">09:14:08</span></div>
+  </div>
+
+  <div class="body">
+    <aside class="side">
+      <div class="sect"><span>Proyectos</span><b>52</b></div>
+      <div class="pl">
+        <div class="pj on"><span class="n">PolyMarket</span><span class="age mono">12m</span><span class="dots"><i class="d c"></i><i class="d w"></i><i class="d p"></i></span></div>
+        <div class="pj"><span class="n">server</span><span class="age mono">2h</span><span class="dots"><i class="d w"></i><i class="d p"></i></span></div>
+        <div class="pj"><span class="n">PetsNew</span><span class="age mono">3h</span><span class="dots"><i class="d c"></i><i class="d w"></i></span></div>
+        <div class="pj"><span class="n">claude-startup-kit</span><span class="age mono">5h</span><span class="dots"><i class="d w"></i></span></div>
+        <div class="pj"><span class="n">gentleman-dots</span><span class="age mono">1d</span><span class="dots"><i class="d p"></i></span></div>
+        <div class="pj"><span class="n">engram-cloud</span><span class="age mono">1d</span><span class="dots"></span></div>
+        <div class="pj"><span class="n">leaderboard-api</span><span class="age mono">2d</span><span class="dots"><i class="d w"></i></span></div>
+        <div class="pj"><span class="n">poly-front</span><span class="age mono">2d</span><span class="dots"><i class="d w"></i><i class="d w"></i></span></div>
+        <div class="pj"><span class="n">openspec-cli</span><span class="age mono">3d</span><span class="dots"></span></div>
+        <div class="pj"><span class="n">tarot-deck</span><span class="age mono">3d</span><span class="dots"><i class="d p"></i></span></div>
+        <div class="pj"><span class="n">k8s-playground</span><span class="age mono">4d</span><span class="dots"><i class="d c"></i></span></div>
+        <div class="pj"><span class="n">crispr-notes</span><span class="age mono">5d</span><span class="dots"></span></div>
+        <div class="pj"><span class="n">quote-the-raven</span><span class="age mono">6d</span><span class="dots"><i class="d w"></i></span></div>
+        <div class="pj"><span class="n">lazyvim-config</span><span class="age mono">8d</span><span class="dots"></span></div>
+        <div class="pj"><span class="n">…36 más</span><span class="age mono"></span><span class="dots"></span></div>
+      </div>
+      <div class="sect" style="border-top:1px solid var(--line);border-bottom:none"><span>Filtros</span><b>7d</b></div>
+    </aside>
+
+    <main class="center">
+      <div class="strip">
+        <div class="kpi crit"><div class="l">críticos</div><div class="v">2<span class="delta">+1</span></div>
+          <svg class="spark" viewBox="0 0 80 14" preserveAspectRatio="none"><polyline points="0,10 10,9 20,11 30,8 40,9 50,7 60,8 70,5 80,3" fill="none" stroke="var(--red)" stroke-width="1"/></svg>
+        </div>
+        <div class="kpi warn"><div class="l">warnings</div><div class="v">11<span class="delta" style="color:var(--mute)">±0</span></div>
+          <svg class="spark" viewBox="0 0 80 14" preserveAspectRatio="none"><polyline points="0,8 10,7 20,9 30,6 40,7 50,8 60,7 70,8 80,7" fill="none" stroke="var(--amber)" stroke-width="1"/></svg>
+        </div>
+        <div class="kpi"><div class="l">PRs review</div><div class="v">4<span class="delta">+2</span></div>
+          <svg class="spark" viewBox="0 0 80 14" preserveAspectRatio="none"><polyline points="0,12 10,11 20,10 30,8 40,7 50,6 60,5 70,4 80,3" fill="none" stroke="var(--blue)" stroke-width="1"/></svg>
+        </div>
+        <div class="kpi"><div class="l">commits 7d</div><div class="v">63<span class="delta">+11</span></div>
+          <svg class="spark" viewBox="0 0 80 14" preserveAspectRatio="none"><polyline points="0,12 10,9 20,11 30,7 40,8 50,5 60,4 70,3 80,2" fill="none" stroke="var(--green)" stroke-width="1"/></svg>
+        </div>
+        <div class="kpi"><div class="l">proyectos act.</div><div class="v">14<span class="delta" style="color:var(--mute)">±0</span></div>
+          <svg class="spark" viewBox="0 0 80 14" preserveAspectRatio="none"><polyline points="0,8 10,8 20,7 30,7 40,8 50,7 60,7 70,8 80,7" fill="none" stroke="var(--violet)" stroke-width="1"/></svg>
+        </div>
+        <div class="kpi"><div class="l">disco recup.</div><div class="v">2.6<span class="delta" style="color:var(--green)">gb</span></div>
+          <svg class="spark" viewBox="0 0 80 14" preserveAspectRatio="none"><polyline points="0,4 10,5 20,6 30,7 40,9 50,10 60,11 70,12 80,13" fill="none" stroke="var(--mute)" stroke-width="1"/></svg>
+        </div>
+      </div>
+
+      <div class="pane">
+        <h><span>Auditoría · workspace</span><span class="filt"><span class="pill on">all</span><span class="pill">CRIT 2</span><span class="pill">WARN 11</span><span class="pill">DRIFT</span><span class="pill">HOOKS</span><span class="pill">PERMS</span><span class="pill">SCRIPTS</span></span></h>
+        <table>
+          <thead><tr><th style="width:40px">sev</th><th style="width:90px">cat</th><th style="width:130px">proyecto</th><th>hallazgo</th><th style="width:70px">edad</th><th style="width:80px">acción</th></tr></thead>
+          <tbody>
+            <tr><td><span class="sev c">CRIT</span></td><td><span class="cat">DRIFT</span></td><td class="ink">PetsNew</td><td class="ink">hooks/session-end.ps1 modificado fuera de control</td><td>43m</td><td><button class="btn">resolver</button></td></tr>
+            <tr><td><span class="sev c">CRIT</span></td><td><span class="cat">PERMS</span></td><td class="ink">k8s-playground</td><td class="ink">Bash(*) sin restringir en .claude/settings.json</td><td>2h</td><td><button class="btn">resolver</button></td></tr>
+            <tr><td><span class="sev w">WARN</span></td><td><span class="cat">PERMS</span></td><td class="ink">server</td><td>permiso amplio: Read(./.env*)</td><td>3h</td><td><button class="btn">ver</button></td></tr>
+            <tr><td><span class="sev w">WARN</span></td><td><span class="cat">SCRIPTS</span></td><td class="ink">PolyMarket</td><td>scripts/seed.sh sin shebang</td><td>4h</td><td><button class="btn">ver</button></td></tr>
+            <tr><td><span class="sev w">WARN</span></td><td><span class="cat">HOOKS</span></td><td class="ink">poly-front</td><td>pre-commit hook tarda 18s (umbral 5s)</td><td>5h</td><td><button class="btn">ver</button></td></tr>
+            <tr><td><span class="sev w">WARN</span></td><td><span class="cat">DRIFT</span></td><td class="ink">leaderboard-api</td><td>CLAUDE.md más reciente que skill-registry</td><td>1d</td><td><button class="btn">ver</button></td></tr>
+            <tr><td><span class="sev i">INFO</span></td><td><span class="cat">SKILLS</span></td><td class="ink">claude-startup-kit</td><td>3 skills sin uso registrado en 30d</td><td>1d</td><td><button class="btn">ver</button></td></tr>
+            <tr><td><span class="sev i">INFO</span></td><td><span class="cat">CONFIG</span></td><td class="ink">gentleman-dots</td><td>theme switcher tiene 15 opciones — considerar curado</td><td>2d</td><td><button class="btn">ver</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pane" style="border-bottom:none">
+        <h><span>PRs en revisión</span><span class="filt"><span class="pill on">tuyos 4</span><span class="pill">solicitados 2</span></span></h>
+        <table>
+          <thead><tr><th style="width:50px">#</th><th style="width:130px">repo</th><th>título</th><th style="width:90px">cambios</th><th style="width:70px">edad</th><th style="width:90px">checks</th></tr></thead>
+          <tbody>
+            <tr><td class="ink">128</td><td class="ink">server</td><td class="ink">añadir rate-limit en /auth con leaky bucket</td><td>+182 −34</td><td>3h</td><td><span style="color:var(--green)">● ● ●</span></td></tr>
+            <tr><td class="ink">41</td><td class="ink">PetsNew</td><td class="ink">refactor de adopciones (split controller)</td><td>+96 −110</td><td>1d</td><td><span style="color:var(--amber)">● ● ○</span></td></tr>
+            <tr><td class="ink">7</td><td class="ink">dotfiles</td><td class="ink">nvim: lspconfig migration to v1</td><td>+41 −12</td><td>2d</td><td><span style="color:var(--green)">● ● ●</span></td></tr>
+            <tr><td class="ink">19</td><td class="ink">poly-front</td><td class="ink">market card skeleton states</td><td>+74 −8</td><td>2d</td><td><span style="color:var(--red)">● ● ✗</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+    <aside class="right">
+      <div class="rh"><span>Workspace</span><span class="mono">v0.4.2</span></div>
+      <div class="ws">
+        <div class="row"><span>skills</span><b>78%</b></div><div class="bar"><i style="width:78%"></i></div>
+        <div class="row" style="margin-top:8px"><span>engram obs.</span><b>134</b></div>
+        <div class="row"><span>last sync</span><span>09:00</span></div>
+      </div>
+      <div class="rh"><span>Actividad 14d</span><span class="mono">heatmap</span></div>
+      <div class="heat">
+        <i></i><i class="l1"></i><i class="l2"></i><i class="l1"></i><i></i><i class="l3"></i><i class="l2"></i>
+        <i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i>
+        <i class="l1"></i><i></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><i class="l3"></i><i class="l2"></i>
+        <i class="l3"></i><i class="l4"></i><i class="l4"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><i class="l4"></i>
+      </div>
+      <div class="rh"><span>Compañera</span><span class="mono">akira</span></div>
+      <div class="ws">
+        <div class="row"><span style="font-family:'IBM Plex Sans'">"vamos con el resolver, dale"</span></div>
+        <div class="row" style="margin-top:8px;color:var(--mute)"><span>nivel 12 · sesiones 248</span></div>
+      </div>
+      <div class="rh"><span>Versiones</span></div>
+      <div class="ws">
+        <div class="row"><span>csk</span><b>0.4.2</b></div>
+        <div class="row"><span>gentle-ai</span><b>0.9.1</b></div>
+        <div class="row"><span>tauri</span><b>2.0.6</b></div>
+        <div class="row"><span>engram</span><b>1.15.3</b></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="sb">
+    <div class="seg"><b>PolyMarket</b> fix/odds-norm</div>
+    <div class="seg">52 proy · <b style="color:var(--red)">2</b>C <b style="color:var(--amber)">11</b>W <b style="color:var(--blue)">4</b>PR</div>
+    <div class="seg">disco <b>2.6 GB</b> recup.</div>
+    <div class="seg r">scan <b>09:14:08</b> · próx 09:29</div>
+  </div>
+</div>
+</body>
+</html>

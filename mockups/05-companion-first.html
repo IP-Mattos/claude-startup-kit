@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>CSK · Compañera</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fff5f8;
+    --bg2:#ffe8f0;
+    --bg3:#ffd9e6;
+    --ink:#3a2733;
+    --mute:#967487;
+    --pink:#ff6aa8;
+    --pink2:#ff90c0;
+    --lav:#a98cff;
+    --mint:#7fe3c4;
+    --yel:#ffd66b;
+    --line:#f3c9da;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{font-family:"Zen Maru Gothic",-apple-system,sans-serif;color:var(--ink);background:#1a0d18}
+  body{display:flex;justify-content:center}
+  .pixel{font-family:"DotGothic16",monospace;letter-spacing:0}
+  .frame{width:1100px;height:760px;position:relative;overflow:hidden;
+    background:
+      radial-gradient(800px 500px at 80% 20%, #ffd0e4 0%, transparent 60%),
+      radial-gradient(700px 500px at 10% 90%, #e2d6ff 0%, transparent 60%),
+      linear-gradient(180deg,#fff5f8 0%,#fde6f0 100%);
+  }
+  /* sparkles */
+  .frame::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:
+      radial-gradient(2px 2px at 12% 18%,#fff,transparent 60%),
+      radial-gradient(1.5px 1.5px at 88% 12%,#fff,transparent 60%),
+      radial-gradient(2px 2px at 75% 78%,#fff,transparent 60%),
+      radial-gradient(1px 1px at 25% 70%,#fff,transparent 60%),
+      radial-gradient(1.5px 1.5px at 50% 38%,#fff,transparent 60%),
+      radial-gradient(1px 1px at 62% 22%,#fff,transparent 60%);
+    opacity:.9}
+  .stars{position:absolute;font-size:14px;pointer-events:none;color:var(--pink);text-shadow:0 0 8px var(--pink2)}
+  /* topbar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 22px;position:relative;z-index:3}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo .heart{width:28px;height:28px;background:var(--pink);border-radius:50% 50% 4px 50%;transform:rotate(-45deg);box-shadow:0 4px 0 #d63f7c,inset 4px 4px 0 #ffb8d2}
+  .logo .nm{font-weight:700;font-size:18px;letter-spacing:.02em}
+  .logo .nm small{display:block;font-size:9px;font-family:"DotGothic16";color:var(--mute);letter-spacing:.16em;text-transform:uppercase;line-height:1}
+  .nav{display:flex;gap:6px;background:#fff;border:2px solid var(--ink);border-radius:999px;padding:4px;box-shadow:0 4px 0 var(--ink)}
+  .nav span{padding:5px 12px;border-radius:999px;font-size:11px;font-weight:500;color:var(--mute);cursor:pointer}
+  .nav span.on{background:var(--ink);color:#ffd9e6}
+  .topright{display:flex;gap:10px;align-items:center}
+  .pill{background:#fff;border:2px solid var(--ink);border-radius:999px;padding:4px 10px;font-size:10px;font-weight:500;box-shadow:0 3px 0 var(--ink);display:flex;align-items:center;gap:6px}
+  .pill .d{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 6px var(--mint)}
+  /* layout */
+  .stage{display:grid;grid-template-columns:1fr 380px;gap:18px;padding:0 22px;height:calc(100% - 60px - 32px);position:relative;z-index:2}
+  /* Companion stage */
+  .comp{background:linear-gradient(180deg,#ffe2ee 0%,#ffd0e4 60%,#ffbcd6 100%);border:3px solid var(--ink);border-radius:24px;box-shadow:0 8px 0 var(--ink),inset 0 0 0 6px #fff;padding:24px;position:relative;overflow:hidden;display:flex;flex-direction:column}
+  .comp::before{content:"";position:absolute;top:14px;left:14px;right:14px;bottom:14px;border:2px dashed rgba(58,39,51,.25);border-radius:18px;pointer-events:none}
+  .comp-head{display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:2}
+  .name{font-size:28px;font-weight:700;letter-spacing:-.01em}
+  .name .sub{font-size:11px;font-family:"DotGothic16";color:var(--mute);letter-spacing:.18em;text-transform:uppercase;display:block;line-height:1.2;margin-top:2px}
+  .lvl{background:var(--ink);color:#ffd9e6;font-family:"DotGothic16";font-size:11px;padding:6px 12px;border-radius:8px;letter-spacing:.1em;box-shadow:4px 4px 0 var(--pink)}
+  /* Sprite */
+  .sprite-wrap{flex:1;display:flex;align-items:center;justify-content:center;position:relative}
+  .sprite{width:230px;height:230px;position:relative}
+  .head{width:170px;height:160px;background:#fff;border:3px solid var(--ink);border-radius:50% 50% 46% 46%;position:absolute;left:30px;top:46px;box-shadow:inset -10px -14px 0 #ffe6f0}
+  .ear{width:0;height:0;border-left:26px solid transparent;border-right:26px solid transparent;border-bottom:50px solid #fff;position:absolute;top:18px;filter:drop-shadow(0 -3px 0 var(--ink)) drop-shadow(-3px 1px 0 var(--ink)) drop-shadow(3px 1px 0 var(--ink))}
+  .ear.l{left:34px;transform:rotate(-12deg)}
+  .ear.r{right:34px;transform:rotate(12deg)}
+  .ear-in{width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-bottom:28px solid var(--pink2);position:absolute;top:34px}
+  .ear-in.l{left:46px;transform:rotate(-12deg)}
+  .ear-in.r{right:46px;transform:rotate(12deg)}
+  .eye{width:18px;height:24px;background:var(--ink);border-radius:50%;position:absolute;top:118px;animation:blink 4s infinite}
+  .eye.l{left:74px}
+  .eye.r{right:74px}
+  .eye::after{content:"";position:absolute;top:4px;left:4px;width:6px;height:6px;background:#fff;border-radius:50%}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}94%,98%{transform:scaleY(.1)}}
+  .blush{width:18px;height:10px;background:var(--pink);border-radius:50%;position:absolute;top:140px;opacity:.6}
+  .blush.l{left:54px}.blush.r{right:54px}
+  .mouth{width:18px;height:9px;border:2.5px solid var(--ink);border-top:none;border-radius:0 0 12px 12px;position:absolute;top:148px;left:50%;transform:translateX(-50%);background:#ffb8d2}
+  .ribbon-bow{position:absolute;top:32px;right:24px;width:38px;height:24px;background:var(--lav);border:2.5px solid var(--ink);border-radius:6px;transform:rotate(18deg);box-shadow:3px 3px 0 var(--ink)}
+  .ribbon-bow::before,.ribbon-bow::after{content:"";position:absolute;top:50%;width:14px;height:18px;background:var(--lav);border:2.5px solid var(--ink);border-radius:50%;transform:translateY(-50%)}
+  .ribbon-bow::before{left:-12px}
+  .ribbon-bow::after{right:-12px}
+  /* Speech bubble */
+  .bubble{position:absolute;top:18px;left:-12px;background:#fff;border:3px solid var(--ink);border-radius:18px;padding:12px 16px;font-size:13px;max-width:230px;box-shadow:5px 5px 0 var(--ink);font-weight:500;line-height:1.4}
+  .bubble::after{content:"";position:absolute;bottom:-12px;left:30px;width:18px;height:18px;background:#fff;border-right:3px solid var(--ink);border-bottom:3px solid var(--ink);transform:rotate(45deg)}
+  .bubble b{color:var(--pink)}
+  /* HUD bars */
+  .hud{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:18px;position:relative;z-index:2}
+  .stat-card{background:#fff;border:2.5px solid var(--ink);border-radius:14px;padding:10px 12px;box-shadow:0 4px 0 var(--ink)}
+  .stat-card .l{font-family:"DotGothic16";font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+  .stat-card .v{font-size:20px;font-weight:700;margin-top:2px;display:flex;align-items:baseline;gap:4px}
+  .stat-card .v small{font-size:10px;font-weight:400;color:var(--mute);font-family:"DotGothic16";letter-spacing:.1em}
+  .barbar{height:8px;background:var(--bg2);border:2px solid var(--ink);border-radius:5px;margin-top:6px;overflow:hidden;position:relative}
+  .barbar i{display:block;height:100%;background:repeating-linear-gradient(45deg,var(--pink) 0 6px,var(--pink2) 6px 12px)}
+  .barbar.m i{background:repeating-linear-gradient(45deg,var(--mint) 0 6px,#a8f0d6 6px 12px)}
+  .barbar.y i{background:repeating-linear-gradient(45deg,var(--yel) 0 6px,#ffe49a 6px 12px)}
+  /* Right column */
+  .quests{background:#fff;border:3px solid var(--ink);border-radius:20px;box-shadow:0 6px 0 var(--ink);padding:18px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+  .quests h2{font-family:"DotGothic16";font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);display:flex;justify-content:space-between;align-items:center}
+  .quests h2 em{font-style:normal;background:var(--yel);border:2px solid var(--ink);padding:2px 8px;font-size:10px;border-radius:6px}
+  .quest{display:flex;gap:10px;padding:8px;border:2px solid var(--ink);border-radius:12px;background:var(--bg);align-items:center}
+  .quest.crit{background:#ffe0e6;border-color:#cf3e5f}
+  .quest .icn{width:36px;height:36px;border:2px solid var(--ink);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:"DotGothic16";font-size:14px;font-weight:700;background:#fff;flex-shrink:0}
+  .quest.crit .icn{background:#ff6aa8;color:#fff}
+  .quest .icn.w{background:var(--yel)}
+  .quest .icn.p{background:var(--lav);color:#fff}
+  .quest .icn.c{background:var(--mint)}
+  .quest .body{flex:1;min-width:0}
+  .quest .body .t{font-size:12.5px;font-weight:600;line-height:1.3}
+  .quest .body .s{font-size:10.5px;color:var(--mute);font-family:"DotGothic16";letter-spacing:.06em;margin-top:2px}
+  .quest .xp{font-family:"DotGothic16";font-size:10px;color:var(--pink);font-weight:700;letter-spacing:.06em;flex-shrink:0}
+  /* status bar */
+  .sb{position:absolute;bottom:0;left:0;right:0;height:32px;background:var(--ink);color:#ffd9e6;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-family:"DotGothic16";font-size:11px;letter-spacing:.12em;z-index:3}
+  .sb .hp{display:flex;align-items:center;gap:8px}
+  .sb .hp i{width:12px;height:11px;background:var(--pink);clip-path:polygon(50% 100%,0 35%,15% 0,50% 20%,85% 0,100% 35%);display:inline-block}
+  .sb .hp i.empty{background:#5a3849}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="stars" style="top:60px;left:48%">✦</div>
+  <div class="stars" style="top:120px;left:90%;font-size:18px">✧</div>
+  <div class="stars" style="top:280px;left:6%">✦</div>
+  <div class="stars" style="top:520px;left:48%;font-size:11px">✧</div>
+
+  <div class="topbar">
+    <div class="logo"><div class="heart"></div><div class="nm">Claude<small>startup kit</small></div></div>
+    <nav class="nav">
+      <span class="on">Hoy</span><span>Proyectos</span><span>PRs</span><span>Auditoría</span><span>Limpieza</span><span>Compañera</span><span>Ajustes</span>
+    </nav>
+    <div class="topright">
+      <div class="pill"><span class="d"></span>engram OK</div>
+      <div class="pill pixel">v0.4.2</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <section class="comp">
+      <div class="comp-head">
+        <div class="name">Akira-chan<span class="sub">— compañera nivel 12 —</span></div>
+        <div class="lvl">LV 12 · 248 sesiones</div>
+      </div>
+      <div class="sprite-wrap">
+        <div class="bubble">¡Buen día, Mariano! Hoy seguimos con <b>PolyMarket</b>, ¿dale? Tenés <b>2 misiones críticas</b> esperando ✦</div>
+        <div class="sprite">
+          <div class="ear l"></div><div class="ear r"></div>
+          <div class="head"></div>
+          <div class="ear-in l"></div><div class="ear-in r"></div>
+          <div class="eye l"></div><div class="eye r"></div>
+          <div class="blush l"></div><div class="blush r"></div>
+          <div class="mouth"></div>
+          <div class="ribbon-bow"></div>
+        </div>
+      </div>
+      <div class="hud">
+        <div class="stat-card">
+          <div class="l">★ skills</div>
+          <div class="v">78<small>/ 100 %</small></div>
+          <div class="barbar"><i style="width:78%"></i></div>
+        </div>
+        <div class="stat-card">
+          <div class="l">♥ engram</div>
+          <div class="v">134<small>obs.</small></div>
+          <div class="barbar m"><i style="width:64%"></i></div>
+        </div>
+        <div class="stat-card">
+          <div class="l">⚡ commits 7d</div>
+          <div class="v">63<small>+11</small></div>
+          <div class="barbar y"><i style="width:88%"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="quests">
+      <h2>Misiones de hoy <em>5</em></h2>
+      <div class="quest crit">
+        <div class="icn">!</div>
+        <div class="body"><div class="t">Resolver drift en hooks</div><div class="s">PetsNew · session-end.ps1</div></div>
+        <div class="xp">+50 XP</div>
+      </div>
+      <div class="quest">
+        <div class="icn">!</div>
+        <div class="body"><div class="t">Permisos amplios</div><div class="s">k8s-playground · Bash(*)</div></div>
+        <div class="xp">+50 XP</div>
+      </div>
+      <div class="quest">
+        <div class="icn p">PR</div>
+        <div class="body"><div class="t">Revisar #128 · server</div><div class="s">rate-limit en /auth · +182 −34</div></div>
+        <div class="xp">+30 XP</div>
+      </div>
+      <div class="quest">
+        <div class="icn p">PR</div>
+        <div class="body"><div class="t">Revisar #41 · PetsNew</div><div class="s">refactor adopciones</div></div>
+        <div class="xp">+30 XP</div>
+      </div>
+      <div class="quest">
+        <div class="icn c">✓</div>
+        <div class="body"><div class="t">Continuar PolyMarket</div><div class="s">cerrar resolver de mercados</div></div>
+        <div class="xp">+80 XP</div>
+      </div>
+      <h2 style="margin-top:6px">Limpieza<em>2.6 GB</em></h2>
+      <div class="quest">
+        <div class="icn w">✿</div>
+        <div class="body"><div class="t">~/.claude/logs</div><div class="s">134 archivos · 2.4 GB</div></div>
+        <div class="xp">+20 XP</div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="sb">
+    <div class="hp">HP <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="empty"></i><i class="empty"></i><i class="empty"></i></div>
+    <div>★ PolyMarket · fix/odds-norm · clean</div>
+    <div>52 PROY · 2C 11W 4PR</div>
+    <div>SCAN ▸ 09:14:08</div>
+  </div>
+</div>
+</body>
+</html>
