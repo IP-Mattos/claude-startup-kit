@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.38 — 2026-05-06
+
+Drop the public-mirror release dance now that the source repo is public (since v0.1.36).
+
+### Changed
+- **`tauri.conf.json` updater endpoints** — added the source repo (`IP-Mattos/claude-startup-kit`) as the **primary** endpoint. The public mirror (`claude-startup-kit-releases`) stays as a **fallback** so already-installed clients pinned to it keep auto-updating until they hop to v0.1.38+. Tauri's updater tries endpoints in order and uses the first one that returns a valid `latest.json`.
+- **`.github/workflows/release.yml` simplified** — removed the entire "Mirror signed assets to public release repo" step (~100 lines of PowerShell that downloaded `latest.json` from the private repo, rewrote URLs to the public mirror, and re-uploaded). Source-repo-only publish is direct; the mirror gets stale from this version forward but the existing v0.1.36/v0.1.37 mirror entries stay there for legacy clients.
+
+### Removed
+- `RELEASES_REPO_TOKEN` is no longer used by the workflow. The PAT can be deleted from the repo's Actions secrets if there's no other consumer.
+- `PUBLIC_RELEASES_REPO` env var.
+
+### Plan for the mirror repo
+Keep alive a few releases (v0.1.38 → v0.1.42 ≈) so any user still pinned to the old endpoint can hop. After that, the mirror can be archived (kept for history) or deleted entirely. Track in a follow-up.
+
+### Why now
+- Source went public in v0.1.36.
+- v0.1.36 + v0.1.37 already shipped to **both** repos (mirror still ran). New v0.1.38+ ships only to the source.
+- Saves ~30s per release + removes a PAT dependency.
+
 ## 0.1.37 — 2026-05-05
 
 Cleanup pass after the repo flipped from private to public.

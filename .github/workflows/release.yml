@@ -3,20 +3,23 @@ name: Release
 # Triggered by pushing a `v*` tag (e.g. `v0.1.6`).
 #
 # Pipeline:
-#   1. tauri-action builds the Windows bundle, signs the .msi / -setup.exe
-#      with the updater private key, emits `latest.json`, and publishes
-#      everything as a release on THIS (private) repo.
-#   2. A second step re-uploads the signed binaries + `latest.json` to the
-#      public mirror repo `IP-Mattos/claude-startup-kit-releases` so the
-#      Tauri auto-updater (which pulls without auth) can reach the assets.
-#      Source code stays private; only signed installers go public.
+#   tauri-action builds the Windows bundle, signs the .msi / -setup.exe
+#   with the updater private key, emits `latest.json`, and publishes
+#   everything as a GitHub release on this repo. The Tauri auto-updater
+#   pulls `latest.json` directly from this repo's releases endpoint.
+#
+# History note: this used to mirror to a sibling public repo
+# (`IP-Mattos/claude-startup-kit-releases`) because the source was
+# private and private-repo release assets aren't downloadable without
+# auth. The source went public in v0.1.36, so the mirror is no longer
+# needed and the second step was removed in v0.1.38. The mirror repo
+# is kept alive for backward compatibility with already-installed
+# clients pinned at the old endpoint; new bundles ship from this repo.
 #
 # Required secrets:
 #   - TAURI_SIGNING_PRIVATE_KEY           (private key file content)
 #   - TAURI_SIGNING_PRIVATE_KEY_PASSWORD  (passphrase from key gen)
-#   - RELEASES_REPO_TOKEN                 (PAT with `Contents: Write` on
-#                                          IP-Mattos/claude-startup-kit-releases;
-#                                          GITHUB_TOKEN can't reach a sibling repo)
+
 on:
   push:
     tags:
@@ -24,9 +27,6 @@ on:
 
 permissions:
   contents: write
-
-env:
-  PUBLIC_RELEASES_REPO: IP-Mattos/claude-startup-kit-releases
 
 jobs:
   build-windows:
@@ -58,7 +58,7 @@ jobs:
       - name: Install frontend deps
         run: pnpm install --frozen-lockfile
 
-      - name: Build, sign, and publish (private repo)
+      - name: Build, sign, and publish
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -75,107 +75,3 @@ jobs:
           # Generates `latest.json` (the manifest the in-app updater reads) and
           # uploads it alongside the .msi / -setup.exe.
           includeUpdaterJson: true
-
-      - name: Mirror signed assets to public release repo
-        shell: pwsh
-        env:
-          # GH_TOKEN_PRIVATE is the default token for the current (private)
-          # repo — needed to DOWNLOAD assets that tauri-action just published.
-          GH_TOKEN_PRIVATE: ${{ secrets.GITHUB_TOKEN }}
-          # GH_TOKEN_PUBLIC owns the public mirror repo — needed to UPLOAD.
-          GH_TOKEN_PUBLIC: ${{ secrets.RELEASES_REPO_TOKEN }}
-          PUBLIC_REPO: ${{ env.PUBLIC_RELEASES_REPO }}
-          PRIVATE_REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          # Collect signed installers from the bundle directory. tauri-action
-          # leaves the .msi / .exe / .sig files on disk after build.
-          $bundle = "src-tauri/target/release/bundle"
-          if (-not (Test-Path $bundle)) {
-            Write-Error "Bundle directory not found: $bundle"
-            exit 1
-          }
-          $patterns = @(
-            "$bundle/msi/*.msi",
-            "$bundle/msi/*.msi.sig",
-            "$bundle/nsis/*-setup.exe",
-            "$bundle/nsis/*-setup.exe.sig"
-          )
-          $files = @()
-          foreach ($p in $patterns) {
-            $files += Get-ChildItem -Path $p -ErrorAction SilentlyContinue
-          }
-          if ($files.Count -eq 0) {
-            Write-Error "No installer artifacts to mirror. Patterns checked: $($patterns -join ', ')"
-            exit 1
-          }
-
-          # latest.json is NOT left on disk by tauri-action — it's uploaded
-          # directly to the GitHub release. Download it from the private
-          # release we just created so we can mirror it to the public repo.
-          $latestDir = Join-Path $env:RUNNER_TEMP "latest-json"
-          New-Item -ItemType Directory -Path $latestDir -Force | Out-Null
-          Write-Host "Downloading latest.json from $env:PRIVATE_REPO ($env:TAG)..."
-          $env:GH_TOKEN = $env:GH_TOKEN_PRIVATE
-          gh release download $env:TAG --repo $env:PRIVATE_REPO --pattern "latest.json" --dir $latestDir
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Could not download latest.json from private release."
-            exit 1
-          }
-          $latestPath = Join-Path $latestDir "latest.json"
-          if (-not (Test-Path $latestPath)) {
-            Write-Error "latest.json missing after download at: $latestPath"
-            exit 1
-          }
-
-          # Rewrite the asset URLs inside latest.json so they point at the
-          # PUBLIC mirror, not the private source repo. tauri-action emits
-          # absolute URLs that match the repo it just published to (private),
-          # but the in-app updater fetches the manifest from the public
-          # endpoint and tries to download the listed bundles. If the URLs
-          # still point at the private repo, the bundle GET hits a 404
-          # because GitHub doesn't serve private release assets without
-          # auth. Replace the host+org+repo prefix in-place.
-          $manifest = Get-Content $latestPath -Raw
-          $privateUrlBase = "https://github.com/$env:PRIVATE_REPO/releases/"
-          $publicUrlBase  = "https://github.com/$env:PUBLIC_REPO/releases/"
-          $rewritten = $manifest.Replace($privateUrlBase, $publicUrlBase)
-          if ($rewritten -eq $manifest) {
-            Write-Host "WARNING: latest.json contained no occurrences of $privateUrlBase to rewrite. The manifest may already be public-facing, or tauri-action changed its URL format."
-          } else {
-            Write-Host "Rewrote private repo URLs in latest.json -> $env:PUBLIC_REPO"
-          }
-          # Persist with the same encoding tauri-action uses (UTF-8, no BOM).
-          [System.IO.File]::WriteAllText($latestPath, $rewritten, [System.Text.UTF8Encoding]::new($false))
-
-          $files += Get-Item $latestPath
-
-          Write-Host "Will mirror $($files.Count) file(s) to $env:PUBLIC_REPO ($env:TAG):"
-          $files | ForEach-Object { Write-Host "  $($_.FullName)" }
-
-          # Switch to the public-repo token for create + upload calls.
-          $env:GH_TOKEN = $env:GH_TOKEN_PUBLIC
-
-          # Create the public release. If it already exists (re-running the
-          # workflow), continue and re-upload assets with --clobber.
-          $createOut = gh release create $env:TAG --repo $env:PUBLIC_REPO `
-            --title $env:TAG `
-            --notes "Auto-mirrored signed installers. Source code at https://github.com/IP-Mattos/claude-startup-kit (private)." `
-            --verify-tag=false 2>&1
-          if ($LASTEXITCODE -ne 0) {
-            $msg = ($createOut -join "`n")
-            if ($msg -notmatch "already_exists|already exists") {
-              Write-Error "gh release create failed: $msg"
-              exit 1
-            }
-            Write-Host "Release already exists, will re-upload assets with --clobber."
-          }
-
-          foreach ($f in $files) {
-            Write-Host "Uploading $($f.Name)..."
-            gh release upload $env:TAG $f.FullName --repo $env:PUBLIC_REPO --clobber
-            if ($LASTEXITCODE -ne 0) { Write-Error "upload failed for $($f.Name)"; exit 1 }
-          }
-          Write-Host "Mirror complete."
