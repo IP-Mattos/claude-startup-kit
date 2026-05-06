@@ -36,6 +36,13 @@ interface SyncedProject {
   name: string;
   remote_url: string;
 }
+interface SyncRemoteStatus {
+  configured: boolean;
+  behind: boolean;
+  remote_sha: string;
+  local_sha: string;
+  error: string;
+}
 interface CloneResult {
   remote_url: string;
   path: string;
@@ -322,6 +329,13 @@ function SyncCard() {
   const [cloneResults, setCloneResults] = useState<Record<string, CloneResult>>({});
   const [cloningAll, setCloningAll] = useState(false);
 
+  // Remote awareness — non-blocking ls-remote against origin so we can
+  // surface a "another machine pushed" banner without forcing the user
+  // to remember manual import. Refreshes on mount + after every sync
+  // action below.
+  const [remoteStatus, setRemoteStatus] =
+    useState<SyncRemoteStatus | null>(null);
+
   // Pending confirmation. We keep the action ("import" or "disconnect") in
   // state and the modal renders/hides accordingly. The actual side-effect
   // is fired in the modal's `onConfirm` so we can preserve the original
@@ -344,12 +358,20 @@ function SyncCard() {
       .catch(() => setProjects([]));
   };
 
+  const refreshRemoteStatus = () => {
+    if (!IS_TAURI) return;
+    invoke<SyncRemoteStatus>("sync_remote_status")
+      .then(setRemoteStatus)
+      .catch(() => setRemoteStatus(null));
+  };
+
   useEffect(() => {
     if (!IS_TAURI) return;
     invoke<SyncState>("sync_status")
       .then(setState)
       .catch((e) => setError(friendlyErrorEn(e)));
     refreshProjects();
+    refreshRemoteStatus();
     // Preview the GitHub login for the setup form. Best-effort — if `gh`
     // isn't authed we just leave the preview empty.
     invoke<string>("gh_username")
@@ -377,6 +399,7 @@ function SyncCard() {
       const next = await invoke<SyncState>("sync_export");
       setState(next);
       refreshProjects();
+      refreshRemoteStatus();
     } catch (e) {
       setError(friendlyErrorEn(e));
     } finally {
@@ -391,6 +414,7 @@ function SyncCard() {
       const next = await invoke<SyncState>("sync_import");
       setState(next);
       refreshProjects();
+      refreshRemoteStatus();
       // Reset previous clone statuses so the new list starts clean.
       setCloneResults({});
     } catch (e) {
@@ -518,6 +542,27 @@ function SyncCard() {
                 : t("sync.never_synced")}
             </span>
           </div>
+          {remoteStatus?.behind && (
+            <div className="v3-sync-behind">
+              <div>
+                <strong>{t("sync.behind_title")}</strong>
+                <p className="v3-row-meta">{t("sync.behind_lead")}</p>
+              </div>
+              <button
+                type="button"
+                className="v3-btn-primary v3-btn-sm"
+                onClick={handleImport}
+                disabled={busy !== null}
+              >
+                {busy === "import" ? t("sync.importing") : t("sync.import_now")}
+              </button>
+            </div>
+          )}
+          {remoteStatus?.error && !remoteStatus.behind && (
+            <p className="v3-row-meta v3-row-dim">
+              {t("sync.remote_status_error", { msg: remoteStatus.error })}
+            </p>
+          )}
           <div className="v3-sync-actions">
             <button
               type="button"

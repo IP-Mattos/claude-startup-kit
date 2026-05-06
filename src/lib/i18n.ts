@@ -169,6 +169,18 @@ const STRINGS = {
     es: "Ningún repo coincide con el filtro.",
   },
   "sync.gh_repo_private": { en: "private", es: "privado" },
+  "sync.behind_title": {
+    en: "Another machine pushed since your last import",
+    es: "Otra máquina hizo push desde tu último import",
+  },
+  "sync.behind_lead": {
+    en: "Click Import to apply remote changes locally — your local engram and project list will update.",
+    es: "Click Importar para traer los cambios remotos — tu engram local y la lista de proyectos se actualizan.",
+  },
+  "sync.remote_status_error": {
+    en: "Couldn't reach the remote ({msg}). Sync still works manually.",
+    es: "No se pudo alcanzar el remoto ({msg}). El sync sigue funcionando manualmente.",
+  },
   "cleanup.confirm_title": {
     en: "Delete files?",
     es: "¿Borrar archivos?",
