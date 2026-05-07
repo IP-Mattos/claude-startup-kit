@@ -451,12 +451,12 @@ const STRINGS = {
   },
   "projects.open_in_explorer": { en: "Open in Explorer", es: "Abrir en Explorer" },
   "projects.disk_scan_title": {
-    en: "More repos on disk",
-    es: "Más repos en disco",
+    en: "More projects (disk + VS Code)",
+    es: "Más proyectos (disco + VSCode)",
   },
   "projects.disk_scan_lead": {
-    en: "Walks common dev folders looking for .git/. Surfaces repos that aren't in the Claude Code activity list above.",
-    es: "Recorre carpetas dev típicas buscando .git/. Aparecen repos que no están en la lista de actividad de Claude Code de arriba.",
+    en: "Walks common dev folders for .git/ AND reads VS Code's workspace storage. Catches projects that don't show up in the Claude Code activity list above.",
+    es: "Recorre carpetas dev buscando .git/ Y lee el workspace storage de VSCode. Capta proyectos que no aparecen en la lista de actividad de Claude Code de arriba.",
   },
   "projects.disk_scan_run": { en: "Search now", es: "Buscar ahora" },
   "projects.disk_scan_rerun": { en: "Search again", es: "Buscar de nuevo" },
