@@ -68,6 +68,24 @@ const STRINGS = {
   "ago.hours": { en: "{n}h ago", es: "hace {n}h" },
   "ago.days": { en: "{n}d ago", es: "hace {n}d" },
 
+  // Command palette (Cmd+K) — universal, but visually emphasized in the
+  // command-palette theme where the sidebar collapses to icons.
+  "palette.title": { en: "Command palette", es: "Paleta de comandos" },
+  "palette.placeholder": {
+    en: "Type to search a command…",
+    es: "Escribí para buscar un comando…",
+  },
+  "palette.empty": {
+    en: "No commands match. Esc to close.",
+    es: "Ningún comando coincide. Esc para cerrar.",
+  },
+  "palette.section_nav": { en: "Navigate", es: "Navegar" },
+  "palette.section_actions": { en: "Actions", es: "Acciones" },
+  "palette.cycle_theme": { en: "Cycle theme", es: "Cambiar tema" },
+  "palette.foot_navigate": { en: "navigate", es: "navegar" },
+  "palette.foot_select": { en: "select", es: "seleccionar" },
+  "palette.foot_close": { en: "close", es: "cerrar" },
+
   // Companion widget — single-line nudge, never the same data the System
   // Status card already shows.
   "companion.online": { en: "Online", es: "En línea" },

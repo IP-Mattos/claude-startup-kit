@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.40 — 2026-05-07
+
+Command palette layout — first half of the mockup-to-real port.
+
+### Added
+- **`Cmd/Ctrl+K` opens a command palette modal.** Linear / Raycast style. Universal across themes — works regardless of which theme you have active. Shows two sections:
+  - **Navigate** — every sidebar tab (Overview, Projects, PRs, Audit, Cleanup) plus topbar tab (Claude, Sync, Companions, Settings) with their existing keyboard shortcuts as hints.
+  - **Actions** — Run audit (`Ctrl+R`), Cycle theme (`Ctrl+T`).
+  Fuzzy match on label + hint, ↑↓ to navigate, Enter to fire, Esc to close.
+- **`command-palette` theme now restructures the sidebar to icon-only rail (~56 px).** Previously v0.1.36 only ported the palette + typography; the structural layout shift from `mockups/02-command-palette.html` was deferred. Now applied: when you pick the `command-palette` theme, the sidebar collapses to icons (labels become `aria-label` + native title for discoverability), the system-status footer collapses to just the colored dot, and a `⌘K` chip appears in the topbar to advertise the palette. Pick any other theme and the sidebar widens back to the standard layout — each theme decides.
+
+### Component
+- New `src/components/v3/CommandPalette.tsx` (~190 lines). Self-contained — receives `onTab` / `onRunAudit` / `onCycleTheme` callbacks from `AppV3.tsx`. No external fuzzy-match library; the catalog is small enough that a substring-rank scorer is plenty.
+
+### Why universal (not theme-locked)
+Cmd-K is a power-user keyboard shortcut. Hiding it behind a theme would punish users who like another theme but want quick command access. The theme controls *visual emphasis* (icon rail draws attention to it); the palette itself is always there.
+
+### Up next (v0.1.41+)
+The `data-dense` mockup involves a bigger restructure (sidebar with project list, KPI sparklines, table layouts). That's a separate PR pass.
+
 ## 0.1.38 — 2026-05-06
 
 Drop the public-mirror release dance now that the source repo is public (since v0.1.36).

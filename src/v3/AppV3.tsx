@@ -13,6 +13,7 @@ import type {
 import { agoLabel, pickGreeting, projectName, friendlyErrorEn } from "../lib/format";
 import { IS_TAURI } from "../lib/env";
 import type { V3Tab } from "./v3types";
+import { CommandPalette } from "../components/v3/CommandPalette";
 import { CompanionWidget } from "../components/v3/CompanionWidget";
 import { OverviewView } from "../components/v3/OverviewView";
 import { Sidebar } from "../components/v3/Sidebar";
@@ -71,6 +72,10 @@ export default function AppV3() {
       /* storage full / locked — ignore */
     }
   }, [windowDays]);
+  // Command palette (Cmd+K) open state. Universal across themes; the
+  // command-palette theme additionally collapses the sidebar to icons
+  // so this becomes the primary nav surface.
+  const [paletteOpen, setPaletteOpen] = useState(false);
   // Per-source fetch errors — surfaced via the retry banner so backend
   // failures stop masquerading as empty states.
   const [fetchErrors, setFetchErrors] = useState<{ source: string; msg: string }[]>([]);
@@ -302,6 +307,13 @@ export default function AppV3() {
         handleCycleTheme();
         return;
       }
+      if (k === "k") {
+        // Cmd/Ctrl+K opens the command palette. Universal — works
+        // regardless of theme. Toggles closed if already open.
+        e.preventDefault();
+        setPaletteOpen((p) => !p);
+        return;
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -472,6 +484,13 @@ export default function AppV3() {
         </aside>
       </div>
       <StatusBar />
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onTab={setTab}
+        onRunAudit={handleRunAudit}
+        onCycleTheme={handleCycleTheme}
+      />
     </div>
   );
 }
