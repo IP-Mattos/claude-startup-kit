@@ -66,7 +66,7 @@ export function CommandPalette({
     const navSection = t("palette.section_nav");
     const actionSection = t("palette.section_actions");
     const all: CommandItem[] = [];
-    SIDEBAR_NAV.forEach(({ id, navKey }, i) => {
+    SIDEBAR_NAV.forEach(({ id, navKey }) => {
       const idx = KEYBOARD_TAB_ORDER.indexOf(id);
       all.push({
         id: `nav-${id}`,
