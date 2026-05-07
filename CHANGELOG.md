@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.43 — 2026-05-07
+
+### Fixed
+- **Projects view now picks up data/pipeline/research projects (was queued as v0.1.39 but never merged — finally landing).** User reported a folder (`New bd`) where they'd actively used Claude Code (13 MB of JSONL today) didn't appear, even though it has a README and 6 subfolders of work. Cause: `PROJECT_MARKERS` only listed code-package files (`.git`, `package.json`, `Cargo.toml`, etc.). Folders documented with a README but without a package manager were rejected.
+
+  Added markers: `README.md`, `README.txt`, `README.rst`, `README`, `Makefile`, `Dockerfile`. Heuristic: a folder someone took the time to document or to add a build entry to is a project, regardless of language.
+
 ## 0.1.42 — 2026-05-07
 
 VS Code workspaces as a project source — addresses the user's recurring complaint that the JSONL-driven Projects list misses folders they edit in VS Code without ever running `claude` inside.

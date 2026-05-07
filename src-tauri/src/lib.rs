@@ -152,6 +152,17 @@ const PROJECT_MARKERS: &[&str] = &[
     "tsconfig.json",
     "deno.json",
     ".project",       // Eclipse / Generic IDE marker
+    // Documentation / build markers — a folder with a README is one
+    // someone documented intentionally, not stray junk. Same for a
+    // Makefile or Dockerfile (build entry points). Catches data /
+    // pipeline / research projects that don't have a code package
+    // manager file.
+    "README.md",
+    "README.txt",
+    "README.rst",
+    "README",
+    "Makefile",
+    "Dockerfile",
     "*.sln",          // Pattern handled below — checked separately
 ];
 
