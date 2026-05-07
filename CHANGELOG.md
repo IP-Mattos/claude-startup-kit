@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.42 — 2026-05-07
+
+VS Code workspaces as a project source — addresses the user's recurring complaint that the JSONL-driven Projects list misses folders they edit in VS Code without ever running `claude` inside.
+
+### Added
+- **`vscode_workspace_folders` IPC**. Walks `%APPDATA%\Code\User\workspaceStorage\<hash>\workspace.json` for every workspace VS Code knows about, decodes the `file:///` URL back to a Windows path, filters to folders that still exist on disk (VS Code keeps stale entries forever), returns deduped + sorted list. Pure filesystem read — no SQLite dep, no extra cost.
+- **Projects view's "Más proyectos" section now unions VS Code workspaces with the disk scan**. Click "Buscar ahora" → backend runs both lookups in parallel → result is the union, deduped against the Claude-active list above. Anything VS Code has open that isn't a `.git` repo (data folders, scratch dirs, etc.) now surfaces with the same Open / Explorer buttons as everything else.
+
+### Why this matters
+User's words: *"antes el brief me mostraba los proyectos de vs code, eso quiero, obvio que si estan vinculados a engram me muestre como un resumen"*. Inverting the model fully (recents-driven instead of JSONL-driven) is a bigger pivot, but this PR ships the most impactful slice: every folder VS Code knows about is now reachable from CSK without having to run `claude` first.
+
+### Implementation note
+Used `workspace.json` (per-workspace storage), not `state.vscdb` (the SQLite global recents). VS Code maintains both. workspace.json is what we want — every folder ever opened. SQLite would need `rusqlite` as a Rust dep; kept it deps-free.
+
 ## 0.1.41 — 2026-05-07
 
 Data-dense layout — second half of the mockup-to-real port. The `data-dense` theme now restructures the sidebar to include a flat project list (in addition to the colour/typography work from v0.1.36), tightens stat-card density, and adds a reusable `Sparkline` component for KPI strips.

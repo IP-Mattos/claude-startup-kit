@@ -82,20 +82,35 @@ export function ProjectsView({
     setDiskScanError(null);
     try {
       const roots = await invoke<string[]>("default_disk_scan_roots");
-      const found = await invoke<DiskGitRepo[]>("disk_scan_git_repos", {
-        roots,
-        maxDepth: 4,
+      // Run disk scan + VS Code workspace folder lookup in parallel.
+      // VS Code keeps a perfect list of every folder you've ever opened
+      // — surface those too so the Projects view stops missing folders
+      // the user works in but never ran `claude` inside.
+      const [found, vsFolders] = await Promise.all([
+        invoke<DiskGitRepo[]>("disk_scan_git_repos", { roots, maxDepth: 4 }),
+        invoke<string[]>("vscode_workspace_folders").catch(() => [] as string[]),
+      ]);
+      // Convert VS Code folder paths to the same DiskGitRepo shape so the
+      // existing render path works unchanged. `remote` stays empty — VS
+      // Code's storage doesn't track git remotes.
+      const vsRepos: DiskGitRepo[] = vsFolders.map((p) => {
+        const segments = p.split(/[\\/]/).filter(Boolean);
+        const name = segments[segments.length - 1] || p;
+        return { path: p, name, remote: "" };
       });
-      // Filter out repos already in the Claude-active list — by canonical
-      // path (case-insensitive on Windows). Avoids showing the same row
-      // twice once disk-scan runs.
-      const seen = new Set(
+      // Union + dedupe by canonical path (case-insensitive on Windows).
+      // Filter out anything already in the Claude-active list so we
+      // don't show the same row twice.
+      const claudeSeen = new Set(
         projects.map((p) => p.path.toLowerCase().replace(/\\/g, "/"))
       );
-      const filteredFound = found.filter(
-        (r) => !seen.has(r.path.toLowerCase().replace(/\\/g, "/"))
-      );
-      setDiskRepos(filteredFound);
+      const merged = new Map<string, DiskGitRepo>();
+      for (const r of [...found, ...vsRepos]) {
+        const key = r.path.toLowerCase().replace(/\\/g, "/");
+        if (claudeSeen.has(key)) continue;
+        if (!merged.has(key)) merged.set(key, r);
+      }
+      setDiskRepos(Array.from(merged.values()));
       setDiskScanRan(true);
     } catch (e) {
       setDiskScanError(friendlyErrorEn(e));

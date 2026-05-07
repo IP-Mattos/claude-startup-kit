@@ -505,6 +505,96 @@ async fn disk_scan_git_repos(
         .map_err(|e| format!("disk_scan_git_repos task join: {e}"))
 }
 
+/// List every folder VS Code has open in its workspace storage. Each
+/// workspace storage subdir contains a `workspace.json` with a `folder`
+/// field as a `file:///` URL — we decode that back to a Windows path
+/// and return the unique set.
+///
+/// Why this exists: the user's main complaint with the JSONL-driven
+/// project list is that it only includes folders where `claude` ran —
+/// projects they edit in VS Code without claude don't show up. VS Code
+/// keeps a perfect list right here. This IPC surfaces it so the
+/// renderer can union it into Projects view.
+///
+/// File system, not SQLite — modern VS Code does also write to a
+/// `state.vscdb` SQLite store, but the per-workspace `workspace.json`
+/// files are still maintained and require no extra dependency to read.
+#[tauri::command]
+async fn vscode_workspace_folders() -> Result<Vec<String>, String> {
+    tokio::task::spawn_blocking(|| -> Vec<String> {
+        // %APPDATA%\Code\User\workspaceStorage\<hash>\workspace.json
+        let Some(appdata) = std::env::var_os("APPDATA") else {
+            return vec![];
+        };
+        let root = PathBuf::from(appdata)
+            .join("Code")
+            .join("User")
+            .join("workspaceStorage");
+        if !root.is_dir() {
+            return vec![];
+        }
+        let entries = match fs::read_dir(&root) {
+            Ok(e) => e,
+            Err(_) => return vec![],
+        };
+        let mut seen: std::collections::HashSet<String> = Default::default();
+        let mut out: Vec<String> = Vec::new();
+        for entry in entries.flatten() {
+            let workspace_json = entry.path().join("workspace.json");
+            if !workspace_json.is_file() {
+                continue;
+            }
+            let body = match fs::read_to_string(&workspace_json) {
+                Ok(b) => b,
+                Err(_) => continue,
+            };
+            // Quick parse — we only need the `folder` field.
+            let parsed: serde_json::Value = match serde_json::from_str(&body) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let Some(folder_url) = parsed.get("folder").and_then(|v| v.as_str())
+            else {
+                continue;
+            };
+            // file:///c%3A/Users/... → C:\Users\...
+            let path = match decode_file_url(folder_url) {
+                Some(p) => p,
+                None => continue,
+            };
+            // Confirm the folder still exists on disk (VS Code keeps
+            // stale entries forever).
+            if !PathBuf::from(&path).is_dir() {
+                continue;
+            }
+            if seen.insert(path.clone()) {
+                out.push(path);
+            }
+        }
+        out.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+        out
+    })
+    .await
+    .map_err(|e| format!("vscode_workspace_folders task join: {e}"))
+}
+
+/// Convert a `file:///c%3A/Users/...` URL back into a Windows path.
+/// Returns None for non-file URLs or unparseable inputs.
+fn decode_file_url(url: &str) -> Option<String> {
+    let stripped = url.strip_prefix("file:///")?;
+    // Percent-decode the most common escapes — full RFC 3986 isn't
+    // needed for VS Code's outputs in practice (just `%3A` for `:`,
+    // `%20` for space, `%5C` for `\`).
+    let decoded = stripped
+        .replace("%3A", ":")
+        .replace("%3a", ":")
+        .replace("%20", " ")
+        .replace("%5C", "\\")
+        .replace("%5c", "\\")
+        .replace('/', "\\");
+    Some(decoded)
+}
+
 #[derive(Serialize, Clone)]
 pub struct CleanupItem {
     pub category: String,
@@ -4529,6 +4619,7 @@ pub fn run() {
             scan_projects,
             disk_scan_git_repos,
             default_disk_scan_roots,
+            vscode_workspace_folders,
             git_last_commit,
             engram_known_projects,
             engram_project_goal,
