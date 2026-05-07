@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.41 — 2026-05-07
+
+Data-dense layout — second half of the mockup-to-real port. The `data-dense` theme now restructures the sidebar to include a flat project list (in addition to the colour/typography work from v0.1.36), tightens stat-card density, and adds a reusable `Sparkline` component for KPI strips.
+
+### Added
+- **Sidebar project list under data-dense theme.** Below the nav, a flat list of all Claude-Code-active projects shows up. Each row jumps to the project in VS Code on click. Truncates names with ellipsis, shows days-since-last-activity on the right in monospace. Sidebar widens slightly to 220 px so names fit. **Other themes hide the list entirely** via CSS (`display: none`) — the layout pivot is theme-gated, opt-in by picking the data-dense theme.
+- **`<Sparkline data={...}>` component** — pure SVG, no library. Takes a number array (oldest → newest), normalises to its own min/max, draws a 1.25 px polyline at 64×18 by default. Currently a primitive ready for future KPI-history features; opt-in per consumer (StatCard takes an optional `trend?: number[]` prop). When passed, the sparkline shows; when omitted (current default — no historical store yet), it doesn't render. Avoids fake-looking trend lines until real history exists.
+- **Stat-card density tightening for data-dense.** Smaller padding, smaller label font (9.5 px uppercase tracking), bigger value font (22 px), tabular-nums.
+
+### Why no real sparkline data yet
+None of the existing IPCs return time series — `run_audit` gives the current snapshot only, same for `scan_projects`, `github_review_queue`, `workspace_summary`. To fill the sparklines we'd need to persist run history (in engram or a local JSON). Tracked as a follow-up; the visual hook is in place for when it lands.
+
+### Up next (if desired)
+- Persist KPI history (audit runs, project counts) for real sparkline data.
+- Table-style row layouts for Projects/PRs/Audit when on data-dense (currently still cards). Bigger refactor; deferred unless explicitly requested.
+
 ## 0.1.40 — 2026-05-07
 
 Command palette layout — first half of the mockup-to-real port.
