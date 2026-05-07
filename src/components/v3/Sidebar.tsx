@@ -1,11 +1,19 @@
 import { ShieldCheck } from "lucide-react";
 import { plural, useT } from "../../lib/i18n";
 import { SIDEBAR_NAV } from "../../constants/v3Nav";
+import type { Project } from "../../types";
 import type { V3Tab } from "../../v3/v3types";
+import { projectName } from "../../lib/format";
 
 // Sidebar with brand block, primary nav, and a System Status card pinned
 // at the bottom. The headline + dot are derived from finding counts so
 // critical/warn/ok read at a glance.
+//
+// When the active theme is `data-dense` the sidebar additionally shows
+// a flat list of all projects under the nav — same UX as the
+// `mockups/04-data-dense.html` reference, where the sidebar's role
+// expands from "tabs only" to "tabs + jump-to-project". Other themes
+// hide the project list entirely (see CSS gate by data-theme-v3).
 export function Sidebar({
   activeTab,
   onTab,
@@ -14,6 +22,8 @@ export function Sidebar({
   critCount,
   warnCount,
   findingTotal,
+  projects,
+  onOpenProject,
 }: {
   activeTab: V3Tab;
   onTab: (t: V3Tab) => void;
@@ -22,6 +32,11 @@ export function Sidebar({
   critCount: number;
   warnCount: number;
   findingTotal: number;
+  /** Projects already fetched at AppV3 — displayed as flat list when
+   *  theme is data-dense. Other themes ignore via CSS. */
+  projects: Project[];
+  /** Open project in VSCode — fired from a project row click. */
+  onOpenProject: (path: string) => void;
 }) {
   const { t } = useT();
   // Single source of truth for the colored dot + headline. Critical wins
@@ -71,6 +86,43 @@ export function Sidebar({
           );
         })}
       </nav>
+
+      {/* Project list for data-dense theme. Hidden by default in CSS;
+          unhidden only when body[data-theme-v3="data-dense"]. Click
+          jumps straight to the project in VS Code (no Projects view
+          detour). */}
+      <div className="v3-sidebar-projects" aria-label={t("nav.projects")}>
+        <div className="v3-sidebar-projects-title">
+          {t("nav.projects")}
+          <span className="v3-sidebar-projects-count">{projects.length}</span>
+        </div>
+        {projects.length === 0 ? (
+          <div className="v3-sidebar-projects-empty">
+            {t("projects.empty_window", { days: 14 })}
+          </div>
+        ) : (
+          <div className="v3-sidebar-projects-list">
+            {projects.map((p) => (
+              <button
+                key={p.path}
+                type="button"
+                className="v3-sidebar-project"
+                title={p.path}
+                onClick={() => onOpenProject(p.path)}
+              >
+                <span className="v3-sidebar-project-name">
+                  {projectName(p.path)}
+                </span>
+                <span className="v3-sidebar-project-ago">
+                  {p.days_ago === 0
+                    ? t("ago.minutes", { n: 0 }).replace(/\d+m/, "0d")
+                    : t("ago.days", { n: p.days_ago })}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="v3-sidebar-spacer" />
 

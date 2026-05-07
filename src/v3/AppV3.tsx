@@ -333,6 +333,8 @@ export default function AppV3() {
           critCount={stats.crit}
           warnCount={stats.warn}
           findingTotal={stats.total}
+          projects={projects}
+          onOpenProject={handleOpenProject}
         />
         <main className="appv3-content">
           {updates.app?.available && (

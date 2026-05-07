@@ -27,6 +27,7 @@ import type {
 } from "../../types";
 import type { V3Tab } from "../../v3/v3types";
 import { plural, useT } from "../../lib/i18n";
+import { Sparkline } from "./Sparkline";
 
 // =============================================================
 // Sub-components (only used by OverviewView, kept co-located).
@@ -42,6 +43,7 @@ function StatCard({
   delta,
   tint,
   severity = "good",
+  trend,
 }: {
   Icon: typeof Home;
   label: string;
@@ -49,6 +51,10 @@ function StatCard({
   delta: string;
   tint: StatTint;
   severity?: DeltaSeverity;
+  /** Optional sparkline data (oldest → newest). Rendered only by themes
+   *  that opt into showing it via CSS (data-dense). On other themes
+   *  the SVG element is invisible via display:none. */
+  trend?: number[];
 }) {
   return (
     <article className="v3-stat-card">
@@ -62,6 +68,7 @@ function StatCard({
           <ArrowUp size={11} strokeWidth={2.2} />
           {delta}
         </div>
+        {trend && trend.length > 0 && <Sparkline data={trend} />}
       </div>
     </article>
   );
