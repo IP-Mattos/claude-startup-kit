@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.44 — 2026-05-08
+
+Audit honesty — the row button told the user "Fix" / "Resolver" for clicks that did no fixing, and the SCRIPTS finding was self-flagging files the kit itself had just written. Both issues fixed in this release.
+
+### Fixed
+- **`audit_scripts` whitelist now covers kit-generated state files.** `KIT_WHITELIST` only listed kit *inputs* (the scripts) and missed the *outputs* the same scripts create at runtime — `.audit-summary.json`, `.audit-alerted-crit`, `.snoozed.json`, `.kit-last-auto-update`. Any user with the legacy hooks installed saw the audit flag those state files as "Non-kit file in ~/.claude/scripts/" on every run. Adding them to the whitelist stops the audit from eating its own tail.
+
+### Changed
+- **Per-action button labels in the audit row.** Replaced the single `audit.resolve` ("Fix" / "Resolver") with action-aware i18n keys mapped via `resolveLabelKey(action.kind)`:
+  - `OpenInExplorer` → "Show in Explorer" / "Ver en Explorer"
+  - `OpenInVscode` → "Open in VS Code" / "Abrir en VS Code"
+  - `NavigateTo` → "Go" / "Ir"
+  - `KillProcess` → "Kill" / "Matar"
+  - `DeleteFile` → "Delete" / "Borrar"
+  - `RestoreSettingsBackup` → "Restore" / "Restaurar"
+
+  The generic "Fix / Resolver" was honest for the three destructive actions but lied for the navigation ones — clicking did nothing fix-shaped, just opened a folder/file/tab. The confirm modal still uses `audit.resolve` as `confirmLabel` because it only opens for the destructive trio.
+
 ## 0.1.43 — 2026-05-07
 
 ### Fixed
