@@ -955,7 +955,12 @@ body.v3-layout #root {
   padding: 24px;
 }
 .v3-modal {
-  background: var(--v3-card-bg);
+  /* Use the canonical surface token. Earlier the rule asked for
+     --v3-card-bg, which no theme defines, so the dialog body fell back
+     to transparent and the content behind bled through (visible on
+     data-dense + any other dark theme). The hard #1B1F26 fallback is a
+     last-resort opaque color in case both tokens are undefined. */
+  background: var(--v3-surface, #1B1F26);
   border: 1px solid var(--v3-border);
   border-radius: var(--v3-radius);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
