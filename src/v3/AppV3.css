@@ -471,6 +471,38 @@ body.v3-layout #root {
   display: flex;
   flex-direction: column;
 }
+/* Claude tab — Fix VS Code extension card. */
+.v3-fix-card .v3-fix-lead {
+  margin: 0 0 4px;
+}
+.v3-fix-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+.v3-fix-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* Output panel reads like a shell capture — mono font, dark surface,
+   preserves whitespace + wraps long paths so it doesn't horizontal-scroll. */
+.v3-fix-output {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--v3-text-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
 .v3-claude-row {
   display: flex;
   align-items: center;

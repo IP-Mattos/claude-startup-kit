@@ -624,6 +624,21 @@ const STRINGS = {
   },
   "claude.refreshing": { en: "Refreshing…", es: "Refrescando…" },
   "claude.refresh": { en: "Refresh", es: "Refrescar" },
+  // Fix-Claude card — patches the recurring VS Code extension
+  // activation bug ("command 'claude-vscode.editor.openLast' not found")
+  // by rewriting the bad Linux CI path inside extension.js. Idempotent.
+  "claude.fix_title": { en: "Fix Claude VS Code extension", es: "Reparar extensión de Claude en VS Code" },
+  "claude.fix_lead": {
+    en: "Patches the recurring 'claude-vscode.editor.openLast not found' activation bug. Re-run safely after every Claude Code extension update if the bug returns.",
+    es: "Repara el bug recurrente de activación 'claude-vscode.editor.openLast not found'. Podés volver a ejecutarlo cada vez que actualicen la extensión y vuelva el problema.",
+  },
+  "claude.fix_button": { en: "Fix Claude", es: "Reparar Claude" },
+  "claude.fix_running": { en: "Patching…", es: "Reparando…" },
+  "claude.fix_output_aria": { en: "Fix script output", es: "Salida del script de reparación" },
+  "claude.fix_output_empty": {
+    en: "Script ran but produced no output.",
+    es: "El script corrió sin generar salida.",
+  },
   "claude.mcp_title": { en: "MCP servers", es: "Servidores MCP" },
   "claude.mcp_active": { en: "{active} active of {total}", es: "{active} activos de {total}" },
   "claude.mcp_loading": { en: "Loading MCP servers…", es: "Cargando servidores MCP…" },

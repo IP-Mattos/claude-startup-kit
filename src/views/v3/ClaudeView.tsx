@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { ExternalLink, RefreshCw } from "lucide-react";
+import { ExternalLink, RefreshCw, Wrench } from "lucide-react";
 import { friendlyErrorEn } from "../../lib/format";
 import { plural, useT } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
@@ -30,6 +30,26 @@ export function ClaudeView() {
   const [refreshNonce, setRefreshNonce] = useState(0);
   // Per-row pending state so toggling one MCP doesn't disable every switch.
   const [togglingName, setTogglingName] = useState<string | null>(null);
+
+  // VS Code extension fix — runs the bundled PowerShell patch and shows
+  // the captured output below the button. Idempotent: safe to re-run.
+  const [fixRunning, setFixRunning] = useState(false);
+  const [fixOutput, setFixOutput] = useState<string | null>(null);
+  const [fixError, setFixError] = useState<string | null>(null);
+  const runFixVscode = async () => {
+    if (!IS_TAURI) return;
+    setFixRunning(true);
+    setFixError(null);
+    setFixOutput(null);
+    try {
+      const result = await invoke<string>("fix_claude_vscode_extension");
+      setFixOutput(result);
+    } catch (e) {
+      setFixError(friendlyErrorEn(e));
+    } finally {
+      setFixRunning(false);
+    }
+  };
 
   useEffect(() => {
     if (!IS_TAURI) {
@@ -136,6 +156,39 @@ export function ClaudeView() {
           {error}
         </div>
       )}
+
+      <article className="v3-card v3-fix-card">
+        <header className="v3-card-head">
+          <h2 className="v3-card-title">{t("claude.fix_title")}</h2>
+        </header>
+        <p className="v3-subtitle v3-fix-lead">{t("claude.fix_lead")}</p>
+        <div className="v3-fix-actions">
+          <button
+            type="button"
+            className="v3-btn-primary v3-fix-button"
+            onClick={runFixVscode}
+            disabled={fixRunning}
+          >
+            <Wrench size={13} strokeWidth={2} />
+            {fixRunning ? t("claude.fix_running") : t("claude.fix_button")}
+          </button>
+        </div>
+        {fixError && (
+          <div className="v3-error" role="alert" aria-live="assertive">
+            {fixError}
+          </div>
+        )}
+        {fixOutput !== null && (
+          <pre
+            className="v3-fix-output"
+            role="status"
+            aria-live="polite"
+            aria-label={t("claude.fix_output_aria")}
+          >
+            {fixOutput || t("claude.fix_output_empty")}
+          </pre>
+        )}
+      </article>
 
       <article className="v3-card">
         <header className="v3-card-head">

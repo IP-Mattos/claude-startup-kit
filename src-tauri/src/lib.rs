@@ -2607,6 +2607,71 @@ async fn open_path_in_explorer(path: String) -> Result<(), String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+// ─── Fix Claude VS Code extension ─────────────────────────────────────────
+//
+// The Anthropic Claude Code extension ships with a hardcoded Linux CI path
+// inside `extension.js` (`file:///home/runner/work/.../sdk.mjs`). On Windows
+// the VS Code activation throws "command 'claude-vscode.editor.openLast'
+// not found". The PowerShell script bundled below patches every installed
+// `anthropic.claude-code-*` extension (under `.vscode`, `.vscode-insiders`,
+// `.cursor`, `.windsurf`) by replacing the bad URL with a local
+// file://<this-extension>/extension.js. Backs up to `extension.js.bak`
+// and is idempotent: re-running on an already-patched install is a no-op.
+//
+// We embed the script via include_str! so the binary is self-contained;
+// at call time we drop it to a temp file and run with PowerShell.
+
+const FIX_VSCODE_SCRIPT: &str =
+    include_str!("../scripts/fix-claude-vscode-extension.ps1");
+
+#[tauri::command]
+async fn fix_claude_vscode_extension() -> Result<String, String> {
+    tokio::task::spawn_blocking(|| -> Result<String, String> {
+        let mut tmp = std::env::temp_dir();
+        // Unique-ish name so re-runs don't clobber if the script lingers.
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        tmp.push(format!("csk-fix-claude-vscode-{stamp}.ps1"));
+        fs::write(&tmp, FIX_VSCODE_SCRIPT)
+            .map_err(|e| format!("write temp script: {e}"))?;
+
+        let out = Command::new("powershell")
+            .args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+            ])
+            .arg(&tmp)
+            .output()
+            .map_err(|e| format!("spawn powershell: {e}"))?;
+
+        // Best-effort cleanup; ignore failure (Windows sometimes holds the
+        // handle for a tick).
+        let _ = fs::remove_file(&tmp);
+
+        let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
+        let stderr = String::from_utf8_lossy(&out.stderr).into_owned();
+        if !out.status.success() {
+            return Err(format!(
+                "fix script exited {}:\n{stderr}\n{stdout}",
+                out.status
+            ));
+        }
+        let combined = if stderr.trim().is_empty() {
+            stdout
+        } else {
+            format!("{stdout}\n{stderr}")
+        };
+        Ok(combined.trim().to_string())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 fn show_main_window(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
@@ -4818,7 +4883,8 @@ pub fn run() {
             list_claude_skills,
             count_claude_skill_usage,
             list_mcp_servers,
-            toggle_mcp_server
+            toggle_mcp_server,
+            fix_claude_vscode_extension
         ])
         .setup(|app| {
             let show_i = MenuItem::with_id(app, "show", "Mostrar ventana", true, None::<&str>)?;
