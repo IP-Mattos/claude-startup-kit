@@ -2136,10 +2136,18 @@ body.v3-layout #root {
   border: 1px solid var(--v3-border);
   background: var(--v3-surface-2);
 }
-.v3-finding-crit { border-color: #FCA5A5; background: #FEF2F2; }
-.v3-finding-warn { border-color: #FCD34D; background: #FFFBEB; }
-.v3-finding-info { border-color: #BFDBFE; background: #EFF6FF; }
-.v3-finding-ok   { border-color: #6EE7B7; background: #F0FDF4; }
+/* Row tints — borders + backgrounds. Were hardcoded to Tailwind light-mode
+   pastels (#FFFBEB amber-50, #FEF2F2 red-50, etc.) which painted the card
+   in cream / pale colours regardless of the active theme. On dark themes
+   (data-dense, dark, etc.) the cards stood out as light blocks against a
+   black canvas and made the title text unreadable.
+   Now driven entirely by theme variables — every theme already declares
+   --v3-{crit,warn,info,success} (solid) and --v3-{crit,warn,info,success}-tint
+   (low-alpha or light fill) for exactly this kind of semantic surface. */
+.v3-finding-crit { border-color: var(--v3-crit);    background: var(--v3-crit-tint); }
+.v3-finding-warn { border-color: var(--v3-warn);    background: var(--v3-warn-tint); }
+.v3-finding-info { border-color: var(--v3-info);    background: var(--v3-info-tint); }
+.v3-finding-ok   { border-color: var(--v3-success); background: var(--v3-success-tint); }
 .v3-finding-icon {
   width: 28px;
   height: 28px;
@@ -2149,10 +2157,13 @@ body.v3-layout #root {
   justify-content: center;
   flex-shrink: 0;
 }
-.v3-finding-icon-crit { background: var(--v3-crit-tint); color: var(--v3-crit); }
-.v3-finding-icon-warn { background: var(--v3-warn-tint); color: #B45309; }
-.v3-finding-icon-info { background: #DBEAFE; color: #1D4ED8; }
-.v3-finding-icon-ok   { background: var(--v3-success-tint); color: #047857; }
+/* Icon tints — same theme-aware treatment as the row tints above.
+   Previous values had warn / info / ok hardcoded to Tailwind hex pairs
+   (#B45309 on #FEF3C7 etc.) which inverted poorly on dark surfaces. */
+.v3-finding-icon-crit { background: var(--v3-crit-tint);    color: var(--v3-crit); }
+.v3-finding-icon-warn { background: var(--v3-warn-tint);    color: var(--v3-warn); }
+.v3-finding-icon-info { background: var(--v3-info-tint);    color: var(--v3-info); }
+.v3-finding-icon-ok   { background: var(--v3-success-tint); color: var(--v3-success); }
 .v3-finding-body {
   flex: 1;
   min-width: 0;
@@ -2206,13 +2217,14 @@ body.v3-layout #root {
   cursor: progress;
 }
 
-/* Severity → button color mapping. Hex values mirror the level-pill
-   backgrounds (.v3-level-warn etc.) so the button reads as part of the
-   same severity language as its sibling pill. */
+/* Severity → button color mapping. All theme-aware so the button picks
+   up the active theme's amber/red/blue/green (data-dense's phosphor-bright
+   set, dark's standard Tailwind, light's deeper saturations). The earlier
+   hardcoded warn/info/ok values clashed on dark surfaces. */
 .v3-finding-crit { --v3-finding-action-color: var(--v3-crit); }
-.v3-finding-warn { --v3-finding-action-color: #B45309; }
-.v3-finding-info { --v3-finding-action-color: #1D4ED8; }
-.v3-finding-ok   { --v3-finding-action-color: #047857; }
+.v3-finding-warn { --v3-finding-action-color: var(--v3-warn); }
+.v3-finding-info { --v3-finding-action-color: var(--v3-info); }
+.v3-finding-ok   { --v3-finding-action-color: var(--v3-success); }
 .v3-finding-resolve-spin {
   animation: v3-finding-spin 750ms linear infinite;
 }

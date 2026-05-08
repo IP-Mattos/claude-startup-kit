@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.48 — 2026-05-08
+
+Audit finding cards now respect the active theme.
+
+### Fixed
+- **Card backgrounds and borders no longer hardcoded to Tailwind light-mode pastels** (`#FFFBEB` amber-50, `#FEF2F2` red-50, etc.). On dark themes (data-dense, dark) the cards painted as cream blocks against a black canvas and the title text rendered nearly invisible. Now driven by `--v3-{crit,warn,info,success}` (border) + `--v3-{...}-tint` (background) — every theme already declares these for exactly this kind of semantic surface, so cards inherit the right tone automatically.
+- **Icon tints on warn / info / ok finding rows** were also half-hardcoded (e.g. `#B45309` text on `var(--v3-warn-tint)`). Replaced the hex literals with the matching theme variables so icons read correctly in dark themes too.
+- **Severity → button colour mapping** (introduced in v0.1.45) was likewise mixed — `--v3-crit` was a variable, the others were hex. Unified to all-variables; the button now picks up data-dense's phosphor-bright palette, dark's standard Tailwind, or whatever the active theme defines.
+
+### Why this matters
+The audit panel was the last place in the app still wearing the `mockups/03-` light-mode skin from the early Tauri prototype. Themes like data-dense advertise a near-black canvas and the cream cards broke that promise on every WARN row. With this change, the audit visually integrates into the active theme instead of fighting it.
+
+### Out of scope (yet)
+The tabular SEV / CAT / PROYECTO / HALLAZGO layout in the data-dense mockup is a deeper restructure of `AuditView.tsx` and is not in this release. v0.1.48 is colour-only.
+
 ## 0.1.47 — 2026-05-08
 
 Defense-in-depth on the SCRIPTS resolver shipped in v0.1.46.
