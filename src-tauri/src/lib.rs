@@ -2497,6 +2497,77 @@ async fn audit_resolve_delete(path: String) -> Result<(), String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+// ============================================================================
+// ENGRAM SYNC — wrap `engram sync` (push/pull/status) so users can move
+// memories between PCs through any transport (git repo, USB, OneDrive, etc.).
+//
+// Engram already does the heavy lifting:
+//   `engram sync --all`     → exports a compressed chunk to .engram/chunks/
+//   `engram sync --import`  → imports new chunks from .engram/chunks/
+//   `engram sync --status`  → reports local/remote/pending counts
+//
+// Our job is just to run the binary with cwd = user-picked sync directory and
+// surface stdout/stderr to the renderer. No parsing — the UI shows the raw
+// output verbatim so future engram CLI changes don't require app updates.
+// ============================================================================
+
+fn run_engram_sync(sync_dir: &str, args: &[&str]) -> Result<String, String> {
+    let dir = Path::new(sync_dir);
+    if !dir.exists() {
+        return Err(format!("sync directory not found: {sync_dir}"));
+    }
+    if !dir.is_dir() {
+        return Err(format!("sync path is not a directory: {sync_dir}"));
+    }
+    let output = silent_command("engram")
+        .args(args)
+        .current_dir(dir)
+        .output()
+        .map_err(|e| format_spawn_error("engram", &e))?;
+    let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+    if !output.status.success() {
+        // engram prints user-facing errors to stderr; surface both streams so
+        // the user can see whatever the CLI said.
+        let combined = if stderr.trim().is_empty() {
+            stdout
+        } else if stdout.trim().is_empty() {
+            stderr
+        } else {
+            format!("{stdout}\n{stderr}")
+        };
+        return Err(combined.trim().to_string());
+    }
+    // Some success paths still print informational text to stderr (the GH
+    // rate-limit warning, for example). Concat both so nothing is lost.
+    if stderr.trim().is_empty() {
+        Ok(stdout)
+    } else {
+        Ok(format!("{stdout}\n{stderr}"))
+    }
+}
+
+#[tauri::command]
+async fn engram_sync_push(sync_dir: String) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || run_engram_sync(&sync_dir, &["sync", "--all"]))
+        .await
+        .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn engram_sync_pull(sync_dir: String) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || run_engram_sync(&sync_dir, &["sync", "--import"]))
+        .await
+        .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn engram_sync_status(sync_dir: String) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || run_engram_sync(&sync_dir, &["sync", "--status"]))
+        .await
+        .map_err(|e| format!("task join: {e}"))?
+}
+
 #[tauri::command]
 async fn open_in_vscode(path: String) -> Result<(), String> {
     let canonical = validate_open_path(&path)?;
@@ -4720,6 +4791,9 @@ pub fn run() {
             cleanup_plan,
             cleanup_apply,
             audit_resolve_delete,
+            engram_sync_push,
+            engram_sync_pull,
+            engram_sync_status,
             open_in_vscode,
             open_path_in_explorer,
             open_url,

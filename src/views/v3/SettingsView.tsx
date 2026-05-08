@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import {
   enable as enableAutostart,
   disable as disableAutostart,
@@ -62,6 +64,65 @@ export function SettingsView() {
 
   const pick = (next: V3Theme) => {
     setTheme(applyAndPersistV3Theme(next));
+  };
+
+  // Engram sync — directory the user picks once and we run `engram sync` from
+  // it on push/pull. Persisted in localStorage so the choice survives reloads.
+  // Could move to startup-kit-config.json later for cross-tool visibility, but
+  // it's UI-only state today so localStorage is enough.
+  const SYNC_DIR_KEY = "csk-sync-dir";
+  const [syncDir, setSyncDir] = useState<string>(() => {
+    try {
+      return localStorage.getItem(SYNC_DIR_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [syncBusy, setSyncBusy] = useState<"push" | "pull" | "status" | null>(null);
+  const [syncOutput, setSyncOutput] = useState<
+    { kind: "push" | "pull" | "status"; text: string; error: boolean } | null
+  >(null);
+
+  const pickSyncDir = async () => {
+    if (!IS_TAURI) return;
+    try {
+      const picked = await openDialog({
+        directory: true,
+        multiple: false,
+        title: t("settings.sync_picker_title"),
+      });
+      if (typeof picked === "string" && picked.length > 0) {
+        setSyncDir(picked);
+        try {
+          localStorage.setItem(SYNC_DIR_KEY, picked);
+        } catch {
+          /* localStorage unavailable */
+        }
+        setSyncOutput(null);
+      }
+    } catch {
+      /* user closed the dialog — no-op */
+    }
+  };
+
+  const runSync = async (kind: "push" | "pull" | "status") => {
+    if (!syncDir || !IS_TAURI) return;
+    const cmd =
+      kind === "push"
+        ? "engram_sync_push"
+        : kind === "pull"
+          ? "engram_sync_pull"
+          : "engram_sync_status";
+    setSyncBusy(kind);
+    setSyncOutput(null);
+    try {
+      const out = await invoke<string>(cmd, { syncDir });
+      setSyncOutput({ kind, text: out.trim(), error: false });
+    } catch (e) {
+      setSyncOutput({ kind, text: String(e), error: true });
+    } finally {
+      setSyncBusy(null);
+    }
   };
 
   const langOptions: { value: LangPref; label: string }[] = [
@@ -203,6 +264,68 @@ export function SettingsView() {
           void stack.applyAll();
         }}
       />
+
+      {/* Engram sync — manual, file-based. The user picks any directory
+          (a git repo, a USB-mounted folder, OneDrive, NAS, whatever) and
+          CSK shells out `engram sync` against it. Engram already does the
+          export/import/dedup; this card is just ergonomics. */}
+      <article className="v3-card">
+        <header className="v3-card-head">
+          <h2 className="v3-card-title">{t("settings.sync_title")}</h2>
+        </header>
+        <div className="v3-form">
+          <p className="v3-row-meta">{t("settings.sync_hint")}</p>
+          <div className="v3-engsync-dir-row">
+            <code className="v3-engsync-dir-path">
+              {syncDir || t("settings.sync_dir_unset")}
+            </code>
+            <button
+              type="button"
+              className="v3-link"
+              onClick={() => void pickSyncDir()}
+              disabled={!IS_TAURI || syncBusy !== null}
+            >
+              {syncDir ? t("settings.sync_change_dir") : t("settings.sync_pick_dir")}
+            </button>
+          </div>
+          <div className="v3-engsync-actions">
+            <button
+              type="button"
+              className="v3-btn-primary v3-btn-sm"
+              onClick={() => void runSync("push")}
+              disabled={!syncDir || syncBusy !== null}
+              title={t("settings.sync_push_title")}
+            >
+              {syncBusy === "push" ? t("settings.sync_pushing") : t("settings.sync_push")}
+            </button>
+            <button
+              type="button"
+              className="v3-btn-ghost v3-btn-sm"
+              onClick={() => void runSync("pull")}
+              disabled={!syncDir || syncBusy !== null}
+              title={t("settings.sync_pull_title")}
+            >
+              {syncBusy === "pull" ? t("settings.sync_pulling") : t("settings.sync_pull")}
+            </button>
+            <button
+              type="button"
+              className="v3-btn-ghost v3-btn-sm"
+              onClick={() => void runSync("status")}
+              disabled={!syncDir || syncBusy !== null}
+            >
+              {syncBusy === "status" ? t("settings.sync_checking") : t("settings.sync_status_btn")}
+            </button>
+          </div>
+          {syncOutput &&
+            (syncOutput.error ? (
+              <div className="v3-error" role="alert" aria-live="assertive">
+                {syncOutput.text}
+              </div>
+            ) : (
+              <pre className="v3-engsync-output">{syncOutput.text}</pre>
+            ))}
+        </div>
+      </article>
 
       <article className="v3-card">
         <header className="v3-card-head">

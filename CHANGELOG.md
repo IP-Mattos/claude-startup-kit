@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.1.50 — 2026-05-08
+
+Cross-PC engram sync — move your memories between machines through any transport you want, no web service required.
+
+### Added
+- **Settings → "Sync between PCs"** (new card). Pick any folder once (a private git repo, a OneDrive folder, a USB drive, a NAS share — anything mountable as a path) and CSK exposes three buttons:
+  - **Push** runs `engram sync --all` from the chosen folder, producing a single compressed chunk under `.engram/chunks/<hash>.jsonl.gz`. Deduped — only memories newer than the last chunk are exported. The chunk is yours; move it however you want.
+  - **Pull** runs `engram sync --import` from the chosen folder, ingesting any new chunks engram finds there. Idempotent against memories already in the local DB.
+  - **Status** runs `engram sync --status`, showing local-chunk count, remote-chunk count, and pending-import count so you can see at a glance whether there's something new on either side.
+- **Three Tauri commands** in `src-tauri/src/lib.rs` — `engram_sync_push`, `engram_sync_pull`, `engram_sync_status`. Each shells out to the system `engram` binary with `cwd = sync_dir` and surfaces stdout/stderr verbatim to the renderer. No parsing — the UI shows whatever the engram CLI says, so future engram CLI changes don't need an app rebuild.
+- **`csk-sync-dir` localStorage key** persists the user's folder choice across reloads.
+
+### Why this approach
+The user wanted a "brain" that follows them between PCs without a web service. Engram already has the entire cross-PC sync built in (`engram sync --all` exports a 5 MB compressed chunk for ~5000 memories; `--import` is dedup-safe). The right move was wrapping the existing CLI rather than reinventing transport. The folder is the contract — git, USB, OneDrive, NAS, scp'd, dropped in shared chat — engram doesn't care, CSK doesn't care.
+
+### Out of scope (yet)
+- Auto git push/pull when the sync folder is a git repo (one-click would be `engram sync --all && git add .engram && git commit && git push`). Easy to add in v0.1.51 if it earns its complexity.
+- CSK panel state in the sync (pinned projects, snoozes, theme). Skipped because it's per-PC preference, not durable knowledge.
+- Project-scoped sync (`engram sync --cloud --project X`). Default is `--all`; per-project is engram-native if needed.
+
 ## 0.1.49 — 2026-05-08
 
 Audit findings render as a tight terminal-style table when the active theme is **data-dense**. Other themes keep the cards layout from before.

@@ -268,6 +268,38 @@ const STRINGS = {
     en: 'Updates are checked automatically once every 24 hours. Click "Check now" to refresh immediately.',
     es: "Las actualizaciones se buscan automáticamente cada 24 horas. Tocá \"Buscar ahora\" para refrescar al toque.",
   },
+  // Engram sync section — manual file-based sync of memories between PCs.
+  // Wraps `engram sync --all` / `--import` / `--status` against any folder
+  // (git repo, OneDrive, USB, NAS, etc.) the user picks.
+  "settings.sync_title": { en: "Sync between PCs", es: "Sync entre PCs" },
+  "settings.sync_hint": {
+    en: "Pick any folder (a private git repo, a OneDrive folder, a USB drive, a NAS) and use Push to write your memories there, then Pull on another PC to import them. The folder can be moved by any transport — engram handles compression and dedup; only new memories are exported.",
+    es: "Elegí una carpeta cualquiera (un repo git privado, una carpeta de OneDrive, un USB, un NAS) y usá Subir para escribir tus memorias ahí. En la otra PC, Bajar las importa. La carpeta la movés con el transporte que vos quieras — engram comprime y deduplica solo; sólo se exportan memorias nuevas.",
+  },
+  "settings.sync_dir_unset": {
+    en: "(no folder selected)",
+    es: "(sin carpeta elegida)",
+  },
+  "settings.sync_pick_dir": { en: "Pick folder", es: "Elegir carpeta" },
+  "settings.sync_change_dir": { en: "Change", es: "Cambiar" },
+  "settings.sync_picker_title": {
+    en: "Pick a folder for engram sync",
+    es: "Elegí una carpeta para el sync de engram",
+  },
+  "settings.sync_push": { en: "Push", es: "Subir" },
+  "settings.sync_pushing": { en: "Pushing…", es: "Subiendo…" },
+  "settings.sync_push_title": {
+    en: "Export new memories to .engram/chunks/ in the selected folder",
+    es: "Exporta memorias nuevas a .engram/chunks/ en la carpeta elegida",
+  },
+  "settings.sync_pull": { en: "Pull", es: "Bajar" },
+  "settings.sync_pulling": { en: "Pulling…", es: "Bajando…" },
+  "settings.sync_pull_title": {
+    en: "Import any new chunks found in .engram/chunks/ of the selected folder",
+    es: "Importa los chunks nuevos que haya en .engram/chunks/ de la carpeta elegida",
+  },
+  "settings.sync_status_btn": { en: "Status", es: "Estado" },
+  "settings.sync_checking": { en: "Checking…", es: "Chequeando…" },
   "settings.autostart_title": { en: "Startup", es: "Inicio" },
   "settings.autostart_label": {
     en: "Launch Claude Startup Kit when Windows starts",
