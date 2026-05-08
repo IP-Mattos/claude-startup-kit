@@ -1101,26 +1101,35 @@ fn infer_action(category: &str, title: &str, detail: &str) -> Option<AuditAction
             }
         }
         "SCRIPTS" => {
+            // Both SCRIPTS findings now route to DeleteFile. The button used
+            // to OpenInExplorer (just opened the folder) — useful for review
+            // but useless for actually resolving the warning. The user has to
+            // click somewhere else to make the finding go away.
+            //
+            // DeleteFile is safe here because:
+            //  - audit_resolve_delete moves to ~/.claude/backups/audit-<ts>/,
+            //    not a permanent rm — fully recoverable
+            //  - the confirm modal previews the exact path before action
+            //  - the audit only emits these findings for files NOT in
+            //    KIT_WHITELIST / LIB_WHITELIST (i.e. they're already
+            //    user-added or stale legacy files by definition)
+            //
             // Title shape: "Non-kit file in lib/: foo.ps1"
             let prefix_lib = "Non-kit file in lib/:";
             if let Some(rest) = title.strip_prefix(prefix_lib) {
                 let filename = rest.trim();
                 if !filename.is_empty() {
                     let full = claude_path_string(&format!("scripts/lib/{filename}"));
-                    return Some(AuditAction::OpenInExplorer { path: full });
+                    return Some(AuditAction::DeleteFile { path: full });
                 }
             }
             // Title shape: "Non-kit file in ~/.claude/scripts/: foo.ps1"
-            // Previously this finding was emitted at INFO level so push_finding
-            // skipped action inference entirely — the "Resolver" button
-            // never appeared. Now that audit_scripts emits it at WARN, route
-            // it to OpenInExplorer like the lib/ sibling above.
             let prefix_scripts = "Non-kit file in ~/.claude/scripts/:";
             if let Some(rest) = title.strip_prefix(prefix_scripts) {
                 let filename = rest.trim();
                 if !filename.is_empty() {
                     let full = claude_path_string(&format!("scripts/{filename}"));
-                    return Some(AuditAction::OpenInExplorer { path: full });
+                    return Some(AuditAction::DeleteFile { path: full });
                 }
             }
             None
@@ -1416,28 +1425,34 @@ fn audit_permissions(out: &mut Vec<AuditFinding>, settings: Option<&serde_json::
     );
 }
 
+/// Files in ~/.claude/scripts/ that the kit installs or its scripts write at
+/// runtime. Module-level so `audit_resolve_delete` can reuse the same list to
+/// decide which non-kit files are safe to move to backup (anything under
+/// scripts/ that is NOT in this whitelist is by definition non-kit).
+const KIT_WHITELIST: &[&str] = &[
+    "check-gentle-ai.sh", "daily-brief.sh",
+    "startup-brief.ps1", "startup-brief-launcher.bat",
+    "health-check.ps1", "standup.ps1", "claude-audit.ps1", "cleanup.ps1",
+    "brief.cmd",
+    "startup-kit-config.json",
+    ".gentle-ai-last-check", ".daily-brief-last-date",
+    ".gentle-ai-last-seen-version", ".kit-version",
+    // State files written by legacy kit scripts (still installed via hooks
+    // on existing setups). Audit was self-flagging these as "non-kit"
+    // because the whitelist only listed inputs, not outputs.
+    ".audit-summary.json", ".audit-alerted-crit",
+    ".snoozed.json", ".kit-last-auto-update",
+    "lib",
+];
+
+const LIB_WHITELIST: &[&str] = &[
+    "config.ps1", "logging.ps1", "scan-projects.ps1", "engram.ps1",
+    "themes.ps1", "git-recent.ps1", "github-prs.ps1", "self-update.ps1",
+    "screen-adapt.ps1", "render-layout.ps1",
+];
+
 /// 4. SCRIPTS — flag files in ~/.claude/scripts/ and lib/ that aren't kit-installed.
 fn audit_scripts(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
-    const KIT_WHITELIST: &[&str] = &[
-        "check-gentle-ai.sh", "daily-brief.sh",
-        "startup-brief.ps1", "startup-brief-launcher.bat",
-        "health-check.ps1", "standup.ps1", "claude-audit.ps1", "cleanup.ps1",
-        "brief.cmd",
-        "startup-kit-config.json",
-        ".gentle-ai-last-check", ".daily-brief-last-date",
-        ".gentle-ai-last-seen-version", ".kit-version",
-        // State files written by legacy kit scripts (still installed via hooks
-        // on existing setups). Audit was self-flagging these as "non-kit"
-        // because the whitelist only listed inputs, not outputs.
-        ".audit-summary.json", ".audit-alerted-crit",
-        ".snoozed.json", ".kit-last-auto-update",
-        "lib",
-    ];
-    const LIB_WHITELIST: &[&str] = &[
-        "config.ps1", "logging.ps1", "scan-projects.ps1", "engram.ps1",
-        "themes.ps1", "git-recent.ps1", "github-prs.ps1", "self-update.ps1",
-        "screen-adapt.ps1", "render-layout.ps1",
-    ];
 
     let scripts_dir = claude_dir.join("scripts");
     if !scripts_dir.exists() {
@@ -2383,7 +2398,9 @@ async fn audit_resolve_delete(path: String) -> Result<(), String> {
     tokio::task::spawn_blocking(move || -> Result<(), String> {
         let home = dirs_home().ok_or_else(|| "home dir unavailable".to_string())?;
         let claude_root = home.join(".claude");
-        let allowed: Vec<PathBuf> = vec![claude_root.join("settings.local.json")];
+        let scripts_dir = claude_root.join("scripts");
+        let lib_dir = scripts_dir.join("lib");
+        let explicit_allowed: Vec<PathBuf> = vec![claude_root.join("settings.local.json")];
 
         let target = Path::new(&path);
         if !target.exists() {
@@ -2394,14 +2411,48 @@ async fn audit_resolve_delete(path: String) -> Result<(), String> {
         let canonical_target = target
             .canonicalize()
             .map_err(|e| format!("canonicalize target: {e}"))?;
-        let canonical_allowed: Vec<PathBuf> = allowed
+
+        // Three acceptance paths — each canonicalises before comparing so
+        // symlink games / UNC prefixes can't trick the check.
+        //
+        // 1. Explicit allowlist (settings.local.json today).
+        // 2. Non-kit file directly under ~/.claude/scripts/. Parent must be
+        //    scripts_dir itself, filename must NOT be in KIT_WHITELIST. This
+        //    is what the SCRIPTS audit findings route here.
+        // 3. Non-kit file under ~/.claude/scripts/lib/. Parent must be
+        //    lib_dir, filename must NOT be in LIB_WHITELIST.
+        let canonical_explicit: Vec<PathBuf> = explicit_allowed
             .iter()
             .filter_map(|p| fs::canonicalize(p).ok())
             .collect();
-        if !canonical_allowed
+        let canonical_scripts = fs::canonicalize(&scripts_dir).ok();
+        let canonical_lib = fs::canonicalize(&lib_dir).ok();
+
+        let in_explicit = canonical_explicit
             .iter()
-            .any(|a| a == &canonical_target)
-        {
+            .any(|a| a == &canonical_target);
+
+        let in_scripts_non_kit = canonical_scripts
+            .as_ref()
+            .zip(canonical_target.parent())
+            .map(|(scripts, parent)| parent == scripts.as_path())
+            .unwrap_or(false)
+            && canonical_target
+                .file_name()
+                .map(|n| !KIT_WHITELIST.contains(&n.to_string_lossy().as_ref()))
+                .unwrap_or(false);
+
+        let in_lib_non_kit = canonical_lib
+            .as_ref()
+            .zip(canonical_target.parent())
+            .map(|(lib, parent)| parent == lib.as_path())
+            .unwrap_or(false)
+            && canonical_target
+                .file_name()
+                .map(|n| !LIB_WHITELIST.contains(&n.to_string_lossy().as_ref()))
+                .unwrap_or(false);
+
+        if !(in_explicit || in_scripts_non_kit || in_lib_non_kit) {
             return Err(format!(
                 "audit_resolve_delete: path not in allowlist: {path}"
             ));

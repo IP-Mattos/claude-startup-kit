@@ -525,8 +525,11 @@ const STRINGS = {
   },
   "audit.confirm_delete_title": { en: "Delete file?", es: "¿Borrar archivo?" },
   "audit.confirm_delete_message": {
-    en: "Permanently delete {path}? This cannot be undone.",
-    es: "¿Borrar definitivamente {path}? No se puede deshacer.",
+    // Worded to reflect the actual implementation: audit_resolve_delete
+    // moves the file to ~/.claude/backups/audit-<ts>/ — it's recoverable,
+    // not a permanent rm. The old "cannot be undone" copy was wrong.
+    en: "Move {path} to ~/.claude/backups/audit-<timestamp>/ ? You can restore it manually if you change your mind.",
+    es: "¿Mover {path} a ~/.claude/backups/audit-<timestamp>/ ? Si te arrepentís lo podés restaurar a mano.",
   },
   "audit.confirm_delete_settings_local_title": {
     en: "Delete settings.local.json?",

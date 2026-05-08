@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.46 — 2026-05-08
+
+The audit row button now actually resolves the warning instead of just opening Explorer.
+
+### Changed
+- **SCRIPTS findings now route to `DeleteFile` action**, not `OpenInExplorer`. Clicking the row button moves the flagged file to `~/.claude/backups/audit-<timestamp>/` (recoverable), with a confirm modal preview of the exact path. Resolves the warning end-to-end without making the user file-juggle in Explorer first.
+- **`audit_resolve_delete` allowlist extended** to accept any file directly under `~/.claude/scripts/` that isn't in `KIT_WHITELIST`, plus any file under `~/.claude/scripts/lib/` that isn't in `LIB_WHITELIST`. Both lists are now module-level consts so `audit_scripts` (which emits the findings) and `audit_resolve_delete` (which acts on them) stay in sync — adding a new kit script in one place automatically prevents the other from offering to delete it.
+- **`audit.confirm_delete_message` copy fixed** to describe the actual behaviour. Old copy said "Permanently delete X. This cannot be undone." — the implementation has always moved files to a timestamped backup, so the copy was wrong.
+
+### Why this matters
+A "Resolver" button that doesn't resolve teaches users to ignore it. With this change, every WARN finding the audit emits has a one-click path to clean state. The settings.local.json delete (the only existing case) keeps its specific copy via the existing `audit.confirm_delete_settings_local_*` keys.
+
 ## 0.1.45 — 2026-05-08
 
 ### Changed
