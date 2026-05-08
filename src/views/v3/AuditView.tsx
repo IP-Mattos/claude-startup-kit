@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import type { AuditAction, AuditFinding } from "../../types";
 import { friendlyErrorEn } from "../../lib/format";
-import { plural, useT } from "../../lib/i18n";
+import { plural, useT, type StringKey } from "../../lib/i18n";
 import { ConfirmModal } from "../../components/v3/ConfirmModal";
 import type { V3Tab } from "../../v3/v3types";
 
@@ -22,6 +22,22 @@ import type { V3Tab } from "../../v3/v3types";
 // while one action is in flight.
 function findingKey(f: AuditFinding): string {
   return `${f.title}::${f.category}`;
+}
+
+// Map an action kind to its i18n label key. Lets each row show a verb that
+// matches what the click actually does (e.g. "Show in Explorer" for
+// OpenInExplorer, not the generic "Fix" / "Resolver" which lied for
+// non-destructive actions).
+function resolveLabelKey(kind: AuditAction["kind"] | undefined): StringKey {
+  switch (kind) {
+    case "open_in_explorer": return "audit.action.open_in_explorer";
+    case "open_in_vscode": return "audit.action.open_in_vscode";
+    case "navigate_to": return "audit.action.navigate_to";
+    case "kill_process": return "audit.action.kill_process";
+    case "delete_file": return "audit.action.delete_file";
+    case "restore_settings_backup": return "audit.action.restore_settings_backup";
+    default: return "audit.resolve";
+  }
 }
 
 // All the destructive actions share the same modal state shape. We stash the
@@ -293,7 +309,7 @@ export function AuditView({
                       pending={pendingActionId === key}
                       done={recentlyDoneId === key}
                       onResolve={handleResolve}
-                      resolveLabel={t("audit.resolve")}
+                      resolveLabel={t(resolveLabelKey(f.action?.kind))}
                       doneLabel={t("audit.action_done")}
                     />
                   );

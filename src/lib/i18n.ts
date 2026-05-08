@@ -507,6 +507,16 @@ const STRINGS = {
   "audit.clean": { en: "Audit clean. Nothing to report.", es: "Auditoría limpia. Nada para reportar." },
   "audit.no_match": { en: "No findings match the current filter.", es: "Ningún hallazgo coincide con el filtro." },
   "audit.resolve": { en: "Fix", es: "Resolver" },
+  // Per-action labels — the row button picks one based on `finding.action.kind`
+  // so the verb matches what the click actually does. The generic "Fix /
+  // Resolver" stayed misleading for non-destructive actions like
+  // OpenInExplorer (only opens File Explorer, fixes nothing).
+  "audit.action.open_in_explorer": { en: "Show in Explorer", es: "Ver en Explorer" },
+  "audit.action.open_in_vscode": { en: "Open in VS Code", es: "Abrir en VS Code" },
+  "audit.action.navigate_to": { en: "Go", es: "Ir" },
+  "audit.action.kill_process": { en: "Kill", es: "Matar" },
+  "audit.action.delete_file": { en: "Delete", es: "Borrar" },
+  "audit.action.restore_settings_backup": { en: "Restore", es: "Restaurar" },
   "audit.action_done": { en: "Done.", es: "Hecho." },
   "audit.confirm_kill_title": { en: "Kill process?", es: "¿Matar proceso?" },
   "audit.confirm_kill_message": {
