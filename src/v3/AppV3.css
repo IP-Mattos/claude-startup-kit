@@ -348,6 +348,9 @@ body.v3-layout #root {
   background: var(--v3-accent-tint);
   color: var(--v3-accent);
   font-weight: 600;
+  /* Layout density baseline (promoted from data-dense): clean caret indicator */
+  border-radius: 0;
+  box-shadow: inset 2px 0 0 var(--v3-accent);
 }
 .v3-side-link.active svg {
   color: var(--v3-accent);
@@ -858,6 +861,8 @@ body.v3-layout #root {
   justify-content: space-between;
   padding: 10px 0;
   border-bottom: 1px solid var(--v3-border);
+  /* Layout density baseline (promoted from data-dense): tighter card radius */
+  border-radius: 4px;
 }
 .v3-update-row:last-of-type { border-bottom: 0; }
 .v3-update-row-label {
@@ -1055,7 +1060,8 @@ body.v3-layout #root {
   background: var(--v3-accent);
   color: #FFFFFF;
   border: 1px solid var(--v3-accent);
-  border-radius: var(--v3-radius-sm);
+  /* Layout density baseline (promoted from data-dense): tight 3-4px button radius */
+  border-radius: 4px;
   padding: 6px 14px;
   font-weight: 600;
   cursor: pointer;
@@ -1183,20 +1189,25 @@ body.v3-layout #root {
   gap: 12px;
 }
 
+/* Layout density baseline (promoted from data-dense):
+   tighter padding (12px 14px), 4-6px radius cap, hairline hover instead of
+   shadow lift, tabular-nums on numeric meta. Themes that need extra
+   personality override these on top via higher specificity. */
 .v3-stat-card {
   background: var(--v3-surface);
   border: 1px solid var(--v3-border);
-  border-radius: var(--v3-radius);
-  padding: 14px 16px;
+  border-radius: 6px;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
   gap: 12px;
   box-shadow: var(--v3-shadow-1);
-  transition: box-shadow 160ms ease;
+  transition: border-color 120ms ease, background-color 120ms ease;
   min-width: 0;
 }
 .v3-stat-card:hover {
-  box-shadow: var(--v3-shadow-2);
+  border-color: var(--v3-text-4);
+  background: var(--v3-surface-2);
 }
 
 .v3-stat-icon {
@@ -1226,6 +1237,8 @@ body.v3-layout #root {
   letter-spacing: -0.02em;
   color: var(--v3-text);
   line-height: 1.1;
+  /* Layout density baseline (promoted from data-dense): align numeric columns */
+  font-variant-numeric: tabular-nums;
 }
 .v3-stat-label {
   font-size: 13px;
@@ -1252,10 +1265,14 @@ body.v3-layout #root {
 }
 
 /* ========== Card ========== */
+/* Layout density baseline (promoted from data-dense): radius capped at 6px
+   so cards read structural, not pillowy. Personality themes (y2k-pop,
+   lilac-stickers, retro-os, chrome95) override this with higher-specificity
+   selectors and keep their own geometry. */
 .v3-card {
   background: var(--v3-surface);
   border: 1px solid var(--v3-border);
-  border-radius: var(--v3-radius);
+  border-radius: 6px;
   padding: 18px 20px;
   box-shadow: var(--v3-shadow-1);
 }
@@ -1743,6 +1760,8 @@ body.v3-layout #root {
 .v3-workspace-bar-fill-accent { background: var(--v3-accent); }
 
 /* Buttons (right-panel) */
+/* Layout density baseline (promoted from data-dense): 3-4px button radius
+   so buttons read structural, not capsule-y. */
 .v3-btn-primary,
 .v3-btn-ghost {
   display: inline-flex;
@@ -1750,7 +1769,7 @@ body.v3-layout #root {
   justify-content: center;
   gap: 7px;
   padding: 9px 12px;
-  border-radius: var(--v3-radius-sm);
+  border-radius: 4px;
   font-size: 13px;
   font-weight: 600;
   border: 1px solid transparent;
@@ -1776,6 +1795,8 @@ body.v3-layout #root {
 }
 
 /* ========== Status bar ========== */
+/* Layout density baseline (promoted from data-dense): 10-11px uppercase
+   letter-spaced so the bar reads as a telemetry strip, not body copy. */
 .v3-statusbar {
   display: flex;
   align-items: center;
@@ -1784,7 +1805,9 @@ body.v3-layout #root {
   padding: 0 16px;
   background: var(--v3-surface);
   border-top: 1px solid var(--v3-border);
-  font-size: 11.5px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--v3-text-3);
   flex-shrink: 0;
   user-select: none;
@@ -2005,16 +2028,20 @@ body.v3-layout #root {
   gap: 10px;
 }
 
+/* Layout density baseline (promoted from data-dense): rows behave as
+   table-like records — tight 8px vertical padding, no rounding, hairline
+   bottom border instead of card-style frame + shadow. */
 .v3-row {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 16px;
+  padding: 8px 16px;
   background: var(--v3-surface);
-  border: 1px solid var(--v3-border);
-  border-radius: var(--v3-radius);
-  box-shadow: var(--v3-shadow-1);
-  transition: border-color 120ms ease, box-shadow 160ms ease;
+  border: 0;
+  border-bottom: 1px solid var(--v3-border);
+  border-radius: 0;
+  box-shadow: none;
+  transition: background-color 120ms ease, box-shadow 120ms ease;
 }
 .v3-row[role="button"] { cursor: pointer; }
 .v3-row:hover {
@@ -2124,18 +2151,34 @@ body.v3-layout #root {
 }
 
 /* ========== Pills (generic) ========== */
+/* Layout density baseline (promoted from data-dense): pills read as
+   typographic tags — small, uppercase, square — not as candy capsules. */
 .v3-pill {
   padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 11px;
+  border-radius: 3px;
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 .v3-pill-soft {
   background: var(--v3-surface-2);
   color: var(--v3-text-2);
   border: 1px solid var(--v3-border);
+  border-radius: 3px;
+}
+
+/* Layout density baseline (promoted from data-dense): tabular-nums on
+   numeric / temporal meta so columns of versions, counts, hashes and
+   timestamps align under the eye. Affects every theme. */
+.v3-stat-value,
+.v3-git-hash,
+.appv3 code,
+.appv3 [class*="-version"],
+.appv3 [class*="-count"],
+.appv3 [class*="-time"] {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ========== Chips (filter row) ========== */

@@ -101,16 +101,10 @@ body[data-theme-v3="data-dense"] .appv3 code {
   letter-spacing: 0.01em;
 }
 
-/* ── Density: trim padding so more rows fit per pixel ──────── */
-body[data-theme-v3="data-dense"] .v3-row {
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-body[data-theme-v3="data-dense"] .v3-stat-card {
-  padding: 12px 14px;
-}
-
-/* ── Hairline frames everywhere; no glow, no shadows ───────── */
+/* ── Hairline frames everywhere; no glow, no shadows ─────────
+   Row padding (8px), stat-card padding (12px 14px) and 4-6px card
+   radii are now provided by the V3 base. This block keeps
+   data-dense's identity bits: stronger hairline border + no shadow. */
 body[data-theme-v3="data-dense"] .v3-card,
 body[data-theme-v3="data-dense"] .v3-stat-card,
 body[data-theme-v3="data-dense"] .v3-update-row {
@@ -130,51 +124,36 @@ body[data-theme-v3="data-dense"] .v3-sidebar {
   border-right: 1px solid var(--v3-border-strong);
 }
 
-/* ── Sidebar active link: 2px green caret on the left ─────── */
+/* ── Sidebar active link caret, stat-card hairline-hover, row
+   border-radius:0 + bottom border are now in the V3 base. We only
+   override the green caret on row hover (identity touch). ── */
 body[data-theme-v3="data-dense"] .v3-side-link.active {
-  background: var(--v3-accent-tint);
   color: var(--v3-text);
-  box-shadow: inset 2px 0 0 var(--v3-accent);
-  border-radius: 0;
 }
 
-/* ── Stat card hover: tighter ring, no lift ───────────────── */
-body[data-theme-v3="data-dense"] .v3-stat-card {
-  transition: border-color 120ms ease, background-color 120ms ease;
-}
-body[data-theme-v3="data-dense"] .v3-stat-card:hover {
-  border-color: var(--v3-text-4);
-  background: var(--v3-surface-2);
-}
-
-/* ── Row hover: same hairline + green caret ──────────────── */
-body[data-theme-v3="data-dense"] .v3-row {
-  border-radius: 0;
-  border-bottom: 1px solid var(--v3-border);
-}
 body[data-theme-v3="data-dense"] .v3-row:hover {
   background: var(--v3-surface-2);
   box-shadow: inset 2px 0 0 var(--v3-accent);
 }
 
-/* ── Pills: square monospace tags, terminal-style ─────────── */
+/* ── Pills: identity tighter than base (2px radius, 10px) and
+   stronger hairline border. Base already handles uppercase +
+   letter-spacing. ── */
 body[data-theme-v3="data-dense"] .v3-pill,
 body[data-theme-v3="data-dense"] .v3-pill-soft {
   background: var(--v3-surface-2);
   border: 1px solid var(--v3-border-strong);
   border-radius: 2px;
   font-size: 10px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
-/* ── Buttons: square, hairline, no gradient ──────────────── */
+/* ── Buttons: square, hairline, no gradient. Base handles 4px
+   radius; data-dense adds dark-on-phosphor + tighter weight. ── */
 body[data-theme-v3="data-dense"] .v3-btn-primary,
 body[data-theme-v3="data-dense"] .v3-update-banner-primary,
 body[data-theme-v3="data-dense"] .v3-update-row-action {
   background: var(--v3-accent);
   color: #0A0C10;
-  border-radius: 3px;
   font-weight: 500;
   letter-spacing: 0.02em;
 }
@@ -182,7 +161,6 @@ body[data-theme-v3="data-dense"] .v3-update-row-action {
 body[data-theme-v3="data-dense"] .v3-btn-ghost {
   background: var(--v3-surface-2);
   border: 1px solid var(--v3-border-strong);
-  border-radius: 3px;
   color: var(--v3-text-2);
 }
 body[data-theme-v3="data-dense"] .v3-btn-ghost:hover {
