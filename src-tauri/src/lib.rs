@@ -1426,6 +1426,11 @@ fn audit_scripts(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
         "startup-kit-config.json",
         ".gentle-ai-last-check", ".daily-brief-last-date",
         ".gentle-ai-last-seen-version", ".kit-version",
+        // State files written by legacy kit scripts (still installed via hooks
+        // on existing setups). Audit was self-flagging these as "non-kit"
+        // because the whitelist only listed inputs, not outputs.
+        ".audit-summary.json", ".audit-alerted-crit",
+        ".snoozed.json", ".kit-last-auto-update",
         "lib",
     ];
     const LIB_WHITELIST: &[&str] = &[
