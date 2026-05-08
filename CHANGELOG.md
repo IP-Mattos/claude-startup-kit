@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.47 — 2026-05-08
+
+Defense-in-depth on the SCRIPTS resolver shipped in v0.1.46.
+
+### Fixed
+- **`audit_resolve_delete` now refuses directory targets.** v0.1.46 extended the allowlist to non-kit files in `~/.claude/scripts/` and `scripts/lib/`, but the path-only check didn't gate by file type — `fs::rename` on a directory works on Windows and would have moved the entire tree to backup if a user ever clicked "Borrar" on an ad-hoc folder finding. Added `if canonical_target.is_dir()` rejection at the top of the resolver. Files-only is the only sane semantics for a one-click audit action.
+- **`audit_scripts` now skips directories at scripts/ root.** Mirrors the existing `is_file()` guard in the lib/ scan. Without it, a folder like `scripts/experiments/` would emit a finding routed to `DeleteFile`, the resolver would reject it (per the fix above), and the user would see a confusing error after clicking "Borrar". Skipping the emit avoids the dead-end UX. The `lib` directory is still allowed because it's in `KIT_WHITELIST`.
+
+### Why this matters
+Even with v0.1.46's recoverable backup pattern, moving a whole directory tree on a single click is too sharp an edge for a routine audit action. The user that flagged this gets the safer behaviour without losing v0.1.46's "actually resolves" value: file findings still resolve in one click, directory findings disappear entirely.
+
 ## 0.1.46 — 2026-05-08
 
 The audit row button now actually resolves the warning instead of just opening Explorer.

@@ -1461,7 +1461,14 @@ fn audit_scripts(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
     if let Ok(entries) = fs::read_dir(&scripts_dir) {
         for entry in entries.flatten() {
             let name = entry.file_name().to_string_lossy().to_string();
-            if !KIT_WHITELIST.contains(&name.as_str()) {
+            // Skip directories at scripts/ root. The DeleteFile action this
+            // finding routes to refuses directories (defense in depth in
+            // audit_resolve_delete), so emitting a finding the user can't
+            // resolve is just noise. The "lib" directory is already covered
+            // by KIT_WHITELIST; this catches any ad-hoc subfolder a user
+            // might create (e.g. scripts/experiments/).
+            let is_file = entry.file_type().map(|t| t.is_file()).unwrap_or(false);
+            if is_file && !KIT_WHITELIST.contains(&name.as_str()) {
                 // VERBATIM TITLE PREFIX — `infer_action` keys off
                 // "Non-kit file in ~/.claude/scripts/:". Bumped from INFO to
                 // WARN so the renderer surfaces a "Resolver" button (Open in
@@ -2411,6 +2418,21 @@ async fn audit_resolve_delete(path: String) -> Result<(), String> {
         let canonical_target = target
             .canonicalize()
             .map_err(|e| format!("canonicalize target: {e}"))?;
+
+        // Defense in depth: reject directories outright. The audit dir scan
+        // (audit_scripts) only iterates entries by name without filtering by
+        // file_type at the scripts/ root level, so if a user ever creates a
+        // subdirectory under ~/.claude/scripts/ that isn't in KIT_WHITELIST
+        // (e.g. an ad-hoc 'experiments/' folder), it would emit a finding
+        // and the SCRIPTS allowlist branch below would otherwise accept it.
+        // fs::rename of a directory works on Windows but moves the entire
+        // tree — way too sharp an edge for an audit "resolver". Force the
+        // user to handle directories manually.
+        if canonical_target.is_dir() {
+            return Err(format!(
+                "audit_resolve_delete: refusing to move directory: {path}"
+            ));
+        }
 
         // Three acceptance paths — each canonicalises before comparing so
         // symlink games / UNC prefixes can't trick the check.
