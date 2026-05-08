@@ -105,8 +105,10 @@ body.v3-layout #root {
   display: grid;
   /* Brand column matches the sidebar width below so the vertical divider
      (brand → nav) lines up exactly with the sidebar → content divider in
-     the body grid. Adjusted in the responsive override below. */
-  grid-template-columns: 220px auto 1fr auto;
+     the body grid. Five columns: brand · nav · spacer · clock · controls.
+     The clock column is `auto` so it shrinks to its content; the spacer
+     (1fr) absorbs all the remaining width. */
+  grid-template-columns: 220px auto 1fr auto auto;
   align-items: stretch;
   height: 38px;
   background: var(--v3-surface);
@@ -200,6 +202,22 @@ body.v3-layout #root {
   height: 100%;
 }
 
+/* Live wall clock — sits between the spacer and window controls. Tabular
+   numerals so the digits don't shift width tick-to-tick. Subtle by default;
+   data-dense's mono font + brighter accent gives it the Bloomberg feel
+   without per-theme overrides. */
+.v3-topbar-clock {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  font-feature-settings: "tnum";
+  color: var(--v3-text-3, var(--v3-text-2));
+  letter-spacing: 0.04em;
+  border-left: 1px solid var(--v3-border);
+}
+
 /* Window controls (Tauri) */
 .v3-window-controls {
   display: flex;
@@ -241,7 +259,7 @@ body.v3-layout #root {
 @media (max-width: 1180px) {
   .appv3-body { grid-template-columns: 200px minmax(0, 1fr) 260px; }
   /* Keep the topbar brand column locked to the sidebar width. */
-  .v3-topbar { grid-template-columns: 200px auto 1fr auto; }
+  .v3-topbar { grid-template-columns: 200px auto 1fr auto auto; }
 }
 
 /* ========== Sidebar ========== */
@@ -2088,6 +2106,16 @@ body.v3-layout #root {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+/* Category filter row — sits below the severity row in AuditView.
+   Slightly muted (smaller chip text via CSS-cascade in v3-chip below) so the
+   severity row stays the primary lens. */
+.v3-filter-row-cat {
+  margin-top: 4px;
+}
+.v3-filter-row-cat .v3-chip {
+  font-size: 10.5px;
+  padding: 4px 10px;
 }
 .v3-chip {
   padding: 6px 12px;

@@ -399,6 +399,9 @@ const STRINGS = {
   },
   "banner.update_failed": { en: "Update failed", es: "Falló la actualización" },
 
+  // Topbar misc
+  "topbar.clock_label": { en: "Current time", es: "Hora actual" },
+
   // Window controls
   "window.minimize": { en: "Minimize", es: "Minimizar" },
   "window.maximize": { en: "Maximize", es: "Maximizar" },
@@ -540,6 +543,7 @@ const STRINGS = {
   "audit.filter_critical": { en: "Critical {n}", es: "Críticos {n}" },
   "audit.filter_warning": { en: "Warning {n}", es: "Advertencias {n}" },
   "audit.filter_info": { en: "Info {n}", es: "Info {n}" },
+  "audit.filter_cat_all": { en: "All categories {n}", es: "Todas {n}" },
   "audit.clean": { en: "Audit clean. Nothing to report.", es: "Auditoría limpia. Nada para reportar." },
   "audit.no_match": { en: "No findings match the current filter.", es: "Ningún hallazgo coincide con el filtro." },
   "audit.resolve": { en: "Fix", es: "Resolver" },

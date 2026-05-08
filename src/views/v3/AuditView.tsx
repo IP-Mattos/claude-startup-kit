@@ -83,6 +83,11 @@ export function AuditView({
   // AppV3's refreshNonce.
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "CRIT" | "WARN" | "INFO">("all");
+  // Second filter dimension — category (DRIFT, HOOKS, PERMS, SCRIPTS, etc).
+  // Categories are derived from the findings themselves so the chips reflect
+  // whatever the audit actually emitted; we don't hardcode the catalog. AND'd
+  // against the level filter — both must match for a finding to render.
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   // The id of the finding whose action is currently in flight. Exactly one
   // action at a time — we don't queue. The button on every other row stays
   // active so the user can keep working in parallel-ish flow.
@@ -111,8 +116,11 @@ export function AuditView({
   }, []);
 
   const grouped = useMemo(() => {
-    const filtered =
-      filter === "all" ? findings : findings.filter((f) => f.level === filter);
+    const filtered = findings.filter((f) => {
+      if (filter !== "all" && f.level !== filter) return false;
+      if (categoryFilter !== "all" && f.category !== categoryFilter) return false;
+      return true;
+    });
     const map = new Map<string, AuditFinding[]>();
     for (const f of filtered) {
       const arr = map.get(f.category) ?? [];
@@ -120,7 +128,19 @@ export function AuditView({
       map.set(f.category, arr);
     }
     return Array.from(map.entries());
-  }, [findings, filter]);
+  }, [findings, filter, categoryFilter]);
+
+  // Distinct categories present in the current findings, with per-category
+  // counts. Sorted by count desc so the most-active category is first. Used
+  // to render the second filter chip row only when there are 2+ categories
+  // (otherwise the row would be redundant noise).
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const f of findings) {
+      counts.set(f.category, (counts.get(f.category) ?? 0) + 1);
+    }
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+  }, [findings]);
 
   const counts = useMemo(() => {
     return {
@@ -289,6 +309,28 @@ export function AuditView({
           tint="info"
         />
       </div>
+
+      {/* Category filter row — only shown when there are 2+ distinct categories
+          in the current findings (single-category audits don't need a filter).
+          Categories come from the audit emitter, not a hardcoded list, so any
+          new category the Rust side adds shows up automatically. */}
+      {categories.length > 1 && (
+        <div className="v3-filter-row v3-filter-row-cat">
+          <FilterChip
+            active={categoryFilter === "all"}
+            onClick={() => setCategoryFilter("all")}
+            label={t("audit.filter_cat_all", { n: findings.length })}
+          />
+          {categories.map(([cat, n]) => (
+            <FilterChip
+              key={cat}
+              active={categoryFilter === cat}
+              onClick={() => setCategoryFilter(cat)}
+              label={`${cat} ${n}`}
+            />
+          ))}
+        </div>
+      )}
 
       {error && <div className="v3-error" role="alert" aria-live="assertive">{error}</div>}
 

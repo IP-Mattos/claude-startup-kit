@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.52 — 2026-05-08
+
+Two small additive features off the data-dense mockup punch list.
+
+### Added
+- **Category filter row in AuditView.** A second filter row appears below the existing severity row (CRIT/WARN/INFO) when there are 2+ distinct categories in the current findings. Shows a chip per category (DRIFT, HOOKS, PERMS, SCRIPTS, etc.) sourced directly from `findings[].category` so the catalog stays in sync with whatever the audit emitter ships — adding a new category in the Rust side surfaces a new chip automatically. Filters AND together with severity: pick "WARN" + "SCRIPTS" to see only WARN-level SCRIPTS findings.
+- **Live wall clock in the topbar.** 24h `HH:MM:SS`, monospaced, tabular-nums so the digits don't jitter. Aligned to the next whole-second boundary on first tick to avoid drift vs the OS clock. Sits between the topbar spacer and the window controls. The clock surface uses `--v3-text-3` and a subtle left border so it reads as ambient information, not as a primary control. In data-dense's mono palette it lights up as a Bloomberg-style readout without per-theme overrides.
+
+### Implementation notes
+The category filter chips reuse the existing `<FilterChip>` component (no new component, no new CSS pattern beyond a tiny `.v3-filter-row-cat` size tweak). The clock is a 25-line `useEffect` that aligns the first interval to the next second boundary, then ticks every 1000 ms. State updates are cheap; no perf concerns at this rate.
+
 ## 0.1.51 — 2026-05-08
 
 ### Fixed

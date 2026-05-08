@@ -14,6 +14,13 @@ const safeGetCurrentWindow = () => {
   }
 };
 
+// 24h HH:MM:SS, zero-padded. Locale-independent so the readout is consistent
+// across machines no matter what the OS regional format is set to.
+function formatClock(d: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
 // Brand on the left, low-frequency tabs in the middle, window controls
 // on the right. Sidebar owns the high-frequency operational tabs.
 export function Topbar({
@@ -24,6 +31,27 @@ export function Topbar({
   onTab: (t: V3Tab) => void;
 }) {
   const [maximized, setMaximized] = useState(false);
+  // Live clock — updated once per second. Shown next to the window controls
+  // so the data-dense theme (and anyone who likes it) gets a Bloomberg-style
+  // wall-clock readout. Hidden in CSS for themes where it would be visual
+  // noise; cheap to compute regardless.
+  const [clock, setClock] = useState(() => formatClock(new Date()));
+  useEffect(() => {
+    const tick = () => setClock(formatClock(new Date()));
+    // Align the first interval to the next whole second so subsequent ticks
+    // happen on the second boundary (no drift in display vs the OS clock).
+    const now = Date.now();
+    const msToNextSecond = 1000 - (now % 1000);
+    let interval: ReturnType<typeof setInterval> | undefined;
+    const timeout = setTimeout(() => {
+      tick();
+      interval = setInterval(tick, 1000);
+    }, msToNextSecond);
+    return () => {
+      clearTimeout(timeout);
+      if (interval) clearInterval(interval);
+    };
+  }, []);
   useEffect(() => {
     const win = safeGetCurrentWindow();
     if (!win) return;
@@ -72,6 +100,13 @@ export function Topbar({
         })}
       </nav>
       <div className="v3-topbar-spacer" data-tauri-drag-region />
+      <span
+        className="v3-topbar-clock mono"
+        aria-label={t("topbar.clock_label")}
+        data-tauri-drag-region
+      >
+        {clock}
+      </span>
       <div className="v3-window-controls">
         <button
           className="v3-wc"
