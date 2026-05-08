@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   AlertOctagon,
@@ -11,6 +11,7 @@ import {
 import type { AuditAction, AuditFinding } from "../../types";
 import { friendlyErrorEn } from "../../lib/format";
 import { plural, useT, type StringKey } from "../../lib/i18n";
+import { useV3Theme } from "../../lib/themes";
 import { ConfirmModal } from "../../components/v3/ConfirmModal";
 import type { V3Tab } from "../../v3/v3types";
 
@@ -70,6 +71,12 @@ export function AuditView({
   onRefresh,
 }: AuditViewProps) {
   const { t } = useT();
+  // Data-dense theme renders findings as a tight terminal-style table
+  // instead of the default cards. Same data, same actions, same confirm
+  // modal — only the visible markup differs (see FindingsTable below
+  // and AppV3.css `body[data-theme-v3="data-dense"] .v3-audit-table`).
+  const theme = useV3Theme();
+  const denseLayout = theme === "data-dense";
   // findings/loading come from AppV3 props. Previously this view had its
   // own state + run_audit fetch on mount, duplicating what AppV3 had
   // already fetched for Overview. Re-execute via onRefresh which bumps
@@ -291,6 +298,14 @@ export function AuditView({
         <div className="v3-empty">
           {findings.length === 0 ? t("audit.clean") : t("audit.no_match")}
         </div>
+      ) : denseLayout ? (
+        <FindingsTable
+          grouped={grouped}
+          pendingActionId={pendingActionId}
+          recentlyDoneId={recentlyDoneId}
+          onResolve={handleResolve}
+          t={t}
+        />
       ) : (
         <div className="v3-audit-groups">
           {grouped.map(([category, items]) => (
@@ -424,5 +439,99 @@ function FindingRow({
       )}
       <span className={`v3-level-pill v3-level-${tint}`}>{finding.level}</span>
     </div>
+  );
+}
+
+// Data-dense layout. Renders the same `grouped` data as the cards layout
+// above as a tight terminal-style table. Reuses the shared resolve flow
+// (handleResolve passed down → confirm modal in parent → runAction). The
+// CSS lives under `body[data-theme-v3="data-dense"] .v3-audit-table`.
+function FindingsTable({
+  grouped,
+  pendingActionId,
+  recentlyDoneId,
+  onResolve,
+  t,
+}: {
+  grouped: Array<[string, AuditFinding[]]>;
+  pendingActionId: string | null;
+  recentlyDoneId: string | null;
+  onResolve: (f: AuditFinding) => void;
+  t: (key: StringKey, vars?: Record<string, string | number>) => string;
+}) {
+  return (
+    <table className="v3-audit-table">
+      <thead>
+        <tr>
+          <th className="v3-audit-th-sev">SEV</th>
+          <th className="v3-audit-th-cat">CAT</th>
+          <th>HALLAZGO</th>
+          <th className="v3-audit-th-act">ACCIÓN</th>
+        </tr>
+      </thead>
+      <tbody>
+        {grouped.flatMap(([category, items]) => {
+          const rows: ReactNode[] = [
+            <tr key={`div-${category}`} className="v3-audit-row-div">
+              <td colSpan={4}>
+                {category}
+                <span className="v3-audit-row-div-n">{items.length}</span>
+              </td>
+            </tr>,
+          ];
+          for (let i = 0; i < items.length; i++) {
+            const f = items[i];
+            const key = findingKey(f);
+            const lvl = f.level.toLowerCase();
+            const pending = pendingActionId === key;
+            const done = recentlyDoneId === key;
+            rows.push(
+              <tr
+                key={`${category}-${i}`}
+                className={`v3-audit-row v3-audit-row-${lvl}`}
+              >
+                <td className={`v3-audit-sev v3-audit-sev-${lvl}`}>{f.level}</td>
+                <td className="v3-audit-cat">{f.category}</td>
+                <td className="v3-audit-find">
+                  <div className="v3-audit-find-title">{f.title}</div>
+                  {f.detail && (
+                    <div className="v3-audit-find-detail">{f.detail}</div>
+                  )}
+                </td>
+                <td className="v3-audit-act">
+                  {f.action ? (
+                    done ? (
+                      <span className="v3-audit-done" role="status" aria-live="polite">
+                        <Check size={11} strokeWidth={2.5} />
+                        {t("audit.action_done")}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="v3-audit-btn"
+                        onClick={() => onResolve(f)}
+                        disabled={pending}
+                      >
+                        {pending ? (
+                          <Loader2
+                            size={11}
+                            strokeWidth={2.25}
+                            className="v3-finding-resolve-spin"
+                          />
+                        ) : null}
+                        {t(resolveLabelKey(f.action?.kind))}
+                      </button>
+                    )
+                  ) : (
+                    <span className="v3-audit-act-none">—</span>
+                  )}
+                </td>
+              </tr>
+            );
+          }
+          return rows;
+        })}
+      </tbody>
+    </table>
   );
 }

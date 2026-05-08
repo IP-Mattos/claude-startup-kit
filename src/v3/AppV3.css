@@ -2879,6 +2879,162 @@ body[data-theme-v3="data-dense"] .v3-sparkline {
   display: block;
 }
 
+/* ========== Audit dense table (data-dense theme only) ==========
+   Renders findings as a tight terminal-style table when the user picks
+   the data-dense theme. The cards layout (.v3-audit-groups + .v3-finding*)
+   is the default for every other theme — see AuditView.tsx where the
+   `denseLayout` flag picks one or the other.
+
+   The table is base-styled here (no theme prefix on .v3-audit-table)
+   because nothing else mounts <table class="v3-audit-table">. If we
+   need a different audit table layout for another theme later, scope
+   per-theme overrides under `body[data-theme-v3="..."] .v3-audit-table`.
+*/
+.v3-audit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-sm);
+  overflow: hidden;
+}
+.v3-audit-table thead th {
+  text-align: left;
+  padding: 7px 12px;
+  background: var(--v3-surface-2, var(--v3-surface));
+  color: var(--v3-text-3, var(--v3-text-2));
+  font-weight: 500;
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--v3-border);
+  white-space: nowrap;
+}
+.v3-audit-th-sev { width: 56px; }
+.v3-audit-th-cat { width: 96px; }
+.v3-audit-th-act { width: 132px; text-align: right !important; }
+.v3-audit-table tbody td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--v3-border);
+  color: var(--v3-text-2);
+  vertical-align: middle;
+}
+.v3-audit-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.v3-audit-table tbody tr:hover td {
+  background: var(--v3-hover, rgba(255, 255, 255, 0.02));
+}
+
+/* Severity column — bold coloured short code, no pill. The full level
+   is already conveyed; the row background stays calm. */
+.v3-audit-sev {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.v3-audit-sev-crit { color: var(--v3-crit); }
+.v3-audit-sev-warn { color: var(--v3-warn); }
+.v3-audit-sev-info { color: var(--v3-info); }
+.v3-audit-sev-ok   { color: var(--v3-success); }
+
+.v3-audit-cat {
+  color: var(--v3-text-3, var(--v3-text-2));
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Title/detail wrapped together. Sans for the title (prose), mono stays
+   for the detail because most details are paths/ids/short telemetry. */
+.v3-audit-find {
+  white-space: normal;
+  color: var(--v3-text);
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 11.5px;
+}
+.v3-audit-find-title {
+  font-weight: 500;
+}
+.v3-audit-find-detail {
+  color: var(--v3-text-2);
+  font-size: 10.5px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  margin-top: 1px;
+  word-break: break-word;
+}
+
+/* Action cell — right-aligned, ghost button matching the row severity.
+   Reuses --v3-finding-action-color from the per-row severity classes set
+   on the cards layout (.v3-finding-{level}) — applied here via
+   .v3-audit-row-{level} so we don't duplicate the colour ladder. */
+.v3-audit-act { text-align: right; }
+.v3-audit-act-none { color: var(--v3-text-3, var(--v3-text-2)); font-size: 10px; }
+
+.v3-audit-row-crit { --v3-finding-action-color: var(--v3-crit); }
+.v3-audit-row-warn { --v3-finding-action-color: var(--v3-warn); }
+.v3-audit-row-info { --v3-finding-action-color: var(--v3-info); }
+.v3-audit-row-ok   { --v3-finding-action-color: var(--v3-success); }
+
+.v3-audit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  color: var(--v3-finding-action-color, var(--v3-accent));
+  border: 1px solid var(--v3-finding-action-color, var(--v3-accent));
+  padding: 2px 9px;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+.v3-audit-btn:hover:not([disabled]) {
+  background: var(--v3-finding-action-color, var(--v3-accent));
+  color: #000;
+}
+.v3-audit-btn[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* "Hecho" pill — replaces the action button for ~2.5s after a successful
+   action. Same pattern as .v3-finding-done in card mode but tighter. */
+.v3-audit-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--v3-success-tint, rgba(16, 185, 129, 0.16));
+  color: var(--v3-success, #10B981);
+  border: 1px solid var(--v3-success, #10B981);
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Group divider row — separates categories when filter is "all". The CAT
+   column already shows category per-row, but the divider gives a clear
+   scan anchor in long lists. */
+.v3-audit-row-div td {
+  background: var(--v3-surface-2, var(--v3-surface));
+  color: var(--v3-text-3, var(--v3-text-2));
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-top: 1px solid var(--v3-border);
+}
+.v3-audit-row-div-n {
+  color: var(--v3-text-2);
+  margin-left: 6px;
+  font-feature-settings: "tnum";
+}
+
 /* ========== Reduced motion ========== */
 @media (prefers-reduced-motion: reduce) {
   .appv3 *,

@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>CSK · Auditoría · Dense Table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Same palette as 04-data-dense.html so the look stays consistent. */
+  :root {
+    --bg:        #0e1014;
+    --bg2:       #13161c;
+    --bg3:       #181c24;
+    --line:      #252a34;
+    --line2:     #1d212a;
+    --ink:       #dfe3ea;
+    --mute:      #5b6473;
+    --dim:       #8a93a3;
+    --text2:     #b6bcc7;
+    --green:     #5dd39e;
+    --red:       #ff5d6c;
+    --amber:     #ffb454;
+    --blue:      #5cc1ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #000;
+    color: var(--ink);
+    font-family: "IBM Plex Sans", -apple-system, sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  body { display: flex; justify-content: center; padding: 30px; }
+  .mono { font-family: "IBM Plex Mono", monospace; }
+
+  .frame {
+    width: 1100px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  /* ── View header ─────────────────────────────────────────── */
+  .vh {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .vh .title { font-size: 18px; font-weight: 600; letter-spacing: -.01em; }
+  .vh .sub { color: var(--mute); font-size: 11px; margin-left: 10px; }
+  .vh .rerun {
+    font-family: "IBM Plex Mono", monospace;
+    background: var(--bg2);
+    color: var(--dim);
+    border: 1px solid var(--line);
+    padding: 4px 10px;
+    font-size: 10.5px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .vh .rerun:hover { color: var(--ink); border-color: var(--green); }
+
+  /* ── Filter chips strip ──────────────────────────────────── */
+  .filt {
+    display: flex;
+    gap: 6px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--line2);
+    background: var(--bg2);
+  }
+  .chip {
+    font-family: "IBM Plex Mono", monospace;
+    background: var(--bg3);
+    border: 1px solid var(--line);
+    color: var(--mute);
+    padding: 3px 9px;
+    font-size: 10px;
+    border-radius: 2px;
+    letter-spacing: .04em;
+    cursor: pointer;
+  }
+  .chip.on { color: var(--ink); border-color: var(--green); }
+  .chip.crit.on { border-color: var(--red); color: var(--red); }
+  .chip.warn.on { border-color: var(--amber); color: var(--amber); }
+  .chip.info.on { border-color: var(--blue); color: var(--blue); }
+  .chip .n { color: var(--dim); margin-left: 4px; }
+  .chip.on .n { color: inherit; opacity: .85; }
+
+  /* ── Table proper ────────────────────────────────────────── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+  }
+  thead th {
+    text-align: left;
+    padding: 7px 12px;
+    background: var(--bg2);
+    color: var(--mute);
+    font-weight: 500;
+    font-size: 9.5px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--line2);
+    color: var(--dim);
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  tbody tr:hover td { background: rgba(93, 211, 158, .04); }
+
+  /* Severity column — bold coloured short code, no pill. */
+  td.sev { width: 56px; font-weight: 600; letter-spacing: .04em; }
+  .sev-c { color: var(--red); }
+  .sev-w { color: var(--amber); }
+  .sev-i { color: var(--blue); }
+  .sev-o { color: var(--green); }
+
+  /* Category — quiet uppercase tag. */
+  td.cat { width: 96px; color: var(--mute); font-size: 10px; letter-spacing: .08em; }
+
+  /* Title / detail wrapped together. Sans for prose, mono for paths. */
+  td.find {
+    white-space: normal;
+    color: var(--ink);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 11.5px;
+  }
+  td.find .det {
+    color: var(--dim);
+    font-size: 10.5px;
+    margin-top: 1px;
+  }
+  td.find .path { font-family: "IBM Plex Mono", monospace; color: var(--text2); }
+
+  /* Age — right-aligned, tabular. */
+  td.age { width: 64px; color: var(--mute); text-align: right; font-feature-settings: "tnum"; }
+
+  /* Action — ghost button matching severity. Variable set per-row.
+     This is the dense-table equivalent of v3-finding-resolve in card view. */
+  td.act { width: 132px; text-align: right; }
+  .act .btn {
+    background: transparent;
+    color: var(--row-color, var(--green));
+    border: 1px solid var(--row-color, var(--green));
+    padding: 2px 9px;
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: .04em;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 100ms ease, color 100ms ease;
+  }
+  .act .btn:hover { background: var(--row-color); color: #000; }
+  .act .none { color: var(--mute); font-size: 10px; }
+
+  /* Per-row severity colour — drives the action button only. The SEV
+     column already shows the colour explicitly. Keeps the row body
+     calm; the colour cue is a single anchor on the right. */
+  tr.r-c { --row-color: var(--red);   }
+  tr.r-w { --row-color: var(--amber); }
+  tr.r-i { --row-color: var(--blue);  }
+  tr.r-o { --row-color: var(--green); }
+
+  /* Group divider — thin row that separates categories. Optional;
+     keeps the table scan-able when filter is "all". */
+  tr.div td {
+    background: var(--bg2);
+    color: var(--mute);
+    font-size: 9px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  tr.div td .n { color: var(--dim); margin-left: 6px; }
+
+  .footnote {
+    padding: 16px 18px;
+    color: var(--mute);
+    font-size: 10.5px;
+    line-height: 1.5;
+  }
+  .footnote b { color: var(--dim); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <!-- View header — same content as the current AuditView, just denser. -->
+  <div class="vh">
+    <div>
+      <span class="title">Auditoría</span>
+      <span class="sub mono">11 hallazgos · workspace</span>
+    </div>
+    <button class="rerun">↻ Re-ejecutar</button>
+  </div>
+
+  <!-- Filter chips — same UX as today, terminal styling. -->
+  <div class="filt">
+    <span class="chip on">TODOS<span class="n">11</span></span>
+    <span class="chip crit">CRIT<span class="n">0</span></span>
+    <span class="chip warn">WARN<span class="n">8</span></span>
+    <span class="chip info">INFO<span class="n">3</span></span>
+  </div>
+
+  <!-- The table. Replaces the .v3-card / .v3-finding-list cards in
+       AuditView with a proper data table. Column widths are fixed for
+       SEV / CAT / EDAD / ACCION; the HALLAZGO column flexes. -->
+  <table>
+    <thead>
+      <tr>
+        <th>SEV</th>
+        <th>CAT</th>
+        <th>HALLAZGO</th>
+        <th style="text-align:right">EDAD</th>
+        <th style="text-align:right">ACCIÓN</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr class="div"><td colspan="5">HOOKS<span class="n">1</span></td></tr>
+      <tr class="r-i">
+        <td class="sev sev-i">INFO</td>
+        <td class="cat">HOOKS</td>
+        <td class="find">2 hook(s) registered<div class="det">SessionStart: <span class="path">check-gentle-ai.sh</span>, <span class="path">daily-brief.sh</span></div></td>
+        <td class="age">—</td>
+        <td class="act"><span class="none">—</span></td>
+      </tr>
+
+      <tr class="div"><td colspan="5">PERMISSIONS<span class="n">1</span></td></tr>
+      <tr class="r-i">
+        <td class="sev sev-i">INFO</td>
+        <td class="cat">PERMS</td>
+        <td class="find">defaultMode: <span class="path">bypassPermissions</span><div class="det">Active permission policy on this workspace</div></td>
+        <td class="age">—</td>
+        <td class="act"><span class="none">—</span></td>
+      </tr>
+
+      <tr class="div"><td colspan="5">SCRIPTS<span class="n">8</span></td></tr>
+      <tr class="r-w">
+        <td class="sev sev-w">WARN</td>
+        <td class="cat">SCRIPTS</td>
+        <td class="find">Non-kit file<div class="det"><span class="path">~/.claude/scripts/.engram-state</span> · created outside the kit</div></td>
+        <td class="age">2d</td>
+        <td class="act"><button class="btn">Borrar</button></td>
+      </tr>
+      <tr class="r-w">
+        <td class="sev sev-w">WARN</td>
+        <td class="cat">SCRIPTS</td>
+        <td class="find">Non-kit file<div class="det"><span class="path">~/.claude/scripts/demo-messagebox.ps1</span> · POC, deprecated</div></td>
+        <td class="age">7d</td>
+        <td class="act"><button class="btn">Borrar</button></td>
+      </tr>
+      <tr class="r-w">
+        <td class="sev sev-w">WARN</td>
+        <td class="cat">SCRIPTS</td>
+        <td class="find">Non-kit file<div class="det"><span class="path">~/.claude/scripts/engram-force-summary.ps1</span></div></td>
+        <td class="age">12d</td>
+        <td class="act"><button class="btn">Borrar</button></td>
+      </tr>
+      <tr class="r-w">
+        <td class="sev sev-w">WARN</td>
+        <td class="cat">SCRIPTS</td>
+        <td class="find">Non-kit file<div class="det"><span class="path">~/.claude/scripts/engram-nudge.ps1</span></div></td>
+        <td class="age">12d</td>
+        <td class="act"><button class="btn">Borrar</button></td>
+      </tr>
+      <tr class="r-w">
+        <td class="sev sev-w">WARN</td>
+        <td class="cat">SCRIPTS</td>
+        <td class="find">Non-kit file<div class="det"><span class="path">~/.claude/scripts/engram-track-save.ps1</span></div></td>
+        <td class="age">12d</td>
+        <td class="act"><button class="btn">Borrar</button></td>
+      </tr>
+      <tr class="r-w">
+        <td class="sev sev-w">WARN</td>
+        <td class="cat">SCRIPTS</td>
+        <td class="find">Non-kit file<div class="det"><span class="path">~/.claude/scripts/toast-daily-brief.ps1</span> · superseded by MessageBox</div></td>
+        <td class="age">21d</td>
+        <td class="act"><button class="btn">Borrar</button></td>
+      </tr>
+      <tr class="r-w">
+        <td class="sev sev-w">WARN</td>
+        <td class="cat">SCRIPTS</td>
+        <td class="find">Non-kit file<div class="det"><span class="path">~/.claude/scripts/tray-launcher.bat</span></div></td>
+        <td class="age">21d</td>
+        <td class="act"><button class="btn">Borrar</button></td>
+      </tr>
+      <tr class="r-w">
+        <td class="sev sev-w">WARN</td>
+        <td class="cat">SCRIPTS</td>
+        <td class="find">Non-kit file<div class="det"><span class="path">~/.claude/scripts/tray.ps1</span></div></td>
+        <td class="age">21d</td>
+        <td class="act"><button class="btn">Borrar</button></td>
+      </tr>
+
+      <tr class="div"><td colspan="5">SKILLS<span class="n">1</span></td></tr>
+      <tr class="r-i">
+        <td class="sev sev-i">INFO</td>
+        <td class="cat">SKILLS</td>
+        <td class="find">3 skills sin uso registrado en 30d<div class="det">candidatos a archivar — abrí <span class="path">Compañera</span> para ver detalle</div></td>
+        <td class="age">30d</td>
+        <td class="act"><button class="btn">Ir</button></td>
+      </tr>
+
+      <!-- Synthetic CRIT and DRIFT examples — shown to demo the colour
+           ladder. Real audit on this workspace currently emits 0 CRIT. -->
+      <tr class="div"><td colspan="5">DEMO · ejemplos visuales (no son hallazgos reales)</td></tr>
+      <tr class="r-c">
+        <td class="sev sev-c">CRIT</td>
+        <td class="cat">PERMS</td>
+        <td class="find">Bash(*) sin restringir en <span class="path">.claude/settings.json</span><div class="det">permite ejecución arbitraria — restringí o quitá la regla</div></td>
+        <td class="age">2h</td>
+        <td class="act"><button class="btn">Restaurar</button></td>
+      </tr>
+      <tr class="r-c">
+        <td class="sev sev-c">CRIT</td>
+        <td class="cat">DRIFT</td>
+        <td class="find"><span class="path">hooks/session-end.ps1</span> modificado fuera de control<div class="det">archivo no coincide con el manifest del kit</div></td>
+        <td class="age">43m</td>
+        <td class="act"><button class="btn">Borrar</button></td>
+      </tr>
+
+    </tbody>
+  </table>
+
+  <div class="footnote">
+    <b>Notas para implementación.</b>
+    Reemplaza <code class="mono">.v3-finding-list</code> + <code class="mono">.v3-finding</code> cards en AuditView.tsx por una <code class="mono">&lt;table&gt;</code> con cinco columnas fijas. La fila <code class="mono">tr.div</code> es opcional — funciona como divider de categoría cuando el filtro es "todos"; al filtrar por sev o cat, se ocultan. La columna ACCIÓN reusa el i18n de v0.1.44 (audit.action.*) y la lógica de resolveLabelKey ya está hecha. <code class="mono">--row-color</code> reemplaza al <code class="mono">--v3-finding-action-color</code> con el mismo mapping.
+    <br><br>
+    <b>Theme-gating sugerido.</b> Renderear la tabla SOLO cuando <code class="mono">data-theme-v3="data-dense"</code>. Otros temas siguen con cards (más cómodos en pantallas chicas, mejor para temas con mucho color). Pattern idéntico a la sidebar de proyectos en data-dense.
+  </div>
+
+</div>
+
+</body>
+</html>

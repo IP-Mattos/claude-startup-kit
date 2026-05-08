@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.49 — 2026-05-08
+
+Audit findings render as a tight terminal-style table when the active theme is **data-dense**. Other themes keep the cards layout from before.
+
+### Added
+- **`useV3Theme()` hook in `lib/themes.ts`.** Subscribes to `body[data-theme-v3]` via MutationObserver so any view that branches markup on theme can react to live changes (Settings picker, Cmd+T cycle, etc.) without an explicit re-render trigger. Reusable across views.
+- **`<FindingsTable>` component in AuditView.tsx.** Mirrors the `mockups/06-audit-dense-table.html` blueprint: SEV / CAT / HALLAZGO / ACCIÓN columns, group dividers between categories, severity-coloured short codes (no pill), ghost-outline action button per row keyed off `--v3-finding-action-color` (the same custom property the cards layout uses), `Hecho ✓` confirmation pill on success.
+- **CSS for `.v3-audit-table` and friends** in `AppV3.css`. Theme-variable-driven (no hardcoded hex), so the table inherits the active theme's surface/border/text/severity tokens. The table is mounted only when `denseLayout` is true; CSS is base-styled to keep the rules theme-agnostic should we extend the table layout to other themes later.
+
+### Implementation notes
+The shared resolve flow — `handleResolve`, `runAction`, `confirmStrings`, `ConfirmModal` — stays in the `AuditView` parent. Only the markup forks. This keeps the confirm modal, action plumbing, error surfacing, and the "row pending" / "recently done" state all single-source-of-truth.
+
+The default cards layout (`.v3-audit-groups`) is **untouched** — cards remain the experience for `light`, `dark`, `lunar-hud`, `pixel-crt`, etc. v0.1.48's theme-aware tints already made the cards work everywhere; v0.1.49 is purely additive for data-dense.
+
+### Skipped on purpose
+- The mockup's EDAD column (it implied per-finding age data the backend doesn't emit yet).
+- Filter-chip restyling for data-dense (the existing `.v3-chip` already has a data-dense override that reads fine).
+- Hide-on-filter for the divider rows. With single-category filters active, every row is the same category so the divider is informational; not worth the JSX gymnastics until someone complains.
+
 ## 0.1.48 — 2026-05-08
 
 Audit finding cards now respect the active theme.

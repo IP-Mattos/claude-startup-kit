@@ -2,6 +2,8 @@
 // shortcut) and views.tsx (theme picker grid) consume this; without it the
 // two files drift and a new theme breaks the cycle order.
 
+import { useEffect, useState } from "react";
+
 export const V3_THEME_ORDER = [
   "light",
   "dark",
@@ -138,4 +140,25 @@ export function readV3ThemeFromBody(): V3Theme {
   const attr = document.body.getAttribute("data-theme-v3");
   if (attr && isV3Theme(attr)) return attr;
   return "light";
+}
+
+// React hook for theme-aware components. Subscribes to body's data-theme-v3
+// via MutationObserver so callers re-render when the user switches themes
+// from Settings or the Cmd+T cycle. We use an observer (not a custom event)
+// so any future code path that mutates the attribute works without ceremony.
+export function useV3Theme(): V3Theme {
+  const [theme, setTheme] = useState<V3Theme>(() => readV3ThemeFromBody());
+  useEffect(() => {
+    const next = () => setTheme(readV3ThemeFromBody());
+    const obs = new MutationObserver(next);
+    obs.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["data-theme-v3"],
+    });
+    // Catch a race where theme was applied between useState init and effect
+    // (e.g. boot script attaches the attribute after first paint).
+    next();
+    return () => obs.disconnect();
+  }, []);
+  return theme;
 }
