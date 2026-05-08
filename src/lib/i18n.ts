@@ -280,6 +280,10 @@ const STRINGS = {
     en: "(no folder selected)",
     es: "(sin carpeta elegida)",
   },
+  "settings.sync_no_dir_yet": {
+    en: "No folder selected yet. Pick any folder you can move between PCs (a private git repo, a OneDrive folder, a USB drive, a NAS) and CSK will export your engram memories there. Same folder on the other PC, and you import.",
+    es: "Todavía no elegiste carpeta. Elegí cualquier carpeta que puedas mover entre PCs (un repo git privado, una carpeta de OneDrive, un USB, un NAS) y CSK exporta tus memorias de engram ahí. Misma carpeta en la otra PC, y la importás.",
+  },
   "settings.sync_pick_dir": { en: "Pick folder", es: "Elegir carpeta" },
   "settings.sync_change_dir": { en: "Change", es: "Cambiar" },
   "settings.sync_picker_title": {

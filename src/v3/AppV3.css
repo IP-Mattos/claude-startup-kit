@@ -3039,6 +3039,26 @@ body[data-theme-v3="data-dense"] .v3-sparkline {
    Manual file-based sync via `engram sync`. Distinct class prefix
    (.v3-engsync-*) to avoid colliding with the existing GitHub-repo
    sync feature (.v3-sync-*) elsewhere in Settings/SyncView. */
+/* Empty state — shown until the user picks a folder. The disabled-buttons
+   alternative read as "broken UI" rather than "needs setup". This card
+   communicates the missing step explicitly. */
+.v3-engsync-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: var(--v3-surface-2);
+  border: 1px dashed var(--v3-border);
+  border-radius: var(--v3-radius-sm);
+}
+.v3-engsync-empty-cta {
+  margin: 0;
+  color: var(--v3-text);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
 .v3-engsync-dir-row {
   display: flex;
   align-items: center;

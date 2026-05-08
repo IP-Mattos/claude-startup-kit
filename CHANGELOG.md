@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.51 — 2026-05-08
+
+### Fixed
+- **Sync card empty-state UX.** v0.1.50 shipped the section with the action buttons (Push/Pull/Status) always visible but disabled until a folder was picked. Users reported clicking "did nothing" — disabled buttons read as broken UI, not as "needs setup". Now the card flips to an empty-state panel with one bold CTA ("Pick folder") and copy explaining what kind of folder to choose. Once a folder is set, the card swaps to the action layout.
+- The hint copy stays above both states so users see the explanation regardless.
+
 ## 0.1.50 — 2026-05-08
 
 Cross-PC engram sync — move your memories between machines through any transport you want, no web service required.

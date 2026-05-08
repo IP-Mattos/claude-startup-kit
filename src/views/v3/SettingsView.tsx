@@ -275,55 +275,81 @@ export function SettingsView() {
         </header>
         <div className="v3-form">
           <p className="v3-row-meta">{t("settings.sync_hint")}</p>
-          <div className="v3-engsync-dir-row">
-            <code className="v3-engsync-dir-path">
-              {syncDir || t("settings.sync_dir_unset")}
-            </code>
-            <button
-              type="button"
-              className="v3-link"
-              onClick={() => void pickSyncDir()}
-              disabled={!IS_TAURI || syncBusy !== null}
-            >
-              {syncDir ? t("settings.sync_change_dir") : t("settings.sync_pick_dir")}
-            </button>
-          </div>
-          <div className="v3-engsync-actions">
-            <button
-              type="button"
-              className="v3-btn-primary v3-btn-sm"
-              onClick={() => void runSync("push")}
-              disabled={!syncDir || syncBusy !== null}
-              title={t("settings.sync_push_title")}
-            >
-              {syncBusy === "push" ? t("settings.sync_pushing") : t("settings.sync_push")}
-            </button>
-            <button
-              type="button"
-              className="v3-btn-ghost v3-btn-sm"
-              onClick={() => void runSync("pull")}
-              disabled={!syncDir || syncBusy !== null}
-              title={t("settings.sync_pull_title")}
-            >
-              {syncBusy === "pull" ? t("settings.sync_pulling") : t("settings.sync_pull")}
-            </button>
-            <button
-              type="button"
-              className="v3-btn-ghost v3-btn-sm"
-              onClick={() => void runSync("status")}
-              disabled={!syncDir || syncBusy !== null}
-            >
-              {syncBusy === "status" ? t("settings.sync_checking") : t("settings.sync_status_btn")}
-            </button>
-          </div>
-          {syncOutput &&
-            (syncOutput.error ? (
-              <div className="v3-error" role="alert" aria-live="assertive">
-                {syncOutput.text}
+
+          {!syncDir ? (
+            // Empty state — without a folder, the action buttons are useless,
+            // and a row of disabled buttons reads as "broken UI" not "needs
+            // setup". Show one bold CTA + an explanation of what to pick.
+            <div className="v3-engsync-empty">
+              <p className="v3-engsync-empty-cta">
+                {t("settings.sync_no_dir_yet")}
+              </p>
+              <button
+                type="button"
+                className="v3-btn-primary v3-btn-sm"
+                onClick={() => void pickSyncDir()}
+                disabled={!IS_TAURI}
+              >
+                {t("settings.sync_pick_dir")}
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="v3-engsync-dir-row">
+                <code className="v3-engsync-dir-path">{syncDir}</code>
+                <button
+                  type="button"
+                  className="v3-link"
+                  onClick={() => void pickSyncDir()}
+                  disabled={!IS_TAURI || syncBusy !== null}
+                >
+                  {t("settings.sync_change_dir")}
+                </button>
               </div>
-            ) : (
-              <pre className="v3-engsync-output">{syncOutput.text}</pre>
-            ))}
+              <div className="v3-engsync-actions">
+                <button
+                  type="button"
+                  className="v3-btn-primary v3-btn-sm"
+                  onClick={() => void runSync("push")}
+                  disabled={syncBusy !== null}
+                  title={t("settings.sync_push_title")}
+                >
+                  {syncBusy === "push"
+                    ? t("settings.sync_pushing")
+                    : t("settings.sync_push")}
+                </button>
+                <button
+                  type="button"
+                  className="v3-btn-ghost v3-btn-sm"
+                  onClick={() => void runSync("pull")}
+                  disabled={syncBusy !== null}
+                  title={t("settings.sync_pull_title")}
+                >
+                  {syncBusy === "pull"
+                    ? t("settings.sync_pulling")
+                    : t("settings.sync_pull")}
+                </button>
+                <button
+                  type="button"
+                  className="v3-btn-ghost v3-btn-sm"
+                  onClick={() => void runSync("status")}
+                  disabled={syncBusy !== null}
+                >
+                  {syncBusy === "status"
+                    ? t("settings.sync_checking")
+                    : t("settings.sync_status_btn")}
+                </button>
+              </div>
+              {syncOutput &&
+                (syncOutput.error ? (
+                  <div className="v3-error" role="alert" aria-live="assertive">
+                    {syncOutput.text}
+                  </div>
+                ) : (
+                  <pre className="v3-engsync-output">{syncOutput.text}</pre>
+                ))}
+            </>
+          )}
         </div>
       </article>
 
