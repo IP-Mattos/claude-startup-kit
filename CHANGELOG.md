@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.45 — 2026-05-08
+
+### Changed
+- **Audit row button now reads as part of its row's severity, not as a primary CTA.** Was solid theme-accent (e.g. data-dense's bright green) on every row, regardless of whether the finding was CRIT, WARN, INFO, or OK — the button shouted "primary action" at the user even for read-only stuff like "Show in Explorer" on a WARN row, and the green-on-amber colour pair clashed visually. Replaced with a ghost-outline button that picks up the row's severity colour (matches `.v3-level-*` pill backgrounds): amber on WARN, red on CRIT, blue on INFO, green on OK. Fills on hover. Done via a `--v3-finding-action-color` custom property scoped to each `.v3-finding-{level}` row, so theme accents stay untouched.
+
 ## 0.1.44 — 2026-05-08
 
 Audit honesty — the row button told the user "Fix" / "Resolver" for clicks that did no fixing, and the SCRIPTS finding was self-flagging files the kit itself had just written. Both issues fixed in this release.

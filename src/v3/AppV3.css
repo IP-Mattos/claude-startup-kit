@@ -2171,36 +2171,48 @@ body.v3-layout #root {
   font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
   word-break: break-word;
 }
-/* Per-finding "Resolve" action. Sits between the body and the level pill —
-   small, primary-tinted, and disables to a flat opacity while the action is
-   in flight. The spinner inherits color from the button so it works across
-   the 50+ themes without per-theme overrides. */
+/* Per-finding action button. Severity-aware: each finding row sets
+   --v3-finding-action-color via .v3-finding-warn / -crit / -info / -ok
+   (defined below) so the button visually anchors to its row's severity
+   instead of always using the theme accent — that bright accent (e.g.
+   data-dense's green) clashed with WARN amber rows and made the button
+   read as a primary CTA when most actions are non-destructive (open in
+   Explorer, navigate, etc.).
+   Ghost outline by default → fills on hover. Falls back to --v3-accent
+   if no severity class is present (defensive; JSX always sets one). */
 .v3-finding-resolve {
   align-self: center;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  /* Primary destructive action (Kill / Delete / Restore). Bumped from 5/10 +
-     11.5px to clear WCAG 2.5.5's 24-32px target floor. */
+  /* Bumped from 5/10 + 11.5px to clear WCAG 2.5.5's 24-32px target floor. */
   padding: 7px 12px;
   border-radius: var(--v3-radius-sm);
   font-size: 12.5px;
   font-weight: 600;
-  background: var(--v3-accent);
-  color: #FFFFFF;
-  border: 1px solid var(--v3-accent);
+  background: transparent;
+  color: var(--v3-finding-action-color, var(--v3-accent));
+  border: 1px solid var(--v3-finding-action-color, var(--v3-accent));
   cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease, opacity 120ms ease;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease;
 }
 .v3-finding-resolve:hover:not([disabled]) {
-  background: var(--v3-accent-hover);
-  border-color: var(--v3-accent-hover);
+  background: var(--v3-finding-action-color, var(--v3-accent));
+  color: #FFFFFF;
 }
 .v3-finding-resolve[disabled] {
   opacity: 0.6;
   cursor: progress;
 }
+
+/* Severity → button color mapping. Hex values mirror the level-pill
+   backgrounds (.v3-level-warn etc.) so the button reads as part of the
+   same severity language as its sibling pill. */
+.v3-finding-crit { --v3-finding-action-color: var(--v3-crit); }
+.v3-finding-warn { --v3-finding-action-color: #B45309; }
+.v3-finding-info { --v3-finding-action-color: #1D4ED8; }
+.v3-finding-ok   { --v3-finding-action-color: #047857; }
 .v3-finding-resolve-spin {
   animation: v3-finding-spin 750ms linear infinite;
 }
