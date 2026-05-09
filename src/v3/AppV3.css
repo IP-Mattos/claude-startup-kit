@@ -1464,27 +1464,23 @@ body.v3-layout #root {
 /* Audit summary — modern compact layout: stacked bar + 3 stat tiles +
    total footer. The donut is gone; this reads at a glance and scales
    gracefully on narrow widths. */
+/* Terminal-style proportional bar — flat hairline, luminance ladder
+   instead of rainbow. Crit gets the only saturated tone so the
+   eye lands there if anything is broken. */
 .v3-audit-bar {
   display: flex;
   width: 100%;
-  height: 8px;
-  border-radius: 999px;
+  height: 2px;
   overflow: hidden;
   background: var(--v3-surface-2);
-  border: 1px solid var(--v3-border);
 }
 .v3-audit-bar-seg {
   display: block;
   height: 100%;
-  transition: width 240ms ease;
-}
-.v3-audit-bar-seg + .v3-audit-bar-seg {
-  /* Subtle hairline between segments so adjacent colors don't blur. */
-  box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.18);
 }
 .v3-audit-bar-crit { background: var(--v3-crit); }
-.v3-audit-bar-warn { background: var(--v3-warn); }
-.v3-audit-bar-info { background: var(--v3-info); }
+.v3-audit-bar-warn { background: var(--v3-text-3); }
+.v3-audit-bar-info { background: var(--v3-text-4); }
 
 .v3-audit-tiles {
   display: grid;
@@ -1497,29 +1493,16 @@ body.v3-layout #root {
   background: var(--v3-surface-2);
   border: 1px solid var(--v3-border);
   border-radius: var(--v3-radius);
-  padding: 12px 14px 12px 16px;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
   gap: 10px;
   overflow: hidden;
 }
-.v3-audit-tile-stripe {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-}
-.v3-audit-tile-crit .v3-audit-tile-stripe { background: var(--v3-crit); }
-.v3-audit-tile-warn .v3-audit-tile-stripe { background: var(--v3-warn); }
-.v3-audit-tile-info .v3-audit-tile-stripe { background: var(--v3-info); }
 
-/* Color the big number in its severity tone so the eye lands on the
-   semantic info first (red=bad, blue=fine), reinforcing the at-a-glance
-   read of the panel. */
+/* Numbers stay neutral; only crit pulls the accent so the surface
+   reads as a calm monochrome dashboard, not a rainbow. */
 .v3-audit-tile-crit .v3-audit-tile-num { color: var(--v3-crit); }
-.v3-audit-tile-warn .v3-audit-tile-num { color: var(--v3-warn); }
-.v3-audit-tile-info .v3-audit-tile-num { color: var(--v3-info); }
 .v3-audit-tile-body {
   display: flex;
   flex-direction: column;

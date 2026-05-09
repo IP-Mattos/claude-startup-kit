@@ -433,21 +433,18 @@ export function OverviewView({
               </div>
               <div className="v3-audit-tiles">
                 <div className="v3-audit-tile v3-audit-tile-crit">
-                  <span className="v3-audit-tile-stripe" aria-hidden="true" />
                   <div className="v3-audit-tile-body">
                     <div className="v3-audit-tile-num">{stats.crit}</div>
                     <div className="v3-audit-tile-label">{t("overview.tile_critical")}</div>
                   </div>
                 </div>
                 <div className="v3-audit-tile v3-audit-tile-warn">
-                  <span className="v3-audit-tile-stripe" aria-hidden="true" />
                   <div className="v3-audit-tile-body">
                     <div className="v3-audit-tile-num">{stats.warn}</div>
                     <div className="v3-audit-tile-label">{t("overview.tile_warning")}</div>
                   </div>
                 </div>
                 <div className="v3-audit-tile v3-audit-tile-info">
-                  <span className="v3-audit-tile-stripe" aria-hidden="true" />
                   <div className="v3-audit-tile-body">
                     <div className="v3-audit-tile-num">{stats.info}</div>
                     <div className="v3-audit-tile-label">{t("overview.tile_info")}</div>
