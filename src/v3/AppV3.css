@@ -2871,25 +2871,19 @@ body[data-theme-v3="command-palette"] .v3-topbar::after {
   letter-spacing: 0.04em;
 }
 
-/* ========== data-dense theme: structural pivot ==========
-   When the user picks data-dense, the layout shifts into a Bloomberg/
-   k9s style: sidebar gains a flat project list, density drops, and
-   KPI rows become available. The theme file (themes/data-dense.css)
-   already does the colour/typography work; this block adds the
-   structural changes that needed CSS hooks beyond per-element
-   restyling. */
+/* ========== Universal data-dense extras ==========
+   Sidebar project list, KPI density, and sparklines are now part of
+   the base layout for every theme. Each theme paints them with its
+   own palette via the var(--v3-*) tokens. */
 
-/* Project list under nav — shown ONLY when this theme is active. */
+/* Project list under nav — visible across all themes. */
 .v3-sidebar-projects {
-  display: none;
-}
-body[data-theme-v3="data-dense"] .v3-sidebar-projects {
   display: block;
   padding: 12px 8px;
   border-top: 1px solid var(--v3-border);
   margin-top: 4px;
 }
-body[data-theme-v3="data-dense"] .v3-sidebar-projects-title {
+.v3-sidebar-projects-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2897,11 +2891,11 @@ body[data-theme-v3="data-dense"] .v3-sidebar-projects-title {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--v3-text-3);
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-family: var(--v3-font-mono, "IBM Plex Mono", ui-monospace, monospace);
   padding: 4px 8px;
   margin-bottom: 4px;
 }
-body[data-theme-v3="data-dense"] .v3-sidebar-projects-count {
+.v3-sidebar-projects-count {
   background: var(--v3-surface-2);
   border: 1px solid var(--v3-border-strong);
   border-radius: 2px;
@@ -2910,17 +2904,17 @@ body[data-theme-v3="data-dense"] .v3-sidebar-projects-count {
   color: var(--v3-text-3);
   font-variant-numeric: tabular-nums;
 }
-body[data-theme-v3="data-dense"] .v3-sidebar-projects-empty {
+.v3-sidebar-projects-empty {
   padding: 8px;
   font-size: 10.5px;
   color: var(--v3-text-4);
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-family: var(--v3-font-mono, "IBM Plex Mono", ui-monospace, monospace);
 }
-body[data-theme-v3="data-dense"] .v3-sidebar-projects-list {
+.v3-sidebar-projects-list {
   display: flex;
   flex-direction: column;
 }
-body[data-theme-v3="data-dense"] .v3-sidebar-project {
+.v3-sidebar-project {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -2930,59 +2924,53 @@ body[data-theme-v3="data-dense"] .v3-sidebar-project {
   border: none;
   border-radius: 2px;
   color: var(--v3-text-2);
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-family: var(--v3-font-mono, "IBM Plex Mono", ui-monospace, monospace);
   font-size: 11px;
   cursor: pointer;
   text-align: left;
   width: 100%;
 }
-body[data-theme-v3="data-dense"] .v3-sidebar-project:hover {
+.v3-sidebar-project:hover {
   background: var(--v3-surface-2);
   color: var(--v3-text);
 }
-body[data-theme-v3="data-dense"] .v3-sidebar-project-name {
+.v3-sidebar-project-name {
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-body[data-theme-v3="data-dense"] .v3-sidebar-project-ago {
+.v3-sidebar-project-ago {
   font-size: 9.5px;
   color: var(--v3-text-4);
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
 
-/* Sidebar widens slightly to fit project names without truncating
-   too aggressively. */
-body[data-theme-v3="data-dense"] .v3-sidebar {
+/* Sidebar width — tuned to fit project names across themes. */
+.v3-sidebar {
   width: 220px;
   min-width: 220px;
 }
 
-/* Density: tighten the OVERVIEW stat cards so the KPI strip reads
-   like a Bloomberg ticker. The base .v3-stat-card padding is too
-   generous for this aesthetic. */
-body[data-theme-v3="data-dense"] .v3-stat-card {
+/* Density: KPI stat cards read like a Bloomberg ticker on every theme. */
+.v3-stat-card {
   padding: 10px 12px;
 }
-body[data-theme-v3="data-dense"] .v3-stat-card .v3-stat-label {
+.v3-stat-card .v3-stat-label {
   font-size: 9.5px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
-body[data-theme-v3="data-dense"] .v3-stat-card .v3-stat-value {
+.v3-stat-card .v3-stat-value {
   font-size: 22px;
   letter-spacing: -0.02em;
 }
 
-/* Sparkline default colour follows the theme accent so it harmonises
-   with semantic states (we override per-instance for crit/warn). */
+/* Sparkline — visible block under stat values across all themes. */
 .v3-sparkline {
   color: var(--v3-accent, #5DD39E);
   vertical-align: middle;
-}
-body[data-theme-v3="data-dense"] .v3-sparkline {
   margin-top: 4px;
   display: block;
 }

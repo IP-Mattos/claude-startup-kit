@@ -11,7 +11,6 @@ import {
 import type { AuditAction, AuditFinding } from "../../types";
 import { friendlyErrorEn } from "../../lib/format";
 import { plural, useT, type StringKey } from "../../lib/i18n";
-import { useV3Theme } from "../../lib/themes";
 import { ConfirmModal } from "../../components/v3/ConfirmModal";
 import type { V3Tab } from "../../v3/v3types";
 
@@ -71,12 +70,10 @@ export function AuditView({
   onRefresh,
 }: AuditViewProps) {
   const { t } = useT();
-  // Data-dense theme renders findings as a tight terminal-style table
-  // instead of the default cards. Same data, same actions, same confirm
-  // modal — only the visible markup differs (see FindingsTable below
-  // and AppV3.css `body[data-theme-v3="data-dense"] .v3-audit-table`).
-  const theme = useV3Theme();
-  const denseLayout = theme === "data-dense";
+  // Findings render as a tight terminal-style table across every theme —
+  // same data, same actions, same confirm modal. Per-theme palette comes
+  // from the v3 token system; layout is uniform.
+  const denseLayout = true;
   // findings/loading come from AppV3 props. Previously this view had its
   // own state + run_audit fetch on mount, duplicating what AppV3 had
   // already fetched for Overview. Re-execute via onRefresh which bumps
