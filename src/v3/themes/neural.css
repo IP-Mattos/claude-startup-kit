@@ -7,7 +7,10 @@
    neurons, NEURON simulator overlays, the green-on-black brain
    maps in Westworld.
    Differentiator vs pixel-crt: that one is hard-edge bezel /
-   chunky shadows; this one is soft, blurred, curvy, breathing.
+   chunky shadows; this one is soft, blurred, breathing.
+
+   Palette + font + decoration package only — geometry (radius,
+   padding) lives in the V3 base.
    ============================================================= */
 
 body.v3-layout[data-theme-v3="neural"] {
@@ -24,7 +27,6 @@ body[data-theme-v3="neural"] .appv3 {
   --v3-border-strong: #2C5A4D;           /* visible cell-wall edge */
 
   /* ── Type — phosphor-tinged whites, never pure ───────────── */
-  /* #A7E8C4 on #0B1311 ≈ 11:1 — very legible, slightly luminous */
   --v3-text:   #E6FFF2;                  /* near-white, faint green wash */
   --v3-text-2: #B8E0CC;                  /* mid greenish-white */
   --v3-text-3: #7FB89A;                  /* dim luminescent — ≈ 6.0:1 on surface */
@@ -76,22 +78,7 @@ body[data-theme-v3="neural"] .appv3-content {
     var(--v3-bg);
 }
 
-/* ── Cards: soft organic radii, dim membrane border ────────── */
-/* Slightly larger radius than dark.css so the cards feel like
-   cells rather than rectangles. */
-body[data-theme-v3="neural"] .appv3 .v3-stat-card,
-body[data-theme-v3="neural"] .appv3 .v3-card,
-body[data-theme-v3="neural"] .appv3 .v3-row,
-body[data-theme-v3="neural"] .appv3 .v3-companion-widget,
-body[data-theme-v3="neural"] .appv3 .v3-audit-tile {
-  border-radius: 14px;
-  border: 1px solid var(--v3-border);
-  transition: box-shadow 320ms ease, border-color 320ms ease;
-}
-
 /* ── Stat cards: synaptic glow on hover (signature) ────────── */
-/* The bioluminescent ring, blurred not sharp — like a neuron
-   firing under a fluorescence microscope. */
 body[data-theme-v3="neural"] .v3-stat-card:hover {
   border-color: rgba(110, 255, 168, 0.45);
   box-shadow:
@@ -116,7 +103,6 @@ body[data-theme-v3="neural"] .v3-side-link.active {
   box-shadow:
     inset 2px 0 0 #6EFFA8,
     inset 3px 0 8px rgba(110, 255, 168, 0.40);
-  border-radius: 8px;
 }
 body[data-theme-v3="neural"] .v3-side-link:hover {
   background: rgba(110, 255, 168, 0.06);
@@ -137,7 +123,6 @@ body[data-theme-v3="neural"] .v3-companion-stage {
       rgba(110, 255, 168, 0.18) 0%,
       rgba(255, 214, 107, 0.06) 45%,
       transparent 80%);
-  border-radius: 16px;
 }
 
 /* ── Focus visible: soft phosphor halo (not hard outline) ──── */
@@ -235,7 +220,6 @@ body[data-theme-v3="neural"] .appv3 ::-webkit-scrollbar-thumb {
   background: #1F3A33;
   border: 2px solid transparent;
   background-clip: content-box;
-  border-radius: 8px;
 }
 body[data-theme-v3="neural"] .appv3 ::-webkit-scrollbar-thumb:hover {
   background: #2C5A4D;

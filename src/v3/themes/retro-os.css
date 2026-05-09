@@ -2,10 +2,13 @@
    V3 Theme: RETRO-OS
    Identity: a 90s tech magazine got a pixel reboot — disciplined
    retro-OS UI kit. Bitmap display heading, modern sans body,
-   hairline 1px borders everywhere, dual accent (cobalt blue
-   primary + warm tomato red as "hot callout"). Pale graph-paper
-   surface, dotted-tab sidebar indicator, stair-step card corners.
+   hairline borders, dual accent (cobalt blue primary + warm
+   tomato red as "hot callout"). Pale graph-paper surface.
    Reference moods: System 7 / OS 2 Warp / Geocities-cleaned-up.
+
+   Palette + font + decoration package only — all geometry
+   (radius, padding, font-size on structural elements) lives in
+   the V3 base.
    ============================================================= */
 
 /* ── Body background ──────────────────────────────────────────
@@ -77,38 +80,19 @@ body[data-theme-v3="retro-os"] .appv3 .appv3-content {
 
 /* ── Topbar: hairline bottom rule, no gradient ────────────── */
 body[data-theme-v3="retro-os"] .v3-topbar {
-  border-bottom: 1px solid var(--v3-border);
   background: var(--v3-surface);
   box-shadow: 0 1px 0 0 rgba(20, 24, 31, 0.03);
 }
 
-/* Topbar tabs — square, bitmap-y, never pill-rounded */
-body[data-theme-v3="retro-os"] .v3-topbar-tab {
-  border-radius: 2px;
-}
-body[data-theme-v3="retro-os"] .v3-topbar-tab.active::after {
-  background: var(--v3-accent);
-  height: 2px;
-  border-radius: 0;
-}
-
-/* ── Cards — square corners, stair-step shadow motif ─────── */
+/* ── Cards — stair-step shadow motif (signature decoration) ─ */
 body[data-theme-v3="retro-os"] .v3-card {
-  border-radius: 4px;                  /* spec: 4px max */
-  border: 1px solid var(--v3-border);
   background: var(--v3-surface);
-  /* Stair-step: 1px hairline + a 1px offset shadow that reads
-     as a single-pixel drop. The decorative motif. */
+  /* Stair-step: 1px hairline drop shadow — the decorative motif. */
   box-shadow: 1px 1px 0 0 var(--v3-border);
-}
-
-body[data-theme-v3="retro-os"] .v3-card-head {
-  border-bottom: 1px solid var(--v3-border);
 }
 
 /* ── Stat card hover — hot callout cobalt outline ────────── */
 body[data-theme-v3="retro-os"] .v3-stat-card {
-  border-radius: 4px;
   box-shadow: 1px 1px 0 0 var(--v3-border);
 }
 body[data-theme-v3="retro-os"] .v3-stat-card:hover {
@@ -117,10 +101,7 @@ body[data-theme-v3="retro-os"] .v3-stat-card:hover {
               2px 2px 0 0 var(--v3-accent-soft);
 }
 
-/* ── Rows — square, hairline, hot border on hover ────────── */
-body[data-theme-v3="retro-os"] .v3-row {
-  border-radius: 4px;
-}
+/* ── Rows — hot border on hover ──────────────────────────── */
 body[data-theme-v3="retro-os"] .v3-row:hover {
   border-color: var(--v3-accent);
   background: var(--v3-accent-tint);
@@ -129,60 +110,35 @@ body[data-theme-v3="retro-os"] .v3-row:hover {
 
 /* ── Sidebar ─────────────────────────────────────────────── */
 body[data-theme-v3="retro-os"] .v3-sidebar {
-  border-right: 1px solid var(--v3-border);
   background: var(--v3-surface);
 }
 
-body[data-theme-v3="retro-os"] .v3-side-link {
-  border-radius: 2px;
-  position: relative;
-}
 body[data-theme-v3="retro-os"] .v3-side-link:hover {
   background: var(--v3-hover);
 }
 
-/* SIGNATURE MOTIF: dotted tab indicator on active sidebar link.
-   Inset cobalt 2px bar + a dotted right-edge tick — feels like
-   the "selected" state of a 90s control panel tab. */
+/* SIGNATURE MOTIF: cobalt active sidebar link with hot tint. */
 body[data-theme-v3="retro-os"] .v3-side-link.active {
   background: var(--v3-accent-tint);
   color: var(--v3-accent);
-  box-shadow: inset 2px 0 0 var(--v3-accent);
-  border-right: 1px dotted var(--v3-accent);
 }
 body[data-theme-v3="retro-os"] .v3-side-link.active svg {
   color: var(--v3-accent);
 }
 
-/* ── Buttons — solid fills, no gradients, inset on :active ── */
-body[data-theme-v3="retro-os"] .v3-btn-primary,
-body[data-theme-v3="retro-os"] .v3-btn-ghost {
-  border-radius: 3px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  transition: none;                    /* retro: snappy, no ease */
-}
-
+/* ── Buttons — solid fills, no gradients ─────────────────── */
 body[data-theme-v3="retro-os"] .v3-btn-primary {
   background: var(--v3-accent);
-  border: 1px solid var(--v3-accent-hover);
   color: #FFFFFF;
   /* 1px hairline drop shadow — pixel push */
   box-shadow: 1px 1px 0 0 rgba(20, 24, 31, 0.18);
 }
 body[data-theme-v3="retro-os"] .v3-btn-primary:hover {
   background: var(--v3-accent-hover);
-  border-color: var(--v3-accent-hover);
-}
-body[data-theme-v3="retro-os"] .v3-btn-primary:active {
-  /* INSET PUSHED LOOK — the spec'd 1px inset on :active */
-  transform: translate(1px, 1px);
-  box-shadow: inset 1px 1px 0 0 rgba(0, 0, 0, 0.25);
 }
 
 body[data-theme-v3="retro-os"] .v3-btn-ghost {
   background: var(--v3-surface);
-  border: 1px solid var(--v3-border-strong);
   color: var(--v3-text);
   box-shadow: 1px 1px 0 0 rgba(20, 24, 31, 0.08);
 }
@@ -190,25 +146,16 @@ body[data-theme-v3="retro-os"] .v3-btn-ghost:hover {
   background: var(--v3-hover);
   border-color: var(--v3-text);
 }
-body[data-theme-v3="retro-os"] .v3-btn-ghost:active {
-  transform: translate(1px, 1px);
-  box-shadow: inset 1px 1px 0 0 rgba(0, 0, 0, 0.12);
-}
 
 body[data-theme-v3="retro-os"] .v3-btn-primary[disabled] {
   background: var(--v3-border);
-  border-color: var(--v3-border-strong);
   color: var(--v3-text-3);
   box-shadow: none;
 }
 
-/* ── Chips — square retro tabs ───────────────────────────── */
-body[data-theme-v3="retro-os"] .v3-chip {
-  border-radius: 2px;
-}
+/* ── Chips — accent-fill on active ───────────────────────── */
 body[data-theme-v3="retro-os"] .v3-chip.active {
   background: var(--v3-accent);
-  border-color: var(--v3-accent-hover);
   color: #FFFFFF;
 }
 
@@ -222,7 +169,6 @@ body[data-theme-v3="retro-os"] .v3-companion-stage {
   );
 }
 body[data-theme-v3="retro-os"] .v3-companion-head {
-  padding: 2px 2px 8px;
   border-bottom: 1px solid var(--v3-accent-tint);
 }
 
@@ -231,9 +177,8 @@ body[data-theme-v3="retro-os"] .v3-companion-head {
    most-actionable card on the screen, so it earns the red. */
 body[data-theme-v3="retro-os"] .v3-audit-foot {
   background: var(--v3-crit-tint);
-  border: 1px solid var(--v3-crit);
+  border-color: var(--v3-crit);
   color: #6F1A0E;                      /* deep tomato — 7.4:1 on #FBE2DD, AA+ */
-  border-radius: 4px;
   box-shadow: 1px 1px 0 0 rgba(216, 51, 30, 0.25);
 }
 body[data-theme-v3="retro-os"] .v3-audit-foot .v3-chev {
@@ -260,19 +205,15 @@ body[data-theme-v3="retro-os"] .v3-finding-ok {
 
 /* ── Statusbar — bitmap label, hairline TOP rule ─────────── */
 /* VT323 already imported globally. Status bar reads as a CRT
-   readout strip docked to the bottom. */
+   readout strip docked to the bottom — font only, sizing comes
+   from the V3 base. */
 body[data-theme-v3="retro-os"] .v3-statusbar {
-  border-top: 1px solid var(--v3-border);
   background: var(--v3-surface);
   font-family: 'VT323', ui-monospace, 'Cascadia Mono', Menlo, monospace;
-  font-size: 14px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--v3-text-2);
 }
 body[data-theme-v3="retro-os"] .v3-statusbar-version {
   color: var(--v3-accent);
-  font-weight: 500;
 }
 body[data-theme-v3="retro-os"] .v3-statusbar-state {
   color: var(--v3-text-3);
@@ -286,28 +227,17 @@ body[data-theme-v3="retro-os"] .v3-statusbar-sep {
    in the "retro display" identity. Body copy stays clean sans. */
 body[data-theme-v3="retro-os"] .v3-sidebar-logo-line1 {
   font-family: 'VT323', ui-monospace, 'Cascadia Mono', Menlo, monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-size: 1.05em;
 }
 body[data-theme-v3="retro-os"] .v3-sidebar-logo-line2 {
   font-family: 'VT323', ui-monospace, 'Cascadia Mono', Menlo, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 body[data-theme-v3="retro-os"] .v3-brand-name {
   font-family: 'VT323', ui-monospace, 'Cascadia Mono', Menlo, monospace;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-size: 1.1em;
 }
 
-/* ── Card titles — bitmap display, slight uppercase ─────── */
+/* ── Card titles — bitmap display ─────────────────────────── */
 body[data-theme-v3="retro-os"] .v3-card-title {
   font-family: 'VT323', ui-monospace, 'Cascadia Mono', Menlo, monospace;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  font-size: 1.15em;
   color: var(--v3-text);
 }
 
@@ -342,25 +272,22 @@ body[data-theme-v3="retro-os"] .v3-row-pr .v3-row-icon {
 /* ── Banners ─────────────────────────────────────────────── */
 body[data-theme-v3="retro-os"] .v3-error {
   background: var(--v3-crit-tint);
-  border: 1px solid var(--v3-crit);
+  border-color: var(--v3-crit);
   color: #6F1A0E;
-  border-radius: 4px;
 }
 body[data-theme-v3="retro-os"] .v3-success {
   background: var(--v3-success-tint);
-  border: 1px solid var(--v3-success);
+  border-color: var(--v3-success);
   color: #0E4A28;
-  border-radius: 4px;
 }
 
-/* ── Focus visible — square cobalt outline ──────────────── */
+/* ── Focus visible — cobalt outline ─────────────────────── */
 body[data-theme-v3="retro-os"] .appv3 button:focus-visible,
 body[data-theme-v3="retro-os"] .appv3 a:focus-visible,
 body[data-theme-v3="retro-os"] .appv3 input:focus-visible,
 body[data-theme-v3="retro-os"] .appv3 select:focus-visible {
   outline: 2px solid var(--v3-accent);
   outline-offset: 1px;
-  border-radius: 2px;
 }
 
 /* ── Pill source overrides keep semantic mapping ─────────── */
@@ -373,23 +300,14 @@ body[data-theme-v3="retro-os"] .v3-pill-source-plugin {
   color: var(--v3-success);
 }
 
-/* ── Switch — square track ──────────────────────────────── */
-body[data-theme-v3="retro-os"] .v3-switch-slider {
-  border-radius: 3px;
-  border: 1px solid var(--v3-border-strong);
-}
-body[data-theme-v3="retro-os"] .v3-switch-slider::before {
-  border-radius: 2px;
-}
+/* ── Switch — accent fill on checked ────────────────────── */
 body[data-theme-v3="retro-os"] .v3-switch input:checked ~ .v3-switch-slider {
   background: var(--v3-accent);
-  border-color: var(--v3-accent-hover);
 }
 
-/* ── Scrollbar — chunky, square, OS-style ───────────────── */
+/* ── Scrollbar — chunky OS-style ────────────────────────── */
 body[data-theme-v3="retro-os"] .appv3 ::-webkit-scrollbar-thumb {
   background: var(--v3-border-strong);
-  border-radius: 0;
   border: 2px solid transparent;
   background-clip: content-box;
 }
@@ -398,10 +316,7 @@ body[data-theme-v3="retro-os"] .appv3 ::-webkit-scrollbar-thumb:hover {
   background-clip: content-box;
 }
 
-/* ── Window controls (frameless titlebar) ───────────────── */
-body[data-theme-v3="retro-os"] .v3-wc {
-  border-radius: 0;
-}
+/* ── Window controls ─────────────────────────────────────── */
 body[data-theme-v3="retro-os"] .v3-wc:hover {
   background: var(--v3-hover);
 }

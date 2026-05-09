@@ -154,9 +154,8 @@ body.v3-layout:not([data-theme-v3]) .appv3 .v3-companion-stage {
    ─────────────────────────────────────────────────────────── */
 body[data-theme-v3="light"] .appv3 .v3-companion-head,
 body.v3-layout:not([data-theme-v3]) .appv3 .v3-companion-head {
-  padding: 2px 2px 8px;
   /* Hairline accent tint under the header — acts as a visual
-     separator without a visible border */
+     separator without a visible border. Padding inherits from base. */
   border-bottom: 1px solid var(--v3-accent-tint);
 }
 

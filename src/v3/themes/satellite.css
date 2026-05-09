@@ -215,13 +215,11 @@ body[data-theme-v3="satellite"] .v3-chip.active {
 
 /* ── Statusbar: ground-station black-box readout ─────────────── */
 /* Solid black strip with a thin cyan top hairline — feels like the
-   bottom of a piece of rack-mounted gear. */
+   bottom of a piece of rack-mounted gear. Sizing inherits from base. */
 body[data-theme-v3="satellite"] .v3-statusbar {
   background: #03070D;
   border-top: 1px solid rgba(45, 212, 212, 0.18);
   color: var(--v3-text-3);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.05em;
 }
 
 /* ── Scrollbar: thin cyan rail, no fade — instrument-style ───── */

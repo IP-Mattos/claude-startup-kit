@@ -4,6 +4,10 @@
    that glow phosphor-green for every numeric readout. Body in
    Inter on purple; numerics in VT323 on black, like a vintage
    pixel-LCD health-tracker bezel.
+
+   Palette + font + decoration package only — all geometry
+   (radius, padding, font-size on structural elements) lives in
+   the V3 base.
    ============================================================= */
 
 body.v3-layout[data-theme-v3="pixel-crt"] {
@@ -20,7 +24,6 @@ body[data-theme-v3="pixel-crt"] .appv3 {
   --v3-border-strong: #0D0840;
 
   /* ── Type ─────────────────────────────────────────────────── */
-  /* #FFFFFF on #3F2EBC ≈ 9.1:1 — AAA */
   --v3-text:   #F4F1FF;
   --v3-text-2: #D9D2FF;
   --v3-text-3: #B5ABF2;                /* ≈ 5.0:1 on surface */
@@ -60,14 +63,12 @@ body[data-theme-v3="pixel-crt"] .appv3-content {
     var(--v3-bg);
 }
 
-/* ── Cards: chunky navy bezel, hard radii ─────────────────── */
+/* ── Cards: chunky navy bezel via shadow (color-bound) ────── */
 body[data-theme-v3="pixel-crt"] .appv3 .v3-stat-card,
 body[data-theme-v3="pixel-crt"] .appv3 .v3-card,
 body[data-theme-v3="pixel-crt"] .appv3 .v3-row,
 body[data-theme-v3="pixel-crt"] .appv3 .v3-companion-widget,
 body[data-theme-v3="pixel-crt"] .appv3 .v3-audit-tile {
-  border-radius: 6px;
-  border: 1px solid var(--v3-border-strong);
   box-shadow:
     inset 0 0 0 4px var(--v3-border),
     var(--v3-shadow-2);
@@ -77,15 +78,14 @@ body[data-theme-v3="pixel-crt"] .appv3 .v3-audit-tile {
 body[data-theme-v3="pixel-crt"] .v3-topbar,
 body[data-theme-v3="pixel-crt"] .v3-sidebar,
 body[data-theme-v3="pixel-crt"] .v3-rightpanel {
-  border-color: var(--v3-border-strong);
   background: var(--v3-surface);
   box-shadow: inset 0 0 0 1px rgba(13, 8, 64, 0.40);
 }
 
 /* ── BLACK INSET LCD: numeric readouts ────────────────────── */
 /* The signature move: any numeric tile gets a black sub-surface
-   with phosphor-green VT323 type. Hard inset border, scanline-free
-   so it stays legible. */
+   with phosphor-green VT323 type. Decoration only — colors and
+   font, not geometry. */
 body[data-theme-v3="pixel-crt"] .appv3 .v3-stat-card .v3-stat-num,
 body[data-theme-v3="pixel-crt"] .appv3 .v3-audit-tile-num,
 body[data-theme-v3="pixel-crt"] .appv3 .v3-workspace-row-value,
@@ -95,21 +95,11 @@ body[data-theme-v3="pixel-crt"] .appv3 .v3-statusbar-num {
   font-family: "VT323", "Courier New", ui-monospace, monospace;
   color: #5DE693;
   background: #0A0820;
-  border-radius: 3px;
-  padding: 4px 10px;
-  display: inline-block;
-  letter-spacing: 0.04em;
   text-shadow: 0 0 6px rgba(93, 230, 147, 0.45);
   box-shadow:
     inset 0 0 0 1px #1A1466,
     inset 0 2px 4px rgba(0, 0, 0, 0.65),
     inset 0 0 12px rgba(93, 230, 147, 0.08);
-}
-
-/* Slightly larger LCD for the marquee stat number */
-body[data-theme-v3="pixel-crt"] .appv3 .v3-stat-card .v3-stat-num {
-  font-size: 1.9em;
-  line-height: 1;
 }
 
 /* ── Stat icon tints: muted on the purple bezel ───────────── */
@@ -134,7 +124,6 @@ body[data-theme-v3="pixel-crt"] .v3-stat-icon-green {
 body[data-theme-v3="pixel-crt"] .v3-side-link.active {
   background: #0D0840;
   color: #FFFFFF;
-  border-radius: 4px;
   box-shadow:
     inset 3px 0 0 #5DE693,
     inset 0 0 0 1px #1A1466;
@@ -146,17 +135,10 @@ body[data-theme-v3="pixel-crt"] .v3-side-link:hover {
 /* ── Buttons: blocky pixel chassis ────────────────────────── */
 body[data-theme-v3="pixel-crt"] .appv3 button,
 body[data-theme-v3="pixel-crt"] .appv3 .v3-btn {
-  border-radius: 4px;
-  border: 1px solid var(--v3-border-strong);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 700;
-  font-size: 0.78em;
   box-shadow: 0 2px 0 0 rgba(13, 8, 64, 0.65);
 }
 body[data-theme-v3="pixel-crt"] .appv3 button:active,
 body[data-theme-v3="pixel-crt"] .appv3 .v3-btn:active {
-  transform: translateY(1px);
   box-shadow: 0 1px 0 0 rgba(13, 8, 64, 0.65);
 }
 body[data-theme-v3="pixel-crt"] .appv3 .v3-btn-primary {
@@ -170,35 +152,26 @@ body[data-theme-v3="pixel-crt"] .appv3 .v3-btn-primary:hover {
 }
 
 /* ── Tab strip: 2-tone arrows on hover ────────────────────── */
-body[data-theme-v3="pixel-crt"] .v3-tab,
-body[data-theme-v3="pixel-crt"] .v3-tabstrip-item {
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
 body[data-theme-v3="pixel-crt"] .v3-tab.active::before,
 body[data-theme-v3="pixel-crt"] .v3-tabstrip-item.active::before {
   content: "\25C0";
   margin-right: 6px;
   color: #5DE693;
-  font-size: 0.7em;
 }
 body[data-theme-v3="pixel-crt"] .v3-tab.active::after,
 body[data-theme-v3="pixel-crt"] .v3-tabstrip-item.active::after {
   content: "\25B6";
   margin-left: 6px;
   color: #5DE693;
-  font-size: 0.7em;
 }
 
-/* ── Companion stage: navy double-line bezel ──────────────── */
+/* ── Companion stage: navy double-line bezel via shadow ─── */
 body[data-theme-v3="pixel-crt"] .v3-companion-stage {
   background:
     radial-gradient(ellipse 90% 70% at 50% 100%,
       rgba(93, 230, 147, 0.10) 0%,
       transparent 70%),
     #2A1F8A;
-  border-radius: 6px;
   box-shadow:
     inset 0 0 0 1px #0D0840,
     inset 0 0 0 3px #3F2EBC,
@@ -271,12 +244,6 @@ body[data-theme-v3="pixel-crt"] .v3-success {
 }
 
 /* ── Chip.active ──────────────────────────────────────────── */
-body[data-theme-v3="pixel-crt"] .v3-chip {
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.78em;
-}
 body[data-theme-v3="pixel-crt"] .v3-chip.active {
   background: #5DE693;
   border-color: #2FA565;
@@ -286,7 +253,6 @@ body[data-theme-v3="pixel-crt"] .v3-chip.active {
 /* ── Statusbar: BPM-style green numerics ──────────────────── */
 body[data-theme-v3="pixel-crt"] .v3-statusbar {
   background: var(--v3-surface);
-  border-top: 1px solid var(--v3-border-strong);
   box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -305,7 +271,6 @@ body[data-theme-v3="pixel-crt"] .appv3 ::-webkit-scrollbar-thumb {
   background: #1A1466;
   border: 2px solid transparent;
   background-clip: content-box;
-  border-radius: 4px;
 }
 body[data-theme-v3="pixel-crt"] .appv3 ::-webkit-scrollbar-thumb:hover {
   background: #0D0840;

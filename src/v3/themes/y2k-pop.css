@@ -3,11 +3,14 @@
    Identity: vaporwave OS chrome — magenta + electric cyan + violet,
    pixel window frames over a soft pink-violet dithered desktop.
    Reference moods: Mac OS 9 in lipstick, Bliss Type 2000, GeoCities.
+
+   Palette + font + decoration package only. All geometry
+   (radius, padding, font-size on structural elements) lives
+   in the V3 base.
    ============================================================= */
 
 /* ── Body background ──────────────────────────────────────────
    Diagonal pink-to-violet wash + a 5% dither checker SVG overlay.
-   Reads as a friendly retro-OS desktop, not a flat wash.
    ─────────────────────────────────────────────────────────── */
 body.v3-layout[data-theme-v3="y2k-pop"] {
   background:
@@ -26,15 +29,12 @@ body[data-theme-v3="y2k-pop"] .appv3 {
   --v3-border-strong:#FF5FB0;            /* electric magenta — chunky frame */
 
   /* ── Type — AA on cream surfaces ─────────────────────────── */
-  /* #2A1233 on #FBF6FE ≈ 14:1 — heavy ink on pastel paper */
   --v3-text:   #2A1233;                  /* deep violet ink */
   --v3-text-2: #4B2461;                  /* secondary violet */
   --v3-text-3: #6B3A86;                  /* ~5.4:1 on cream — AA */
   --v3-text-4: #A07AB6;                  /* decorative / placeholders */
 
   /* ── Accent: electric magenta ────────────────────────────── */
-  /* #C4257E on #FBF6FE ≈ 5.0:1 — passes AA for non-large text.
-     The brighter #FF5FB0 is reserved for fills, frames, icons. */
   --v3-accent:        #FF5FB0;
   --v3-accent-hover:  #E63F94;
   --v3-accent-tint:   #FFE2F1;
@@ -45,30 +45,25 @@ body[data-theme-v3="y2k-pop"] .appv3 {
   --v3-success-tint:  #CFF5EB;
   --v3-warn:          #F2A40C;           /* warm amber — readable on cream */
   --v3-warn-tint:     #FFEBC2;
-  /* Electric cyan — both info AND secondary accent.
-     Slightly deeper than --v3-info-tint hue for a hair of separation. */
+  /* Electric cyan — both info AND secondary accent. */
   --v3-info:          #22D3EE;
   --v3-info-tint:     #C9F4FB;
   --v3-crit:          #E5184F;
   --v3-crit-tint:     #FFD6E0;
 
   /* ── Shadows: pixel-style, no blur ───────────────────────── */
-  /* 1px hard-offset magenta drop — the "window stuck on a desktop" feel */
   --v3-shadow-1: 1px 1px 0 0 rgba(75, 36, 97, 0.18);
   --v3-shadow-2: 2px 2px 0 0 rgba(75, 36, 97, 0.22), 0 0 0 1px rgba(255, 95, 176, 0.20);
   --v3-shadow-3: 3px 3px 0 0 rgba(75, 36, 97, 0.28), 0 0 0 1px rgba(255, 95, 176, 0.30);
 }
 
-/* ── Content area: dithered desktop ──────────────────────────
-   Same checker as body, slightly stronger inside the viewport.
-   Sells the OS-window-on-desktop metaphor.
-   ─────────────────────────────────────────────────────────── */
+/* ── Content area: dithered desktop ─────────────────────────── */
 body[data-theme-v3="y2k-pop"] .appv3 .appv3-content {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='2' height='2' fill='%23FF5FB0' fill-opacity='0.06'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%2322D3EE' fill-opacity='0.06'/%3E%3C/svg%3E");
   background-repeat: repeat;
 }
 
-/* ── Typography: Bitter heads, Inter body, VT323 chrome ─────── */
+/* ── Typography: Bitter heads, Inter body ───────────────────── */
 body[data-theme-v3="y2k-pop"] .appv3 {
   font-family: "Inter", "Segoe UI", system-ui, sans-serif;
 }
@@ -78,76 +73,24 @@ body[data-theme-v3="y2k-pop"] .appv3 h3,
 body[data-theme-v3="y2k-pop"] .appv3 .v3-card-title,
 body[data-theme-v3="y2k-pop"] .appv3 .v3-section-title {
   font-family: "Bitter", "Iowan Old Style", Georgia, serif;
-  letter-spacing: -0.005em;
 }
 
-/* ── Cards: pixel windows with magenta title-bar strip ───────
-   Each .v3-card gets a 22px title bar via ::before, with three
-   decorative pixel squares (close/min/max) in the upper right.
-   Pure CSS — no JS, no interactivity.
-   ─────────────────────────────────────────────────────────── */
+/* ── Cards: magenta frame + pixel windowed shadow ─────────── */
 body[data-theme-v3="y2k-pop"] .appv3 .v3-card {
-  position: relative;
   background: var(--v3-surface);
-  border: 1px solid var(--v3-border-strong);
-  border-radius: 6px;
-  padding-top: 30px;                     /* space below the title bar */
+  border-color: var(--v3-border-strong);
   box-shadow:
     2px 2px 0 0 rgba(75, 36, 97, 0.22),
     0 0 0 1px rgba(255, 95, 176, 0.25);
-  overflow: hidden;
 }
 
-body[data-theme-v3="y2k-pop"] .appv3 .v3-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 22px;
-  background:
-    /* the three pixel chrome squares — purple, cyan, magenta */
-    linear-gradient(90deg, transparent calc(100% - 56px),
-      #2A1233 calc(100% - 56px), #2A1233 calc(100% - 48px),
-      transparent calc(100% - 48px), transparent calc(100% - 40px),
-      #22D3EE calc(100% - 40px), #22D3EE calc(100% - 32px),
-      transparent calc(100% - 32px), transparent calc(100% - 24px),
-      #FFE2F1 calc(100% - 24px), #FFE2F1 calc(100% - 16px),
-      transparent calc(100% - 16px)),
-    linear-gradient(180deg, #FF5FB0 0%, #E63F94 100%);
-  border-bottom: 1px solid #B12D77;
-  background-size: 100% 100%, 100% 100%;
-  background-repeat: no-repeat;
-  pointer-events: none;
-}
-
-/* Tiny pixel "title" text on the bar — VT323 glyphs */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-card::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 22px;
-  font-family: "VT323", "Press Start 2P", monospace;
-  color: #FFE2F1;
-  font-size: 14px;
-  line-height: 22px;
-  padding-left: 10px;
-  letter-spacing: 0.04em;
-  text-shadow: 1px 1px 0 rgba(75, 36, 97, 0.45);
-  pointer-events: none;
-}
-
-/* ── Stat cards: same window treatment, denser ───────────────── */
+/* ── Stat cards ───────────────────────────────────────────── */
 body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-card {
   background: var(--v3-surface);
-  border: 1px solid var(--v3-border-strong);
-  border-radius: 6px;
+  border-color: var(--v3-border-strong);
   box-shadow: 2px 2px 0 0 rgba(75, 36, 97, 0.22);
 }
 body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-card:hover {
-  transform: translate(-1px, -1px);
   box-shadow:
     3px 3px 0 0 rgba(75, 36, 97, 0.28),
     0 0 0 2px var(--v3-accent-soft);
@@ -156,8 +99,6 @@ body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-card:hover {
 /* ── Rows: hairline magenta + cyan hover edge ────────────────── */
 body[data-theme-v3="y2k-pop"] .appv3 .v3-row {
   background: var(--v3-surface);
-  border: 1px solid var(--v3-border);
-  border-radius: 4px;
 }
 body[data-theme-v3="y2k-pop"] .appv3 .v3-row:hover {
   background: var(--v3-hover);
@@ -167,32 +108,14 @@ body[data-theme-v3="y2k-pop"] .appv3 .v3-row:hover {
     0 0 0 1px var(--v3-accent);
 }
 
-/* ── Sidebar active link: cyan bg + magenta pixel arrow ──────── */
+/* ── Sidebar active link: cyan tint + magenta cue ────────────── */
 body[data-theme-v3="y2k-pop"] .appv3 .v3-side-link {
   position: relative;
-  border-radius: 3px;
 }
 body[data-theme-v3="y2k-pop"] .appv3 .v3-side-link.active {
   background: var(--v3-info-tint);
   color: #0E5C6B;                        /* deep cyan ink — AA on cyan tint */
-  font-weight: 600;
-  box-shadow:
-    inset 2px 0 0 var(--v3-accent),
-    1px 1px 0 0 rgba(75, 36, 97, 0.18);
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-side-link.active::before {
-  content: "";
-  position: absolute;
-  left: 6px;
-  top: 50%;
-  width: 0;
-  height: 0;
-  margin-top: -4px;
-  /* solid pixel arrow — three stacked squares look */
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-left: 5px solid var(--v3-accent);
-  filter: drop-shadow(1px 0 0 #2A1233);
+  box-shadow: 1px 1px 0 0 rgba(75, 36, 97, 0.18);
 }
 
 /* ── Topbar: cream with magenta hairline + cyan inset ────────── */
@@ -202,24 +125,19 @@ body[data-theme-v3="y2k-pop"] .appv3 .v3-topbar {
   box-shadow: inset 0 -2px 0 0 var(--v3-info);
 }
 
-/* ── Statusbar: dithered pink + cyan corner readouts ─────────── */
+/* ── Statusbar: dithered pink ────────────────────────────────── */
 body[data-theme-v3="y2k-pop"] .appv3 .v3-statusbar {
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='2' height='2' fill='%23FF5FB0' fill-opacity='0.18'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%23FF5FB0' fill-opacity='0.18'/%3E%3C/svg%3E"),
     var(--v3-accent-tint);
   border-top: 1px solid var(--v3-accent);
   font-family: "VT323", "Press Start 2P", monospace;
-  font-size: 14px;
-  letter-spacing: 0.03em;
   color: var(--v3-text-2);
 }
 body[data-theme-v3="y2k-pop"] .appv3 .v3-statusbar > :first-child,
 body[data-theme-v3="y2k-pop"] .appv3 .v3-statusbar > :last-child {
   color: #0E5C6B;                        /* cyan ink on pink dither */
   background: var(--v3-info-tint);
-  padding: 2px 8px;
-  border: 1px solid var(--v3-info);
-  border-radius: 2px;
 }
 
 /* ── Companion stage: pink-cyan vapor glow ───────────────────── */
@@ -304,12 +222,9 @@ body[data-theme-v3="y2k-pop"] .appv3 .v3-success {
 
 /* ── Chips ──────────────────────────────────────────────────── */
 body[data-theme-v3="y2k-pop"] .appv3 .v3-chip {
-  border: 1px solid var(--v3-border-strong);
-  border-radius: 3px;
+  border-color: var(--v3-border-strong);
   background: var(--v3-surface);
   font-family: "VT323", monospace;
-  font-size: 14px;
-  letter-spacing: 0.03em;
 }
 body[data-theme-v3="y2k-pop"] .appv3 .v3-chip.active {
   background: var(--v3-accent);
@@ -321,18 +236,15 @@ body[data-theme-v3="y2k-pop"] .appv3 .v3-chip.active {
 /* ── Buttons: pixel windows in miniature ─────────────────────── */
 body[data-theme-v3="y2k-pop"] .appv3 button,
 body[data-theme-v3="y2k-pop"] .appv3 .v3-btn {
-  border: 1px solid var(--v3-border-strong);
-  border-radius: 4px;
+  border-color: var(--v3-border-strong);
   box-shadow: 1px 1px 0 0 rgba(75, 36, 97, 0.22);
 }
 body[data-theme-v3="y2k-pop"] .appv3 button:hover,
 body[data-theme-v3="y2k-pop"] .appv3 .v3-btn:hover {
-  transform: translate(-1px, -1px);
   box-shadow: 2px 2px 0 0 rgba(75, 36, 97, 0.28);
 }
 body[data-theme-v3="y2k-pop"] .appv3 button:active,
 body[data-theme-v3="y2k-pop"] .appv3 .v3-btn:active {
-  transform: translate(1px, 1px);
   box-shadow: none;
 }
 
@@ -358,7 +270,6 @@ body[data-theme-v3="y2k-pop"] .appv3 ::-webkit-scrollbar-track {
 body[data-theme-v3="y2k-pop"] .appv3 ::-webkit-scrollbar-thumb {
   background: var(--v3-accent);
   border: 2px solid var(--v3-accent-tint);
-  border-radius: 0;
   background-clip: content-box;
 }
 body[data-theme-v3="y2k-pop"] .appv3 ::-webkit-scrollbar-thumb:hover {

@@ -5,6 +5,11 @@
    IS its rigidness. Contrast is modernized (black on #D4D0C8 ≈ 14:1)
    even though the palette stays period-correct.
    Reference moods: Windows 95 Explorer, Program Manager, Notepad.
+
+   Palette + font + decoration package only. Geometry (radius,
+   padding, font-size on structural elements) lives in the V3
+   base — Chrome95 is now expressed entirely through the bevel
+   box-shadow system, gray surfaces, navy accent and Tahoma.
    ============================================================= */
 
 /* ── Body background ──────────────────────────────────────────
@@ -54,8 +59,7 @@ body[data-theme-v3="chrome95"] .appv3 {
   /* ── BEVEL layers (NOT soft shadows) ──────────────────────────
      The whole 3D vocabulary lives in these three tokens.
      shadow-1: standard raised face (button at rest, panel).
-     shadow-2: deeper raise (focused/hover button — same face,
-               slightly thicker outer ring).
+     shadow-2: deeper raise (focused/hover button).
      shadow-3: sunken / inset (input fields, status well).
      Layer order: white top-left → light gray → dark gray →
      near-black outer.
@@ -77,20 +81,11 @@ body[data-theme-v3="chrome95"] .appv3 {
     inset -2px -2px 0 0 #DFDFDF;
 }
 
-/* ── Kill all roundness — Win95 had ZERO border radius ──────── */
-body[data-theme-v3="chrome95"] .appv3,
-body[data-theme-v3="chrome95"] .appv3 *,
-body[data-theme-v3="chrome95"] .appv3 *::before,
-body[data-theme-v3="chrome95"] .appv3 *::after {
-  border-radius: 0 !important;
-}
-
 /* ── Body / app background ─────────────────────────────────── */
 body[data-theme-v3="chrome95"] .appv3 {
   background: var(--v3-bg);
   color: var(--v3-text);
   font-family: "Tahoma", "MS Sans Serif", "Microsoft Sans Serif", system-ui, sans-serif;
-  /* Faint 1px noise = nothing. Win95 was flat gray. Period. */
 }
 
 /* ── Surfaces: cards / panels get the raised bevel ─────────── */
@@ -115,11 +110,8 @@ body[data-theme-v3="chrome95"] .appv3 button,
 body[data-theme-v3="chrome95"] .appv3 .v3-btn {
   background: var(--v3-surface);
   color: var(--v3-text);
-  border: 1px solid var(--v3-border-strong);
   box-shadow: var(--v3-shadow-1);
   font-family: inherit;
-  font-size: 11px;
-  padding: 4px 12px;
 }
 body[data-theme-v3="chrome95"] .appv3 button:hover,
 body[data-theme-v3="chrome95"] .appv3 .v3-btn:hover {
@@ -131,8 +123,6 @@ body[data-theme-v3="chrome95"] .appv3 button:active,
 body[data-theme-v3="chrome95"] .appv3 .v3-btn:active {
   background: var(--v3-surface-2);
   box-shadow: var(--v3-shadow-3);
-  /* nudge label 1px down-right to sell the press */
-  padding: 5px 11px 3px 13px;
 }
 
 /* Primary button: still bevelled, but face goes navy w/ white text */
@@ -140,7 +130,6 @@ body[data-theme-v3="chrome95"] .appv3 .v3-btn-primary,
 body[data-theme-v3="chrome95"] .appv3 button.primary {
   background: var(--v3-accent);
   color: #FFFFFF;
-  font-weight: 700;
 }
 body[data-theme-v3="chrome95"] .appv3 .v3-btn-primary:hover,
 body[data-theme-v3="chrome95"] .appv3 button.primary:hover {
@@ -156,15 +145,13 @@ body[data-theme-v3="chrome95"] .appv3 select {
   border: 0;
   box-shadow: var(--v3-shadow-3);
   font-family: inherit;
-  font-size: 12px;
-  padding: 3px 6px;
 }
 body[data-theme-v3="chrome95"] .appv3 input::placeholder,
 body[data-theme-v3="chrome95"] .appv3 textarea::placeholder {
   color: var(--v3-text-4);
 }
 
-/* ── Focus: 1px DOTTED black outline, INSET 4px (marching ants) */
+/* ── Focus: dotted black outline (Win95 marching-ants) ──────── */
 body[data-theme-v3="chrome95"] .appv3 :focus,
 body[data-theme-v3="chrome95"] .appv3 :focus-visible {
   outline: 1px dotted #000000;
@@ -175,9 +162,7 @@ body[data-theme-v3="chrome95"] .appv3 :focus-visible {
 /* ── Topbar: flat bar, navy strip on the active tab ────────── */
 body[data-theme-v3="chrome95"] .v3-topbar {
   background: var(--v3-surface);
-  border-bottom: 1px solid var(--v3-border-strong);
   box-shadow: inset 0 -1px 0 0 #FFFFFF, 0 1px 0 0 #404040;
-  font-size: 11px;
 }
 body[data-theme-v3="chrome95"] .v3-topbar .v3-tab.active,
 body[data-theme-v3="chrome95"] .appv3 .v3-tab.active {
@@ -188,12 +173,10 @@ body[data-theme-v3="chrome95"] .appv3 .v3-tab.active {
 /* ── Sidebar: panel face with raised bevel; active link = navy */
 body[data-theme-v3="chrome95"] .appv3 .v3-sidebar {
   background: var(--v3-surface);
-  border-right: 1px solid var(--v3-border-strong);
   box-shadow: inset -1px 0 0 0 #404040, inset 1px 0 0 0 #FFFFFF;
 }
 body[data-theme-v3="chrome95"] .appv3 .v3-side-link {
   color: var(--v3-text);
-  border-radius: 0 !important;
 }
 body[data-theme-v3="chrome95"] .appv3 .v3-side-link:hover {
   background: var(--v3-hover);
@@ -210,40 +193,25 @@ body[data-theme-v3="chrome95"] .appv3 .v3-side-link.active:focus-visible {
   outline-offset: -4px;
 }
 
-/* ── Statusbar: classic gray with sunken 1-line strip ──────── */
+/* ── Statusbar: classic gray with sunken cells ─────────────── */
 body[data-theme-v3="chrome95"] .appv3 .v3-statusbar,
 body[data-theme-v3="chrome95"] .appv3 .v3-status,
 body[data-theme-v3="chrome95"] .appv3 .v3-footer {
   background: var(--v3-surface);
   color: var(--v3-text-3);
-  border-top: 1px solid #FFFFFF;
   box-shadow: inset 0 1px 0 0 #FFFFFF, 0 -1px 0 0 #404040;
   font-family: "Tahoma", "MS Sans Serif", system-ui, sans-serif;
-  font-size: 11px;
-  padding: 2px 8px;
 }
-/* The "file size" wells in the statusbar corners — sunken */
-body[data-theme-v3="chrome95"] .appv3 .v3-status-cell,
-body[data-theme-v3="chrome95"] .appv3 .v3-statusbar > * {
+body[data-theme-v3="chrome95"] .appv3 .v3-status-cell {
   box-shadow: var(--v3-shadow-3);
-  padding: 1px 6px;
-  font-size: 11px;
 }
 
 /* ── Window controls (min/max/close): tiny pixel-feel ──────── */
 body[data-theme-v3="chrome95"] .appv3 .v3-wctrl,
 body[data-theme-v3="chrome95"] .appv3 .v3-window-control {
-  width: 16px;
-  height: 14px;
   background: var(--v3-surface);
   box-shadow: var(--v3-shadow-1);
-  font-size: 9px;
-  line-height: 1;
   font-family: "Marlett", "Tahoma", system-ui, sans-serif;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
 }
 body[data-theme-v3="chrome95"] .appv3 .v3-wctrl:active,
 body[data-theme-v3="chrome95"] .appv3 .v3-window-control:active {
@@ -258,10 +226,6 @@ body[data-theme-v3="chrome95"] .appv3 .v3-companion-stage {
 body[data-theme-v3="chrome95"] .appv3 .v3-companion-head {
   background: var(--v3-accent);
   color: #FFFFFF;
-  padding: 2px 6px;
-  font-weight: 700;
-  font-size: 11px;
-  border-bottom: 0;
 }
 
 /* ── Stat icon tints — desaturated, period-appropriate ─────── */
@@ -339,8 +303,6 @@ body[data-theme-v3="chrome95"] .appv3 .v3-pr-pill-review {
   background: var(--v3-accent-tint);
   color: var(--v3-accent);
   box-shadow: var(--v3-shadow-1);
-  font-weight: 700;
-  padding: 1px 6px;
 }
 body[data-theme-v3="chrome95"] .appv3 .v3-row-pr .v3-row-icon {
   background: var(--v3-accent-tint);
@@ -354,8 +316,6 @@ body[data-theme-v3="chrome95"] .appv3 .v3-chip {
   color: var(--v3-text);
   border: 0;
   box-shadow: var(--v3-shadow-1);
-  padding: 2px 10px;
-  font-size: 11px;
 }
 body[data-theme-v3="chrome95"] .appv3 .v3-chip.active {
   background: var(--v3-accent);

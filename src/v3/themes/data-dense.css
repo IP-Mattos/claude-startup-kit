@@ -8,8 +8,8 @@
    Reference moods: k9s, Bloomberg terminal, Datadog dark, htop.
    Font cue: IBM Plex Mono on telemetry, IBM Plex Sans on prose.
 
-   Ported from `mockups/04-data-dense.html` — the layout is V3
-   stock; this theme imports that mockup's identity.
+   Palette + font + decoration package only — geometry (radius,
+   padding, font-size on structural elements) lives in the V3 base.
    ============================================================= */
 
 /* ── IBM Plex (Mono + Sans) — sole external dep, ~80 KB ───── */
@@ -23,8 +23,7 @@ body.v3-layout[data-theme-v3="data-dense"] {
 body[data-theme-v3="data-dense"] .appv3 {
   /* ── Surface ──────────────────────────────────────────────
      Five-step luminance ladder inside ~12 L* — calm under heavy
-     visual load. Hairlines (#252A34) read as separators, not
-     edges; nothing announces itself. */
+     visual load. */
   --v3-bg:            #0E1014;
   --v3-surface:       #13161C;        /* card base */
   --v3-surface-2:     #181C24;        /* nested */
@@ -32,26 +31,19 @@ body[data-theme-v3="data-dense"] .appv3 {
   --v3-border:        #1D212A;        /* hairline */
   --v3-border-strong: #252A34;        /* card frame */
 
-  /* ── Type ─────────────────────────────────────────────────
-     #DFE3EA on #13161C ≈ 11.7:1 — comfortable for long sessions
-     of glanceable data. text-3 (8A93A3) is for labels, never
-     content. Avoid pure white so the canvas stays calm. */
+  /* ── Type ───────────────────────────────────────────────── */
   --v3-text:   #DFE3EA;
   --v3-text-2: #B6BCC7;
   --v3-text-3: #8A93A3;
   --v3-text-4: #5B6473;
 
-  /* ── Accent: phosphor green — `up` direction in market UIs ─
-     Same role as Bloomberg's green: positive deltas, success
-     states, "everything is fine right now". */
+  /* ── Accent: phosphor green — `up` direction in market UIs ─ */
   --v3-accent:       #5DD39E;
   --v3-accent-hover: #7CDFB1;
   --v3-accent-tint:  rgba(93, 211, 158, 0.10);
   --v3-accent-soft:  rgba(93, 211, 158, 0.16);
 
-  /* ── Semantic: terminal-typical, not panicky ──────────────
-     Red is signal, not alarm. Amber is sand, not fire. Blue
-     is paled like a CRT phosphor.  All clear AA on surface. */
+  /* ── Semantic: terminal-typical, not panicky ───────────── */
   --v3-success:      #5DD39E;
   --v3-success-tint: rgba(93, 211, 158, 0.12);
   --v3-warn:         #FFB454;
@@ -67,18 +59,13 @@ body[data-theme-v3="data-dense"] .appv3 {
   --v3-shadow-3: 0 2px 0 0 rgba(0, 0, 0, 0.70);
 }
 
-/* ── Mono everywhere meta / numeric / temporal ───────────────
-   The theme's typographic spine. Every label, count, version,
-   timestamp, path — all monospaced + tabular nums so columns
-   align and the eye can read down. Prose surfaces stay sans. */
+/* ── IBM Plex Sans on prose, IBM Plex Mono on telemetry ───── */
 body[data-theme-v3="data-dense"] .appv3,
 body[data-theme-v3="data-dense"] .appv3 button,
 body[data-theme-v3="data-dense"] .appv3 input,
 body[data-theme-v3="data-dense"] .appv3 select {
   font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, sans-serif;
-  font-size: 12.5px;
-  line-height: 1.4;
 }
 
 body[data-theme-v3="data-dense"] .appv3 .v3-stat-value,
@@ -97,70 +84,51 @@ body[data-theme-v3="data-dense"] .appv3 [class*="-status"],
 body[data-theme-v3="data-dense"] .appv3 code {
   font-family: "IBM Plex Mono", ui-monospace, "JetBrains Mono",
     "SF Mono", Menlo, Consolas, monospace;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
 }
 
-/* ── Hairline frames everywhere; no glow, no shadows ─────────
-   Row padding (8px), stat-card padding (12px 14px) and 4-6px card
-   radii are now provided by the V3 base. This block keeps
-   data-dense's identity bits: stronger hairline border + no shadow. */
+/* ── Stronger hairline border + no shadow (identity) ─────── */
 body[data-theme-v3="data-dense"] .v3-card,
 body[data-theme-v3="data-dense"] .v3-stat-card,
 body[data-theme-v3="data-dense"] .v3-update-row {
   background: var(--v3-surface);
-  border: 1px solid var(--v3-border-strong);
   box-shadow: none;
-  border-radius: 4px;
 }
 
 body[data-theme-v3="data-dense"] .v3-topbar {
-  border-bottom: 1px solid var(--v3-border-strong);
   box-shadow: none;
 }
 
 body[data-theme-v3="data-dense"] .v3-sidebar {
   background: var(--v3-bg);
-  border-right: 1px solid var(--v3-border-strong);
 }
 
-/* ── Sidebar active link caret, stat-card hairline-hover, row
-   border-radius:0 + bottom border are now in the V3 base. We only
-   override the green caret on row hover (identity touch). ── */
+/* ── Sidebar active link tone ─────────────────────────────── */
 body[data-theme-v3="data-dense"] .v3-side-link.active {
   color: var(--v3-text);
 }
 
+/* ── Row hover gets phosphor caret (signature touch) ───────── */
 body[data-theme-v3="data-dense"] .v3-row:hover {
   background: var(--v3-surface-2);
   box-shadow: inset 2px 0 0 var(--v3-accent);
 }
 
-/* ── Pills: identity tighter than base (2px radius, 10px) and
-   stronger hairline border. Base already handles uppercase +
-   letter-spacing. ── */
+/* ── Pills — stronger hairline + identity background ───────── */
 body[data-theme-v3="data-dense"] .v3-pill,
 body[data-theme-v3="data-dense"] .v3-pill-soft {
   background: var(--v3-surface-2);
-  border: 1px solid var(--v3-border-strong);
-  border-radius: 2px;
-  font-size: 10px;
 }
 
-/* ── Buttons: square, hairline, no gradient. Base handles 4px
-   radius; data-dense adds dark-on-phosphor + tighter weight. ── */
+/* ── Buttons — dark-on-phosphor primary ──────────────────── */
 body[data-theme-v3="data-dense"] .v3-btn-primary,
 body[data-theme-v3="data-dense"] .v3-update-banner-primary,
 body[data-theme-v3="data-dense"] .v3-update-row-action {
   background: var(--v3-accent);
   color: #0A0C10;
-  font-weight: 500;
-  letter-spacing: 0.02em;
 }
 
 body[data-theme-v3="data-dense"] .v3-btn-ghost {
   background: var(--v3-surface-2);
-  border: 1px solid var(--v3-border-strong);
   color: var(--v3-text-2);
 }
 body[data-theme-v3="data-dense"] .v3-btn-ghost:hover {
@@ -168,24 +136,17 @@ body[data-theme-v3="data-dense"] .v3-btn-ghost:hover {
   color: var(--v3-text);
 }
 
-/* ── Inputs: same square hairline aesthetic ──────────────── */
+/* ── Inputs ──────────────────────────────────────────────── */
 body[data-theme-v3="data-dense"] .v3-input,
 body[data-theme-v3="data-dense"] .v3-search input,
 body[data-theme-v3="data-dense"] .v3-select {
   background: var(--v3-surface);
-  border: 1px solid var(--v3-border-strong);
-  border-radius: 3px;
   color: var(--v3-text);
   font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 12px;
 }
 
 /* ── Statusbar: monospaced ticker bar ────────────────────── */
 body[data-theme-v3="data-dense"] .v3-statusbar {
   background: var(--v3-surface);
-  border-top: 1px solid var(--v3-border-strong);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--v3-text-3);
 }

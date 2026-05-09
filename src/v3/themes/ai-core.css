@@ -96,8 +96,6 @@ body[data-theme-v3="ai-core"] .appv3 [class*="-meta"],
 body[data-theme-v3="ai-core"] .appv3 [class*="-time"],
 body[data-theme-v3="ai-core"] .appv3 [class*="-count"] {
   font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
 }
 
 /* ── Topbar: hairline only, no glow ─────────────────────────── */
@@ -252,7 +250,6 @@ body[data-theme-v3="ai-core"] .v3-statusbar {
   border-top: 1px solid var(--v3-border);
   color: var(--v3-text-3);
   font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
-  letter-spacing: 0.04em;
 }
 
 /* ── Section labels: "›" prompt prefix ──────────────────────── */

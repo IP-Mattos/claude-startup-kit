@@ -9,12 +9,12 @@
    --v3-surface is dark (the card = indigo sticker), --v3-text is
    light (text rides on the dark sticker). Cards are darker than
    the page on purpose.
+
+   Palette + font + decoration package only — geometry (radius,
+   padding) lives in the V3 base.
    ============================================================= */
 
-/* ── Body background: lavender paper ──────────────────────────
-   Soft, slightly cool lavender wash. Not pure white — feels
-   like a tinted notebook page underneath the stickers.
-   ─────────────────────────────────────────────────────────── */
+/* ── Body background: lavender paper ────────────────────────── */
 body.v3-layout[data-theme-v3="lilac-stickers"] {
   background: linear-gradient(180deg, #DCD5EE 0%, #D2CAE6 100%);
 }
@@ -64,23 +64,19 @@ body[data-theme-v3="lilac-stickers"] .appv3 {
   --v3-shadow-3: 0 8px 28px rgba(20, 10, 40, 0.28), 0 2px 6px rgba(20, 10, 40, 0.14);
 }
 
-/* ── Sticker rounding: every surface gets a softer radius ───
-   Cards feel like rounded vinyl stickers, not flat panels.
-   ─────────────────────────────────────────────────────────── */
+/* ── Sticker shadow: every card gets the plummy lift ──────── */
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-stat-card,
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-row,
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-card,
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-companion-widget,
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-workspace-card,
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-audit-foot {
-  border-radius: 14px;
   box-shadow: var(--v3-shadow-2);
 }
 
 /* ── Topbar: slightly darker chrome so it reads elevated ──── */
 body[data-theme-v3="lilac-stickers"] .v3-topbar {
   background: #15101F;                 /* darker than sidebar surface */
-  border-bottom: 1px solid var(--v3-border);
   color: var(--v3-text);
 }
 body[data-theme-v3="lilac-stickers"] .v3-topbar-brand,
@@ -94,20 +90,14 @@ body[data-theme-v3="lilac-stickers"] .v3-topbar-tab:hover {
   color: var(--v3-text);
   background: rgba(156, 132, 200, 0.10);
 }
-/* Active topbar tab uses the sticker-tab motif */
 body[data-theme-v3="lilac-stickers"] .v3-topbar-tab.active {
   color: var(--v3-accent);
   background: var(--v3-accent-tint);
-  border-radius: 10px 10px 4px 4px;
 }
 
-/* ── Sidebar: dark sticker with paper-tab active indicator ──
-   The active link gets a "tab" feel — top corners square-ish,
-   bottom corners rounded, like a sticker tongue clipped to the rail.
-   ─────────────────────────────────────────────────────────── */
+/* ── Sidebar: dark sticker ──────────────────────────────── */
 body[data-theme-v3="lilac-stickers"] .v3-sidebar {
   background: var(--v3-surface);
-  border-right: 1px solid var(--v3-border);
 }
 body[data-theme-v3="lilac-stickers"] .v3-sidebar-logo-line1,
 body[data-theme-v3="lilac-stickers"] .v3-sidebar-logo-line2 {
@@ -115,7 +105,6 @@ body[data-theme-v3="lilac-stickers"] .v3-sidebar-logo-line2 {
 }
 body[data-theme-v3="lilac-stickers"] .v3-side-link {
   color: var(--v3-text-2);
-  border-radius: 10px;
 }
 body[data-theme-v3="lilac-stickers"] .v3-side-link:hover {
   background: var(--v3-hover);
@@ -124,38 +113,25 @@ body[data-theme-v3="lilac-stickers"] .v3-side-link:hover {
 body[data-theme-v3="lilac-stickers"] .v3-side-link.active {
   background: var(--v3-accent-tint);
   color: var(--v3-accent);
-  /* Sticker-tab clipping: top is flush, bottom flares out rounded */
-  border-radius: 4px 4px 10px 10px;
-  box-shadow: inset 0 2px 0 var(--v3-accent),
-              0 2px 8px rgba(156, 132, 200, 0.18);
+  box-shadow: 0 2px 8px rgba(156, 132, 200, 0.18);
 }
 body[data-theme-v3="lilac-stickers"] .v3-side-link.active svg {
   color: var(--v3-accent);
 }
 
-/* ── Dashed paper-stitch dividers (the signature motif) ─────
-   Tertiary section dividers and the topbar bottom edge get the
-   1px dashed hairline that gives the layout its zine/scrapbook feel.
-   ─────────────────────────────────────────────────────────── */
+/* ── Dashed paper-stitch dividers (signature decoration) ─── */
 body[data-theme-v3="lilac-stickers"] .appv3 hr,
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-divider,
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-companion-head {
+body[data-theme-v3="lilac-stickers"] .appv3 .v3-divider {
   border-top: 1px dashed var(--v3-border-strong) !important;
   border-bottom: none;
 }
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-companion-head {
-  border-top: none !important;
   border-bottom: 1px dashed var(--v3-border-strong) !important;
-  padding-bottom: 8px;
 }
 
-/* ── Buttons: sticker-pill ────────────────────────────────────
-   Fully rounded pills with a tiny soft shadow so they feel like
-   die-cut vinyl pieces.
-   ─────────────────────────────────────────────────────────── */
+/* ── Buttons: sticker tint, soft drop ─────────────────────── */
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-btn-primary,
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-btn-ghost {
-  border-radius: 999px;
   box-shadow: 0 2px 4px rgba(20, 10, 40, 0.20);
 }
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-btn-primary {
@@ -170,7 +146,6 @@ body[data-theme-v3="lilac-stickers"] .appv3 .v3-btn-primary:hover {
 }
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-btn-ghost {
   color: var(--v3-text);
-  border: 1px solid var(--v3-border-strong);
   background: transparent;
 }
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-btn-ghost:hover {
@@ -275,7 +250,6 @@ body[data-theme-v3="lilac-stickers"] .appv3 .v3-statusbar {
 }
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-statusbar-version {
   color: #2A2040;
-  font-weight: 600;
 }
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-statusbar-state {
   color: #4A3A66;
@@ -294,10 +268,9 @@ body[data-theme-v3="lilac-stickers"] .appv3 select:focus-visible {
   box-shadow: 0 0 0 4px rgba(156, 132, 200, 0.24);
 }
 
-/* ── Scrollbars: rounded cream thumb on dark ─────────────── */
+/* ── Scrollbars: cream thumb on dark ─────────────────────── */
 body[data-theme-v3="lilac-stickers"] .appv3 ::-webkit-scrollbar-thumb {
   background: #C4B8DC;
-  border-radius: 999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }

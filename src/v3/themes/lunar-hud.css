@@ -69,9 +69,10 @@ body[data-theme-v3="lunar-hud"] .appv3-content {
   );
 }
 
-/* ── Tabular numeric readouts: dotted-time chops ────────────── */
+/* ── Tabular numeric readouts: mono font (font-family only) ── */
 /* Apply to anything that smells like a counter, version string,
-   countdown, scan-ago timestamp. We hit common stat / meta hooks. */
+   countdown, scan-ago timestamp. tabular-nums + base letter-spacing
+   come from the V3 base — we only swap the typeface here. */
 body[data-theme-v3="lunar-hud"] .appv3 .v3-stat-value,
 body[data-theme-v3="lunar-hud"] .appv3 .v3-stat-meta,
 body[data-theme-v3="lunar-hud"] .appv3 .v3-row-meta,
@@ -81,8 +82,6 @@ body[data-theme-v3="lunar-hud"] .appv3 [class*="-meta"],
 body[data-theme-v3="lunar-hud"] .appv3 [class*="-time"],
 body[data-theme-v3="lunar-hud"] .appv3 [class*="-count"] {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.06em;
 }
 
 /* ── Topbar: bottom hairline = thin cyan telemetry line ─────── */
@@ -272,15 +271,13 @@ body[data-theme-v3="lunar-hud"] .v3-chip.active {
 }
 
 /* ── Statusbar: black-box telemetry strip ───────────────────── */
-/* Mono font, divider pipes between segments, dotted letter-spacing. */
+/* Mono font + divider pipes between segments. Sizing/uppercase
+   inherits from the V3 base. */
 body[data-theme-v3="lunar-hud"] .v3-statusbar {
   background: #07090D;
   border-top: 1px solid rgba(94, 231, 242, 0.12);
   color: var(--v3-text-3);
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 /* Divider pipes between direct children segments. */
 body[data-theme-v3="lunar-hud"] .v3-statusbar > * + *::before {
