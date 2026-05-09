@@ -2808,69 +2808,6 @@ body.v3-layout #root {
   background: var(--v3-bg, #171a20);
 }
 
-/* ========== command-palette theme: sidebar collapses to icon rail ==========
-   When the user picks the command-palette theme, the sidebar shrinks
-   to icon-only (~52px) so the palette becomes the primary navigation
-   surface. Tooltip on hover preserves discoverability. The grid
-   contract in `.appv3-body` is unchanged — only the sidebar's
-   intrinsic width and the labels' visibility shift. */
-body[data-theme-v3="command-palette"] .v3-sidebar {
-  width: 56px;
-  min-width: 56px;
-  padding-left: 0;
-  padding-right: 0;
-}
-body[data-theme-v3="command-palette"] .v3-sidebar-logo {
-  justify-content: center;
-  padding: 12px 0;
-}
-body[data-theme-v3="command-palette"] .v3-sidebar-logo-text {
-  display: none;
-}
-body[data-theme-v3="command-palette"] .v3-side-link {
-  justify-content: center;
-  padding: 10px 0;
-  margin: 2px 6px;
-  position: relative;
-}
-body[data-theme-v3="command-palette"] .v3-side-link span {
-  /* Hide the label; rely on aria-label + native title for discovery */
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-}
-body[data-theme-v3="command-palette"] .v3-system-status {
-  /* The "system status" footer is too wide for an icon rail — collapse
-     it to just the colored dot, which still tells the user at a glance. */
-  padding: 8px 0;
-  align-items: center;
-}
-body[data-theme-v3="command-palette"] .v3-system-status-row .v3-system-status-headline,
-body[data-theme-v3="command-palette"] .v3-system-status-meta,
-body[data-theme-v3="command-palette"] .v3-system-status-cta span {
-  display: none;
-}
-body[data-theme-v3="command-palette"] .v3-system-status-cta {
-  padding: 6px;
-  margin: 0 auto;
-}
-/* Hint chip in the topbar so users know about Ctrl+K. */
-body[data-theme-v3="command-palette"] .v3-topbar::after {
-  content: "⌘K";
-  margin-left: auto;
-  margin-right: 16px;
-  padding: 2px 8px;
-  border: 1px solid var(--v3-border-strong);
-  border-radius: 4px;
-  color: var(--v3-text-3);
-  font-family: ui-monospace, "JetBrains Mono", monospace;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-}
-
 /* ========== Universal data-dense extras ==========
    Sidebar project list, KPI density, and sparklines are now part of
    the base layout for every theme. Each theme paints them with its

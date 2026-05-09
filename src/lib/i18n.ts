@@ -68,8 +68,7 @@ const STRINGS = {
   "ago.hours": { en: "{n}h ago", es: "hace {n}h" },
   "ago.days": { en: "{n}d ago", es: "hace {n}d" },
 
-  // Command palette (Cmd+K) — universal, but visually emphasized in the
-  // command-palette theme where the sidebar collapses to icons.
+  // Command palette (Cmd+K) — universal keyboard-first shortcut.
   "palette.title": { en: "Command palette", es: "Paleta de comandos" },
   "palette.placeholder": {
     en: "Type to search a command…",

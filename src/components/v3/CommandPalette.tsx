@@ -9,10 +9,7 @@ import type { V3Tab } from "../../v3/v3types";
 
 // Cmd-K command palette — Linear / Raycast / VS Code style. Opens with
 // Cmd/Ctrl+K, closes with Esc, navigates with arrow keys, fires with
-// Enter. Visually emphasized when the active theme is `command-palette`
-// (where the palette is the layout's primary navigation surface), but
-// available regardless of theme — keyboard-first power users get a
-// universal shortcut.
+// Enter. Universal keyboard-first shortcut.
 //
 // Source of items:
 //   - All sidebar tabs (Overview, Projects, PRs, Audit, Cleanup)

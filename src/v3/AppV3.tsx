@@ -72,9 +72,7 @@ export default function AppV3() {
       /* storage full / locked — ignore */
     }
   }, [windowDays]);
-  // Command palette (Cmd+K) open state. Universal across themes; the
-  // command-palette theme additionally collapses the sidebar to icons
-  // so this becomes the primary nav surface.
+  // Command palette (Cmd+K) open state.
   const [paletteOpen, setPaletteOpen] = useState(false);
   // Per-source fetch errors — surfaced via the retry banner so backend
   // failures stop masquerading as empty states.

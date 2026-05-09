@@ -7,21 +7,9 @@ import { useEffect, useState } from "react";
 export const V3_THEME_ORDER = [
   "light",
   "dark",
-  "retro-os",
-  "chrome95",
-  "lunar-hud",
-  "lilac-stickers",
-  "y2k-pop",
-  "pixel-crt",
-  "ai-core",
-  "satellite",
   "unix-90",
-  "neural",
   "ps2-glow",
-  "blueprint",
-  "cyber-terminal",
   "data-dense",
-  "command-palette",
 ] as const;
 
 export type V3Theme = (typeof V3_THEME_ORDER)[number];
@@ -34,23 +22,11 @@ export interface V3ThemeOption {
   swatch: [string, string, string];
 }
 export const V3_THEME_OPTIONS: V3ThemeOption[] = [
-  { id: "light",          label: "Light",          swatch: ["#F8F9FB", "#FFFFFF", "#ED7B26"] },
-  { id: "dark",           label: "Dark",           swatch: ["#0F172A", "#1E293B", "#ED7B26"] },
-  { id: "retro-os",       label: "Retro OS",       swatch: ["#F2F4F8", "#FFFFFF", "#1F4FD8"] },
-  { id: "chrome95",       label: "Chrome 95",      swatch: ["#D4D0C8", "#C0C0C0", "#000080"] },
-  { id: "lunar-hud",      label: "Lunar HUD",      swatch: ["#0E1218", "#141923", "#5EE7F2"] },
-  { id: "lilac-stickers", label: "Lilac Stickers", swatch: ["#D9D2ED", "#1A1525", "#9C84C8"] },
-  { id: "y2k-pop",        label: "Y2K Pop",        swatch: ["#FBF6FE", "#F5EFFB", "#FF5FB0"] },
-  { id: "pixel-crt",      label: "Pixel CRT",      swatch: ["#3F2EBC", "#1A1466", "#5DE693"] },
-  { id: "ai-core",        label: "AI Core",        swatch: ["#0A0B0D", "#101216", "#7FE0A8"] },
-  { id: "satellite",      label: "Satellite",      swatch: ["#060D17", "#0B1422", "#2DD4D4"] },
-  { id: "unix-90",        label: "Unix '90",       swatch: ["#B8BEC4", "#C4CACF", "#1F6F87"] },
-  { id: "neural",         label: "Neural",         swatch: ["#050908", "#0B1311", "#6EFFA8"] },
-  { id: "ps2-glow",       label: "PS2 Glow",       swatch: ["#050B1A", "#0E1F38", "#5CC8FF"] },
-  { id: "blueprint",      label: "Blueprint",      swatch: ["#0B2545", "#103968", "#E8F4FF"] },
-  { id: "cyber-terminal", label: "Cyber Terminal", swatch: ["#1F2014", "#2A2C1B", "#D9D766"] },
-  { id: "data-dense",     label: "Data Dense",     swatch: ["#0E1014", "#13161C", "#5DD39E"] },
-  { id: "command-palette",label: "Command Palette",swatch: ["#0C0D10", "#13151A", "#A4F0C4"] },
+  { id: "light",      label: "Light",      swatch: ["#F8F9FB", "#FFFFFF", "#ED7B26"] },
+  { id: "dark",       label: "Dark",       swatch: ["#0F172A", "#1E293B", "#ED7B26"] },
+  { id: "unix-90",    label: "Unix '90",   swatch: ["#B8BEC4", "#C4CACF", "#1F6F87"] },
+  { id: "ps2-glow",   label: "PS2 Glow",   swatch: ["#050B1A", "#0E1F38", "#5CC8FF"] },
+  { id: "data-dense", label: "Data Dense", swatch: ["#0E1014", "#13161C", "#5DD39E"] },
 ];
 
 // One-shot apply: load CSS + persist + set body attribute. Both the cycle
