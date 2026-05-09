@@ -5,121 +5,138 @@
    Reference moods: K-pop guidebook spreads, Tumblr "lilac sticker
    pack" scrapbooks, paper-stitched zine layouts.
 
-   Inversion note: --v3-bg is light (the page = lavender paper),
-   --v3-surface is dark (the card = indigo sticker), --v3-text is
-   light (text rides on the dark sticker). Cards are darker than
-   the page on purpose.
+   Inversion note: --v3-bg is light (lavender paper); --v3-surface
+   is dark (indigo sticker). Cards are darker than the page on
+   purpose. Universal data-dense blocks still apply, just inverted.
 
-   Palette + font + decoration package only — geometry (radius,
-   padding) lives in the V3 base.
+   Signature: dashed paper-stitch dividers on hr / .v3-divider
+   /.v3-companion-head.
    ============================================================= */
 
-/* ── Body background: lavender paper ────────────────────────── */
+/* ── Body background ──────────────────────────────────────── */
 body.v3-layout[data-theme-v3="lilac-stickers"] {
   background: linear-gradient(180deg, #DCD5EE 0%, #D2CAE6 100%);
 }
 
-/* ── Token definitions ────────────────────────────────────── */
 body[data-theme-v3="lilac-stickers"] .appv3 {
-  /* Page (lavender paper) — tokens behave inverted by design.
-     bg = canvas, surface = sticker (dark indigo). */
   --v3-bg:           #D9D2ED;
-  --v3-surface:      #1A1525;          /* the sticker — deep indigo */
-  --v3-surface-2:    #241B33;          /* nested sticker / inner cell */
-  --v3-hover:        #2D2240;          /* hover step on dark sticker */
-  --v3-border:       #2F2542;          /* subtle line on dark sticker */
-  --v3-border-strong: #4A3A66;         /* defined edge / strong divider */
+  --v3-surface:      #1A1525;
+  --v3-surface-2:    #241B33;
+  --v3-hover:        #2D2240;
+  --v3-border:       #2F2542;
+  --v3-border-strong: #4A3A66;
 
-  /* Type rides on the dark sticker — light on dark.
-     #E8E1F5 on #1A1525 ≈ 13.6:1
-     #C4B8DC on #1A1525 ≈ 9.1:1
-     #9C8CC4 on #1A1525 ≈ 5.4:1   (AA pass for body text)
-     #7A6BA0 on #1A1525 ≈ 3.4:1   (decorative only — placeholders) */
   --v3-text:   #E8E1F5;
   --v3-text-2: #C4B8DC;
   --v3-text-3: #9C8CC4;
   --v3-text-4: #7A6BA0;
 
-  /* Accent: vibrant lilac. The hover deepens; tints sit on dark. */
   --v3-accent:       #9C84C8;
-  --v3-accent-hover: #B19FDB;          /* lift on hover (dark theme rule) */
+  --v3-accent-hover: #B19FDB;
   --v3-accent-tint:  rgba(156, 132, 200, 0.18);
   --v3-accent-soft:  rgba(156, 132, 200, 0.24);
 
-  /* Semantic — calibrated for the dark sticker surface */
   --v3-success:      #7DD3A8;
   --v3-success-tint: rgba(125, 211, 168, 0.16);
-  --v3-warn:         #F5C16B;          /* warm peachy amber, not yellow-yellow */
+  --v3-warn:         #F5C16B;
   --v3-warn-tint:    rgba(245, 193, 107, 0.16);
-  /* Calm blue info — periwinkle, sister to the lilac accent */
   --v3-info:         #8AA8E8;
   --v3-info-tint:    rgba(138, 168, 232, 0.16);
   --v3-crit:         #F08A9E;
   --v3-crit-tint:    rgba(240, 138, 158, 0.14);
 
-  /* Sticker-lift shadows — soft, plummy, never harsh.
-     Tinted with the body lavender so cards feel pasted, not floating. */
   --v3-shadow-1: 0 2px 6px rgba(20, 10, 40, 0.10);
   --v3-shadow-2: 0 4px 16px rgba(20, 10, 40, 0.18), 0 1px 2px rgba(20, 10, 40, 0.10);
   --v3-shadow-3: 0 8px 28px rgba(20, 10, 40, 0.28), 0 2px 6px rgba(20, 10, 40, 0.14);
 }
 
-/* ── Sticker shadow: every card gets the plummy lift ──────── */
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-stat-card,
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-row,
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-card,
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-companion-widget,
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-workspace-card,
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-audit-foot {
-  box-shadow: var(--v3-shadow-2);
+/* ── Mono on telemetry / numerics ─────────────────────────── */
+body[data-theme-v3="lilac-stickers"] .appv3 .v3-stat-value,
+body[data-theme-v3="lilac-stickers"] .appv3 .v3-stat-meta,
+body[data-theme-v3="lilac-stickers"] .appv3 .v3-row-meta,
+body[data-theme-v3="lilac-stickers"] .appv3 .v3-row-path,
+body[data-theme-v3="lilac-stickers"] .appv3 .v3-statusbar,
+body[data-theme-v3="lilac-stickers"] .appv3 .v3-version,
+body[data-theme-v3="lilac-stickers"] .appv3 .v3-git-hash,
+body[data-theme-v3="lilac-stickers"] .appv3 .v3-pill,
+body[data-theme-v3="lilac-stickers"] .appv3 [class*="-meta"],
+body[data-theme-v3="lilac-stickers"] .appv3 [class*="-time"],
+body[data-theme-v3="lilac-stickers"] .appv3 [class*="-count"],
+body[data-theme-v3="lilac-stickers"] .appv3 [class*="-version"],
+body[data-theme-v3="lilac-stickers"] .appv3 [class*="-status"],
+body[data-theme-v3="lilac-stickers"] .appv3 code {
+  font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
 }
 
-/* ── Topbar: slightly darker chrome so it reads elevated ──── */
-body[data-theme-v3="lilac-stickers"] .v3-topbar {
-  background: #15101F;                 /* darker than sidebar surface */
-  color: var(--v3-text);
-}
-body[data-theme-v3="lilac-stickers"] .v3-topbar-brand,
-body[data-theme-v3="lilac-stickers"] .v3-brand-name {
-  color: var(--v3-text);
-}
-body[data-theme-v3="lilac-stickers"] .v3-topbar-tab {
-  color: var(--v3-text-2);
-}
-body[data-theme-v3="lilac-stickers"] .v3-topbar-tab:hover {
-  color: var(--v3-text);
-  background: rgba(156, 132, 200, 0.10);
-}
-body[data-theme-v3="lilac-stickers"] .v3-topbar-tab.active {
-  color: var(--v3-accent);
-  background: var(--v3-accent-tint);
-}
-
-/* ── Sidebar: dark sticker ──────────────────────────────── */
-body[data-theme-v3="lilac-stickers"] .v3-sidebar {
+/* ── Cards / stat-cards / update-rows ─────────────────────── */
+body[data-theme-v3="lilac-stickers"] .v3-card,
+body[data-theme-v3="lilac-stickers"] .v3-stat-card,
+body[data-theme-v3="lilac-stickers"] .v3-update-row {
   background: var(--v3-surface);
-}
-body[data-theme-v3="lilac-stickers"] .v3-sidebar-logo-line1,
-body[data-theme-v3="lilac-stickers"] .v3-sidebar-logo-line2 {
-  color: var(--v3-text);
-}
-body[data-theme-v3="lilac-stickers"] .v3-side-link {
-  color: var(--v3-text-2);
-}
-body[data-theme-v3="lilac-stickers"] .v3-side-link:hover {
-  background: var(--v3-hover);
-  color: var(--v3-text);
-}
-body[data-theme-v3="lilac-stickers"] .v3-side-link.active {
-  background: var(--v3-accent-tint);
-  color: var(--v3-accent);
-  box-shadow: 0 2px 8px rgba(156, 132, 200, 0.18);
-}
-body[data-theme-v3="lilac-stickers"] .v3-side-link.active svg {
-  color: var(--v3-accent);
+  box-shadow: none;
 }
 
-/* ── Dashed paper-stitch dividers (signature decoration) ─── */
+/* ── Topbar ───────────────────────────────────────────────── */
+body[data-theme-v3="lilac-stickers"] .v3-topbar {
+  box-shadow: none;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+body[data-theme-v3="lilac-stickers"] .v3-sidebar {
+  background: var(--v3-bg);
+}
+
+/* ── Sidebar active ───────────────────────────────────────── */
+body[data-theme-v3="lilac-stickers"] .v3-side-link.active {
+  color: var(--v3-text);
+}
+
+/* ── Row hover ────────────────────────────────────────────── */
+body[data-theme-v3="lilac-stickers"] .v3-row:hover {
+  background: var(--v3-surface-2);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
+}
+
+/* ── Pills ────────────────────────────────────────────────── */
+body[data-theme-v3="lilac-stickers"] .v3-pill,
+body[data-theme-v3="lilac-stickers"] .v3-pill-soft {
+  background: var(--v3-surface-2);
+}
+
+/* ── Primary button + update banners ──────────────────────── */
+body[data-theme-v3="lilac-stickers"] .v3-btn-primary,
+body[data-theme-v3="lilac-stickers"] .v3-update-banner-primary,
+body[data-theme-v3="lilac-stickers"] .v3-update-row-action {
+  background: var(--v3-accent);
+  color: #1A1525;
+}
+
+/* ── Ghost button ─────────────────────────────────────────── */
+body[data-theme-v3="lilac-stickers"] .v3-btn-ghost {
+  background: var(--v3-surface-2);
+  color: var(--v3-text-2);
+}
+body[data-theme-v3="lilac-stickers"] .v3-btn-ghost:hover {
+  border-color: var(--v3-text-4);
+  color: var(--v3-text);
+}
+
+/* ── Inputs ──────────────────────────────────────────────── */
+body[data-theme-v3="lilac-stickers"] .v3-input,
+body[data-theme-v3="lilac-stickers"] .v3-search input,
+body[data-theme-v3="lilac-stickers"] .v3-select {
+  background: var(--v3-surface);
+  color: var(--v3-text);
+  font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ── Statusbar ────────────────────────────────────────────── */
+body[data-theme-v3="lilac-stickers"] .v3-statusbar {
+  background: var(--v3-surface);
+  color: var(--v3-text-3);
+}
+
+/* ── Signature: dashed paper-stitch dividers ──────────────── */
 body[data-theme-v3="lilac-stickers"] .appv3 hr,
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-divider {
   border-top: 1px dashed var(--v3-border-strong) !important;
@@ -127,154 +144,4 @@ body[data-theme-v3="lilac-stickers"] .appv3 .v3-divider {
 }
 body[data-theme-v3="lilac-stickers"] .appv3 .v3-companion-head {
   border-bottom: 1px dashed var(--v3-border-strong) !important;
-}
-
-/* ── Buttons: sticker tint, soft drop ─────────────────────── */
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-btn-primary,
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-btn-ghost {
-  box-shadow: 0 2px 4px rgba(20, 10, 40, 0.20);
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-btn-primary {
-  background: var(--v3-accent);
-  color: #1A1525;                      /* dark text on bright lilac — high contrast */
-  border-color: var(--v3-accent);
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-btn-primary:hover {
-  background: var(--v3-accent-hover);
-  color: #1A1525;
-  box-shadow: 0 3px 8px rgba(156, 132, 200, 0.40);
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-btn-ghost {
-  color: var(--v3-text);
-  background: transparent;
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-btn-ghost:hover {
-  background: var(--v3-hover);
-  border-color: var(--v3-accent);
-  color: var(--v3-text);
-}
-
-/* ── Stat cards: hover gets a lilac sticker ring ─────────── */
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-stat-card:hover {
-  border-color: var(--v3-accent);
-  box-shadow: var(--v3-shadow-3),
-              0 0 0 3px var(--v3-accent-soft);
-}
-
-/* ── Rows: warmer hover with lilac edge ──────────────────── */
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-row:hover {
-  border-color: var(--v3-accent);
-  background: var(--v3-hover);
-  box-shadow: var(--v3-shadow-2);
-}
-
-/* ── Stat icon tints — recolored to lilac/peach family ───── */
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-stat-icon-orange {
-  background: rgba(245, 193, 107, 0.18);
-  color: #F5C16B;
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-stat-icon-purple {
-  background: rgba(156, 132, 200, 0.20);
-  color: #C4A8F0;
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-stat-icon-amber {
-  background: rgba(245, 193, 107, 0.16);
-  color: #F5C16B;
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-stat-icon-green {
-  background: rgba(125, 211, 168, 0.16);
-  color: #7DD3A8;
-}
-
-/* ── Companion stage: lilac mist rising from the bottom ──── */
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-companion-stage {
-  background: radial-gradient(ellipse 90% 80% at 50% 100%,
-    rgba(156, 132, 200, 0.22) 0%,
-    rgba(156, 132, 200, 0.06) 55%,
-    transparent 100%);
-}
-
-/* ── Audit alert banner ──────────────────────────────────── */
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-audit-foot {
-  background: rgba(245, 193, 107, 0.14);
-  border: 1px dashed rgba(245, 193, 107, 0.50);
-  color: #F5C16B;
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-audit-foot .v3-chev {
-  color: #F5C16B;
-}
-
-/* ── Audit findings ──────────────────────────────────────── */
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-finding-crit {
-  border-color: rgba(240, 138, 158, 0.32);
-  background: rgba(240, 138, 158, 0.08);
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-finding-warn {
-  border-color: rgba(245, 193, 107, 0.32);
-  background: rgba(245, 193, 107, 0.08);
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-finding-info {
-  border-color: rgba(138, 168, 232, 0.28);
-  background: rgba(138, 168, 232, 0.07);
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-finding-ok {
-  border-color: rgba(125, 211, 168, 0.28);
-  background: rgba(125, 211, 168, 0.07);
-}
-
-/* ── Success / error banners ─────────────────────────────── */
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-error {
-  background: rgba(240, 138, 158, 0.10);
-  border-color: rgba(240, 138, 158, 0.32);
-  color: #F4A8B6;
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-success {
-  background: rgba(125, 211, 168, 0.10);
-  border-color: rgba(125, 211, 168, 0.30);
-  color: #A6E3C4;
-}
-
-/* ── Chips ───────────────────────────────────────────────── */
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-chip.active {
-  background: var(--v3-accent);
-  border-color: var(--v3-accent);
-  color: #1A1525;
-}
-
-/* ── Statusbar: INVERTED — light bg, dark text ───────────── */
-/* Reads like a paper sticker pinned to the bottom of the dark UI. */
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-statusbar {
-  background: #E8E1F5;
-  border-top: 1px dashed var(--v3-border-strong);
-  color: #2A2040;
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-statusbar-version {
-  color: #2A2040;
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-statusbar-state {
-  color: #4A3A66;
-}
-body[data-theme-v3="lilac-stickers"] .appv3 .v3-statusbar-sep {
-  color: #7A6BA0;
-}
-
-/* ── Focus visible: lilac sticker outline ────────────────── */
-body[data-theme-v3="lilac-stickers"] .appv3 button:focus-visible,
-body[data-theme-v3="lilac-stickers"] .appv3 a:focus-visible,
-body[data-theme-v3="lilac-stickers"] .appv3 input:focus-visible,
-body[data-theme-v3="lilac-stickers"] .appv3 select:focus-visible {
-  outline: 2px solid var(--v3-accent);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(156, 132, 200, 0.24);
-}
-
-/* ── Scrollbars: cream thumb on dark ─────────────────────── */
-body[data-theme-v3="lilac-stickers"] .appv3 ::-webkit-scrollbar-thumb {
-  background: #C4B8DC;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-body[data-theme-v3="lilac-stickers"] .appv3 ::-webkit-scrollbar-thumb:hover {
-  background: #9C84C8;
-  background-clip: content-box;
 }

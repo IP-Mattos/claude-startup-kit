@@ -2,21 +2,20 @@
    V3 Theme: LIGHT
    Identity: clean modern SaaS — white surfaces, warm orange accent.
    Reference moods: Linear, Vercel, Raycast, Notion light.
+
+   Universal data-dense blocks (cards/sidebar/rows/pills/buttons
+   /inputs/statusbar) parameterised to the light palette. Sans on
+   prose, mono on telemetry. Only signature: dot-grid texture on
+   .appv3-content.
    ============================================================= */
 
-/* ── Body background ──────────────────────────────────────────
-   Subtle warm-to-neutral gradient on the outer chrome.
-   Barely perceptible; gives the layout a sunlit top edge.
-   ─────────────────────────────────────────────────────────── */
+/* ── Body background ──────────────────────────────────────── */
 body.v3-layout:not([data-theme-v3]),
 body.v3-layout[data-theme-v3="light"] {
   background: linear-gradient(180deg, #FBFAF8 0%, #F8F9FB 100%);
 }
 
-/* ── Token definitions ────────────────────────────────────────
-   Targets both the explicit light attribute and the unstyled
-   default (no attribute) so light is truly the baseline.
-   ─────────────────────────────────────────────────────────── */
+/* ── Token block ──────────────────────────────────────────── */
 body[data-theme-v3="light"] .appv3,
 body.v3-layout:not([data-theme-v3]) .appv3 {
   --v3-bg: #F8F9FB;
@@ -26,177 +25,149 @@ body.v3-layout:not([data-theme-v3]) .appv3 {
   --v3-border: #E5E7EB;
   --v3-border-strong: #D1D5DB;
 
-  /* Deep neutral body — not pure black, WCAG AA-safe on all surfaces */
   --v3-text: #1F2937;
   --v3-text-2: #4B5563;
-  /* #6B7280 on #F8F9FB = ~4.5:1; kept exactly at the AA floor.
-     Do not lighten the bg past #F8F9FB or this fails. */
-  --v3-text-3: #5B6573;        /* bumped from #6B7280 (4.48:1) → 5.6:1 vs white */
-  --v3-text-4: #9CA3AF;   /* decorative / placeholders only */
+  --v3-text-3: #5B6573;
+  --v3-text-4: #9CA3AF;
 
-  /* Brand orange — unchanged hue, precise hover step */
   --v3-accent: #ED7B26;
   --v3-accent-hover: #D86A1F;
-  /* Warm cream tint: orange at 8% on white = #FFF4EC, at 10% = #FFF1E6.
-     Using the softer 8% tint keeps filled backgrounds from reading orange. */
   --v3-accent-tint: #FFF4EC;
   --v3-accent-soft: rgba(237, 123, 38, 0.10);
 
   --v3-success: #10B981;
-  /* Slightly desaturated success tint — less Material, more Linear */
   --v3-success-tint: #D1FAE5;
   --v3-warn: #F59E0B;
   --v3-warn-tint: #FEF3C7;
-  /* Calm blue for info — yellow + amber side-by-side made the audit
-     panel read as alarmist even when findings were just informational. */
   --v3-info: #3B82F6;
   --v3-info-tint: #DBEAFE;
   --v3-crit: #DC2626;
   --v3-crit-tint: #FEE2E2;
 
-  /* Elevation shadows: warm-tinted, not cold grey.
-     Very diffuse — light theme earns elevation through brightness
-     contrast, not dramatic shadows. */
   --v3-shadow-1: 0 1px 2px rgba(30, 20, 10, 0.04);
   --v3-shadow-2: 0 1px 4px rgba(30, 20, 10, 0.06), 0 1px 2px rgba(30, 20, 10, 0.04);
   --v3-shadow-3: 0 4px 16px rgba(30, 20, 10, 0.08), 0 2px 4px rgba(30, 20, 10, 0.04);
 }
 
-/* ── Stat icon tints ──────────────────────────────────────────
-   AppV3.css base uses stark Material-ish pastels. Override for
-   a softer, slightly desaturated palette that feels cohesive
-   with the warm-orange brand rather than "primary-color kit".
-   ─────────────────────────────────────────────────────────── */
-
-/* Orange: already on-brand; slightly warmer cream bg */
-body[data-theme-v3="light"] .appv3 .v3-stat-icon-orange,
-body.v3-layout:not([data-theme-v3]) .appv3 .v3-stat-icon-orange {
-  background: #FFE8D4;
-  color: #ED7B26;
+/* ── Mono on telemetry / numerics ─────────────────────────── */
+body[data-theme-v3="light"] .appv3 .v3-stat-value,
+body[data-theme-v3="light"] .appv3 .v3-stat-meta,
+body[data-theme-v3="light"] .appv3 .v3-row-meta,
+body[data-theme-v3="light"] .appv3 .v3-row-path,
+body[data-theme-v3="light"] .appv3 .v3-statusbar,
+body[data-theme-v3="light"] .appv3 .v3-version,
+body[data-theme-v3="light"] .appv3 .v3-git-hash,
+body[data-theme-v3="light"] .appv3 .v3-pill,
+body[data-theme-v3="light"] .appv3 [class*="-meta"],
+body[data-theme-v3="light"] .appv3 [class*="-time"],
+body[data-theme-v3="light"] .appv3 [class*="-count"],
+body[data-theme-v3="light"] .appv3 [class*="-version"],
+body[data-theme-v3="light"] .appv3 [class*="-status"],
+body[data-theme-v3="light"] .appv3 code,
+body.v3-layout:not([data-theme-v3]) .appv3 .v3-stat-value,
+body.v3-layout:not([data-theme-v3]) .appv3 .v3-stat-meta,
+body.v3-layout:not([data-theme-v3]) .appv3 .v3-row-meta,
+body.v3-layout:not([data-theme-v3]) .appv3 .v3-row-path,
+body.v3-layout:not([data-theme-v3]) .appv3 .v3-statusbar,
+body.v3-layout:not([data-theme-v3]) .appv3 .v3-version,
+body.v3-layout:not([data-theme-v3]) .appv3 .v3-git-hash,
+body.v3-layout:not([data-theme-v3]) .appv3 .v3-pill,
+body.v3-layout:not([data-theme-v3]) .appv3 [class*="-meta"],
+body.v3-layout:not([data-theme-v3]) .appv3 [class*="-time"],
+body.v3-layout:not([data-theme-v3]) .appv3 [class*="-count"],
+body.v3-layout:not([data-theme-v3]) .appv3 [class*="-version"],
+body.v3-layout:not([data-theme-v3]) .appv3 [class*="-status"],
+body.v3-layout:not([data-theme-v3]) .appv3 code {
+  font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
 }
 
-/* Purple: desaturate from #EDE9FE → softer lavender mist */
-body[data-theme-v3="light"] .appv3 .v3-stat-icon-purple,
-body.v3-layout:not([data-theme-v3]) .appv3 .v3-stat-icon-purple {
-  background: #EEE9FB;
-  color: #6D28D9;
+/* ── Cards / stat-cards / update-rows: surface, no shadow ─── */
+body[data-theme-v3="light"] .v3-card,
+body[data-theme-v3="light"] .v3-stat-card,
+body[data-theme-v3="light"] .v3-update-row,
+body.v3-layout:not([data-theme-v3]) .v3-card,
+body.v3-layout:not([data-theme-v3]) .v3-stat-card,
+body.v3-layout:not([data-theme-v3]) .v3-update-row {
+  background: var(--v3-surface);
+  box-shadow: none;
 }
 
-/* Amber: soften #FEF3C7 → lighter honey; icon color warmer */
-body[data-theme-v3="light"] .appv3 .v3-stat-icon-amber,
-body.v3-layout:not([data-theme-v3]) .appv3 .v3-stat-icon-amber {
-  background: #FEF0C0;
-  color: #B45309;
+/* ── Topbar ───────────────────────────────────────────────── */
+body[data-theme-v3="light"] .v3-topbar,
+body.v3-layout:not([data-theme-v3]) .v3-topbar {
+  box-shadow: none;
 }
 
-/* Green: muted mint — less #DCFCE7 neon, more spa calm */
-body[data-theme-v3="light"] .appv3 .v3-stat-icon-green,
-body.v3-layout:not([data-theme-v3]) .appv3 .v3-stat-icon-green {
-  background: #D4F3E6;
-  color: #047857;
+/* ── Sidebar ──────────────────────────────────────────────── */
+body[data-theme-v3="light"] .v3-sidebar,
+body.v3-layout:not([data-theme-v3]) .v3-sidebar {
+  background: var(--v3-bg);
 }
 
-/* ── Stat card hover ──────────────────────────────────────────
-   Base hover just lifts shadow-2. In light, also add a gossamer
-   accent ring — legible but not aggressive. The ring uses
-   accent-soft (orange at 10%), which disappears on dark.
-   ─────────────────────────────────────────────────────────── */
-body[data-theme-v3="light"] .appv3 .v3-stat-card:hover,
-body.v3-layout:not([data-theme-v3]) .appv3 .v3-stat-card:hover {
-  box-shadow: var(--v3-shadow-2), 0 0 0 3px var(--v3-accent-soft);
+/* ── Sidebar active ───────────────────────────────────────── */
+body[data-theme-v3="light"] .v3-side-link.active,
+body.v3-layout:not([data-theme-v3]) .v3-side-link.active {
+  color: var(--v3-text);
 }
 
-/* ── Row hover ────────────────────────────────────────────────
-   Base goes to border-strong (#D1D5DB). Light theme replaces
-   that with an accent-soft ring — same elevation hint but
-   warmer, more branded. The border-color stays --v3-border so
-   the 1px line doesn't go darker; the ring does the work.
-   ─────────────────────────────────────────────────────────── */
-body[data-theme-v3="light"] .appv3 .v3-row:hover,
-body.v3-layout:not([data-theme-v3]) .appv3 .v3-row:hover {
-  border-color: var(--v3-border);
-  box-shadow: var(--v3-shadow-2), 0 0 0 3px var(--v3-accent-soft);
-}
-
-/* ── Sidebar active link ──────────────────────────────────────
-   Base: accent-tint bg + accent text. Adding a left-edge inset
-   accent bar and a very faint outer ring gives it the "selected
-   pill" feel of Linear's sidebar without going heavy.
-   ─────────────────────────────────────────────────────────── */
-body[data-theme-v3="light"] .appv3 .v3-side-link.active,
-body.v3-layout:not([data-theme-v3]) .appv3 .v3-side-link.active {
-  background: var(--v3-accent-tint);
-  color: var(--v3-accent);
-  /* Inset left accent bar only — no outer ring (read as unwanted side glow). */
+/* ── Row hover ────────────────────────────────────────────── */
+body[data-theme-v3="light"] .v3-row:hover,
+body.v3-layout:not([data-theme-v3]) .v3-row:hover {
+  background: var(--v3-surface-2);
   box-shadow: inset 2px 0 0 var(--v3-accent);
 }
 
-/* ── Companion stage ──────────────────────────────────────────
-   Base: linear-gradient(180deg, accent-tint 0%, transparent 70%).
-   Light enhancement: start warmer (#FFF0E0 ≈ sunrise cream),
-   fade to a very faint warm white rather than transparent so
-   the stage feels like a lightbox, not a floating div.
-   ─────────────────────────────────────────────────────────── */
-body[data-theme-v3="light"] .appv3 .v3-companion-stage,
-body.v3-layout:not([data-theme-v3]) .appv3 .v3-companion-stage {
-  background: linear-gradient(
-    180deg,
-    #FFF0E0 0%,
-    #FFF8F2 45%,
-    rgba(255, 249, 246, 0.0) 100%
-  );
+/* ── Pills ────────────────────────────────────────────────── */
+body[data-theme-v3="light"] .v3-pill,
+body[data-theme-v3="light"] .v3-pill-soft,
+body.v3-layout:not([data-theme-v3]) .v3-pill,
+body.v3-layout:not([data-theme-v3]) .v3-pill-soft {
+  background: var(--v3-surface-2);
 }
 
-/* ── Companion widget header warmth ──────────────────────────
-   A barely-there warm tint on the header area of the companion
-   widget. The header itself has no bg in base — this rule
-   applies the faintest orange blush without touching layout.
-   ─────────────────────────────────────────────────────────── */
-body[data-theme-v3="light"] .appv3 .v3-companion-head,
-body.v3-layout:not([data-theme-v3]) .appv3 .v3-companion-head {
-  /* Hairline accent tint under the header — acts as a visual
-     separator without a visible border. Padding inherits from base. */
-  border-bottom: 1px solid var(--v3-accent-tint);
+/* ── Primary button + update banners ──────────────────────── */
+body[data-theme-v3="light"] .v3-btn-primary,
+body[data-theme-v3="light"] .v3-update-banner-primary,
+body[data-theme-v3="light"] .v3-update-row-action,
+body.v3-layout:not([data-theme-v3]) .v3-btn-primary,
+body.v3-layout:not([data-theme-v3]) .v3-update-banner-primary,
+body.v3-layout:not([data-theme-v3]) .v3-update-row-action {
+  background: var(--v3-accent);
+  color: #FFFFFF;
 }
 
-/* ── Audit footer warning banner ─────────────────────────────
-   Base: warn-tint bg (#FEF3C7), #FCD34D border, #92400E text.
-   Light refinement: slightly denser warm amber bg, thicker
-   accent tint outline so it reads clearly in the all-white layout
-   without looking like an error state.
-   #92400E on #FEF0B8 ≈ 4.6:1 — WCAG AA pass.
-   ─────────────────────────────────────────────────────────── */
-body[data-theme-v3="light"] .appv3 .v3-audit-foot,
-body.v3-layout:not([data-theme-v3]) .appv3 .v3-audit-foot {
-  background: #FEF0B8;
-  border-color: #F6C842;
-  /* Subtle accent-soft outer ring ties it to the brand */
-  box-shadow: 0 0 0 2px rgba(237, 123, 38, 0.08);
+/* ── Ghost button ─────────────────────────────────────────── */
+body[data-theme-v3="light"] .v3-btn-ghost,
+body.v3-layout:not([data-theme-v3]) .v3-btn-ghost {
+  background: var(--v3-surface-2);
+  color: var(--v3-text-2);
+}
+body[data-theme-v3="light"] .v3-btn-ghost:hover,
+body.v3-layout:not([data-theme-v3]) .v3-btn-ghost:hover {
+  border-color: var(--v3-text-4);
+  color: var(--v3-text);
 }
 
-/* ── Scrollbar warmth ─────────────────────────────────────────
-   Override scrollbar thumb to a warm tinted grey instead of the
-   default cool border-strong (#D1D5DB) — cohesive with the palette.
-   ─────────────────────────────────────────────────────────── */
-body[data-theme-v3="light"] .appv3 ::-webkit-scrollbar-thumb,
-body.v3-layout:not([data-theme-v3]) .appv3 ::-webkit-scrollbar-thumb {
-  background: #DDD9D5;
-  border-radius: 4px;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-body[data-theme-v3="light"] .appv3 ::-webkit-scrollbar-thumb:hover,
-body.v3-layout:not([data-theme-v3]) .appv3 ::-webkit-scrollbar-thumb:hover {
-  background: #C8C2BC;
-  background-clip: content-box;
+/* ── Inputs ──────────────────────────────────────────────── */
+body[data-theme-v3="light"] .v3-input,
+body[data-theme-v3="light"] .v3-search input,
+body[data-theme-v3="light"] .v3-select,
+body.v3-layout:not([data-theme-v3]) .v3-input,
+body.v3-layout:not([data-theme-v3]) .v3-search input,
+body.v3-layout:not([data-theme-v3]) .v3-select {
+  background: var(--v3-surface);
+  color: var(--v3-text);
+  font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
 }
 
-/* ── Signature texture: dot-grid at 2% opacity ───────────────
-   Applied only to the content viewport (.appv3-content).
-   A 20px SVG dot grid as a data URI — produces a paper-grain
-   feel at full zoom; completely invisible at arm's length.
-   Scoped tightly; DOES NOT affect sidebar or right panel.
-   ─────────────────────────────────────────────────────────── */
+/* ── Statusbar ────────────────────────────────────────────── */
+body[data-theme-v3="light"] .v3-statusbar,
+body.v3-layout:not([data-theme-v3]) .v3-statusbar {
+  background: var(--v3-surface);
+  color: var(--v3-text-3);
+}
+
+/* ── Signature decoration: dot-grid texture on content ────── */
 body[data-theme-v3="light"] .appv3 .appv3-content,
 body.v3-layout:not([data-theme-v3]) .appv3 .appv3-content {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='1' cy='1' r='1' fill='%23C4B9AD' fill-opacity='0.22'/%3E%3C/svg%3E");

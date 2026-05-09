@@ -4,14 +4,14 @@
    pixel window frames over a soft pink-violet dithered desktop.
    Reference moods: Mac OS 9 in lipstick, Bliss Type 2000, GeoCities.
 
-   Palette + font + decoration package only. All geometry
-   (radius, padding, font-size on structural elements) lives
-   in the V3 base.
+   Universal data-dense blocks parameterised to cream + magenta.
+   Signatures: dithered desktop SVG overlay on body and content,
+   Bitter serif on display headings, VT323 on chips.
    ============================================================= */
 
-/* ── Body background ──────────────────────────────────────────
-   Diagonal pink-to-violet wash + a 5% dither checker SVG overlay.
-   ─────────────────────────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Bitter:wght@500;600;700&family=Inter:wght@400;500;600&family=VT323&display=swap");
+
+/* ── Body background — dithered cream-violet desktop ──────── */
 body.v3-layout[data-theme-v3="y2k-pop"] {
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='2' height='2' fill='%23B07DC9' fill-opacity='0.08'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%23B07DC9' fill-opacity='0.08'/%3E%3C/svg%3E"),
@@ -20,51 +20,42 @@ body.v3-layout[data-theme-v3="y2k-pop"] {
 }
 
 body[data-theme-v3="y2k-pop"] .appv3 {
-  /* ── Surface ─────────────────────────────────────────────── */
-  --v3-bg:           #F5EFFB;            /* soft cream-violet desktop */
-  --v3-surface:      #FBF6FE;            /* card body — paper-cream */
-  --v3-surface-2:    #F2E9F8;            /* inset / subtle alt */
-  --v3-hover:        #F4DDF0;            /* magenta-tinted wash */
-  --v3-border:       #E5B6D8;            /* soft magenta hairline */
-  --v3-border-strong:#FF5FB0;            /* electric magenta — chunky frame */
+  --v3-bg:           #F5EFFB;
+  --v3-surface:      #FBF6FE;
+  --v3-surface-2:    #F2E9F8;
+  --v3-hover:        #F4DDF0;
+  --v3-border:       #E5B6D8;
+  --v3-border-strong: #FF5FB0;
 
-  /* ── Type — AA on cream surfaces ─────────────────────────── */
-  --v3-text:   #2A1233;                  /* deep violet ink */
-  --v3-text-2: #4B2461;                  /* secondary violet */
-  --v3-text-3: #6B3A86;                  /* ~5.4:1 on cream — AA */
-  --v3-text-4: #A07AB6;                  /* decorative / placeholders */
+  --v3-text:   #2A1233;
+  --v3-text-2: #4B2461;
+  --v3-text-3: #6B3A86;
+  --v3-text-4: #A07AB6;
 
-  /* ── Accent: electric magenta ────────────────────────────── */
   --v3-accent:        #FF5FB0;
   --v3-accent-hover:  #E63F94;
   --v3-accent-tint:   #FFE2F1;
   --v3-accent-soft:   rgba(255, 95, 176, 0.18);
 
-  /* ── Semantic ────────────────────────────────────────────── */
-  --v3-success:       #00B894;           /* mint — pops on cream */
+  --v3-success:       #00B894;
   --v3-success-tint:  #CFF5EB;
-  --v3-warn:          #F2A40C;           /* warm amber — readable on cream */
+  --v3-warn:          #F2A40C;
   --v3-warn-tint:     #FFEBC2;
-  /* Electric cyan — both info AND secondary accent. */
   --v3-info:          #22D3EE;
   --v3-info-tint:     #C9F4FB;
   --v3-crit:          #E5184F;
   --v3-crit-tint:     #FFD6E0;
 
-  /* ── Shadows: pixel-style, no blur ───────────────────────── */
   --v3-shadow-1: 1px 1px 0 0 rgba(75, 36, 97, 0.18);
-  --v3-shadow-2: 2px 2px 0 0 rgba(75, 36, 97, 0.22), 0 0 0 1px rgba(255, 95, 176, 0.20);
-  --v3-shadow-3: 3px 3px 0 0 rgba(75, 36, 97, 0.28), 0 0 0 1px rgba(255, 95, 176, 0.30);
+  --v3-shadow-2: 2px 2px 0 0 rgba(75, 36, 97, 0.22);
+  --v3-shadow-3: 3px 3px 0 0 rgba(75, 36, 97, 0.28);
 }
 
-/* ── Content area: dithered desktop ─────────────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .appv3-content {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='2' height='2' fill='%23FF5FB0' fill-opacity='0.06'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%2322D3EE' fill-opacity='0.06'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-}
-
-/* ── Typography: Bitter heads, Inter body ───────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 {
+/* ── Theme sans default: Inter; serif headings: Bitter ────── */
+body[data-theme-v3="y2k-pop"] .appv3,
+body[data-theme-v3="y2k-pop"] .appv3 button,
+body[data-theme-v3="y2k-pop"] .appv3 input,
+body[data-theme-v3="y2k-pop"] .appv3 select {
   font-family: "Inter", "Segoe UI", system-ui, sans-serif;
 }
 body[data-theme-v3="y2k-pop"] .appv3 h1,
@@ -75,204 +66,94 @@ body[data-theme-v3="y2k-pop"] .appv3 .v3-section-title {
   font-family: "Bitter", "Iowan Old Style", Georgia, serif;
 }
 
-/* ── Cards: magenta frame + pixel windowed shadow ─────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-card {
+/* ── Mono on telemetry / numerics — VT323 pixel ───────────── */
+body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-value,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-meta,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-row-meta,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-row-path,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-statusbar,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-version,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-git-hash,
+body[data-theme-v3="y2k-pop"] .appv3 .v3-pill,
+body[data-theme-v3="y2k-pop"] .appv3 [class*="-meta"],
+body[data-theme-v3="y2k-pop"] .appv3 [class*="-time"],
+body[data-theme-v3="y2k-pop"] .appv3 [class*="-count"],
+body[data-theme-v3="y2k-pop"] .appv3 [class*="-version"],
+body[data-theme-v3="y2k-pop"] .appv3 [class*="-status"],
+body[data-theme-v3="y2k-pop"] .appv3 code {
+  font-family: "VT323", ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+/* ── Cards / stat-cards / update-rows ─────────────────────── */
+body[data-theme-v3="y2k-pop"] .v3-card,
+body[data-theme-v3="y2k-pop"] .v3-stat-card,
+body[data-theme-v3="y2k-pop"] .v3-update-row {
   background: var(--v3-surface);
-  border-color: var(--v3-border-strong);
-  box-shadow:
-    2px 2px 0 0 rgba(75, 36, 97, 0.22),
-    0 0 0 1px rgba(255, 95, 176, 0.25);
-}
-
-/* ── Stat cards ───────────────────────────────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-card {
-  background: var(--v3-surface);
-  border-color: var(--v3-border-strong);
-  box-shadow: 2px 2px 0 0 rgba(75, 36, 97, 0.22);
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-card:hover {
-  box-shadow:
-    3px 3px 0 0 rgba(75, 36, 97, 0.28),
-    0 0 0 2px var(--v3-accent-soft);
-}
-
-/* ── Rows: hairline magenta + cyan hover edge ────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-row {
-  background: var(--v3-surface);
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-row:hover {
-  background: var(--v3-hover);
-  border-color: var(--v3-accent);
-  box-shadow:
-    1px 1px 0 0 var(--v3-info),
-    0 0 0 1px var(--v3-accent);
-}
-
-/* ── Sidebar active link: cyan tint + magenta cue ────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-side-link {
-  position: relative;
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-side-link.active {
-  background: var(--v3-info-tint);
-  color: #0E5C6B;                        /* deep cyan ink — AA on cyan tint */
-  box-shadow: 1px 1px 0 0 rgba(75, 36, 97, 0.18);
-}
-
-/* ── Topbar: cream with magenta hairline + cyan inset ────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-topbar {
-  background: var(--v3-surface);
-  border-bottom: 1px solid var(--v3-accent);
-  box-shadow: inset 0 -2px 0 0 var(--v3-info);
-}
-
-/* ── Statusbar: dithered pink ────────────────────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-statusbar {
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='2' height='2' fill='%23FF5FB0' fill-opacity='0.18'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%23FF5FB0' fill-opacity='0.18'/%3E%3C/svg%3E"),
-    var(--v3-accent-tint);
-  border-top: 1px solid var(--v3-accent);
-  font-family: "VT323", "Press Start 2P", monospace;
-  color: var(--v3-text-2);
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-statusbar > :first-child,
-body[data-theme-v3="y2k-pop"] .appv3 .v3-statusbar > :last-child {
-  color: #0E5C6B;                        /* cyan ink on pink dither */
-  background: var(--v3-info-tint);
-}
-
-/* ── Companion stage: pink-cyan vapor glow ───────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-companion-stage {
-  background:
-    radial-gradient(ellipse 80% 60% at 30% 100%,
-      rgba(255, 95, 176, 0.28) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 60% at 80% 0%,
-      rgba(34, 211, 238, 0.22) 0%, transparent 65%),
-    linear-gradient(180deg, #FFE2F1 0%, #FBF6FE 70%, transparent 100%);
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-companion-head {
-  border-bottom: 1px dashed var(--v3-accent);
-}
-
-/* ── Stat icon tints — magenta / cyan / violet / mint ────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-icon-orange {
-  background: var(--v3-accent-tint);
-  color: #C4257E;
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-icon-purple {
-  background: #ECDDF7;
-  color: #6B3A86;
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-icon-amber {
-  background: var(--v3-info-tint);
-  color: #0E5C6B;
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-stat-icon-green {
-  background: var(--v3-success-tint);
-  color: #006B5A;
-}
-
-/* ── PR pill / row icon: violet on cream ─────────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-pr-pill-review {
-  background: #ECDDF7;
-  color: #6B3A86;
-  border: 1px solid #C9A8E0;
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-row-pr .v3-row-icon {
-  background: #ECDDF7;
-  color: #6B3A86;
-}
-
-/* ── Audit warn banner: amber on cream ───────────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-audit-foot {
-  background: var(--v3-warn-tint);
-  border-color: var(--v3-warn);
-  color: #6B3F00;
-  box-shadow: 1px 1px 0 0 rgba(75, 36, 97, 0.18);
-}
-
-/* ── Findings ────────────────────────────────────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-finding-crit {
-  border-color: var(--v3-crit);
-  background: var(--v3-crit-tint);
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-finding-warn {
-  border-color: var(--v3-warn);
-  background: var(--v3-warn-tint);
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-finding-info {
-  border-color: var(--v3-info);
-  background: var(--v3-info-tint);
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-finding-ok {
-  border-color: var(--v3-success);
-  background: var(--v3-success-tint);
-}
-
-/* ── Banners ─────────────────────────────────────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-error {
-  background: var(--v3-crit-tint);
-  border-color: var(--v3-crit);
-  color: #8A0F2E;
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-success {
-  background: var(--v3-success-tint);
-  border-color: var(--v3-success);
-  color: #00604F;
-}
-
-/* ── Chips ──────────────────────────────────────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 .v3-chip {
-  border-color: var(--v3-border-strong);
-  background: var(--v3-surface);
-  font-family: "VT323", monospace;
-}
-body[data-theme-v3="y2k-pop"] .appv3 .v3-chip.active {
-  background: var(--v3-accent);
-  border-color: var(--v3-accent);
-  color: #FFFFFF;
-  box-shadow: 1px 1px 0 0 var(--v3-info);
-}
-
-/* ── Buttons: pixel windows in miniature ─────────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 button,
-body[data-theme-v3="y2k-pop"] .appv3 .v3-btn {
-  border-color: var(--v3-border-strong);
-  box-shadow: 1px 1px 0 0 rgba(75, 36, 97, 0.22);
-}
-body[data-theme-v3="y2k-pop"] .appv3 button:hover,
-body[data-theme-v3="y2k-pop"] .appv3 .v3-btn:hover {
-  box-shadow: 2px 2px 0 0 rgba(75, 36, 97, 0.28);
-}
-body[data-theme-v3="y2k-pop"] .appv3 button:active,
-body[data-theme-v3="y2k-pop"] .appv3 .v3-btn:active {
   box-shadow: none;
 }
 
-/* ── Focus visible: cyan ring + magenta core ─────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 button:focus-visible,
-body[data-theme-v3="y2k-pop"] .appv3 a:focus-visible,
-body[data-theme-v3="y2k-pop"] .appv3 input:focus-visible,
-body[data-theme-v3="y2k-pop"] .appv3 select:focus-visible {
-  outline: 2px solid var(--v3-accent);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.35);
+/* ── Topbar ───────────────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .v3-topbar {
+  box-shadow: none;
 }
 
-/* ── Scrollbar: chunky pixel rail ────────────────────────────── */
-body[data-theme-v3="y2k-pop"] .appv3 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+/* ── Sidebar ──────────────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .v3-sidebar {
+  background: var(--v3-bg);
 }
-body[data-theme-v3="y2k-pop"] .appv3 ::-webkit-scrollbar-track {
-  background: var(--v3-accent-tint);
-  border-left: 1px solid var(--v3-accent);
+
+/* ── Sidebar active ───────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .v3-side-link.active {
+  color: var(--v3-text);
 }
-body[data-theme-v3="y2k-pop"] .appv3 ::-webkit-scrollbar-thumb {
+
+/* ── Row hover ────────────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .v3-row:hover {
+  background: var(--v3-surface-2);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
+}
+
+/* ── Pills ────────────────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .v3-pill,
+body[data-theme-v3="y2k-pop"] .v3-pill-soft {
+  background: var(--v3-surface-2);
+}
+
+/* ── Primary button + update banners ──────────────────────── */
+body[data-theme-v3="y2k-pop"] .v3-btn-primary,
+body[data-theme-v3="y2k-pop"] .v3-update-banner-primary,
+body[data-theme-v3="y2k-pop"] .v3-update-row-action {
   background: var(--v3-accent);
-  border: 2px solid var(--v3-accent-tint);
-  background-clip: content-box;
+  color: #FFFFFF;
 }
-body[data-theme-v3="y2k-pop"] .appv3 ::-webkit-scrollbar-thumb:hover {
-  background: var(--v3-accent-hover);
-  background-clip: content-box;
+
+/* ── Ghost button ─────────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .v3-btn-ghost {
+  background: var(--v3-surface-2);
+  color: var(--v3-text-2);
+}
+body[data-theme-v3="y2k-pop"] .v3-btn-ghost:hover {
+  border-color: var(--v3-text-4);
+  color: var(--v3-text);
+}
+
+/* ── Inputs ──────────────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .v3-input,
+body[data-theme-v3="y2k-pop"] .v3-search input,
+body[data-theme-v3="y2k-pop"] .v3-select {
+  background: var(--v3-surface);
+  color: var(--v3-text);
+  font-family: "VT323", ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+/* ── Statusbar ────────────────────────────────────────────── */
+body[data-theme-v3="y2k-pop"] .v3-statusbar {
+  background: var(--v3-surface);
+  color: var(--v3-text-3);
+}
+
+/* ── Signature: dithered magenta-cyan checker on content ─── */
+body[data-theme-v3="y2k-pop"] .appv3 .appv3-content {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='2' height='2' fill='%23FF5FB0' fill-opacity='0.06'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%2322D3EE' fill-opacity='0.06'/%3E%3C/svg%3E");
+  background-repeat: repeat;
 }

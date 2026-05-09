@@ -1,247 +1,140 @@
 /* =============================================================
    V3 Theme: UNIX 90
-   Identity: CDE / Motif / Solaris desktop, ~1996–1999. Cool steel
+   Identity: CDE / Motif / Solaris desktop, ~1996-1999. Cool steel
    greys with cyan/teal accents, hairline borders, FLAT panels —
-   no 3D bevels, no soft shadows. The opposite of Win95: where
-   chrome95 lifts every panel with white-and-black bevel layers,
-   unix-90 paints everything as flat tiles separated by single
-   hairlines. More terminal-y, more engineering workstation.
+   no 3D bevels. Engineering workstation.
    Reference moods: Solaris CDE, OpenWindows, Motif, fvwm95, IRIX.
 
-   Palette + font + decoration package only — geometry (radius,
-   padding, font-size on structural elements) lives in the V3 base.
+   Universal data-dense blocks parameterised to steel-grey + teal.
+   Signatures: CDE desktop steel-blue at body edge, hard solid teal
+   focus rectangle (no dotted ants).
    ============================================================= */
 
-/* ── Body background — the iconic CDE blue-grey desktop ─────── */
+/* ── Body background — CDE desktop steel-blue at edges ────── */
 body.v3-layout[data-theme-v3="unix-90"] {
-  background: #6B7C8C;          /* CDE desktop steel-blue */
+  background: #6B7C8C;
 }
 
-/* ── Token definitions ──────────────────────────────────────── */
 body[data-theme-v3="unix-90"] .appv3 {
-  /* ── Surface family — cool greys, NOT warm Win95 #D4D0C8 ──── */
-  --v3-bg:            #B8BEC4;  /* Motif "background" steel-grey, slightly cool */
-  --v3-surface:       #C4CACF;  /* panel face — a hair lighter, still flat */
-  --v3-surface-2:     #A8AEB4;  /* sunken wells / inactive titlebar */
-  --v3-hover:         #CFD5DA;  /* +cyan tilt; CDE highlight was bluish */
-  --v3-border:        #5C6770;  /* the workhorse hairline — dark steel */
-  --v3-border-strong: #2A323A;  /* hard outline; nearly the terminal black */
+  --v3-bg:            #B8BEC4;
+  --v3-surface:       #C4CACF;
+  --v3-surface-2:     #D2D7DC;
+  --v3-hover:         #CFD5DA;
+  --v3-border:        #5C6770;
+  --v3-border-strong: #2A323A;
 
-  /* ── Type ─────────────────────────────────────────────────── */
-  /* Black on #C4CACF ≈ 12.8:1. Solaris/CDE was unapologetically black-on-grey. */
-  --v3-text:   #0A0F14;          /* near-black; warmer than pure 000 reads better here */
-  --v3-text-2: #1F2830;          /* secondary; ≈11:1 */
-  --v3-text-3: #4A5460;          /* dim labels; ≈6.5:1 — replaces broken Motif gray */
-  --v3-text-4: #6B7480;          /* placeholder/decorative; ≈4.6:1 */
+  --v3-text:   #0A0F14;
+  --v3-text-2: #1F2830;
+  --v3-text-3: #4A5460;
+  --v3-text-4: #6B7480;
 
-  /* ── Accent — Solaris CDE cyan/teal, the signature pop ────── */
-  --v3-accent:        #1F6F87;   /* desaturated CDE teal — engineering, not playful */
-  --v3-accent-hover:  #2A8AA5;   /* +12 on lightness for press feedback */
-  --v3-accent-tint:   #BDD3DA;   /* teal mixed onto steel-grey, opaque (no rgba) */
+  --v3-accent:        #1F6F87;
+  --v3-accent-hover:  #2A8AA5;
+  --v3-accent-tint:   #BDD3DA;
   --v3-accent-soft:   rgba(31, 111, 135, 0.16);
 
-  /* ── Semantic — period-appropriate, AA-corrected ──────────── */
-  --v3-success:       #1F7A3A;   /* xterm/IRIX green, darker than DOS green */
-  --v3-success-tint:  #C6DDC9;   /* opaque green-on-grey */
-  --v3-warn:          #8A6A0A;   /* mustard — Motif resource-error yellow */
-  --v3-warn-tint:     #E2D7B0;   /* parchment, but cooler than chrome95 */
-  /* Steel-blue info — distinct from the teal accent so they don't collide */
-  --v3-info:          #355E8A;   /* navy-leaning steel */
+  --v3-success:       #1F7A3A;
+  --v3-success-tint:  #C6DDC9;
+  --v3-warn:          #8A6A0A;
+  --v3-warn-tint:     #E2D7B0;
+  --v3-info:          #355E8A;
   --v3-info-tint:     #C2CDDB;
-  --v3-crit:          #8C1F1F;   /* Motif XmError red — deeper than Win95 maroon */
+  --v3-crit:          #8C1F1F;
   --v3-crit-tint:     #E2C5C5;
 
-  /* ── Shadows — FLAT. No bevels, no glow. Just a hairline. ───
-     Where chrome95 stacks 4 inset layers to fake 3D, unix-90
-     uses a single dark border line. The ONE concession to
-     dimension is a 1px white inner highlight (Motif's
-     XmNtopShadowColor on a flat widget). */
   --v3-shadow-1: 0 0 0 1px #5C6770;
-  --v3-shadow-2: 0 0 0 1px #2A323A,
-                 inset 1px 1px 0 0 #DCE2E6;
-  --v3-shadow-3: inset 0 0 0 1px #5C6770,
-                 inset 1px 1px 0 0 #8A929A;
+  --v3-shadow-2: 0 0 0 1px #2A323A;
+  --v3-shadow-3: 0 0 0 1px #5C6770;
 }
 
-/* ── App canvas: flat steel-grey, no gradient overlay ──────── */
-body[data-theme-v3="unix-90"] .appv3 {
+/* ── Mono on telemetry / numerics ─────────────────────────── */
+body[data-theme-v3="unix-90"] .appv3 .v3-stat-value,
+body[data-theme-v3="unix-90"] .appv3 .v3-stat-meta,
+body[data-theme-v3="unix-90"] .appv3 .v3-row-meta,
+body[data-theme-v3="unix-90"] .appv3 .v3-row-path,
+body[data-theme-v3="unix-90"] .appv3 .v3-statusbar,
+body[data-theme-v3="unix-90"] .appv3 .v3-version,
+body[data-theme-v3="unix-90"] .appv3 .v3-git-hash,
+body[data-theme-v3="unix-90"] .appv3 .v3-pill,
+body[data-theme-v3="unix-90"] .appv3 [class*="-meta"],
+body[data-theme-v3="unix-90"] .appv3 [class*="-time"],
+body[data-theme-v3="unix-90"] .appv3 [class*="-count"],
+body[data-theme-v3="unix-90"] .appv3 [class*="-version"],
+body[data-theme-v3="unix-90"] .appv3 [class*="-status"],
+body[data-theme-v3="unix-90"] .appv3 code {
+  font-family: ui-monospace, "Lucida Console", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+/* ── Cards / stat-cards / update-rows ─────────────────────── */
+body[data-theme-v3="unix-90"] .v3-card,
+body[data-theme-v3="unix-90"] .v3-stat-card,
+body[data-theme-v3="unix-90"] .v3-update-row {
+  background: var(--v3-surface);
+  box-shadow: none;
+}
+
+/* ── Topbar ───────────────────────────────────────────────── */
+body[data-theme-v3="unix-90"] .v3-topbar {
+  box-shadow: none;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+body[data-theme-v3="unix-90"] .v3-sidebar {
   background: var(--v3-bg);
+}
+
+/* ── Sidebar active ───────────────────────────────────────── */
+body[data-theme-v3="unix-90"] .v3-side-link.active {
   color: var(--v3-text);
 }
 
-/* ── Surfaces: hairline + 1px white inner highlight ──────── */
-body[data-theme-v3="unix-90"] .appv3 .v3-card,
-body[data-theme-v3="unix-90"] .appv3 .v3-stat-card,
-body[data-theme-v3="unix-90"] .appv3 .v3-panel,
-body[data-theme-v3="unix-90"] .appv3 .v3-row {
-  background: var(--v3-surface);
-  box-shadow: inset 1px 1px 0 0 #DCE2E6;
-}
-
-/* Hover: shift to the cooler highlight tint AND swap the
-   border to the hard outline — like a Motif widget gaining
-   focus. */
-body[data-theme-v3="unix-90"] .appv3 .v3-stat-card:hover,
-body[data-theme-v3="unix-90"] .appv3 .v3-row:hover {
-  background: var(--v3-hover);
-  border-color: var(--v3-border-strong);
-}
-
-/* ── Buttons: flat tiles with a hairline highlight ─────────── */
-body[data-theme-v3="unix-90"] .appv3 button,
-body[data-theme-v3="unix-90"] .appv3 .v3-btn {
-  background: var(--v3-surface);
-  color: var(--v3-text);
-  box-shadow: inset 1px 1px 0 0 #DCE2E6;
-  font-family: inherit;
-}
-body[data-theme-v3="unix-90"] .appv3 button:hover,
-body[data-theme-v3="unix-90"] .appv3 .v3-btn:hover {
-  background: var(--v3-hover);
-}
-/* Press = swap to sunken well (Motif didn't shift labels) */
-body[data-theme-v3="unix-90"] .appv3 button:active,
-body[data-theme-v3="unix-90"] .appv3 .v3-btn:active {
+/* ── Row hover ────────────────────────────────────────────── */
+body[data-theme-v3="unix-90"] .v3-row:hover {
   background: var(--v3-surface-2);
-  box-shadow: var(--v3-shadow-3);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
 }
 
-/* Primary button: teal face, white text */
-body[data-theme-v3="unix-90"] .appv3 .v3-btn-primary,
-body[data-theme-v3="unix-90"] .appv3 button.primary {
+/* ── Pills ────────────────────────────────────────────────── */
+body[data-theme-v3="unix-90"] .v3-pill,
+body[data-theme-v3="unix-90"] .v3-pill-soft {
+  background: var(--v3-surface-2);
+}
+
+/* ── Primary button + update banners ──────────────────────── */
+body[data-theme-v3="unix-90"] .v3-btn-primary,
+body[data-theme-v3="unix-90"] .v3-update-banner-primary,
+body[data-theme-v3="unix-90"] .v3-update-row-action {
   background: var(--v3-accent);
   color: #FFFFFF;
-  box-shadow: inset 1px 1px 0 0 rgba(255, 255, 255, 0.18);
 }
 
-/* ── Inputs: white well ─────────────────────────────────── */
-body[data-theme-v3="unix-90"] .appv3 input,
-body[data-theme-v3="unix-90"] .appv3 textarea,
-body[data-theme-v3="unix-90"] .appv3 select {
-  background: #FFFFFF;
+/* ── Ghost button ─────────────────────────────────────────── */
+body[data-theme-v3="unix-90"] .v3-btn-ghost {
+  background: var(--v3-surface-2);
+  color: var(--v3-text-2);
+}
+body[data-theme-v3="unix-90"] .v3-btn-ghost:hover {
+  border-color: var(--v3-text-4);
   color: var(--v3-text);
-  box-shadow: inset 1px 1px 0 0 #8A929A;
-  font-family: inherit;
 }
 
-/* ── Focus: solid teal — no dotted, no glow ─────── */
-/* Motif used a hard focus rectangle, not Win95's dotted ants.
-   This is a major divergence point from chrome95. */
+/* ── Inputs ──────────────────────────────────────────────── */
+body[data-theme-v3="unix-90"] .v3-input,
+body[data-theme-v3="unix-90"] .v3-search input,
+body[data-theme-v3="unix-90"] .v3-select {
+  background: var(--v3-surface);
+  color: var(--v3-text);
+  font-family: ui-monospace, "Lucida Console", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+/* ── Statusbar ────────────────────────────────────────────── */
+body[data-theme-v3="unix-90"] .v3-statusbar {
+  background: var(--v3-surface);
+  color: var(--v3-text-3);
+}
+
+/* ── Signature: hard solid teal focus rectangle (Motif) ───── */
 body[data-theme-v3="unix-90"] .appv3 :focus-visible {
   outline: 1px solid var(--v3-accent);
   outline-offset: 1px;
-}
-
-/* ── Topbar: flat bar ───────────────────────────────────── */
-body[data-theme-v3="unix-90"] .v3-topbar {
-  background: var(--v3-surface);
-  box-shadow: none;
-}
-/* Active tab: teal underline (CDE's selected-page indicator) */
-body[data-theme-v3="unix-90"] .v3-topbar .v3-tab.active,
-body[data-theme-v3="unix-90"] .appv3 .v3-tab.active {
-  background: transparent;
-  color: var(--v3-accent);
-  box-shadow: inset 0 -2px 0 0 var(--v3-accent);
-}
-
-/* ── Sidebar: flat panel, teal active rail ──────────── */
-body[data-theme-v3="unix-90"] .appv3 .v3-sidebar {
-  background: var(--v3-surface);
-  box-shadow: none;
-}
-body[data-theme-v3="unix-90"] .appv3 .v3-side-link.active {
-  background: var(--v3-accent-tint);
-  color: var(--v3-text);
-}
-
-/* ── Companion stage: flat tile ──────────────────────── */
-body[data-theme-v3="unix-90"] .appv3 .v3-companion-stage {
-  background: var(--v3-surface);
-}
-/* The titlebar above it: solid teal w/ white text — CDE titlebar */
-body[data-theme-v3="unix-90"] .appv3 .v3-companion-head {
-  background: var(--v3-accent);
-  color: #FFFFFF;
-}
-
-/* ── Stat icon tints — desaturated, opaque-on-grey ───────── */
-body[data-theme-v3="unix-90"] .appv3 .v3-stat-icon-orange {
-  background: #DCC8B4;          /* clay */
-  color: #6E3A0F;
-}
-body[data-theme-v3="unix-90"] .appv3 .v3-stat-icon-purple {
-  background: #C8C0D4;          /* cool lavender, leans cyan */
-  color: #3A2E66;
-}
-body[data-theme-v3="unix-90"] .appv3 .v3-stat-icon-amber {
-  background: var(--v3-warn-tint);
-  color: var(--v3-warn);
-}
-body[data-theme-v3="unix-90"] .appv3 .v3-stat-icon-green {
-  background: var(--v3-success-tint);
-  color: var(--v3-success);
-}
-
-/* ── Audit / findings: flat wells ───────────────────────── */
-body[data-theme-v3="unix-90"] .appv3 .v3-audit-foot,
-body[data-theme-v3="unix-90"] .appv3 .v3-finding-warn {
-  background: var(--v3-warn-tint);
-  border-color: var(--v3-warn);
-  color: var(--v3-warn);
-  box-shadow: none;
-}
-body[data-theme-v3="unix-90"] .appv3 .v3-finding-crit,
-body[data-theme-v3="unix-90"] .appv3 .v3-error {
-  background: var(--v3-crit-tint);
-  border-color: var(--v3-crit);
-  color: var(--v3-crit);
-  box-shadow: none;
-}
-body[data-theme-v3="unix-90"] .appv3 .v3-finding-info {
-  background: var(--v3-info-tint);
-  border-color: var(--v3-info);
-  color: var(--v3-info);
-  box-shadow: none;
-}
-body[data-theme-v3="unix-90"] .appv3 .v3-finding-ok,
-body[data-theme-v3="unix-90"] .appv3 .v3-success {
-  background: var(--v3-success-tint);
-  border-color: var(--v3-success);
-  color: var(--v3-success);
-  box-shadow: none;
-}
-
-/* ── PR pill / row icon — teal on tint ───────────────── */
-body[data-theme-v3="unix-90"] .appv3 .v3-pr-pill-review,
-body[data-theme-v3="unix-90"] .appv3 .v3-row-pr .v3-row-icon {
-  background: var(--v3-accent-tint);
-  color: var(--v3-accent);
-  box-shadow: none;
-}
-
-/* ── Chip.active: teal face ──────────────────────────── */
-body[data-theme-v3="unix-90"] .appv3 .v3-chip.active {
-  background: var(--v3-accent);
-  color: #FFFFFF;
-  box-shadow: none;
-}
-
-/* ── Selection: teal bar, white text — CDE highlight ─── */
-body[data-theme-v3="unix-90"] .appv3 ::selection {
-  background: var(--v3-accent);
-  color: #FFFFFF;
-}
-
-/* ── Scrollbar: flat dark steel ────────────────────────── */
-body[data-theme-v3="unix-90"] .appv3 ::-webkit-scrollbar {
-  width: 14px;
-  height: 14px;
-  background: var(--v3-surface-2);
-}
-body[data-theme-v3="unix-90"] .appv3 ::-webkit-scrollbar-thumb {
-  background: var(--v3-surface);
-}
-body[data-theme-v3="unix-90"] .appv3 ::-webkit-scrollbar-thumb:hover {
-  background: var(--v3-hover);
 }

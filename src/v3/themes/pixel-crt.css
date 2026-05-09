@@ -1,91 +1,142 @@
 /* =============================================================
    V3 Theme: PIXEL-CRT
    Identity: royal-purple chassis with black-inset LCD windows
-   that glow phosphor-green for every numeric readout. Body in
-   Inter on purple; numerics in VT323 on black, like a vintage
-   pixel-LCD health-tracker bezel.
+   that glow phosphor-green for every numeric readout.
+   Reference moods: vintage pixel-LCD health-tracker bezel,
+   late-90s consumer electronics on royal purple.
 
-   Palette + font + decoration package only — all geometry
-   (radius, padding, font-size on structural elements) lives in
-   the V3 base.
+   Universal data-dense blocks parameterised to royal purple +
+   phosphor green. Signatures: phosphor-LCD numerics tile (black
+   inset bg + VT323 + green text), purple body gradient.
    ============================================================= */
 
+@import url("https://fonts.googleapis.com/css2?family=VT323&display=swap");
+
+/* ── Body background ──────────────────────────────────────── */
 body.v3-layout[data-theme-v3="pixel-crt"] {
   background: linear-gradient(180deg, #3F2EBC 0%, #3326A0 100%);
 }
 
 body[data-theme-v3="pixel-crt"] .appv3 {
-  /* ── Surfaces ─────────────────────────────────────────────── */
   --v3-bg:           #3326A0;
-  --v3-surface:      #3F2EBC;          /* card body — royal purple */
-  --v3-surface-2:    #4A38D2;          /* inner sub-surface */
+  --v3-surface:      #3F2EBC;
+  --v3-surface-2:    #4A38D2;
   --v3-hover:        #5544DE;
-  --v3-border:       #1A1466;          /* navy bezel inset */
+  --v3-border:       #1A1466;
   --v3-border-strong: #0D0840;
 
-  /* ── Type ─────────────────────────────────────────────────── */
   --v3-text:   #F4F1FF;
   --v3-text-2: #D9D2FF;
-  --v3-text-3: #B5ABF2;                /* ≈ 5.0:1 on surface */
+  --v3-text-3: #B5ABF2;
   --v3-text-4: #8C82C9;
 
-  /* ── Accent: pixel phosphor green ─────────────────────────── */
   --v3-accent:       #5DE693;
   --v3-accent-hover: #46CC7A;
   --v3-accent-tint:  rgba(93, 230, 147, 0.16);
   --v3-accent-soft:  rgba(93, 230, 147, 0.22);
 
-  /* ── Semantic ─────────────────────────────────────────────── */
   --v3-success:      #5DE693;
   --v3-success-tint: rgba(93, 230, 147, 0.16);
   --v3-warn:         #FFB454;
   --v3-warn-tint:    rgba(255, 180, 84, 0.18);
-  /* Calm cyan info — never yellow */
   --v3-info:         #5DD5FF;
   --v3-info-tint:    rgba(93, 213, 255, 0.18);
   --v3-crit:         #FF6B8A;
   --v3-crit-tint:    rgba(255, 107, 138, 0.18);
 
-  /* ── Shadows: hard-edge bezel, no gauzy glow ──────────────── */
   --v3-shadow-1: 0 2px 0 0 rgba(13, 8, 64, 0.55);
   --v3-shadow-2: 0 3px 0 0 rgba(13, 8, 64, 0.65), 0 0 0 1px rgba(13, 8, 64, 0.40);
   --v3-shadow-3: 0 6px 0 0 rgba(13, 8, 64, 0.70), 0 0 0 1px rgba(13, 8, 64, 0.50);
 }
 
-/* ── Body chrome ──────────────────────────────────────────── */
-body[data-theme-v3="pixel-crt"] .appv3 {
-  background: linear-gradient(180deg, #3F2EBC 0%, #3326A0 100%);
+/* ── Mono on telemetry / numerics — VT323 phosphor face ───── */
+body[data-theme-v3="pixel-crt"] .appv3 .v3-stat-value,
+body[data-theme-v3="pixel-crt"] .appv3 .v3-stat-meta,
+body[data-theme-v3="pixel-crt"] .appv3 .v3-row-meta,
+body[data-theme-v3="pixel-crt"] .appv3 .v3-row-path,
+body[data-theme-v3="pixel-crt"] .appv3 .v3-statusbar,
+body[data-theme-v3="pixel-crt"] .appv3 .v3-version,
+body[data-theme-v3="pixel-crt"] .appv3 .v3-git-hash,
+body[data-theme-v3="pixel-crt"] .appv3 .v3-pill,
+body[data-theme-v3="pixel-crt"] .appv3 [class*="-meta"],
+body[data-theme-v3="pixel-crt"] .appv3 [class*="-time"],
+body[data-theme-v3="pixel-crt"] .appv3 [class*="-count"],
+body[data-theme-v3="pixel-crt"] .appv3 [class*="-version"],
+body[data-theme-v3="pixel-crt"] .appv3 [class*="-status"],
+body[data-theme-v3="pixel-crt"] .appv3 code {
+  font-family: "VT323", "Courier New", ui-monospace, monospace;
 }
 
-body[data-theme-v3="pixel-crt"] .appv3-content {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.02) 0px, transparent 64px),
-    var(--v3-bg);
-}
-
-/* ── Cards: chunky navy bezel via shadow (color-bound) ────── */
-body[data-theme-v3="pixel-crt"] .appv3 .v3-stat-card,
-body[data-theme-v3="pixel-crt"] .appv3 .v3-card,
-body[data-theme-v3="pixel-crt"] .appv3 .v3-row,
-body[data-theme-v3="pixel-crt"] .appv3 .v3-companion-widget,
-body[data-theme-v3="pixel-crt"] .appv3 .v3-audit-tile {
-  box-shadow:
-    inset 0 0 0 4px var(--v3-border),
-    var(--v3-shadow-2);
-}
-
-/* ── Topbar / sidebar separators: navy hairline ───────────── */
-body[data-theme-v3="pixel-crt"] .v3-topbar,
-body[data-theme-v3="pixel-crt"] .v3-sidebar,
-body[data-theme-v3="pixel-crt"] .v3-rightpanel {
+/* ── Cards / stat-cards / update-rows ─────────────────────── */
+body[data-theme-v3="pixel-crt"] .v3-card,
+body[data-theme-v3="pixel-crt"] .v3-stat-card,
+body[data-theme-v3="pixel-crt"] .v3-update-row {
   background: var(--v3-surface);
-  box-shadow: inset 0 0 0 1px rgba(13, 8, 64, 0.40);
+  box-shadow: none;
 }
 
-/* ── BLACK INSET LCD: numeric readouts ────────────────────── */
-/* The signature move: any numeric tile gets a black sub-surface
-   with phosphor-green VT323 type. Decoration only — colors and
-   font, not geometry. */
+/* ── Topbar ───────────────────────────────────────────────── */
+body[data-theme-v3="pixel-crt"] .v3-topbar {
+  box-shadow: none;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+body[data-theme-v3="pixel-crt"] .v3-sidebar {
+  background: var(--v3-bg);
+}
+
+/* ── Sidebar active ───────────────────────────────────────── */
+body[data-theme-v3="pixel-crt"] .v3-side-link.active {
+  color: var(--v3-text);
+}
+
+/* ── Row hover ────────────────────────────────────────────── */
+body[data-theme-v3="pixel-crt"] .v3-row:hover {
+  background: var(--v3-surface-2);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
+}
+
+/* ── Pills ────────────────────────────────────────────────── */
+body[data-theme-v3="pixel-crt"] .v3-pill,
+body[data-theme-v3="pixel-crt"] .v3-pill-soft {
+  background: var(--v3-surface-2);
+}
+
+/* ── Primary button + update banners ──────────────────────── */
+body[data-theme-v3="pixel-crt"] .v3-btn-primary,
+body[data-theme-v3="pixel-crt"] .v3-update-banner-primary,
+body[data-theme-v3="pixel-crt"] .v3-update-row-action {
+  background: var(--v3-accent);
+  color: #0A0820;
+}
+
+/* ── Ghost button ─────────────────────────────────────────── */
+body[data-theme-v3="pixel-crt"] .v3-btn-ghost {
+  background: var(--v3-surface-2);
+  color: var(--v3-text-2);
+}
+body[data-theme-v3="pixel-crt"] .v3-btn-ghost:hover {
+  border-color: var(--v3-text-4);
+  color: var(--v3-text);
+}
+
+/* ── Inputs ──────────────────────────────────────────────── */
+body[data-theme-v3="pixel-crt"] .v3-input,
+body[data-theme-v3="pixel-crt"] .v3-search input,
+body[data-theme-v3="pixel-crt"] .v3-select {
+  background: var(--v3-surface);
+  color: var(--v3-text);
+  font-family: "VT323", "Courier New", ui-monospace, monospace;
+}
+
+/* ── Statusbar ────────────────────────────────────────────── */
+body[data-theme-v3="pixel-crt"] .v3-statusbar {
+  background: var(--v3-surface);
+  color: var(--v3-text-3);
+}
+
+/* ── Signature: black phosphor-LCD numerics tile ──────────── */
+/* Numerics get a black inset LCD background with phosphor glow. */
 body[data-theme-v3="pixel-crt"] .appv3 .v3-stat-card .v3-stat-num,
 body[data-theme-v3="pixel-crt"] .appv3 .v3-audit-tile-num,
 body[data-theme-v3="pixel-crt"] .appv3 .v3-workspace-row-value,
@@ -96,183 +147,4 @@ body[data-theme-v3="pixel-crt"] .appv3 .v3-statusbar-num {
   color: #5DE693;
   background: #0A0820;
   text-shadow: 0 0 6px rgba(93, 230, 147, 0.45);
-  box-shadow:
-    inset 0 0 0 1px #1A1466,
-    inset 0 2px 4px rgba(0, 0, 0, 0.65),
-    inset 0 0 12px rgba(93, 230, 147, 0.08);
-}
-
-/* ── Stat icon tints: muted on the purple bezel ───────────── */
-body[data-theme-v3="pixel-crt"] .v3-stat-icon-orange {
-  background: rgba(255, 180, 84, 0.18);
-  color: #FFB454;
-}
-body[data-theme-v3="pixel-crt"] .v3-stat-icon-purple {
-  background: rgba(196, 181, 253, 0.20);
-  color: #DCD3FF;
-}
-body[data-theme-v3="pixel-crt"] .v3-stat-icon-amber {
-  background: rgba(255, 180, 84, 0.18);
-  color: #FFD27A;
-}
-body[data-theme-v3="pixel-crt"] .v3-stat-icon-green {
-  background: rgba(93, 230, 147, 0.18);
-  color: #5DE693;
-}
-
-/* ── Sidebar active link: chunky inverted bar ─────────────── */
-body[data-theme-v3="pixel-crt"] .v3-side-link.active {
-  background: #0D0840;
-  color: #FFFFFF;
-  box-shadow:
-    inset 3px 0 0 #5DE693,
-    inset 0 0 0 1px #1A1466;
-}
-body[data-theme-v3="pixel-crt"] .v3-side-link:hover {
-  background: var(--v3-hover);
-}
-
-/* ── Buttons: blocky pixel chassis ────────────────────────── */
-body[data-theme-v3="pixel-crt"] .appv3 button,
-body[data-theme-v3="pixel-crt"] .appv3 .v3-btn {
-  box-shadow: 0 2px 0 0 rgba(13, 8, 64, 0.65);
-}
-body[data-theme-v3="pixel-crt"] .appv3 button:active,
-body[data-theme-v3="pixel-crt"] .appv3 .v3-btn:active {
-  box-shadow: 0 1px 0 0 rgba(13, 8, 64, 0.65);
-}
-body[data-theme-v3="pixel-crt"] .appv3 .v3-btn-primary {
-  background: #5DE693;
-  color: #0A0820;
-  border-color: #2FA565;
-  text-shadow: none;
-}
-body[data-theme-v3="pixel-crt"] .appv3 .v3-btn-primary:hover {
-  background: #46CC7A;
-}
-
-/* ── Tab strip: 2-tone arrows on hover ────────────────────── */
-body[data-theme-v3="pixel-crt"] .v3-tab.active::before,
-body[data-theme-v3="pixel-crt"] .v3-tabstrip-item.active::before {
-  content: "\25C0";
-  margin-right: 6px;
-  color: #5DE693;
-}
-body[data-theme-v3="pixel-crt"] .v3-tab.active::after,
-body[data-theme-v3="pixel-crt"] .v3-tabstrip-item.active::after {
-  content: "\25B6";
-  margin-left: 6px;
-  color: #5DE693;
-}
-
-/* ── Companion stage: navy double-line bezel via shadow ─── */
-body[data-theme-v3="pixel-crt"] .v3-companion-stage {
-  background:
-    radial-gradient(ellipse 90% 70% at 50% 100%,
-      rgba(93, 230, 147, 0.10) 0%,
-      transparent 70%),
-    #2A1F8A;
-  box-shadow:
-    inset 0 0 0 1px #0D0840,
-    inset 0 0 0 3px #3F2EBC,
-    inset 0 0 0 4px #0D0840;
-}
-
-/* ── Stat card hover: phosphor ring ───────────────────────── */
-body[data-theme-v3="pixel-crt"] .v3-stat-card:hover {
-  box-shadow:
-    inset 0 0 0 4px var(--v3-border),
-    var(--v3-shadow-2),
-    0 0 0 2px var(--v3-accent-soft);
-}
-body[data-theme-v3="pixel-crt"] .v3-row:hover {
-  border-color: #1A1466;
-  box-shadow:
-    inset 0 0 0 4px var(--v3-border),
-    var(--v3-shadow-2),
-    0 0 0 2px var(--v3-accent-soft);
-}
-
-/* ── Focus visible: green phosphor outline ────────────────── */
-body[data-theme-v3="pixel-crt"] .appv3 button:focus-visible,
-body[data-theme-v3="pixel-crt"] .appv3 a:focus-visible,
-body[data-theme-v3="pixel-crt"] .appv3 input:focus-visible,
-body[data-theme-v3="pixel-crt"] .appv3 select:focus-visible {
-  outline: 2px solid #5DE693;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(93, 230, 147, 0.25);
-}
-
-/* ── Audit footer: cyan info banner (never yellow) ────────── */
-body[data-theme-v3="pixel-crt"] .v3-audit-foot {
-  background: rgba(93, 213, 255, 0.12);
-  border-color: rgba(93, 213, 255, 0.40);
-  color: #B0E9FF;
-}
-body[data-theme-v3="pixel-crt"] .v3-audit-foot .v3-chev {
-  color: #5DD5FF;
-}
-
-/* ── Findings ─────────────────────────────────────────────── */
-body[data-theme-v3="pixel-crt"] .v3-finding-crit {
-  border-color: rgba(255, 107, 138, 0.40);
-  background: rgba(255, 107, 138, 0.10);
-}
-body[data-theme-v3="pixel-crt"] .v3-finding-warn {
-  border-color: rgba(255, 180, 84, 0.40);
-  background: rgba(255, 180, 84, 0.10);
-}
-body[data-theme-v3="pixel-crt"] .v3-finding-info {
-  border-color: rgba(93, 213, 255, 0.35);
-  background: rgba(93, 213, 255, 0.08);
-}
-body[data-theme-v3="pixel-crt"] .v3-finding-ok {
-  border-color: rgba(93, 230, 147, 0.35);
-  background: rgba(93, 230, 147, 0.08);
-}
-
-/* ── Banners ──────────────────────────────────────────────── */
-body[data-theme-v3="pixel-crt"] .v3-error {
-  background: rgba(255, 107, 138, 0.12);
-  border-color: rgba(255, 107, 138, 0.40);
-  color: #FFB1C2;
-}
-body[data-theme-v3="pixel-crt"] .v3-success {
-  background: rgba(93, 230, 147, 0.12);
-  border-color: rgba(93, 230, 147, 0.40);
-  color: #A6F2C2;
-}
-
-/* ── Chip.active ──────────────────────────────────────────── */
-body[data-theme-v3="pixel-crt"] .v3-chip.active {
-  background: #5DE693;
-  border-color: #2FA565;
-  color: #0A0820;
-}
-
-/* ── Statusbar: BPM-style green numerics ──────────────────── */
-body[data-theme-v3="pixel-crt"] .v3-statusbar {
-  background: var(--v3-surface);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
-}
-
-/* ── PR review pill ───────────────────────────────────────── */
-body[data-theme-v3="pixel-crt"] .v3-pr-pill-review {
-  background: rgba(196, 181, 253, 0.20);
-  color: #DCD3FF;
-}
-body[data-theme-v3="pixel-crt"] .v3-row-pr .v3-row-icon {
-  background: rgba(196, 181, 253, 0.18);
-  color: #DCD3FF;
-}
-
-/* ── Scrollbars: navy on purple ───────────────────────────── */
-body[data-theme-v3="pixel-crt"] .appv3 ::-webkit-scrollbar-thumb {
-  background: #1A1466;
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-body[data-theme-v3="pixel-crt"] .appv3 ::-webkit-scrollbar-thumb:hover {
-  background: #0D0840;
-  background-clip: content-box;
 }
