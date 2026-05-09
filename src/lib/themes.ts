@@ -10,6 +10,7 @@ export const V3_THEME_ORDER = [
   "unix-90",
   "ps2-glow",
   "data-dense",
+  "manga",
 ] as const;
 
 export type V3Theme = (typeof V3_THEME_ORDER)[number];
@@ -27,6 +28,7 @@ export const V3_THEME_OPTIONS: V3ThemeOption[] = [
   { id: "unix-90",    label: "Unix '90",   swatch: ["#B8BEC4", "#C4CACF", "#1F6F87"] },
   { id: "ps2-glow",   label: "PS2 Glow",   swatch: ["#050B1A", "#0E1F38", "#5CC8FF"] },
   { id: "data-dense", label: "Data Dense", swatch: ["#0E1014", "#13161C", "#5DD39E"] },
+  { id: "manga",      label: "Manga",      swatch: ["#E8E3D7", "#F2EEE3", "#C73E3E"] },
 ];
 
 // One-shot apply: load CSS + persist + set body attribute. Both the cycle

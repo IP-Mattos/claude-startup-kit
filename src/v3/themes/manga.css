@@ -1,0 +1,181 @@
+/* =============================================================
+   V3 Theme: MANGA
+   Identity: Black-and-white manga newspaper, screentone halftones,
+   pixel LCD numerics, condensed-bold display headings, single
+   blood-red accent for "SHOCKING!" callouts.
+   Reference moods: Zenless Zone Zero zine layouts, vintage shounen
+   magazines, classic Mac OS 1-bit pixel UI, retro LCD widget packs.
+   Font cue: Bebas Neue for display, VT323 for LCD numerics, Inter
+   for body prose.
+
+   Universal data-dense blocks parameterised to cream + ink + red.
+   Signatures: halftone screentone background on body, condensed-bold
+   Bebas Neue on display headings.
+   ============================================================= */
+
+/* ── Bebas Neue (display) + Inter (prose) + VT323 (LCD) ───── */
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=VT323&display=swap");
+
+/* ── Body background — parchment cream + halftone screentone ─ */
+body.v3-layout[data-theme-v3="manga"] {
+  background-color: #E8E3D7;
+  background-image:
+    radial-gradient(circle, rgba(15, 14, 10, 0.06) 1px, transparent 1px),
+    radial-gradient(circle, rgba(15, 14, 10, 0.04) 1px, transparent 1px);
+  background-size: 6px 6px, 12px 12px;
+  background-position: 0 0, 3px 3px;
+}
+
+body[data-theme-v3="manga"] .appv3 {
+  /* ── Surface — warm cream ladder ──────────────────────────── */
+  --v3-bg:            #E8E3D7;
+  --v3-surface:       #F2EEE3;        /* card "pops" lighter on cream page */
+  --v3-surface-2:     #DDD7C7;
+  --v3-hover:         #D2CCBC;
+  --v3-border:        #2C2820;        /* deep ink hairline */
+  --v3-border-strong: #0F0E0A;        /* full ink */
+
+  /* ── Type — ink hierarchy ─────────────────────────────────── */
+  --v3-text:   #0F0E0A;
+  --v3-text-2: #2C2820;
+  --v3-text-3: #645D4F;               /* manga shading gray */
+  --v3-text-4: #948D7F;
+
+  /* ── Accent — manga "SHOCKING!" red ───────────────────────── */
+  --v3-accent:       #C73E3E;
+  --v3-accent-hover: #D74F4F;
+  --v3-accent-tint:  rgba(199, 62, 62, 0.10);
+  --v3-accent-soft:  rgba(199, 62, 62, 0.18);
+
+  /* ── Semantic — newsprint palette ─────────────────────────── */
+  --v3-success:      #4A7B3E;
+  --v3-success-tint: rgba(74, 123, 62, 0.12);
+  --v3-warn:         #C77E1E;         /* kraft amber */
+  --v3-warn-tint:    rgba(199, 126, 30, 0.12);
+  --v3-info:         #3E70A3;         /* faded denim — image 1 hint */
+  --v3-info-tint:    rgba(62, 112, 163, 0.10);
+  --v3-crit:         #A81E1E;         /* deeper manga red */
+  --v3-crit-tint:    rgba(168, 30, 30, 0.12);
+
+  /* ── Shadows — flat ink hairlines, no depth ──────────────── */
+  --v3-shadow-1: 0 0 0 1px #2C2820;
+  --v3-shadow-2: 0 0 0 1px #0F0E0A;
+  --v3-shadow-3: 0 0 0 1px #0F0E0A;
+}
+
+/* ── Body sans = Inter; LCD numerics = VT323 ──────────────── */
+body[data-theme-v3="manga"] .appv3,
+body[data-theme-v3="manga"] .appv3 button,
+body[data-theme-v3="manga"] .appv3 input,
+body[data-theme-v3="manga"] .appv3 select {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+}
+
+body[data-theme-v3="manga"] .appv3 .v3-stat-value,
+body[data-theme-v3="manga"] .appv3 .v3-stat-meta,
+body[data-theme-v3="manga"] .appv3 .v3-row-meta,
+body[data-theme-v3="manga"] .appv3 .v3-row-path,
+body[data-theme-v3="manga"] .appv3 .v3-statusbar,
+body[data-theme-v3="manga"] .appv3 .v3-version,
+body[data-theme-v3="manga"] .appv3 .v3-git-hash,
+body[data-theme-v3="manga"] .appv3 .v3-pill,
+body[data-theme-v3="manga"] .appv3 [class*="-meta"],
+body[data-theme-v3="manga"] .appv3 [class*="-time"],
+body[data-theme-v3="manga"] .appv3 [class*="-count"],
+body[data-theme-v3="manga"] .appv3 [class*="-version"],
+body[data-theme-v3="manga"] .appv3 [class*="-status"],
+body[data-theme-v3="manga"] .appv3 code {
+  font-family: "VT323", ui-monospace, "JetBrains Mono",
+    "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.02em;
+}
+
+/* ── Cards / stat-cards / update-rows ─────────────────────── */
+body[data-theme-v3="manga"] .v3-card,
+body[data-theme-v3="manga"] .v3-stat-card,
+body[data-theme-v3="manga"] .v3-update-row {
+  background: var(--v3-surface);
+  box-shadow: none;
+}
+
+/* ── Topbar ───────────────────────────────────────────────── */
+body[data-theme-v3="manga"] .v3-topbar {
+  box-shadow: none;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+body[data-theme-v3="manga"] .v3-sidebar {
+  background: var(--v3-bg);
+}
+
+/* ── Sidebar active ───────────────────────────────────────── */
+body[data-theme-v3="manga"] .v3-side-link.active {
+  color: var(--v3-text);
+}
+
+/* ── Row hover — manga red caret ──────────────────────────── */
+body[data-theme-v3="manga"] .v3-row:hover {
+  background: var(--v3-surface-2);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
+}
+
+/* ── Pills ────────────────────────────────────────────────── */
+body[data-theme-v3="manga"] .v3-pill,
+body[data-theme-v3="manga"] .v3-pill-soft {
+  background: var(--v3-surface-2);
+}
+
+/* ── Primary button + update banners ──────────────────────── */
+body[data-theme-v3="manga"] .v3-btn-primary,
+body[data-theme-v3="manga"] .v3-update-banner-primary,
+body[data-theme-v3="manga"] .v3-update-row-action {
+  background: var(--v3-accent);
+  color: #F2EEE3;                     /* cream-on-red, like print ink */
+}
+
+/* ── Ghost button ─────────────────────────────────────────── */
+body[data-theme-v3="manga"] .v3-btn-ghost {
+  background: var(--v3-surface-2);
+  color: var(--v3-text-2);
+}
+body[data-theme-v3="manga"] .v3-btn-ghost:hover {
+  border-color: var(--v3-text-4);
+  color: var(--v3-text);
+}
+
+/* ── Inputs — VT323 LCD numerics carry into text fields ───── */
+body[data-theme-v3="manga"] .v3-input,
+body[data-theme-v3="manga"] .v3-search input,
+body[data-theme-v3="manga"] .v3-select {
+  background: var(--v3-surface);
+  color: var(--v3-text);
+  font-family: "Inter", -apple-system, sans-serif;
+}
+
+/* ── Statusbar ────────────────────────────────────────────── */
+body[data-theme-v3="manga"] .v3-statusbar {
+  background: var(--v3-surface);
+  color: var(--v3-text-3);
+}
+
+/* ──────────── Signature decorations ──────────────────────── */
+
+/* Bebas Neue condensed display on greetings + card titles —
+   gives the "SHOCKING!" newspaper headline weight without
+   touching layout geometry. */
+body[data-theme-v3="manga"] .v3-greeting,
+body[data-theme-v3="manga"] .v3-card-title,
+body[data-theme-v3="manga"] .v3-stat-value {
+  font-family: "Bebas Neue", "Oswald", "Impact", sans-serif;
+  letter-spacing: 0.02em;
+}
+
+/* Stat values get the LCD pixel pop from VT323 instead — kept
+   here as a per-card overrride since the universal mono rule
+   above already targets .v3-stat-value, but Bebas Neue is more
+   editorial. We pick VT323 to honor the LCD widgets in image 1. */
+body[data-theme-v3="manga"] .appv3 .v3-stat-value {
+  font-family: "VT323", "Bebas Neue", monospace;
+  letter-spacing: 0;
+}
