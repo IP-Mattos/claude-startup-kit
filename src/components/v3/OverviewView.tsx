@@ -26,7 +26,7 @@ import type {
   Project,
 } from "../../types";
 import type { V3Tab } from "../../v3/v3types";
-import { plural, useT } from "../../lib/i18n";
+import { plural, useT, type StringKey } from "../../lib/i18n";
 import { Sparkline } from "./Sparkline";
 
 // =============================================================
@@ -158,6 +158,259 @@ function freshnessScore(daysAgo: number): number {
   if (daysAgo <= 0) return 100;
   if (daysAgo >= 30) return 50;
   return Math.round(100 - daysAgo * 1.7);
+}
+
+// =============================================================
+// Audit summary — 4 hacker/data-style render modes the user picks
+// from a tiny chip selector. Mode persists in localStorage so it
+// sticks across reloads.
+// =============================================================
+
+type AuditMode = "tree" | "log" | "k9s" | "shell";
+const AUDIT_MODES: AuditMode[] = ["tree", "log", "k9s", "shell"];
+
+function isAuditMode(v: string): v is AuditMode {
+  return (AUDIT_MODES as string[]).includes(v);
+}
+
+function useAuditMode(): [AuditMode, (m: AuditMode) => void] {
+  const [mode, setMode] = useState<AuditMode>(() => {
+    try {
+      const saved = localStorage.getItem("csk-audit-mode");
+      if (saved && isAuditMode(saved)) return saved;
+    } catch {
+      /* localStorage unavailable */
+    }
+    return "tree";
+  });
+  const update = (m: AuditMode) => {
+    setMode(m);
+    try {
+      localStorage.setItem("csk-audit-mode", m);
+    } catch {
+      /* ignore */
+    }
+  };
+  return [mode, update];
+}
+
+// Pad numbers to align columns inside each ASCII layout. Width 3 fits
+// 0-999 which is the realistic range for a finding count.
+function pad(n: number, width = 3): string {
+  return String(n).padStart(width, " ");
+}
+
+interface AuditStats {
+  crit: number;
+  warn: number;
+  info: number;
+  total: number;
+}
+
+interface AuditModeProps {
+  stats: AuditStats;
+}
+
+// Mode 1 — Tree diagnostic (`tree` command output style).
+function AuditTreeMode({ stats }: AuditModeProps) {
+  const status =
+    stats.crit > 0 ? "ATTENTION" : stats.warn > 0 ? "WARNINGS" : "ALL CLEAR";
+  const statusClass =
+    stats.crit > 0
+      ? "audit-status-crit"
+      : stats.warn > 0
+      ? "audit-status-warn"
+      : "audit-status-ok";
+  return (
+    <div className="v3-audit-mode v3-audit-mode-tree">
+      <div>
+        <span className="audit-key">total </span>
+        <span className="audit-leader">─────── </span>
+        <span className="audit-num">{pad(stats.total)}</span>
+      </div>
+      <div className={stats.crit > 0 ? "audit-crit-active" : ""}>
+        <span className="audit-leader">├─ </span>
+        <span className="audit-key">crit </span>
+        <span className="audit-leader">······· </span>
+        <span className="audit-num">{pad(stats.crit)}</span>
+      </div>
+      <div>
+        <span className="audit-leader">├─ </span>
+        <span className="audit-key">warn </span>
+        <span className="audit-leader">······· </span>
+        <span className="audit-num">{pad(stats.warn)}</span>
+      </div>
+      <div>
+        <span className="audit-leader">└─ </span>
+        <span className="audit-key">info </span>
+        <span className="audit-leader">······· </span>
+        <span className="audit-num">{pad(stats.info)}</span>
+      </div>
+      <div style={{ marginTop: 8 }}>
+        <span className="audit-key">status: </span>
+        <span className={statusClass}>{status}</span>
+      </div>
+    </div>
+  );
+}
+
+// Mode 2 — top/htop-style log lines with `>` prompt.
+function AuditLogMode({ stats, t }: AuditModeProps & { t: (k: StringKey) => string }) {
+  const status =
+    stats.crit > 0 ? "crit" : stats.warn > 0 ? "warn" : "ok";
+  const statusClass =
+    stats.crit > 0
+      ? "audit-status-crit"
+      : stats.warn > 0
+      ? "audit-status-warn"
+      : "audit-status-ok";
+  return (
+    <div className="v3-audit-mode v3-audit-mode-log">
+      <div>
+        <span className="audit-prompt">{"> "}</span>
+        <span className="audit-num">{stats.total}</span>
+        <span className="audit-key"> findings</span>
+        <span style={{ marginLeft: 16 }} className="audit-key">status: </span>
+        <span className={statusClass}>{status}</span>
+      </div>
+      <div className={stats.crit > 0 ? "audit-crit-active" : ""}>
+        <span className="audit-prompt">{"> "}</span>
+        <span className="audit-key">crit </span>
+        <span className="audit-num">{String(stats.crit).padStart(2, "0")}</span>
+        <span className="audit-key">  warn </span>
+        <span className="audit-num">{String(stats.warn).padStart(2, "0")}</span>
+        <span className="audit-key">  info </span>
+        <span className="audit-num">{String(stats.info).padStart(2, "0")}</span>
+      </div>
+      <div>
+        <span className="audit-prompt">{"> "}</span>
+        <span className="audit-key">last scan: </span>
+        <span className="audit-num">{t("overview.audit_last_now")}</span>
+      </div>
+    </div>
+  );
+}
+
+// Mode 3 — k9s tabular view with status dots (● filled when value > 0).
+function AuditK9sMode({ stats }: AuditModeProps) {
+  const row = (key: string, n: number, isCrit = false) => {
+    const active = n > 0;
+    return (
+      <div
+        className={
+          (active ? "audit-row-active " : "") +
+          (isCrit && active ? "audit-crit-active" : "")
+        }
+      >
+        <span className="audit-dot">{active ? "●" : "○"}</span>
+        <span className="audit-key">  {key.padEnd(6, " ")}</span>
+        <span className="audit-num">{pad(n)}</span>
+      </div>
+    );
+  };
+  return (
+    <div className="v3-audit-mode v3-audit-mode-k9s">
+      {row("CRIT", stats.crit, true)}
+      {row("WARN", stats.warn)}
+      {row("INFO", stats.info)}
+      <div className="audit-leader">─────────────────</div>
+      <div>
+        <span style={{ display: "inline-block", width: 8 }} />
+        <span className="audit-key">  TOTAL </span>
+        <span className="audit-num">{pad(stats.total)}</span>
+      </div>
+    </div>
+  );
+}
+
+// Mode 4 — shell command echo (`$ csk audit --summary`).
+function AuditShellMode({ stats }: AuditModeProps) {
+  return (
+    <div className="v3-audit-mode v3-audit-mode-shell">
+      <div>
+        <span className="audit-prompt">$ </span>
+        <span className="audit-cmd">csk audit --summary</span>
+      </div>
+      <div style={{ marginTop: 4 }}>
+        <span className="audit-key">scanning ~/.claude .. done</span>
+      </div>
+      <div style={{ marginTop: 8 }} className={stats.crit > 0 ? "audit-crit-active" : ""}>
+        <span className="audit-key">CRIT ·· </span>
+        <span className="audit-num">{pad(stats.crit)}</span>
+      </div>
+      <div>
+        <span className="audit-key">WARN ·· </span>
+        <span className="audit-num">{pad(stats.warn)}</span>
+      </div>
+      <div>
+        <span className="audit-key">INFO ·· </span>
+        <span className="audit-num">{pad(stats.info)}</span>
+      </div>
+      <div className="audit-leader">────────────</div>
+      <div>
+        <span className="audit-key">TOTAL  </span>
+        <span className="audit-num">{pad(stats.total)}</span>
+      </div>
+    </div>
+  );
+}
+
+interface AuditSummaryCardProps {
+  stats: AuditStats;
+  onJump: (tab: V3Tab) => void;
+  t: (k: StringKey, vars?: Record<string, string | number>) => string;
+}
+
+function AuditSummaryCard({ stats, onJump, t }: AuditSummaryCardProps) {
+  const [mode, setMode] = useAuditMode();
+  return (
+    <article className="v3-card">
+      <header className="v3-card-head">
+        <h2 className="v3-card-title">{t("overview.audit_summary")}</h2>
+        <div className="v3-audit-modes" role="tablist" aria-label="Audit layout">
+          {AUDIT_MODES.map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              className={"v3-audit-mode-btn" + (mode === m ? " active" : "")}
+              onClick={() => setMode(m)}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+        <button className="v3-link" onClick={() => onJump("audit")}>
+          {t("overview.view_all")}
+        </button>
+      </header>
+      {stats.total === 0 ? (
+        <div className="v3-empty">{t("overview.audit_clean")}</div>
+      ) : (
+        <>
+          {mode === "tree" && <AuditTreeMode stats={stats} />}
+          {mode === "log" && <AuditLogMode stats={stats} t={t} />}
+          {mode === "k9s" && <AuditK9sMode stats={stats} />}
+          {mode === "shell" && <AuditShellMode stats={stats} />}
+          {stats.crit > 0 && (
+            <footer className="v3-audit-foot">
+              <AlertTriangle size={14} strokeWidth={2} />
+              <span>
+                {plural(
+                  t,
+                  stats.crit,
+                  "overview.crit_attention_one",
+                  "overview.crit_attention_other"
+                )}
+              </span>
+              <ChevronRight size={14} strokeWidth={2} className="v3-chev" />
+            </footer>
+          )}
+        </>
+      )}
+    </article>
+  );
 }
 
 // =============================================================
@@ -390,88 +643,7 @@ export function OverviewView({
           )}
         </article>
 
-        <article className="v3-card">
-          <header className="v3-card-head">
-            <h2 className="v3-card-title">{t("overview.audit_summary")}</h2>
-            <button className="v3-link" onClick={() => onJump("audit")}>
-              {t("overview.view_all")}
-            </button>
-          </header>
-          {stats.total === 0 ? (
-            <div className="v3-empty">{t("overview.audit_clean")}</div>
-          ) : (
-            <>
-              {/* Stacked bar: proportional widths per severity, no donut. */}
-              <div
-                className="v3-audit-bar"
-                role="progressbar"
-                aria-label={t("overview.audit_bar_label", {
-                  total: stats.total,
-                  crit: stats.crit,
-                  warn: stats.warn,
-                  info: stats.info,
-                })}
-              >
-                {stats.crit > 0 && (
-                  <span
-                    className="v3-audit-bar-seg v3-audit-bar-crit"
-                    style={{ width: `${(stats.crit / stats.total) * 100}%` }}
-                  />
-                )}
-                {stats.warn > 0 && (
-                  <span
-                    className="v3-audit-bar-seg v3-audit-bar-warn"
-                    style={{ width: `${(stats.warn / stats.total) * 100}%` }}
-                  />
-                )}
-                {stats.info > 0 && (
-                  <span
-                    className="v3-audit-bar-seg v3-audit-bar-info"
-                    style={{ width: `${(stats.info / stats.total) * 100}%` }}
-                  />
-                )}
-              </div>
-              <div className="v3-audit-tiles">
-                <div className="v3-audit-tile v3-audit-tile-crit">
-                  <div className="v3-audit-tile-body">
-                    <div className="v3-audit-tile-num">{stats.crit}</div>
-                    <div className="v3-audit-tile-label">{t("overview.tile_critical")}</div>
-                  </div>
-                </div>
-                <div className="v3-audit-tile v3-audit-tile-warn">
-                  <div className="v3-audit-tile-body">
-                    <div className="v3-audit-tile-num">{stats.warn}</div>
-                    <div className="v3-audit-tile-label">{t("overview.tile_warning")}</div>
-                  </div>
-                </div>
-                <div className="v3-audit-tile v3-audit-tile-info">
-                  <div className="v3-audit-tile-body">
-                    <div className="v3-audit-tile-num">{stats.info}</div>
-                    <div className="v3-audit-tile-label">{t("overview.tile_info")}</div>
-                  </div>
-                </div>
-              </div>
-              <footer className="v3-audit-meta">
-                <span className="v3-audit-meta-num">{stats.total}</span>
-                <span className="v3-audit-meta-label">{t("overview.total_findings")}</span>
-              </footer>
-              {stats.crit > 0 && (
-                <footer className="v3-audit-foot">
-                  <AlertTriangle size={14} strokeWidth={2} />
-                  <span>
-                    {plural(
-                      t,
-                      stats.crit,
-                      "overview.crit_attention_one",
-                      "overview.crit_attention_other"
-                    )}
-                  </span>
-                  <ChevronRight size={14} strokeWidth={2} className="v3-chev" />
-                </footer>
-              )}
-            </>
-          )}
-        </article>
+        <AuditSummaryCard stats={stats} onJump={onJump} t={t} />
       </section>
     </div>
   );

@@ -452,6 +452,7 @@ const STRINGS = {
     en: "{total} audit findings: {crit} critical, {warn} warnings, {info} info",
     es: "{total} hallazgos: {crit} críticos, {warn} advertencias, {info} info",
   },
+  "overview.audit_last_now": { en: "just now", es: "ahora" },
   "overview.open_pr_label": { en: "Open pull request {title}", es: "Abrir pull request {title}" },
   "overview.open_project_label": { en: "Open project {name}", es: "Abrir proyecto {name}" },
 
