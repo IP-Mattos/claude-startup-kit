@@ -1,6 +1,6 @@
 use chrono::{DateTime, Local, Utc};
 use once_cell::sync::Lazy;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
@@ -4825,6 +4825,194 @@ fn augment_path_with_user_bin_dirs() {
     }
 }
 
+// ============================================================
+// Todos — per-project todo list persisted to ~/.claude/csk-todos.json
+// Single flat array keyed by absolute project path. File auto-creates
+// on first write. No DB, no schema migrations.
+// ============================================================
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct Todo {
+    id: String,
+    project: String,
+    text: String,
+    done: bool,
+    created_at: u64,
+    updated_at: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+struct TodosFile {
+    #[serde(default = "default_todos_version")]
+    version: u32,
+    #[serde(default)]
+    todos: Vec<Todo>,
+}
+
+fn default_todos_version() -> u32 {
+    1
+}
+
+fn todos_path() -> Option<PathBuf> {
+    dirs_home().map(|h| h.join(".claude").join("csk-todos.json"))
+}
+
+fn read_todos_file() -> Result<TodosFile, String> {
+    let path = todos_path().ok_or_else(|| "no home dir".to_string())?;
+    if !path.exists() {
+        return Ok(TodosFile {
+            version: 1,
+            todos: Vec::new(),
+        });
+    }
+    let body = fs::read_to_string(&path).map_err(|e| format!("read todos: {e}"))?;
+    if body.trim().is_empty() {
+        return Ok(TodosFile {
+            version: 1,
+            todos: Vec::new(),
+        });
+    }
+    serde_json::from_str(&body).map_err(|e| format!("parse todos: {e}"))
+}
+
+fn write_todos_file(file: &TodosFile) -> Result<(), String> {
+    let path = todos_path().ok_or_else(|| "no home dir".to_string())?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("create dir: {e}"))?;
+    }
+    let body = serde_json::to_string_pretty(file).map_err(|e| format!("serialize todos: {e}"))?;
+    fs::write(&path, body).map_err(|e| format!("write todos: {e}"))?;
+    Ok(())
+}
+
+fn now_secs() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+fn gen_todo_id() -> String {
+    // Nano timestamp is unique enough for single-user local data.
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    format!("t-{nanos:x}")
+}
+
+#[tauri::command]
+async fn list_todos(project: Option<String>) -> Result<Vec<Todo>, String> {
+    tokio::task::spawn_blocking(move || -> Result<Vec<Todo>, String> {
+        let f = read_todos_file()?;
+        let mut out: Vec<Todo> = match project {
+            Some(p) if !p.is_empty() => f.todos.into_iter().filter(|t| t.project == p).collect(),
+            _ => f.todos,
+        };
+        // Pending first; within each group, newest update first.
+        out.sort_by(|a, b| {
+            a.done
+                .cmp(&b.done)
+                .then(b.updated_at.cmp(&a.updated_at))
+        });
+        Ok(out)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn add_todo(project: String, text: String) -> Result<Todo, String> {
+    let project = project.trim().to_string();
+    let text = text.trim().to_string();
+    if project.is_empty() {
+        return Err("project required".to_string());
+    }
+    if text.is_empty() {
+        return Err("text required".to_string());
+    }
+    tokio::task::spawn_blocking(move || -> Result<Todo, String> {
+        let mut f = read_todos_file()?;
+        let now = now_secs();
+        let todo = Todo {
+            id: gen_todo_id(),
+            project,
+            text,
+            done: false,
+            created_at: now,
+            updated_at: now,
+        };
+        f.todos.push(todo.clone());
+        if f.version == 0 {
+            f.version = 1;
+        }
+        write_todos_file(&f)?;
+        Ok(todo)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn toggle_todo(id: String) -> Result<Todo, String> {
+    tokio::task::spawn_blocking(move || -> Result<Todo, String> {
+        let mut f = read_todos_file()?;
+        let now = now_secs();
+        let item = f
+            .todos
+            .iter_mut()
+            .find(|t| t.id == id)
+            .ok_or_else(|| "todo not found".to_string())?;
+        item.done = !item.done;
+        item.updated_at = now;
+        let snapshot = item.clone();
+        write_todos_file(&f)?;
+        Ok(snapshot)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn delete_todo(id: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let mut f = read_todos_file()?;
+        let before = f.todos.len();
+        f.todos.retain(|t| t.id != id);
+        if f.todos.len() == before {
+            return Err("todo not found".to_string());
+        }
+        write_todos_file(&f)?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn update_todo(id: String, text: String) -> Result<Todo, String> {
+    let text = text.trim().to_string();
+    if text.is_empty() {
+        return Err("text required".to_string());
+    }
+    tokio::task::spawn_blocking(move || -> Result<Todo, String> {
+        let mut f = read_todos_file()?;
+        let now = now_secs();
+        let item = f
+            .todos
+            .iter_mut()
+            .find(|t| t.id == id)
+            .ok_or_else(|| "todo not found".to_string())?;
+        item.text = text;
+        item.updated_at = now;
+        let snapshot = item.clone();
+        write_todos_file(&f)?;
+        Ok(snapshot)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     augment_path_with_user_bin_dirs();
@@ -4884,7 +5072,12 @@ pub fn run() {
             count_claude_skill_usage,
             list_mcp_servers,
             toggle_mcp_server,
-            fix_claude_vscode_extension
+            fix_claude_vscode_extension,
+            list_todos,
+            add_todo,
+            toggle_todo,
+            delete_todo,
+            update_todo
         ])
         .setup(|app| {
             let show_i = MenuItem::with_id(app, "show", "Mostrar ventana", true, None::<&str>)?;

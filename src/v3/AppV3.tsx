@@ -30,6 +30,7 @@ import { ProjectsView } from "../views/v3/ProjectsView";
 import { PrsView } from "../views/v3/PrsView";
 import { AuditView } from "../views/v3/AuditView";
 import { CleanupView } from "../views/v3/CleanupView";
+import { TodosView } from "../views/v3/TodosView";
 import { ClaudeView } from "../views/v3/ClaudeView";
 import { CompanionsView } from "../views/v3/CompanionsView";
 import { SettingsView } from "../views/v3/SettingsView";
@@ -279,8 +280,9 @@ export default function AppV3() {
     const handler = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
       if (!mod) return;
-      // Ctrl+1..7 — switch tab in sidebar order
-      if (e.key >= "1" && e.key <= "5") {
+      // Ctrl+1..6 — switch tab in sidebar order (overview, projects, prs,
+      // todos, audit, cleanup).
+      if (e.key >= "1" && e.key <= "6") {
         const idx = Number(e.key) - 1;
         const next = KEYBOARD_TAB_ORDER[idx];
         if (next) {
@@ -455,6 +457,7 @@ export default function AppV3() {
             />
           )}
           {tab === "cleanup" && <CleanupView />}
+          {tab === "todos" && <TodosView />}
           {tab === "sync" && <SyncView />}
           {tab === "claude" && <ClaudeView />}
           {tab === "companions" && (

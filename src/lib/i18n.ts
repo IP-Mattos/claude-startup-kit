@@ -23,6 +23,7 @@ const STRINGS = {
   "nav.prs": { en: "Pull Requests", es: "Pull Requests" },
   "nav.audit": { en: "Audit", es: "Auditoría" },
   "nav.cleanup": { en: "Cleanup", es: "Limpieza" },
+  "nav.todos": { en: "Todos", es: "Pendientes" },
   "nav.claude": { en: "Claude", es: "Claude" },
   "nav.companions": { en: "Companions", es: "Compañeros" },
   "nav.settings": { en: "Settings", es: "Ajustes" },
@@ -686,6 +687,37 @@ const STRINGS = {
   },
   "companions.err_read": { en: "Could not read file.", es: "No se pudo leer el archivo." },
   "companions.placeholder": { en: "Companion", es: "Compañero" },
+
+  // Todos view — per-project lightweight checklist persisted to
+  // ~/.claude/csk-todos.json. The picker also accepts an "All projects"
+  // option that pulls every todo across every known project.
+  "todos.title": { en: "Todos", es: "Pendientes" },
+  "todos.subtitle": {
+    en: "Lightweight per-project checklist. Lives on disk under ~/.claude/csk-todos.json.",
+    es: "Checklist liviana por proyecto. Vive en disco en ~/.claude/csk-todos.json.",
+  },
+  "todos.refresh": { en: "Refresh", es: "Refrescar" },
+  "todos.refreshing": { en: "Refreshing…", es: "Refrescando…" },
+  "todos.project_picker_label": { en: "Project", es: "Proyecto" },
+  "todos.all_projects": { en: "All projects", es: "Todos los proyectos" },
+  "todos.placeholder": {
+    en: "Add a todo… (Enter to save)",
+    es: "Sumá un pendiente… (Enter para guardar)",
+  },
+  "todos.add_button": { en: "Add", es: "Sumar" },
+  "todos.adding": { en: "Adding…", es: "Sumando…" },
+  "todos.empty_no_project": {
+    en: "Pick a project to start.",
+    es: "Elegí un proyecto para arrancar.",
+  },
+  "todos.empty_for_project": { en: "No todos yet.", es: "No hay pendientes todavía." },
+  "todos.delete_aria": { en: "Delete todo", es: "Borrar pendiente" },
+  "todos.toggle_aria": { en: "Toggle todo", es: "Alternar pendiente" },
+  "todos.edit_aria": { en: "Edit todo", es: "Editar pendiente" },
+  "todos.count_one": { en: "{n} todo", es: "{n} pendiente" },
+  "todos.count_other": { en: "{n} todos", es: "{n} pendientes" },
+  "todos.pending_count": { en: "{n} pending", es: "{n} pendiente(s)" },
+  "todos.done_count": { en: "{n} done", es: "{n} hecho(s)" },
 
   // Sync view extras
   "sync.target_required": { en: "Set a target directory first", es: "Configurá un directorio destino primero" },

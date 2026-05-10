@@ -3128,6 +3128,143 @@ body.v3-layout #root {
   overflow: auto;
 }
 
+/* ========== Todos view ==========
+   Lightweight checklist UI. Reuses .v3-row + .v3-card so it inherits the
+   data-dense baseline (hairlines, neutral palette, no shadows). Added bits
+   are limited to: the picker spacing, the add form, the row layout
+   (checkbox + body + delete-on-hover), and the strike-through done state. */
+.v3-todos-picker {
+  width: 100%;
+  margin-top: 8px;
+}
+.v3-todos-form {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 12px;
+}
+.v3-todos-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-sm);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--v3-text);
+  outline: none;
+  resize: none;
+  line-height: 1.4;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.v3-todos-input:focus {
+  border-color: var(--v3-accent);
+  box-shadow: 0 0 0 3px var(--v3-accent-soft);
+}
+.v3-todos-input::placeholder {
+  color: var(--v3-text-4);
+}
+.v3-todos-input:disabled {
+  background: var(--v3-surface-2);
+  color: var(--v3-text-4);
+  cursor: not-allowed;
+}
+
+/* Row layout: checkbox · body (text + meta) · delete (hover-only). */
+.v3-todos-row {
+  gap: 10px;
+}
+.v3-todos-row.done .v3-todos-text {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+.v3-todos-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin: 0;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+.v3-todos-checkbox:hover {
+  border-color: var(--v3-accent);
+}
+.v3-todos-checkbox:checked {
+  background: var(--v3-text-2);
+  border-color: var(--v3-text-2);
+}
+.v3-todos-checkbox:checked::after {
+  content: "";
+  width: 4px;
+  height: 7px;
+  border: solid var(--v3-surface);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg) translate(-0.5px, -0.5px);
+}
+.v3-todos-checkbox:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--v3-accent-soft);
+}
+.v3-todos-text {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--v3-text);
+  cursor: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+.v3-todos-text:hover {
+  color: var(--v3-accent);
+}
+.v3-todos-edit-input {
+  width: 100%;
+  font-size: 13.5px;
+  padding: 4px 6px;
+}
+.v3-todos-delete {
+  background: transparent;
+  border: 0;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--v3-text-3);
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease, background-color 120ms ease;
+  flex-shrink: 0;
+}
+.v3-todos-row:hover .v3-todos-delete,
+.v3-todos-delete:focus-visible {
+  opacity: 1;
+}
+.v3-todos-delete:hover {
+  color: var(--v3-crit);
+  background: var(--v3-crit-tint);
+}
+.v3-todos-delete:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--v3-accent-soft);
+}
+
 /* ========== Reduced motion ========== */
 @media (prefers-reduced-motion: reduce) {
   .appv3 *,

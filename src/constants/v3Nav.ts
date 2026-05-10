@@ -8,6 +8,7 @@ import {
   Activity,
   Bot,
   Boxes,
+  CheckSquare,
   Cloud,
   Cog,
   FolderOpen,
@@ -28,6 +29,7 @@ export const SIDEBAR_NAV: NavEntry[] = [
   { id: "overview", navKey: "nav.overview", Icon: Home },
   { id: "projects", navKey: "nav.projects", Icon: FolderOpen },
   { id: "prs", navKey: "nav.prs", Icon: GitPullRequest },
+  { id: "todos", navKey: "nav.todos", Icon: CheckSquare },
   { id: "audit", navKey: "nav.audit", Icon: Activity },
   { id: "cleanup", navKey: "nav.cleanup", Icon: Trash2 },
 ];
@@ -46,6 +48,7 @@ export const KEYBOARD_TAB_ORDER: ReadonlyArray<V3Tab> = [
   "overview",
   "projects",
   "prs",
+  "todos",
   "audit",
   "cleanup",
 ];

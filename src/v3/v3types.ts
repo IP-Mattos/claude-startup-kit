@@ -7,6 +7,7 @@ export type V3Tab =
   | "prs"
   | "audit"
   | "cleanup"
+  | "todos"
   | "settings"
   | "claude"
   | "companions"
