@@ -5013,6 +5013,291 @@ async fn update_todo(id: String, text: String) -> Result<Todo, String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+// ─── Conversation search ──────────────────────────────────────────────────
+//
+// Full-text search across `~/.claude/projects/*/*.jsonl`. Returns user/
+// assistant messages whose extracted text contains the query (case-
+// insensitive) with a ~200-char snippet centered on the first match.
+//
+// Performance: each line is first fast-rejected via a lowercase substring
+// scan over the raw JSONL line (much cheaper than parsing JSON for every
+// line). Lines that pass the fast filter are JSON-parsed, the text content
+// is extracted, and the query is re-checked against the extracted text to
+// drop false positives (uuid / sessionId / file-path matches).
+
+#[derive(Debug, Serialize, Clone)]
+pub struct ConversationMatch {
+    pub project_path: String,
+    pub project_name: String,
+    pub session_id: String,
+    pub file_path: String,
+    pub timestamp: String,
+    pub role: String,
+    pub snippet: String,
+    pub git_branch: Option<String>,
+}
+
+/// Extract text content from a `message.content` JSON value. The content
+/// can be a string (legacy shape) or an array of typed parts; we
+/// concatenate text from the `{ "type": "text", "text": "..." }` parts.
+fn extract_message_text(content: &serde_json::Value) -> String {
+    if let Some(s) = content.as_str() {
+        return s.to_string();
+    }
+    let Some(arr) = content.as_array() else {
+        return String::new();
+    };
+    let mut parts: Vec<&str> = Vec::with_capacity(arr.len());
+    for item in arr {
+        if item.get("type").and_then(|v| v.as_str()) != Some("text") {
+            continue;
+        }
+        if let Some(t) = item.get("text").and_then(|v| v.as_str()) {
+            if !t.is_empty() {
+                parts.push(t);
+            }
+        }
+    }
+    parts.join("\n")
+}
+
+/// Build a `~200 char` window centered on the first match in `text`. The
+/// returned snippet keeps the original casing; `lower_text` and
+/// `query_lower` are used to find the offset only. Newlines collapse to
+/// single spaces so the renderer doesn't have to handle them.
+///
+/// Note: `text.to_lowercase()` can change byte length (e.g. ß → ss), so
+/// the byte index returned by `lower_text.find()` is NOT guaranteed to be
+/// a valid boundary in `text`. We clamp to `text.len()` and snap to the
+/// nearest char boundary before slicing — worst case the snippet shifts
+/// by a few bytes, never panics.
+fn build_snippet(text: &str, lower_text: &str, query_lower: &str) -> String {
+    let Some(byte_idx_in_lower) = lower_text.find(query_lower) else {
+        // Caller should have already confirmed a match; defensively trim.
+        return clamp_snippet(text, 200);
+    };
+    let before = 80usize;
+    let after = 120usize;
+    // Clamp the lower-text offset into the original-text byte range.
+    let approx_idx = byte_idx_in_lower.min(text.len());
+    let start_raw = approx_idx.saturating_sub(before);
+    let end_raw = (approx_idx + query_lower.len() + after).min(text.len());
+    // Snap to char boundaries on the ORIGINAL text (safe slicing).
+    let start = floor_char_boundary(text, start_raw);
+    let end = ceil_char_boundary(text, end_raw);
+    let mut slice = text[start..end].replace(['\n', '\r'], " ").trim().to_string();
+    if start > 0 {
+        slice = format!("…{slice}");
+    }
+    if end < text.len() {
+        slice.push('…');
+    }
+    slice
+}
+
+fn clamp_snippet(text: &str, max: usize) -> String {
+    let collapsed = text.replace(['\n', '\r'], " ");
+    if collapsed.len() <= max {
+        return collapsed.trim().to_string();
+    }
+    let end = ceil_char_boundary(&collapsed, max);
+    let mut s = collapsed[..end].trim().to_string();
+    s.push('…');
+    s
+}
+
+fn floor_char_boundary(s: &str, mut idx: usize) -> usize {
+    if idx >= s.len() {
+        return s.len();
+    }
+    while idx > 0 && !s.is_char_boundary(idx) {
+        idx -= 1;
+    }
+    idx
+}
+
+fn ceil_char_boundary(s: &str, mut idx: usize) -> usize {
+    let len = s.len();
+    if idx >= len {
+        return len;
+    }
+    while idx < len && !s.is_char_boundary(idx) {
+        idx += 1;
+    }
+    idx
+}
+
+fn search_conversations_blocking(
+    query: String,
+    project_filter: Option<String>,
+    limit: usize,
+) -> Vec<ConversationMatch> {
+    let q = query.trim();
+    if q.is_empty() {
+        return vec![];
+    }
+    let query_lower = q.to_lowercase();
+    let Some(root) = claude_projects_dir() else {
+        return vec![];
+    };
+    if !root.exists() {
+        return vec![];
+    }
+    let project_filter_norm: Option<String> = project_filter
+        .as_deref()
+        .map(|s| s.replace('\\', "/").trim_end_matches('/').to_lowercase());
+
+    let mut out: Vec<ConversationMatch> = Vec::new();
+
+    let Ok(entries) = fs::read_dir(&root) else {
+        return out;
+    };
+
+    'outer: for entry in entries.flatten() {
+        let project_dir = entry.path();
+        if !project_dir.is_dir() {
+            continue;
+        }
+        let jsonls: Vec<PathBuf> = match fs::read_dir(&project_dir) {
+            Ok(es) => es
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| {
+                    p.extension().and_then(|s| s.to_str()) == Some("jsonl")
+                        && p.is_file()
+                })
+                .collect(),
+            Err(_) => continue,
+        };
+        if jsonls.is_empty() {
+            continue;
+        }
+        // Resolve the project's real cwd once per directory (cheap — reads
+        // until the first cwd-bearing line).
+        let cwd = match first_cwd_in_jsonls(&jsonls) {
+            Some(c) => c,
+            None => continue,
+        };
+        if let Some(filter) = &project_filter_norm {
+            let cwd_norm = cwd.replace('\\', "/").trim_end_matches('/').to_lowercase();
+            if &cwd_norm != filter {
+                continue;
+            }
+        }
+        let project_name = Path::new(&cwd)
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or(&cwd)
+            .to_string();
+
+        for jsonl in &jsonls {
+            // Fast skip if file is smaller than the query — can't possibly match.
+            if let Ok(meta) = fs::metadata(jsonl) {
+                if meta.len() < query_lower.len() as u64 {
+                    continue;
+                }
+            }
+            let session_id = jsonl
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .unwrap_or("")
+                .to_string();
+            let file_path_str = jsonl.to_string_lossy().to_string();
+            let Ok(file) = File::open(jsonl) else {
+                continue;
+            };
+            let reader = BufReader::new(file);
+            for line in reader.lines().map_while(Result::ok) {
+                if line.is_empty() {
+                    continue;
+                }
+                // Fast filter: raw lowercase substring check before JSON parse.
+                let line_lower = line.to_lowercase();
+                if !line_lower.contains(&query_lower) {
+                    continue;
+                }
+                let Ok(val) = serde_json::from_str::<serde_json::Value>(&line) else {
+                    continue;
+                };
+                let kind = val.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                if kind != "user" && kind != "assistant" {
+                    continue;
+                }
+                let message = match val.get("message") {
+                    Some(m) => m,
+                    None => continue,
+                };
+                let content = match message.get("content") {
+                    Some(c) => c,
+                    None => continue,
+                };
+                let text = extract_message_text(content);
+                if text.is_empty() {
+                    continue;
+                }
+                let lower_text = text.to_lowercase();
+                if !lower_text.contains(&query_lower) {
+                    // Substring match was on metadata (uuid, path, etc.) — drop.
+                    continue;
+                }
+                let role = message
+                    .get("role")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(kind)
+                    .to_string();
+                let timestamp = val
+                    .get("timestamp")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let git_branch = val
+                    .get("gitBranch")
+                    .and_then(|v| v.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(|s| s.to_string());
+                let snippet = build_snippet(&text, &lower_text, &query_lower);
+
+                out.push(ConversationMatch {
+                    project_path: cwd.clone(),
+                    project_name: project_name.clone(),
+                    session_id: session_id.clone(),
+                    file_path: file_path_str.clone(),
+                    timestamp,
+                    role,
+                    snippet,
+                    git_branch,
+                });
+
+                if out.len() >= limit {
+                    break 'outer;
+                }
+            }
+        }
+    }
+
+    // Newest first. Empty timestamps sort to the bottom.
+    out.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    out
+}
+
+#[tauri::command]
+async fn search_conversations(
+    query: String,
+    project: Option<String>,
+    limit: Option<usize>,
+) -> Result<Vec<ConversationMatch>, String> {
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return Ok(vec![]);
+    }
+    // Default 100, hard cap 500.
+    let limit = limit.unwrap_or(100).min(500);
+    let q = trimmed.to_string();
+    tokio::task::spawn_blocking(move || search_conversations_blocking(q, project, limit))
+        .await
+        .map_err(|e| format!("search_conversations task join: {e}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     augment_path_with_user_bin_dirs();
@@ -5077,7 +5362,8 @@ pub fn run() {
             add_todo,
             toggle_todo,
             delete_todo,
-            update_todo
+            update_todo,
+            search_conversations
         ])
         .setup(|app| {
             let show_i = MenuItem::with_id(app, "show", "Mostrar ventana", true, None::<&str>)?;

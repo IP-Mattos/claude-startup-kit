@@ -24,6 +24,7 @@ const STRINGS = {
   "nav.audit": { en: "Audit", es: "Auditoría" },
   "nav.cleanup": { en: "Cleanup", es: "Limpieza" },
   "nav.todos": { en: "Todos", es: "Pendientes" },
+  "nav.conversations": { en: "Conversations", es: "Conversaciones" },
   "nav.claude": { en: "Claude", es: "Claude" },
   "nav.companions": { en: "Companions", es: "Compañeros" },
   "nav.settings": { en: "Settings", es: "Ajustes" },
@@ -721,6 +722,33 @@ const STRINGS = {
 
   // Sync view extras
   "sync.target_required": { en: "Set a target directory first", es: "Configurá un directorio destino primero" },
+
+  // Conversations view — full-text search over ~/.claude/projects/*/*.jsonl
+  "conversations.title": { en: "Conversations", es: "Conversaciones" },
+  "conversations.subtitle": {
+    en: "Search across every Claude Code conversation on this machine.",
+    es: "Buscá en todas las conversaciones de Claude Code de esta máquina.",
+  },
+  "conversations.search_placeholder": {
+    en: "Search messages…",
+    es: "Buscar mensajes…",
+  },
+  "conversations.searching": { en: "Searching…", es: "Buscando…" },
+  "conversations.no_query": {
+    en: "Type to search your conversation history.",
+    es: "Escribí para buscar en tu historial.",
+  },
+  "conversations.no_matches": {
+    en: "No matches across {n} projects.",
+    es: "Sin coincidencias en {n} proyectos.",
+  },
+  "conversations.role_user": { en: "user", es: "user" },
+  "conversations.role_assistant": { en: "ai", es: "ai" },
+  "conversations.open_in_vscode": {
+    en: "Open conversation in VS Code",
+    es: "Abrir conversación en VS Code",
+  },
+  "conversations.all_projects": { en: "All projects", es: "Todos los proyectos" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;
