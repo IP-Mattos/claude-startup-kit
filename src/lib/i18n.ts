@@ -25,6 +25,7 @@ const STRINGS = {
   "nav.cleanup": { en: "Cleanup", es: "Limpieza" },
   "nav.todos": { en: "Todos", es: "Pendientes" },
   "nav.conversations": { en: "Conversations", es: "Conversaciones" },
+  "nav.tokens": { en: "Tokens", es: "Tokens" },
   "nav.claude": { en: "Claude", es: "Claude" },
   "nav.companions": { en: "Companions", es: "Compañeros" },
   "nav.settings": { en: "Settings", es: "Ajustes" },
@@ -749,6 +750,35 @@ const STRINGS = {
     es: "Abrir conversación en VS Code",
   },
   "conversations.all_projects": { en: "All projects", es: "Todos los proyectos" },
+
+  // Token usage view — aggregates ~/.claude/projects/*.jsonl assistant
+  // message usage fields into per-day buckets. Window-aware totals + a
+  // sparkline + a 7-day recent table.
+  "tokens.title": { en: "Token Usage", es: "Uso de tokens" },
+  "tokens.subtitle": {
+    en: "Tokens consumed across every Claude Code conversation on this machine.",
+    es: "Tokens consumidos en todas las conversaciones de Claude Code de esta máquina.",
+  },
+  "tokens.refresh": { en: "Refresh", es: "Refrescar" },
+  "tokens.refreshing": { en: "Refreshing…", es: "Refrescando…" },
+  "tokens.window_label": { en: "Window", es: "Rango" },
+  "tokens.total_label": { en: "tokens · last {n} days", es: "tokens · últimos {n} días" },
+  "tokens.sessions_count": { en: "{n} sessions", es: "{n} sesiones" },
+  "tokens.files_count": { en: "{n} files", es: "{n} archivos" },
+  "tokens.sparkline_caption": { en: "{from} → {to}", es: "{from} → {to}" },
+  "tokens.breakdown_title": { en: "Breakdown", es: "Desglose" },
+  "tokens.label_input": { en: "INPUT", es: "INPUT" },
+  "tokens.label_output": { en: "OUTPUT", es: "OUTPUT" },
+  "tokens.label_cache_read": { en: "CACHE READ", es: "CACHE READ" },
+  "tokens.label_cache_new": { en: "CACHE NEW", es: "CACHE NEW" },
+  "tokens.recent_title": { en: "Last 7 days", es: "Últimos 7 días" },
+  "tokens.col_date": { en: "Date", es: "Fecha" },
+  "tokens.col_total": { en: "Total", es: "Total" },
+  "tokens.col_sessions": { en: "Sessions", es: "Sesiones" },
+  "tokens.empty": {
+    en: "No token usage recorded yet in this window.",
+    es: "No hay uso de tokens registrado en este rango todavía.",
+  },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

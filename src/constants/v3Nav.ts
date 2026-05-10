@@ -6,6 +6,7 @@
 
 import {
   Activity,
+  BarChart3,
   Bot,
   Boxes,
   CheckSquare,
@@ -31,6 +32,7 @@ export const SIDEBAR_NAV: NavEntry[] = [
   { id: "projects", navKey: "nav.projects", Icon: FolderOpen },
   { id: "prs", navKey: "nav.prs", Icon: GitPullRequest },
   { id: "conversations", navKey: "nav.conversations", Icon: Search },
+  { id: "tokens", navKey: "nav.tokens", Icon: BarChart3 },
   { id: "todos", navKey: "nav.todos", Icon: CheckSquare },
   { id: "audit", navKey: "nav.audit", Icon: Activity },
   { id: "cleanup", navKey: "nav.cleanup", Icon: Trash2 },
@@ -43,7 +45,7 @@ export const TOPBAR_NAV: NavEntry[] = [
   { id: "settings", navKey: "nav.settings", Icon: Cog },
 ];
 
-// Keyboard shortcuts cover the operational sidebar tabs (Ctrl+1..7). The
+// Keyboard shortcuts cover the operational sidebar tabs (Ctrl+1..8). The
 // topbar tabs (Claude / Sync / Companion / Settings) are low-frequency —
 // Ctrl+, still jumps to Settings; the others are click-only.
 export const KEYBOARD_TAB_ORDER: ReadonlyArray<V3Tab> = [
@@ -51,6 +53,7 @@ export const KEYBOARD_TAB_ORDER: ReadonlyArray<V3Tab> = [
   "projects",
   "prs",
   "conversations",
+  "tokens",
   "todos",
   "audit",
   "cleanup",

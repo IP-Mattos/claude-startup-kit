@@ -5298,6 +5298,261 @@ async fn search_conversations(
         .map_err(|e| format!("search_conversations task join: {e}"))
 }
 
+// ── Token usage tracker ──────────────────────────────────────────
+// Walks every `.jsonl` under `~/.claude/projects/`, accumulates
+// `message.usage` fields from `type == "assistant"` rows into per-day
+// buckets, and returns a windowed summary. UTC-based date math so the
+// numbers don't shift around with the user's local DST.
+
+#[derive(Debug, Serialize, Clone)]
+struct DayUsage {
+    date: String,
+    input: u64,
+    output: u64,
+    cache_read: u64,
+    cache_creation: u64,
+    total: u64,
+    sessions: u32,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct TokenStats {
+    by_day: Vec<DayUsage>,
+    range_start: String,
+    range_end: String,
+    window_days: u32,
+    total_input: u64,
+    total_output: u64,
+    total_cache_read: u64,
+    total_cache_creation: u64,
+    total_all: u64,
+    sessions: u32,
+    files_scanned: u32,
+    lines_with_usage: u32,
+}
+
+#[derive(Default)]
+struct DayAccum {
+    input: u64,
+    output: u64,
+    cache_read: u64,
+    cache_creation: u64,
+    sessions: std::collections::HashSet<String>,
+}
+
+fn token_usage_blocking(window_days: u32) -> TokenStats {
+    use chrono::NaiveDate;
+    use std::collections::{HashMap, HashSet};
+
+    // Clamp the window: at least 1 day, hard-capped at 365 to avoid runaway
+    // scans on machines with years of JSONL history.
+    let window_days = window_days.max(1).min(365);
+
+    let today: NaiveDate = Utc::now().date_naive();
+    // window_days inclusive of today — e.g. 30 days = today + 29 prior days.
+    let range_start: NaiveDate = today
+        .checked_sub_days(chrono::Days::new((window_days - 1) as u64))
+        .unwrap_or(today);
+
+    let empty = TokenStats {
+        by_day: Vec::new(),
+        range_start: range_start.format("%Y-%m-%d").to_string(),
+        range_end: today.format("%Y-%m-%d").to_string(),
+        window_days,
+        total_input: 0,
+        total_output: 0,
+        total_cache_read: 0,
+        total_cache_creation: 0,
+        total_all: 0,
+        sessions: 0,
+        files_scanned: 0,
+        lines_with_usage: 0,
+    };
+
+    let Some(root) = claude_projects_dir() else {
+        return empty;
+    };
+    if !root.exists() {
+        return empty;
+    }
+
+    let mut per_day: HashMap<NaiveDate, DayAccum> = HashMap::new();
+    let mut all_sessions: HashSet<String> = HashSet::new();
+    let mut files_scanned: u32 = 0;
+    let mut lines_with_usage: u32 = 0;
+
+    let Ok(entries) = fs::read_dir(&root) else {
+        return empty;
+    };
+    for entry in entries.flatten() {
+        let project_dir = entry.path();
+        if !project_dir.is_dir() {
+            continue;
+        }
+        let Ok(es) = fs::read_dir(&project_dir) else {
+            continue;
+        };
+        for e in es.flatten() {
+            let path = e.path();
+            if path.extension().and_then(|s| s.to_str()) != Some("jsonl") {
+                continue;
+            }
+            if !path.is_file() {
+                continue;
+            }
+            // Cheap pre-skip: jsonl file mtime older than range_start by a
+            // long margin can be skipped entirely. We still read the file if
+            // mtime is within range OR if we can't tell. Most files are
+            // tiny so the cost is mainly disk-bound IO.
+            if let Ok(meta) = e.metadata() {
+                if let Ok(mtime) = meta.modified() {
+                    if let Ok(dur) = mtime.duration_since(UNIX_EPOCH) {
+                        let secs = dur.as_secs() as i64;
+                        if let Some(dt) = DateTime::<Utc>::from_timestamp(secs, 0) {
+                            let mtime_date = dt.date_naive();
+                            if mtime_date < range_start {
+                                // File hasn't been touched within the window — but a
+                                // JSONL whose last assistant message is older than
+                                // range_start can still contain in-window rows if
+                                // appended weirdly. In practice mtime ≈ last write,
+                                // so skipping is safe and shaves a lot of IO.
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+            files_scanned += 1;
+            let Ok(file) = File::open(&path) else {
+                continue;
+            };
+            let reader = BufReader::new(file);
+            for line in reader.lines().map_while(Result::ok) {
+                if line.is_empty() {
+                    continue;
+                }
+                // Fast filter: every assistant-with-usage row contains the
+                // literal substring "usage". Skipping lines without it saves
+                // a JSON parse on user messages and partial streams.
+                if !line.contains("\"usage\"") {
+                    continue;
+                }
+                let Ok(val) = serde_json::from_str::<serde_json::Value>(&line) else {
+                    continue;
+                };
+                if val.get("type").and_then(|v| v.as_str()) != Some("assistant") {
+                    continue;
+                }
+                let Some(usage) = val.get("message").and_then(|m| m.get("usage")) else {
+                    continue;
+                };
+                let ts = match val.get("timestamp").and_then(|v| v.as_str()) {
+                    Some(s) if !s.is_empty() => s,
+                    _ => continue,
+                };
+                let Ok(parsed) = DateTime::parse_from_rfc3339(ts) else {
+                    continue;
+                };
+                let date_utc = parsed.with_timezone(&Utc).date_naive();
+                if date_utc < range_start || date_utc > today {
+                    continue;
+                }
+                let input = usage.get("input_tokens").and_then(|v| v.as_u64()).unwrap_or(0);
+                let output = usage.get("output_tokens").and_then(|v| v.as_u64()).unwrap_or(0);
+                let cache_read = usage
+                    .get("cache_read_input_tokens")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                let cache_creation = usage
+                    .get("cache_creation_input_tokens")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
+                if input == 0 && output == 0 && cache_read == 0 && cache_creation == 0 {
+                    // Empty usage record — count it as "lines_with_usage" since the
+                    // shape is there, but skip accumulation. The user-visible total
+                    // doesn't move and the row still contributes a session.
+                }
+                let session_id = val
+                    .get("sessionId")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                lines_with_usage = lines_with_usage.saturating_add(1);
+                let bucket = per_day.entry(date_utc).or_default();
+                bucket.input = bucket.input.saturating_add(input);
+                bucket.output = bucket.output.saturating_add(output);
+                bucket.cache_read = bucket.cache_read.saturating_add(cache_read);
+                bucket.cache_creation = bucket.cache_creation.saturating_add(cache_creation);
+                if !session_id.is_empty() {
+                    bucket.sessions.insert(session_id.clone());
+                    all_sessions.insert(session_id);
+                }
+            }
+        }
+    }
+
+    // Build the contiguous `by_day` array — zero rows for gap-fill so the
+    // sparkline reads cleanly without holes.
+    let mut by_day: Vec<DayUsage> = Vec::with_capacity(window_days as usize);
+    let mut cursor = range_start;
+    let mut total_input = 0u64;
+    let mut total_output = 0u64;
+    let mut total_cache_read = 0u64;
+    let mut total_cache_creation = 0u64;
+    while cursor <= today {
+        let entry = per_day.remove(&cursor).unwrap_or_default();
+        let total = entry.input
+            + entry.output
+            + entry.cache_read
+            + entry.cache_creation;
+        total_input = total_input.saturating_add(entry.input);
+        total_output = total_output.saturating_add(entry.output);
+        total_cache_read = total_cache_read.saturating_add(entry.cache_read);
+        total_cache_creation = total_cache_creation.saturating_add(entry.cache_creation);
+        by_day.push(DayUsage {
+            date: cursor.format("%Y-%m-%d").to_string(),
+            input: entry.input,
+            output: entry.output,
+            cache_read: entry.cache_read,
+            cache_creation: entry.cache_creation,
+            total,
+            sessions: entry.sessions.len() as u32,
+        });
+        cursor = match cursor.succ_opt() {
+            Some(d) => d,
+            None => break,
+        };
+    }
+
+    let total_all = total_input
+        .saturating_add(total_output)
+        .saturating_add(total_cache_read)
+        .saturating_add(total_cache_creation);
+
+    TokenStats {
+        by_day,
+        range_start: range_start.format("%Y-%m-%d").to_string(),
+        range_end: today.format("%Y-%m-%d").to_string(),
+        window_days,
+        total_input,
+        total_output,
+        total_cache_read,
+        total_cache_creation,
+        total_all,
+        sessions: all_sessions.len() as u32,
+        files_scanned,
+        lines_with_usage,
+    }
+}
+
+#[tauri::command]
+async fn token_usage(window_days: Option<u32>) -> Result<TokenStats, String> {
+    let w = window_days.unwrap_or(30);
+    tokio::task::spawn_blocking(move || token_usage_blocking(w))
+        .await
+        .map_err(|e| format!("token_usage task join: {e}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     augment_path_with_user_bin_dirs();
@@ -5363,7 +5618,8 @@ pub fn run() {
             toggle_todo,
             delete_todo,
             update_todo,
-            search_conversations
+            search_conversations,
+            token_usage
         ])
         .setup(|app| {
             let show_i = MenuItem::with_id(app, "show", "Mostrar ventana", true, None::<&str>)?;
