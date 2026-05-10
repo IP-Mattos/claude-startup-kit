@@ -5013,6 +5013,271 @@ async fn update_todo(id: String, text: String) -> Result<Todo, String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+// ============================================================
+// Daily Standup — combines `git log` of the last N hours across known
+// projects + recently-completed todos + best-effort engram session
+// summaries. Produces a structured report the frontend formats into a
+// punchy "yesterday / today / blockers" message.
+// ============================================================
+
+#[derive(Debug, Serialize, Clone)]
+struct StandupCommit {
+    project_path: String,
+    project_name: String,
+    sha: String,
+    subject: String,
+    branch: Option<String>,
+    timestamp: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct StandupTodo {
+    project_path: String,
+    project_name: String,
+    text: String,
+    completed_at: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+struct StandupReport {
+    generated_at: String,
+    window_hours: u32,
+    commits: Vec<StandupCommit>,
+    completed_todos: Vec<StandupTodo>,
+    open_todos: Vec<StandupTodo>,
+    engram_summary_lines: Vec<String>,
+    projects_touched: Vec<String>,
+}
+
+/// Best-effort: read the current branch name. Returns None if the project
+/// isn't a git repo, git isn't on PATH, or the command fails. We never
+/// surface this as an error to the caller — the standup is "as much info
+/// as I can scrape, never blocking".
+fn git_current_branch_blocking(path: &str) -> Option<String> {
+    let output = silent_command("git")
+        .args(["-C", path, "rev-parse", "--abbrev-ref", "HEAD"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let raw = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if raw.is_empty() || raw == "HEAD" {
+        // Detached HEAD — surface nothing rather than a confusing "HEAD".
+        return None;
+    }
+    Some(raw)
+}
+
+/// `git log --since=<ISO> --pretty=format:%H%x00%ct%x00%s --no-merges`
+/// parsed into commits. NUL byte (\x00) separator avoids subject-line
+/// collisions with `|` or other pipe-friendly delimiters.
+fn git_commits_since_blocking(path: &str, since_iso: &str) -> Vec<(String, i64, String)> {
+    let project = Path::new(path);
+    if !project.is_dir() || !project.join(".git").exists() {
+        return Vec::new();
+    }
+    let output = match silent_command("git")
+        .args([
+            "-C",
+            path,
+            "log",
+            &format!("--since={since_iso}"),
+            "--pretty=format:%H%x00%ct%x00%s",
+            "--no-merges",
+        ])
+        .output()
+    {
+        Ok(o) => o,
+        Err(_) => return Vec::new(),
+    };
+    if !output.status.success() {
+        return Vec::new();
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut out = Vec::new();
+    for line in stdout.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let mut parts = line.splitn(3, '\x00');
+        let hash = match parts.next() {
+            Some(h) if !h.is_empty() => h.to_string(),
+            _ => continue,
+        };
+        let ts: i64 = parts
+            .next()
+            .and_then(|s| s.parse::<i64>().ok())
+            .unwrap_or(0);
+        let subject = parts.next().unwrap_or("").to_string();
+        out.push((hash, ts, subject));
+        if out.len() >= 20 {
+            break;
+        }
+    }
+    out
+}
+
+/// Best-effort engram timeline / search. Tries `engram timeline` first
+/// per the spec; falls back to `engram search --recent` if timeline
+/// exits non-zero. Returns trimmed non-empty lines. NEVER errors — a
+/// missing `engram` binary or non-zero exit produces an empty Vec.
+fn engram_timeline_lines_blocking(window_hours: u32) -> Vec<String> {
+    let since = format!("{window_hours}h");
+    // Attempt 1: timeline.
+    let timeline = silent_command("engram")
+        .args(["timeline", "--since", &since, "--limit", "10", "--plain"])
+        .output();
+    if let Ok(out) = timeline {
+        if out.status.success() {
+            let lines = parse_engram_lines(&String::from_utf8_lossy(&out.stdout));
+            if !lines.is_empty() {
+                return lines;
+            }
+        }
+    }
+    // Attempt 2: search --recent.
+    let search = silent_command("engram")
+        .args(["search", "--recent", "--limit", "10"])
+        .output();
+    if let Ok(out) = search {
+        if out.status.success() {
+            return parse_engram_lines(&String::from_utf8_lossy(&out.stdout));
+        }
+    }
+    Vec::new()
+}
+
+fn parse_engram_lines(raw: &str) -> Vec<String> {
+    raw.lines()
+        .map(|l| l.trim().to_string())
+        .filter(|l| !l.is_empty())
+        .take(20)
+        .collect()
+}
+
+fn standup_project_name(path: &str) -> String {
+    Path::new(path)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| path.to_string())
+}
+
+fn daily_standup_blocking(window_hours: u32) -> StandupReport {
+    let window_hours = window_hours.clamp(1, 168);
+    let now = Utc::now();
+    let since = now - chrono::Duration::hours(window_hours as i64);
+    let since_secs = since.timestamp();
+    let since_iso = since.to_rfc3339();
+
+    // Project list: enumerate via scan_projects with a window wide enough
+    // to cover anything that could plausibly have commits in the standup
+    // window. 14 days mirrors the AppV3 default; a project untouched for
+    // 2+ weeks won't have commits in the last 1-week window anyway.
+    let projects = scan_projects_blocking(14);
+
+    let mut commits: Vec<StandupCommit> = Vec::new();
+    for p in &projects {
+        let branch = git_current_branch_blocking(&p.path);
+        let entries = git_commits_since_blocking(&p.path, &since_iso);
+        if entries.is_empty() {
+            continue;
+        }
+        let project_name = standup_project_name(&p.path);
+        for (hash, ts, subject) in entries {
+            let sha: String = hash.chars().take(7).collect();
+            let timestamp = DateTime::<Utc>::from_timestamp(ts, 0)
+                .map(|d| d.to_rfc3339())
+                .unwrap_or_default();
+            commits.push(StandupCommit {
+                project_path: p.path.clone(),
+                project_name: project_name.clone(),
+                sha,
+                subject,
+                branch: branch.clone(),
+                timestamp,
+            });
+        }
+    }
+    // Sort commits newest-first across all projects so the rendered list
+    // reads as a single chronological feed.
+    commits.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+
+    // Todos: completed in window + currently open (top 10 by updated_at).
+    let mut completed_todos: Vec<StandupTodo> = Vec::new();
+    let mut open_todos: Vec<StandupTodo> = Vec::new();
+    if let Ok(file) = read_todos_file() {
+        let mut open_pool: Vec<(u64, Todo)> = Vec::new();
+        for t in file.todos {
+            let project_name = standup_project_name(&t.project);
+            if t.done && (t.updated_at as i64) >= since_secs {
+                let completed_at = DateTime::<Utc>::from_timestamp(t.updated_at as i64, 0)
+                    .map(|d| d.to_rfc3339())
+                    .unwrap_or_default();
+                completed_todos.push(StandupTodo {
+                    project_path: t.project.clone(),
+                    project_name: project_name.clone(),
+                    text: t.text.clone(),
+                    completed_at,
+                });
+            } else if !t.done {
+                open_pool.push((t.updated_at, t));
+            }
+        }
+        // Newest-touched open todos first.
+        open_pool.sort_by(|a, b| b.0.cmp(&a.0));
+        for (_, t) in open_pool.into_iter().take(10) {
+            let project_name = standup_project_name(&t.project);
+            let completed_at = DateTime::<Utc>::from_timestamp(t.updated_at as i64, 0)
+                .map(|d| d.to_rfc3339())
+                .unwrap_or_default();
+            open_todos.push(StandupTodo {
+                project_path: t.project,
+                project_name,
+                text: t.text,
+                completed_at,
+            });
+        }
+        // Completed todos: newest-first.
+        completed_todos.sort_by(|a, b| b.completed_at.cmp(&a.completed_at));
+    }
+
+    let engram_summary_lines = engram_timeline_lines_blocking(window_hours);
+
+    // Union of project_paths from any signal.
+    let mut projects_touched: Vec<String> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for c in &commits {
+        if seen.insert(c.project_path.clone()) {
+            projects_touched.push(c.project_path.clone());
+        }
+    }
+    for t in completed_todos.iter().chain(open_todos.iter()) {
+        if seen.insert(t.project_path.clone()) {
+            projects_touched.push(t.project_path.clone());
+        }
+    }
+
+    StandupReport {
+        generated_at: now.to_rfc3339(),
+        window_hours,
+        commits,
+        completed_todos,
+        open_todos,
+        engram_summary_lines,
+        projects_touched,
+    }
+}
+
+#[tauri::command]
+async fn daily_standup(window_hours: Option<u32>) -> Result<StandupReport, String> {
+    let hours = window_hours.unwrap_or(24);
+    tokio::task::spawn_blocking(move || daily_standup_blocking(hours))
+        .await
+        .map_err(|e| format!("daily_standup task join: {e}"))
+}
+
 // ─── Conversation search ──────────────────────────────────────────────────
 //
 // Full-text search across `~/.claude/projects/*/*.jsonl`. Returns user/
@@ -5619,7 +5884,8 @@ pub fn run() {
             delete_todo,
             update_todo,
             search_conversations,
-            token_usage
+            token_usage,
+            daily_standup
         ])
         .setup(|app| {
             let show_i = MenuItem::with_id(app, "show", "Mostrar ventana", true, None::<&str>)?;

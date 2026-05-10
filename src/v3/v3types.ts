@@ -7,6 +7,7 @@ export type V3Tab =
   | "prs"
   | "conversations"
   | "tokens"
+  | "standup"
   | "audit"
   | "cleanup"
   | "todos"

@@ -26,6 +26,7 @@ const STRINGS = {
   "nav.todos": { en: "Todos", es: "Pendientes" },
   "nav.conversations": { en: "Conversations", es: "Conversaciones" },
   "nav.tokens": { en: "Tokens", es: "Tokens" },
+  "nav.standup": { en: "Standup", es: "Standup" },
   "nav.claude": { en: "Claude", es: "Claude" },
   "nav.companions": { en: "Companions", es: "Compañeros" },
   "nav.settings": { en: "Settings", es: "Ajustes" },
@@ -779,6 +780,42 @@ const STRINGS = {
     en: "No token usage recorded yet in this window.",
     es: "No hay uso de tokens registrado en este rango todavía.",
   },
+
+  // Daily standup — generates a copy-pasteable "yesterday / today /
+  // blockers" report from git log + completed todos + engram session
+  // summaries across known projects.
+  "standup.title": { en: "Daily standup", es: "Standup diario" },
+  "standup.subtitle": {
+    en: "Git activity + completed todos + memory summaries. Copy it to Slack or Linear.",
+    es: "Actividad de git + pendientes cerrados + memoria. Pegalo en Slack o Linear.",
+  },
+  "standup.window_label": { en: "Window", es: "Rango" },
+  "standup.window_24h": { en: "24h", es: "24h" },
+  "standup.window_48h": { en: "48h", es: "48h" },
+  "standup.window_1w": { en: "1w", es: "1sem" },
+  "standup.regenerate": { en: "Regenerate", es: "Regenerar" },
+  "standup.regenerating": { en: "Generating…", es: "Generando…" },
+  "standup.copy": { en: "Copy", es: "Copiar" },
+  "standup.copied": { en: "Copied!", es: "¡Copiado!" },
+  "standup.section_done": { en: "DONE YESTERDAY", es: "AYER" },
+  "standup.section_today": { en: "TODAY (open todos · {n})", es: "HOY (pendientes · {n})" },
+  "standup.section_blockers": { en: "BLOCKERS", es: "BLOQUEOS" },
+  "standup.section_memory": {
+    en: "MEMORY (engram, last {n}h)",
+    es: "MEMORIA (engram, últimas {n}h)",
+  },
+  "standup.blockers_none": { en: "none recorded", es: "ninguno registrado" },
+  "standup.engram_unavailable": {
+    en: "no memory entries",
+    es: "sin entradas de memoria",
+  },
+  "standup.empty_no_activity": {
+    en: "No activity in the last {n} hours.",
+    es: "Sin actividad en las últimas {n} horas.",
+  },
+  "standup.breakdown_title": { en: "Per-project breakdown", es: "Desglose por proyecto" },
+  "standup.no_commits": { en: "no commits in window", es: "sin commits en el rango" },
+  "standup.no_todos": { en: "no completed todos", es: "sin pendientes cerrados" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;
