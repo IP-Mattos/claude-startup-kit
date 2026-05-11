@@ -22,23 +22,49 @@ import {
 import type { StringKey } from "../lib/i18n";
 import type { V3Tab } from "../v3/v3types";
 
-interface NavEntry {
+export interface NavEntry {
   id: V3Tab;
   navKey: StringKey;
   Icon: typeof Home;
 }
 
-export const SIDEBAR_NAV: NavEntry[] = [
-  { id: "overview", navKey: "nav.overview", Icon: Home },
-  { id: "projects", navKey: "nav.projects", Icon: FolderOpen },
-  { id: "prs", navKey: "nav.prs", Icon: GitPullRequest },
-  { id: "conversations", navKey: "nav.conversations", Icon: Search },
-  { id: "tokens", navKey: "nav.tokens", Icon: BarChart3 },
-  { id: "standup", navKey: "nav.standup", Icon: ClipboardList },
-  { id: "todos", navKey: "nav.todos", Icon: CheckSquare },
-  { id: "audit", navKey: "nav.audit", Icon: Activity },
-  { id: "cleanup", navKey: "nav.cleanup", Icon: Trash2 },
+export interface NavSection {
+  labelKey: StringKey;
+  entries: NavEntry[];
+}
+
+// Grouped sidebar — small-caps section headers above each block so 9 tabs
+// don't read as one undifferentiated list. The Sidebar component iterates
+// these; SIDEBAR_NAV is kept as a flat derivation for code paths (command
+// palette, keyboard shortcut order) that don't care about grouping.
+export const SIDEBAR_SECTIONS: NavSection[] = [
+  {
+    labelKey: "nav.section_workspace",
+    entries: [
+      { id: "overview", navKey: "nav.overview", Icon: Home },
+      { id: "projects", navKey: "nav.projects", Icon: FolderOpen },
+      { id: "prs", navKey: "nav.prs", Icon: GitPullRequest },
+    ],
+  },
+  {
+    labelKey: "nav.section_insights",
+    entries: [
+      { id: "conversations", navKey: "nav.conversations", Icon: Search },
+      { id: "tokens", navKey: "nav.tokens", Icon: BarChart3 },
+      { id: "standup", navKey: "nav.standup", Icon: ClipboardList },
+    ],
+  },
+  {
+    labelKey: "nav.section_work",
+    entries: [
+      { id: "todos", navKey: "nav.todos", Icon: CheckSquare },
+      { id: "audit", navKey: "nav.audit", Icon: Activity },
+      { id: "cleanup", navKey: "nav.cleanup", Icon: Trash2 },
+    ],
+  },
 ];
+
+export const SIDEBAR_NAV: NavEntry[] = SIDEBAR_SECTIONS.flatMap((s) => s.entries);
 
 export const TOPBAR_NAV: NavEntry[] = [
   { id: "claude", navKey: "nav.claude", Icon: Boxes },

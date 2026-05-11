@@ -1,6 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import { plural, useT } from "../../lib/i18n";
-import { SIDEBAR_NAV } from "../../constants/v3Nav";
+import { SIDEBAR_SECTIONS } from "../../constants/v3Nav";
 import type { Project } from "../../types";
 import type { V3Tab } from "../../v3/v3types";
 import { projectName } from "../../lib/format";
@@ -71,20 +71,30 @@ export function Sidebar({
       </div>
 
       <nav className="v3-sidebar-nav">
-        {SIDEBAR_NAV.map(({ id, navKey, Icon }) => {
-          const label = t(navKey);
-          return (
-            <button
-              key={id}
-              className={"v3-side-link" + (activeTab === id ? " active" : "")}
-              onClick={() => onTab(id)}
-              aria-label={label}
-            >
-              <Icon size={16} strokeWidth={1.8} />
-              <span>{label}</span>
-            </button>
-          );
-        })}
+        {SIDEBAR_SECTIONS.map((section, sIdx) => (
+          <div
+            key={section.labelKey}
+            className={
+              "v3-sidebar-section" + (sIdx > 0 ? " v3-sidebar-section-sep" : "")
+            }
+          >
+            <div className="v3-sidebar-section-title">{t(section.labelKey)}</div>
+            {section.entries.map(({ id, navKey, Icon }) => {
+              const label = t(navKey);
+              return (
+                <button
+                  key={id}
+                  className={"v3-side-link" + (activeTab === id ? " active" : "")}
+                  onClick={() => onTab(id)}
+                  aria-label={label}
+                >
+                  <Icon size={16} strokeWidth={1.8} />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Project list for data-dense theme. Hidden by default in CSS;

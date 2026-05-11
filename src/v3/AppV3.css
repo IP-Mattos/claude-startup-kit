@@ -322,7 +322,30 @@ body.v3-layout #root {
 .v3-sidebar-nav {
   display: flex;
   flex-direction: column;
+  gap: 0;
+}
+
+/* Sidebar sections — small-caps header above each tab group. */
+.v3-sidebar-section {
+  display: flex;
+  flex-direction: column;
   gap: 2px;
+  padding-top: 4px;
+}
+.v3-sidebar-section-sep {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--v3-border);
+}
+.v3-sidebar-section-title {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--v3-text-3);
+  font-family: var(--v3-font-mono, ui-monospace, "JetBrains Mono", monospace);
+  font-variant-numeric: tabular-nums;
+  padding: 4px 12px 6px;
+  margin: 0;
 }
 
 .v3-side-link {

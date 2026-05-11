@@ -31,6 +31,10 @@ const STRINGS = {
   "nav.companions": { en: "Companions", es: "Compañeros" },
   "nav.settings": { en: "Settings", es: "Ajustes" },
   "nav.sync": { en: "Sync", es: "Sync" },
+  // Sidebar section headers (small caps labels above tab groups)
+  "nav.section_workspace": { en: "Workspace", es: "Workspace" },
+  "nav.section_insights": { en: "Insights", es: "Insights" },
+  "nav.section_work": { en: "Work", es: "Trabajo" },
 
   // System status (sidebar bottom card)
   "status.operational": { en: "All systems operational", es: "Todo funcionando" },

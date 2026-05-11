@@ -5118,17 +5118,26 @@ fn git_commits_since_blocking(path: &str, since_iso: &str) -> Vec<(String, i64, 
     out
 }
 
-/// Best-effort engram timeline / search. Tries `engram timeline` first
-/// per the spec; falls back to `engram search --recent` if timeline
-/// exits non-zero. Returns trimmed non-empty lines. NEVER errors — a
-/// missing `engram` binary or non-zero exit produces an empty Vec.
-fn engram_timeline_lines_blocking(window_hours: u32) -> Vec<String> {
-    let since = format!("{window_hours}h");
-    // Attempt 1: timeline.
-    let timeline = silent_command("engram")
-        .args(["timeline", "--since", &since, "--limit", "10", "--plain"])
+/// Best-effort engram recent memory. Pulls the latest session summary
+/// observations via `engram search`. Returns trimmed non-empty lines.
+/// NEVER errors — a missing `engram` binary or non-zero exit produces
+/// an empty Vec, the view degrades to "no memory entries".
+fn engram_timeline_lines_blocking(_window_hours: u32) -> Vec<String> {
+    // Real engram v1.x: `engram search <query> --type <kind> --limit N`.
+    // We bias the query to session summaries since those are the highest-
+    // signal recent observations; fall back to a bare recent search if
+    // that returns nothing.
+    let summary = silent_command("engram")
+        .args([
+            "search",
+            "session summary",
+            "--type",
+            "session_summary",
+            "--limit",
+            "10",
+        ])
         .output();
-    if let Ok(out) = timeline {
+    if let Ok(out) = summary {
         if out.status.success() {
             let lines = parse_engram_lines(&String::from_utf8_lossy(&out.stdout));
             if !lines.is_empty() {
@@ -5136,11 +5145,13 @@ fn engram_timeline_lines_blocking(window_hours: u32) -> Vec<String> {
             }
         }
     }
-    // Attempt 2: search --recent.
-    let search = silent_command("engram")
-        .args(["search", "--recent", "--limit", "10"])
+    // Fallback: any recent observation. Query is intentionally generic so
+    // the search returns the most-recently-updated entries regardless of
+    // topic.
+    let recent = silent_command("engram")
+        .args(["search", "recent", "--limit", "10"])
         .output();
-    if let Ok(out) = search {
+    if let Ok(out) = recent {
         if out.status.success() {
             return parse_engram_lines(&String::from_utf8_lossy(&out.stdout));
         }
