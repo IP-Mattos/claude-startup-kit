@@ -5420,6 +5420,75 @@ async fn audit_auto_resolve() -> Result<AutoResolveReport, String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+// ─── Ask Claude (handoff to Claude Code) ─────────────────────────────────
+//
+// For findings the auto-resolver can't touch (DRIFT, HOOKS, PERMS, SCRIPTS
+// — anything needing human judgment), this command opens VS Code at
+// `~/.claude/` and returns a pre-built prompt the frontend writes to the
+// clipboard so the user can paste it directly into Claude Code.
+
+#[derive(Debug, Serialize)]
+struct AskClaudeContext {
+    prompt: String,
+    opened_path: String,
+}
+
+#[tauri::command]
+async fn audit_open_in_claude(
+    title: String,
+    level: String,
+    category: String,
+    detail: Option<String>,
+    path: Option<String>,
+) -> Result<AskClaudeContext, String> {
+    tokio::task::spawn_blocking(move || -> Result<AskClaudeContext, String> {
+        let home = dirs_home().ok_or_else(|| "no home dir".to_string())?;
+        let claude_dir = home.join(".claude");
+        let opened_path = claude_dir.to_string_lossy().to_string();
+
+        // Build a Claude Code-friendly prompt with the full finding context.
+        let mut prompt = String::new();
+        prompt.push_str(
+            "The Claude Startup Kit audit flagged this issue under `~/.claude/`:\n\n",
+        );
+        prompt.push_str(&format!("- **Severity**: {level}\n"));
+        prompt.push_str(&format!("- **Category**: {category}\n"));
+        prompt.push_str(&format!("- **Finding**: {title}\n"));
+        if let Some(d) = detail.as_deref() {
+            if !d.trim().is_empty() {
+                prompt.push_str(&format!("- **Detail**: {d}\n"));
+            }
+        }
+        if let Some(p) = path.as_deref() {
+            if !p.trim().is_empty() {
+                prompt.push_str(&format!("- **Path**: {p}\n"));
+            }
+        }
+        prompt.push_str(
+            "\nInvestigate the relevant files (settings.json, hooks/, scripts/) \
+             and propose a fix. Don't apply changes until I confirm.",
+        );
+
+        // Open VS Code at ~/.claude so the user can paste the prompt into
+        // Claude Code with the right working directory.
+        let program = resolve_vscode_exe().ok_or_else(|| {
+            "VS Code no encontrado. Instalalo desde https://code.visualstudio.com/."
+                .to_string()
+        })?;
+        silent_command(&program)
+            .arg(&claude_dir)
+            .spawn()
+            .map_err(|e| format_spawn_error("VS Code (Code.exe)", &e))?;
+
+        Ok(AskClaudeContext {
+            prompt,
+            opened_path,
+        })
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 // ─── Conversation search ──────────────────────────────────────────────────
 //
 // Full-text search across `~/.claude/projects/*/*.jsonl`. Returns user/
@@ -5992,6 +6061,7 @@ pub fn run() {
             cleanup_apply,
             audit_resolve_delete,
             audit_auto_resolve,
+            audit_open_in_claude,
             engram_sync_push,
             engram_sync_pull,
             engram_sync_status,

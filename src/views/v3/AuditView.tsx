@@ -6,6 +6,7 @@ import {
   Check,
   Info,
   Loader2,
+  MessageSquareCode,
   RefreshCw,
   Wand2,
 } from "lucide-react";
@@ -99,6 +100,11 @@ export function AuditView({
   // Auto-resolver state — single-flight, surfaces a brief result banner.
   const [autoResolving, setAutoResolving] = useState(false);
   const [autoResolveResult, setAutoResolveResult] = useState<string | null>(null);
+  // Ask-Claude state — id of the finding whose handoff is in flight, plus
+  // the id that just successfully copied its prompt (shows a 2.5s ✓ pill).
+  const [askingClaudeId, setAskingClaudeId] = useState<string | null>(null);
+  const [askedClaudeId, setAskedClaudeId] = useState<string | null>(null);
+  const askedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Tracks the in-flight "Hecho ✓" pill timer so we can cancel it on unmount
   // (no setState on a dead component) AND when a fresh action fires before
   // the previous timer expired (a stale 2.5s timeout would otherwise wipe
@@ -112,6 +118,10 @@ export function AuditView({
       if (doneTimeoutRef.current !== null) {
         clearTimeout(doneTimeoutRef.current);
         doneTimeoutRef.current = null;
+      }
+      if (askedTimeoutRef.current !== null) {
+        clearTimeout(askedTimeoutRef.current);
+        askedTimeoutRef.current = null;
       }
     };
   }, []);
@@ -231,6 +241,50 @@ export function AuditView({
       setError(friendlyErrorEn(e));
     } finally {
       setAutoResolving(false);
+    }
+  }
+
+  // Opens VS Code at ~/.claude and copies a context-rich prompt to the
+  // clipboard so the user can paste it directly into Claude Code. Used on
+  // findings where auto-resolve isn't safe (DRIFT/HOOKS/PERMS/SCRIPTS) — and
+  // available on every finding row regardless, since "ask Claude" is always
+  // a valid alternative to the per-row resolver.
+  async function handleAskClaude(finding: AuditFinding) {
+    const id = findingKey(finding);
+    setAskingClaudeId(id);
+    setError(null);
+    try {
+      const ctx = await invoke<{ prompt: string; opened_path: string }>(
+        "audit_open_in_claude",
+        {
+          title: finding.title,
+          level: finding.level,
+          category: finding.category,
+          detail: finding.detail || null,
+          path:
+            finding.action && "path" in finding.action
+              ? finding.action.path
+              : null,
+        }
+      );
+      try {
+        await navigator.clipboard.writeText(ctx.prompt);
+      } catch {
+        // Clipboard write may fail in restricted contexts (no focus, etc.).
+        // The VS Code window is already open; the user can re-trigger.
+      }
+      if (askedTimeoutRef.current !== null) {
+        clearTimeout(askedTimeoutRef.current);
+      }
+      setAskedClaudeId(id);
+      askedTimeoutRef.current = setTimeout(() => {
+        setAskedClaudeId((curr) => (curr === id ? null : curr));
+        askedTimeoutRef.current = null;
+      }, 2500);
+    } catch (e) {
+      setError(friendlyErrorEn(e));
+    } finally {
+      setAskingClaudeId((curr) => (curr === id ? null : curr));
     }
   }
 
@@ -384,7 +438,10 @@ export function AuditView({
           grouped={grouped}
           pendingActionId={pendingActionId}
           recentlyDoneId={recentlyDoneId}
+          askingClaudeId={askingClaudeId}
+          askedClaudeId={askedClaudeId}
           onResolve={handleResolve}
+          onAskClaude={handleAskClaude}
           t={t}
         />
       ) : (
@@ -404,9 +461,15 @@ export function AuditView({
                       finding={f}
                       pending={pendingActionId === key}
                       done={recentlyDoneId === key}
+                      asking={askingClaudeId === key}
+                      asked={askedClaudeId === key}
                       onResolve={handleResolve}
+                      onAskClaude={handleAskClaude}
                       resolveLabel={t(resolveLabelKey(f.action?.kind))}
                       doneLabel={t("audit.action_done")}
+                      askLabel={t("audit.ask_claude")}
+                      askingLabel={t("audit.asking_claude")}
+                      askedLabel={t("audit.asked_claude")}
                     />
                   );
                 })}
@@ -465,16 +528,28 @@ function FindingRow({
   finding,
   pending,
   done,
+  asking,
+  asked,
   onResolve,
+  onAskClaude,
   resolveLabel,
   doneLabel,
+  askLabel,
+  askingLabel,
+  askedLabel,
 }: {
   finding: AuditFinding;
   pending: boolean;
   done: boolean;
+  asking: boolean;
+  asked: boolean;
   onResolve: (f: AuditFinding) => void;
+  onAskClaude: (f: AuditFinding) => void;
   resolveLabel: string;
   doneLabel: string;
+  askLabel: string;
+  askingLabel: string;
+  askedLabel: string;
 }) {
   const Icon =
     finding.level === "CRIT"
@@ -494,6 +569,22 @@ function FindingRow({
         <div className="v3-finding-title">{finding.title}</div>
         <div className="v3-finding-detail">{finding.detail}</div>
       </div>
+      <button
+        type="button"
+        className="v3-finding-ask"
+        onClick={() => onAskClaude(finding)}
+        disabled={asking}
+        title={askLabel}
+      >
+        {asking ? (
+          <Loader2 size={12} strokeWidth={2.25} className="v3-finding-resolve-spin" />
+        ) : asked ? (
+          <Check size={12} strokeWidth={2.5} />
+        ) : (
+          <MessageSquareCode size={12} strokeWidth={2} />
+        )}
+        {asking ? askingLabel : asked ? askedLabel : askLabel}
+      </button>
       {finding.action && (
         done ? (
           // Transient confirmation pill — replaces the resolve button for
@@ -531,13 +622,19 @@ function FindingsTable({
   grouped,
   pendingActionId,
   recentlyDoneId,
+  askingClaudeId,
+  askedClaudeId,
   onResolve,
+  onAskClaude,
   t,
 }: {
   grouped: Array<[string, AuditFinding[]]>;
   pendingActionId: string | null;
   recentlyDoneId: string | null;
+  askingClaudeId: string | null;
+  askedClaudeId: string | null;
   onResolve: (f: AuditFinding) => void;
+  onAskClaude: (f: AuditFinding) => void;
   t: (key: StringKey, vars?: Record<string, string | number>) => string;
 }) {
   return (
@@ -580,32 +677,56 @@ function FindingsTable({
                   )}
                 </td>
                 <td className="v3-audit-act">
-                  {f.action ? (
-                    done ? (
-                      <span className="v3-audit-done" role="status" aria-live="polite">
+                  <div className="v3-audit-act-row">
+                    <button
+                      type="button"
+                      className="v3-audit-btn v3-audit-btn-ask"
+                      onClick={() => onAskClaude(f)}
+                      disabled={askingClaudeId === key}
+                      title={t("audit.ask_claude")}
+                    >
+                      {askingClaudeId === key ? (
+                        <Loader2
+                          size={11}
+                          strokeWidth={2.25}
+                          className="v3-finding-resolve-spin"
+                        />
+                      ) : askedClaudeId === key ? (
                         <Check size={11} strokeWidth={2.5} />
-                        {t("audit.action_done")}
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="v3-audit-btn"
-                        onClick={() => onResolve(f)}
-                        disabled={pending}
-                      >
-                        {pending ? (
-                          <Loader2
-                            size={11}
-                            strokeWidth={2.25}
-                            className="v3-finding-resolve-spin"
-                          />
-                        ) : null}
-                        {t(resolveLabelKey(f.action?.kind))}
-                      </button>
-                    )
-                  ) : (
-                    <span className="v3-audit-act-none">—</span>
-                  )}
+                      ) : (
+                        <MessageSquareCode size={11} strokeWidth={2} />
+                      )}
+                      {askingClaudeId === key
+                        ? t("audit.asking_claude")
+                        : askedClaudeId === key
+                        ? t("audit.asked_claude")
+                        : t("audit.ask_claude")}
+                    </button>
+                    {f.action ? (
+                      done ? (
+                        <span className="v3-audit-done" role="status" aria-live="polite">
+                          <Check size={11} strokeWidth={2.5} />
+                          {t("audit.action_done")}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className="v3-audit-btn"
+                          onClick={() => onResolve(f)}
+                          disabled={pending}
+                        >
+                          {pending ? (
+                            <Loader2
+                              size={11}
+                              strokeWidth={2.25}
+                              className="v3-finding-resolve-spin"
+                            />
+                          ) : null}
+                          {t(resolveLabelKey(f.action?.kind))}
+                        </button>
+                      )
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             );
