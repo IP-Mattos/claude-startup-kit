@@ -1577,6 +1577,23 @@ body.v3-layout #root {
   color: var(--v3-text);
 }
 
+/* Auto-resolve result banner — flash above the filters after the user
+   clicks "Auto-resolve". Auto-dismisses after 5s via the JS timeout. */
+.v3-audit-resolved-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: var(--v3-success-tint);
+  color: var(--v3-success);
+  border: 1px solid var(--v3-success);
+  border-radius: 4px;
+  font-size: 12.5px;
+  font-family: var(--v3-font-mono, ui-monospace, "JetBrains Mono", monospace);
+  font-variant-numeric: tabular-nums;
+}
+
 .v3-audit-foot {
   display: flex;
   align-items: center;

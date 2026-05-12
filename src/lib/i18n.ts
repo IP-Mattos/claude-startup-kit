@@ -547,6 +547,12 @@ const STRINGS = {
     es: "{n} hallazgos en tu workspace.",
   },
   "audit.rerun": { en: "Re-run", es: "Re-ejecutar" },
+  "audit.auto_resolve": { en: "Auto-resolve", es: "Auto-resolver" },
+  "audit.auto_resolving": { en: "Resolving…", es: "Resolviendo…" },
+  "audit.auto_resolve_hint": {
+    en: "Apply safe fixes: trim resolved gentle-ai log errors, prune old audit backups.",
+    es: "Aplica fixes seguros: recorta errores resueltos de gentle-ai en el log y borra backups viejos.",
+  },
   "audit.filter_all": { en: "All {n}", es: "Todos {n}" },
   "audit.filter_critical": { en: "Critical {n}", es: "Críticos {n}" },
   "audit.filter_warning": { en: "Warning {n}", es: "Advertencias {n}" },

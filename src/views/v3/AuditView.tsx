@@ -7,6 +7,7 @@ import {
   Info,
   Loader2,
   RefreshCw,
+  Wand2,
 } from "lucide-react";
 import type { AuditAction, AuditFinding } from "../../types";
 import { friendlyErrorEn } from "../../lib/format";
@@ -95,6 +96,9 @@ export function AuditView({
   // disappears too quickly to register).
   const [recentlyDoneId, setRecentlyDoneId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<PendingConfirm | null>(null);
+  // Auto-resolver state — single-flight, surfaces a brief result banner.
+  const [autoResolving, setAutoResolving] = useState(false);
+  const [autoResolveResult, setAutoResolveResult] = useState<string | null>(null);
   // Tracks the in-flight "Hecho ✓" pill timer so we can cancel it on unmount
   // (no setState on a dead component) AND when a fresh action fires before
   // the previous timer expired (a stale 2.5s timeout would otherwise wipe
@@ -208,6 +212,28 @@ export function AuditView({
     }
   }
 
+  // Runs known-safe fixes the audit can apply on its own. Surfaces a one-line
+  // result banner that auto-dismisses after 5s.
+  async function handleAutoResolve() {
+    setAutoResolving(true);
+    setAutoResolveResult(null);
+    setError(null);
+    try {
+      const report = await invoke<{
+        trimmed_gentle_ai_errors: number;
+        deleted_backups: number;
+        notes: string[];
+      }>("audit_auto_resolve");
+      setAutoResolveResult(report.notes.join(" · "));
+      setTimeout(() => setAutoResolveResult(null), 5000);
+      onRefresh();
+    } catch (e) {
+      setError(friendlyErrorEn(e));
+    } finally {
+      setAutoResolving(false);
+    }
+  }
+
   // Entry point for clicks on the per-row resolve button. Decides whether to
   // pop the confirm modal or fire the action immediately. The four destructive
   // ones (kill, delete, restore, reinstall) all gate behind ConfirmModal.
@@ -273,6 +299,15 @@ export function AuditView({
         <div className="v3-view-tools">
           <button
             className="v3-btn-ghost v3-btn-sm"
+            onClick={handleAutoResolve}
+            disabled={autoResolving || loading}
+            title={t("audit.auto_resolve_hint")}
+          >
+            <Wand2 size={13} strokeWidth={2} />
+            {autoResolving ? t("audit.auto_resolving") : t("audit.auto_resolve")}
+          </button>
+          <button
+            className="v3-btn-ghost v3-btn-sm"
             onClick={onRefresh}
           >
             <RefreshCw size={13} strokeWidth={2} />
@@ -280,6 +315,13 @@ export function AuditView({
           </button>
         </div>
       </header>
+
+      {autoResolveResult && (
+        <div className="v3-audit-resolved-banner" role="status">
+          <Check size={13} strokeWidth={2.4} />
+          <span>{autoResolveResult}</span>
+        </div>
+      )}
 
       <div className="v3-filter-row">
         <FilterChip

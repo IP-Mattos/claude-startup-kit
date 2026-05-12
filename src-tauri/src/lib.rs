@@ -5311,6 +5311,115 @@ async fn daily_standup(window_hours: Option<u32>) -> Result<StandupReport, Strin
         .map_err(|e| format!("daily_standup task join: {e}"))
 }
 
+// ─── Audit auto-resolver ──────────────────────────────────────────────────
+//
+// Applies known-safe fixes the audit found, without user intervention.
+// Currently:
+//   1. Trims `[ERROR] [check-gentle-ai] Upgrade FAILED` lines from
+//      startup-kit.log when a later line shows the system recovered.
+//   2. Deletes audit backup folders older than 30 days.
+// Other findings (DRIFT, HOOKS, PERMS) need user judgment — not auto-fixed.
+
+#[derive(Debug, Serialize)]
+struct AutoResolveReport {
+    trimmed_gentle_ai_errors: u32,
+    deleted_backups: u32,
+    notes: Vec<String>,
+}
+
+#[tauri::command]
+async fn audit_auto_resolve() -> Result<AutoResolveReport, String> {
+    tokio::task::spawn_blocking(|| -> Result<AutoResolveReport, String> {
+        let home = dirs_home().ok_or_else(|| "no home dir".to_string())?;
+        let claude_dir = home.join(".claude");
+        let mut report = AutoResolveReport {
+            trimmed_gentle_ai_errors: 0,
+            deleted_backups: 0,
+            notes: Vec::new(),
+        };
+
+        // 1. Trim resolved gentle-ai errors from startup-kit.log.
+        let log_path = claude_dir.join("logs").join("startup-kit.log");
+        if log_path.exists() {
+            let content = fs::read_to_string(&log_path).unwrap_or_default();
+            let lines: Vec<&str> = content.lines().collect();
+            let has_recovery = lines
+                .iter()
+                .any(|l| l.contains("[check-gentle-ai] Up to date"));
+            if has_recovery {
+                let mut kept: Vec<&str> = Vec::with_capacity(lines.len());
+                let mut trimmed: u32 = 0;
+                for (i, line) in lines.iter().enumerate() {
+                    let is_gentle_ai_error =
+                        line.contains("[ERROR]") && line.contains("[check-gentle-ai]");
+                    if is_gentle_ai_error {
+                        let later_recovery = lines
+                            .iter()
+                            .skip(i + 1)
+                            .any(|l| l.contains("[check-gentle-ai] Up to date"));
+                        if later_recovery {
+                            trimmed += 1;
+                            continue;
+                        }
+                    }
+                    kept.push(line);
+                }
+                if trimmed > 0 {
+                    let mut new_content = kept.join("\n");
+                    if !new_content.is_empty() {
+                        new_content.push('\n');
+                    }
+                    fs::write(&log_path, new_content)
+                        .map_err(|e| format!("rewrite log: {e}"))?;
+                    report.trimmed_gentle_ai_errors = trimmed;
+                    report.notes.push(format!(
+                        "Trimmed {trimmed} resolved gentle-ai error line(s) from startup-kit.log"
+                    ));
+                }
+            }
+        }
+
+        // 2. Delete audit backups older than 30 days.
+        let backups_dir = claude_dir.join("backups");
+        if backups_dir.exists() {
+            let cutoff = SystemTime::now() - Duration::from_secs(30 * 24 * 3600);
+            if let Ok(entries) = fs::read_dir(&backups_dir) {
+                for entry in entries.flatten() {
+                    let p = entry.path();
+                    let Some(name) = p.file_name().and_then(|s| s.to_str()) else {
+                        continue;
+                    };
+                    if !name.starts_with("audit-") {
+                        continue;
+                    }
+                    let Ok(meta) = entry.metadata() else {
+                        continue;
+                    };
+                    let Ok(modified) = meta.modified() else {
+                        continue;
+                    };
+                    if modified < cutoff && fs::remove_dir_all(&p).is_ok() {
+                        report.deleted_backups += 1;
+                    }
+                }
+                if report.deleted_backups > 0 {
+                    report.notes.push(format!(
+                        "Deleted {} audit backup(s) older than 30 days",
+                        report.deleted_backups
+                    ));
+                }
+            }
+        }
+
+        if report.notes.is_empty() {
+            report.notes.push("Nothing to resolve.".to_string());
+        }
+        Ok(report)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 // ─── Conversation search ──────────────────────────────────────────────────
 //
 // Full-text search across `~/.claude/projects/*/*.jsonl`. Returns user/
@@ -5882,6 +5991,7 @@ pub fn run() {
             cleanup_plan,
             cleanup_apply,
             audit_resolve_delete,
+            audit_auto_resolve,
             engram_sync_push,
             engram_sync_pull,
             engram_sync_status,
