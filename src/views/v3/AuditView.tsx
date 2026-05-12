@@ -569,22 +569,26 @@ function FindingRow({
         <div className="v3-finding-title">{finding.title}</div>
         <div className="v3-finding-detail">{finding.detail}</div>
       </div>
-      <button
-        type="button"
-        className="v3-finding-ask"
-        onClick={() => onAskClaude(finding)}
-        disabled={asking}
-        title={askLabel}
-      >
-        {asking ? (
-          <Loader2 size={12} strokeWidth={2.25} className="v3-finding-resolve-spin" />
-        ) : asked ? (
-          <Check size={12} strokeWidth={2.5} />
-        ) : (
-          <MessageSquareCode size={12} strokeWidth={2} />
-        )}
-        {asking ? askingLabel : asked ? askedLabel : askLabel}
-      </button>
+      {/* Pure INFO findings without an action are status dumps (counters,
+          plugin listings, config echoes) — nothing for Claude to resolve. */}
+      {!(finding.level === "INFO" && !finding.action) && (
+        <button
+          type="button"
+          className="v3-finding-ask"
+          onClick={() => onAskClaude(finding)}
+          disabled={asking}
+          title={askLabel}
+        >
+          {asking ? (
+            <Loader2 size={12} strokeWidth={2.25} className="v3-finding-resolve-spin" />
+          ) : asked ? (
+            <Check size={12} strokeWidth={2.5} />
+          ) : (
+            <MessageSquareCode size={12} strokeWidth={2} />
+          )}
+          {asking ? askingLabel : asked ? askedLabel : askLabel}
+        </button>
+      )}
       {finding.action && (
         done ? (
           // Transient confirmation pill — replaces the resolve button for
@@ -678,30 +682,33 @@ function FindingsTable({
                 </td>
                 <td className="v3-audit-act">
                   <div className="v3-audit-act-row">
-                    <button
-                      type="button"
-                      className="v3-audit-btn v3-audit-btn-ask"
-                      onClick={() => onAskClaude(f)}
-                      disabled={askingClaudeId === key}
-                      title={t("audit.ask_claude")}
-                    >
-                      {askingClaudeId === key ? (
-                        <Loader2
-                          size={11}
-                          strokeWidth={2.25}
-                          className="v3-finding-resolve-spin"
-                        />
-                      ) : askedClaudeId === key ? (
-                        <Check size={11} strokeWidth={2.5} />
-                      ) : (
-                        <MessageSquareCode size={11} strokeWidth={2} />
-                      )}
-                      {askingClaudeId === key
-                        ? t("audit.asking_claude")
-                        : askedClaudeId === key
-                        ? t("audit.asked_claude")
-                        : t("audit.ask_claude")}
-                    </button>
+                    {/* Hide Ask Claude on pure-INFO status rows (counters, listings) */}
+                    {!(f.level === "INFO" && !f.action) && (
+                      <button
+                        type="button"
+                        className="v3-audit-btn v3-audit-btn-ask"
+                        onClick={() => onAskClaude(f)}
+                        disabled={askingClaudeId === key}
+                        title={t("audit.ask_claude")}
+                      >
+                        {askingClaudeId === key ? (
+                          <Loader2
+                            size={11}
+                            strokeWidth={2.25}
+                            className="v3-finding-resolve-spin"
+                          />
+                        ) : askedClaudeId === key ? (
+                          <Check size={11} strokeWidth={2.5} />
+                        ) : (
+                          <MessageSquareCode size={11} strokeWidth={2} />
+                        )}
+                        {askingClaudeId === key
+                          ? t("audit.asking_claude")
+                          : askedClaudeId === key
+                          ? t("audit.asked_claude")
+                          : t("audit.ask_claude")}
+                      </button>
+                    )}
                     {f.action ? (
                       done ? (
                         <span className="v3-audit-done" role="status" aria-live="polite">
@@ -726,6 +733,11 @@ function FindingsTable({
                         </button>
                       )
                     ) : null}
+                    {/* Pure-INFO status rows have neither button — keep the
+                        em-dash placeholder so the column doesn't read empty. */}
+                    {f.level === "INFO" && !f.action && (
+                      <span className="v3-audit-act-none">—</span>
+                    )}
                   </div>
                 </td>
               </tr>
