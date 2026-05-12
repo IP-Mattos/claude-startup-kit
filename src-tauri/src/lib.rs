@@ -1566,7 +1566,29 @@ fn audit_logs(out: &mut Vec<AuditFinding>, claude_dir: &Path) {
         Ok(t) => t,
         Err(_) => return,
     };
-    let errors: Vec<&String> = tail.iter().filter(|l| l.contains("[ERROR]")).collect();
+    // Auto-resolve transient errors. Right now: gentle-ai upgrade failures
+    // (`[ERROR] [check-gentle-ai] Upgrade FAILED ...`) are suppressed if a
+    // LATER line says `[check-gentle-ai] Up to date` — the system caught
+    // up and the historical error no longer needs the user's attention.
+    let has_gentle_ai_recovery = tail
+        .iter()
+        .any(|l| l.contains("[check-gentle-ai] Up to date"));
+    let errors: Vec<&String> = tail
+        .iter()
+        .enumerate()
+        .filter(|(_, l)| l.contains("[ERROR]"))
+        .filter(|(idx, l)| {
+            // Suppress only if a recovery line appears AFTER this error.
+            if has_gentle_ai_recovery && l.contains("[check-gentle-ai]") {
+                return !tail
+                    .iter()
+                    .skip(idx + 1)
+                    .any(|later| later.contains("[check-gentle-ai] Up to date"));
+            }
+            true
+        })
+        .map(|(_, l)| l)
+        .collect();
     let warns: Vec<&String> = tail.iter().filter(|l| l.contains("[WARN]")).collect();
     if !errors.is_empty() {
         // VERBATIM TITLE SUFFIX — `infer_action` matches "ERROR entries in last 200 log lines".
