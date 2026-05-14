@@ -4,6 +4,8 @@ import {
   AlertOctagon,
   AlertTriangle,
   Check,
+  EyeOff,
+  Eye,
   Info,
   Loader2,
   MessageSquareCode,
@@ -105,6 +107,10 @@ export function AuditView({
   const [askingClaudeId, setAskingClaudeId] = useState<string | null>(null);
   const [askedClaudeId, setAskedClaudeId] = useState<string | null>(null);
   const askedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ignore-finding state — single-flight per row. `showIgnored` flips the
+  // view to ONLY ignored findings so the user can manage/restore.
+  const [ignoringId, setIgnoringId] = useState<string | null>(null);
+  const [showIgnored, setShowIgnored] = useState(false);
   // Tracks the in-flight "Hecho ✓" pill timer so we can cancel it on unmount
   // (no setState on a dead component) AND when a fresh action fires before
   // the previous timer expired (a stale 2.5s timeout would otherwise wipe
@@ -128,6 +134,13 @@ export function AuditView({
 
   const grouped = useMemo(() => {
     const filtered = findings.filter((f) => {
+      // "Ignorados" view inverts the ignore filter — show ONLY ignored
+      // findings so the user can manage / unignore them.
+      if (showIgnored) {
+        if (!f.ignored) return false;
+      } else {
+        if (f.ignored) return false;
+      }
       if (filter !== "all" && f.level !== filter) return false;
       if (categoryFilter !== "all" && f.category !== categoryFilter) return false;
       return true;
@@ -139,7 +152,7 @@ export function AuditView({
       map.set(f.category, arr);
     }
     return Array.from(map.entries());
-  }, [findings, filter, categoryFilter]);
+  }, [findings, filter, categoryFilter, showIgnored]);
 
   // Distinct categories present in the current findings, with per-category
   // counts. Sorted by count desc so the most-active category is first. Used
@@ -154,13 +167,20 @@ export function AuditView({
   }, [findings]);
 
   const counts = useMemo(() => {
+    // Visible-set counts depend on the ignore mode — when viewing
+    // ignored, the chips count among ignored only; otherwise among
+    // non-ignored.
+    const scope = findings.filter((f) =>
+      showIgnored ? f.ignored : !f.ignored
+    );
     return {
-      crit: findings.filter((f) => f.level === "CRIT").length,
-      warn: findings.filter((f) => f.level === "WARN").length,
-      info: findings.filter((f) => f.level === "INFO").length,
-      all: findings.length,
+      crit: scope.filter((f) => f.level === "CRIT").length,
+      warn: scope.filter((f) => f.level === "WARN").length,
+      info: scope.filter((f) => f.level === "INFO").length,
+      all: scope.length,
+      ignored: findings.filter((f) => f.ignored).length,
     };
-  }, [findings]);
+  }, [findings, showIgnored]);
 
   // Run an action that's already been confirmed (or doesn't need confirmation).
   // Centralized so the spinner state, error surfacing, and post-action refresh
@@ -278,6 +298,29 @@ export function AuditView({
     }
   }
 
+  // Mute a finding the user knows is benign (and the audit's heuristic
+  // can't tell). Persists to ~/.claude/csk-audit-ignored.json. The
+  // finding stays in the response but `ignored: true`, so it can be
+  // restored from the "Ignorados" filter chip.
+  async function handleToggleIgnore(finding: AuditFinding) {
+    const id = findingKey(finding);
+    setIgnoringId(id);
+    setError(null);
+    try {
+      const cmd = finding.ignored ? "unignore_audit_finding" : "ignore_audit_finding";
+      await invoke(cmd, {
+        title: finding.title,
+        category: finding.category,
+        detail: finding.detail,
+      });
+      onRefresh();
+    } catch (e) {
+      setError(friendlyErrorEn(e));
+    } finally {
+      setIgnoringId((curr) => (curr === id ? null : curr));
+    }
+  }
+
   // Entry point for clicks on the per-row resolve button. Decides whether to
   // pop the confirm modal or fire the action immediately. The four destructive
   // ones (kill, delete, restore, reinstall) all gate behind ConfirmModal.
@@ -391,6 +434,16 @@ export function AuditView({
           label={t("audit.filter_info", { n: counts.info })}
           tint="info"
         />
+        {counts.ignored > 0 && (
+          <FilterChip
+            active={showIgnored}
+            onClick={() => {
+              setShowIgnored((v) => !v);
+              setFilter("all");
+            }}
+            label={t("audit.filter_ignored", { n: counts.ignored })}
+          />
+        )}
       </div>
 
       {/* Category filter row — only shown when there are 2+ distinct categories
@@ -430,8 +483,10 @@ export function AuditView({
           recentlyDoneId={recentlyDoneId}
           askingClaudeId={askingClaudeId}
           askedClaudeId={askedClaudeId}
+          ignoringId={ignoringId}
           onResolve={handleResolve}
           onAskClaude={handleAskClaude}
+          onToggleIgnore={handleToggleIgnore}
           t={t}
         />
       ) : (
@@ -453,13 +508,17 @@ export function AuditView({
                       done={recentlyDoneId === key}
                       asking={askingClaudeId === key}
                       asked={askedClaudeId === key}
+                      ignoring={ignoringId === key}
                       onResolve={handleResolve}
                       onAskClaude={handleAskClaude}
+                      onToggleIgnore={handleToggleIgnore}
                       resolveLabel={t(resolveLabelKey(f.action?.kind))}
                       doneLabel={t("audit.action_done")}
                       askLabel={t("audit.ask_claude")}
                       askingLabel={t("audit.asking_claude")}
                       askedLabel={t("audit.asked_claude")}
+                      ignoreLabel={t("audit.ignore")}
+                      unignoreLabel={t("audit.unignore")}
                     />
                   );
                 })}
@@ -520,26 +579,34 @@ function FindingRow({
   done,
   asking,
   asked,
+  ignoring,
   onResolve,
   onAskClaude,
+  onToggleIgnore,
   resolveLabel,
   doneLabel,
   askLabel,
   askingLabel,
   askedLabel,
+  ignoreLabel,
+  unignoreLabel,
 }: {
   finding: AuditFinding;
   pending: boolean;
   done: boolean;
   asking: boolean;
   asked: boolean;
+  ignoring: boolean;
   onResolve: (f: AuditFinding) => void;
   onAskClaude: (f: AuditFinding) => void;
+  onToggleIgnore: (f: AuditFinding) => void;
   resolveLabel: string;
   doneLabel: string;
   askLabel: string;
   askingLabel: string;
   askedLabel: string;
+  ignoreLabel: string;
+  unignoreLabel: string;
 }) {
   const Icon =
     finding.level === "CRIT"
@@ -577,6 +644,27 @@ function FindingRow({
             <MessageSquareCode size={12} strokeWidth={2} />
           )}
           {asking ? askingLabel : asked ? askedLabel : askLabel}
+        </button>
+      )}
+      {/* Ignore / restore toggle. Only shown on WARN/CRIT (or already-
+          ignored INFOs the user is reviewing). Pure-INFO status rows
+          can't be ignored — they're informational, no muting needed. */}
+      {(finding.level !== "INFO" || finding.ignored) && (
+        <button
+          type="button"
+          className="v3-finding-ignore"
+          onClick={() => onToggleIgnore(finding)}
+          disabled={ignoring}
+          title={finding.ignored ? unignoreLabel : ignoreLabel}
+        >
+          {ignoring ? (
+            <Loader2 size={12} strokeWidth={2.25} className="v3-finding-resolve-spin" />
+          ) : finding.ignored ? (
+            <Eye size={12} strokeWidth={2} />
+          ) : (
+            <EyeOff size={12} strokeWidth={2} />
+          )}
+          {finding.ignored ? unignoreLabel : ignoreLabel}
         </button>
       )}
       {finding.action && (
@@ -618,8 +706,10 @@ function FindingsTable({
   recentlyDoneId,
   askingClaudeId,
   askedClaudeId,
+  ignoringId,
   onResolve,
   onAskClaude,
+  onToggleIgnore,
   t,
 }: {
   grouped: Array<[string, AuditFinding[]]>;
@@ -627,8 +717,10 @@ function FindingsTable({
   recentlyDoneId: string | null;
   askingClaudeId: string | null;
   askedClaudeId: string | null;
+  ignoringId: string | null;
   onResolve: (f: AuditFinding) => void;
   onAskClaude: (f: AuditFinding) => void;
+  onToggleIgnore: (f: AuditFinding) => void;
   t: (key: StringKey, vars?: Record<string, string | number>) => string;
 }) {
   return (
@@ -723,9 +815,34 @@ function FindingsTable({
                         </button>
                       )
                     ) : null}
-                    {/* Pure-INFO status rows have neither button — keep the
+                    {/* Ignore / restore toggle for WARN/CRIT (and for already-
+                        ignored rows of any level so the user can restore them
+                        from the "Ignorados" view). */}
+                    {(f.level !== "INFO" || f.ignored) && (
+                      <button
+                        type="button"
+                        className="v3-audit-btn v3-audit-btn-ignore"
+                        onClick={() => onToggleIgnore(f)}
+                        disabled={ignoringId === key}
+                        title={f.ignored ? t("audit.unignore") : t("audit.ignore")}
+                      >
+                        {ignoringId === key ? (
+                          <Loader2
+                            size={11}
+                            strokeWidth={2.25}
+                            className="v3-finding-resolve-spin"
+                          />
+                        ) : f.ignored ? (
+                          <Eye size={11} strokeWidth={2} />
+                        ) : (
+                          <EyeOff size={11} strokeWidth={2} />
+                        )}
+                        {f.ignored ? t("audit.unignore") : t("audit.ignore")}
+                      </button>
+                    )}
+                    {/* Pure-INFO status rows have no buttons — keep the
                         em-dash placeholder so the column doesn't read empty. */}
-                    {f.level === "INFO" && !f.action && (
+                    {f.level === "INFO" && !f.action && !f.ignored && (
                       <span className="v3-audit-act-none">—</span>
                     )}
                   </div>

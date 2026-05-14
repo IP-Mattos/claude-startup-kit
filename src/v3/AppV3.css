@@ -2396,6 +2396,7 @@ body.v3-layout #root {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
 .v3-audit-btn-ask {
   background: var(--v3-surface);
@@ -2404,6 +2405,41 @@ body.v3-layout #root {
 .v3-audit-btn-ask:hover:not([disabled]) {
   color: var(--v3-text);
   border-color: var(--v3-text-4);
+}
+.v3-audit-btn-ignore {
+  background: var(--v3-surface);
+  color: var(--v3-text-4);
+}
+.v3-audit-btn-ignore:hover:not([disabled]) {
+  color: var(--v3-text-2);
+  border-color: var(--v3-text-4);
+}
+
+/* Same ghost styling as v3-finding-ask, dimmer color since this is the
+   "I don't care about this" button — should read as low-priority. */
+.v3-finding-ignore {
+  align-self: center;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: var(--v3-radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--v3-text-4);
+  border: 1px solid var(--v3-border);
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+}
+.v3-finding-ignore:hover:not([disabled]) {
+  border-color: var(--v3-text-4);
+  color: var(--v3-text-2);
+}
+.v3-finding-ignore[disabled] {
+  opacity: 0.6;
+  cursor: progress;
 }
 
 /* Severity → button color mapping. All theme-aware so the button picks

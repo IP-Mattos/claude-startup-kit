@@ -972,6 +972,12 @@ pub struct AuditFinding {
     pub title: String,
     pub detail: String,
     pub action: Option<AuditAction>,
+    /// User explicitly muted this finding via the "Ignorar" button. The
+    /// audit still emits it (so the count is accurate and the user can
+    /// unignore from the "Ignorados" filter chip) but the UI hides it
+    /// from the default view.
+    #[serde(default)]
+    pub ignored: bool,
 }
 
 /// Resolve `~/.claude/<rel>` as a string path with the user's home directory
@@ -1170,6 +1176,7 @@ fn push_finding(out: &mut Vec<AuditFinding>, level: &str, category: &str, title:
         title,
         detail,
         action,
+        ignored: false,
     });
 }
 
@@ -1931,6 +1938,22 @@ fn run_audit_blocking() -> Result<Vec<AuditFinding>, String> {
     audit_drift(&mut out, &claude_dir, settings.as_ref());
     audit_env(&mut out);
     audit_startup(&mut out);
+
+    // Mark findings the user previously ignored. The UI hides them by
+    // default but a "Ignorados" filter chip can show them so the user can
+    // un-mute. We never DROP findings — accuracy matters, especially for
+    // crit counts.
+    let ignored = read_ignored_findings_file().findings;
+    if !ignored.is_empty() {
+        for f in out.iter_mut() {
+            if ignored
+                .iter()
+                .any(|ig| ig.title == f.title && ig.category == f.category && ig.detail == f.detail)
+            {
+                f.ignored = true;
+            }
+        }
+    }
 
     Ok(out)
 }
@@ -5420,6 +5443,117 @@ async fn audit_auto_resolve() -> Result<AutoResolveReport, String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+// ─── Audit ignore list ────────────────────────────────────────────────────
+//
+// Persists user-muted findings to `~/.claude/csk-audit-ignored.json`. The
+// key is (title, category, detail) — uniquely identifies a finding
+// instance. `run_audit` marks matching findings with `ignored: true`
+// instead of dropping them, so the UI can offer a "Ignorados" filter
+// chip to un-mute later.
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct IgnoredFinding {
+    title: String,
+    category: String,
+    detail: String,
+    ignored_at: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+struct IgnoredFindingsFile {
+    #[serde(default = "default_ignored_version")]
+    version: u32,
+    #[serde(default)]
+    findings: Vec<IgnoredFinding>,
+}
+
+fn default_ignored_version() -> u32 {
+    1
+}
+
+fn ignored_findings_path() -> Option<PathBuf> {
+    dirs_home().map(|h| h.join(".claude").join("csk-audit-ignored.json"))
+}
+
+fn read_ignored_findings_file() -> IgnoredFindingsFile {
+    let Some(path) = ignored_findings_path() else {
+        return IgnoredFindingsFile::default();
+    };
+    if !path.exists() {
+        return IgnoredFindingsFile {
+            version: 1,
+            findings: Vec::new(),
+        };
+    }
+    let body = fs::read_to_string(&path).unwrap_or_default();
+    if body.trim().is_empty() {
+        return IgnoredFindingsFile {
+            version: 1,
+            findings: Vec::new(),
+        };
+    }
+    serde_json::from_str(&body).unwrap_or_default()
+}
+
+fn write_ignored_findings_file(file: &IgnoredFindingsFile) -> Result<(), String> {
+    let path = ignored_findings_path().ok_or_else(|| "no home dir".to_string())?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("create dir: {e}"))?;
+    }
+    let body = serde_json::to_string_pretty(file).map_err(|e| format!("serialize: {e}"))?;
+    fs::write(&path, body).map_err(|e| format!("write: {e}"))
+}
+
+#[tauri::command]
+async fn ignore_audit_finding(
+    title: String,
+    category: String,
+    detail: String,
+) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let mut file = read_ignored_findings_file();
+        let already = file
+            .findings
+            .iter()
+            .any(|f| f.title == title && f.category == category && f.detail == detail);
+        if !already {
+            file.findings.push(IgnoredFinding {
+                title,
+                category,
+                detail,
+                ignored_at: now_secs(),
+            });
+            if file.version == 0 {
+                file.version = 1;
+            }
+            write_ignored_findings_file(&file)?;
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn unignore_audit_finding(
+    title: String,
+    category: String,
+    detail: String,
+) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let mut file = read_ignored_findings_file();
+        let before = file.findings.len();
+        file.findings
+            .retain(|f| !(f.title == title && f.category == category && f.detail == detail));
+        if file.findings.len() != before {
+            write_ignored_findings_file(&file)?;
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 // ─── Ask Claude (handoff to Claude Code) ─────────────────────────────────
 //
 // For findings the auto-resolver can't touch (DRIFT, HOOKS, PERMS, SCRIPTS
@@ -6078,6 +6212,8 @@ pub fn run() {
             audit_resolve_delete,
             audit_auto_resolve,
             audit_open_in_claude,
+            ignore_audit_finding,
+            unignore_audit_finding,
             engram_sync_push,
             engram_sync_pull,
             engram_sync_status,

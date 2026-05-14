@@ -33,6 +33,10 @@ export type AuditFinding = {
   // Backend may omit (older audit script) or send null. Both normalize to
   // "no action button" in the renderer.
   action?: AuditAction | null;
+  // True when the user previously muted this finding via the "Ignorar"
+  // button. The audit still returns it; the UI hides it by default and
+  // shows a "Ignorados" filter chip to un-mute.
+  ignored?: boolean;
 };
 
 export type GhPullRequest = {
