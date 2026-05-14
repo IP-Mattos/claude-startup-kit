@@ -28,6 +28,9 @@ toast-*.ps1
 # Claude Code session state (per-machine)
 .claude/
 
+# Agent-team-lite skill registry (per-machine session state)
+.atl/
+
 # Tauri / Node build artifacts
 node_modules/
 dist/
