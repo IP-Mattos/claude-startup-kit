@@ -256,198 +256,18 @@ function freshnessScore(daysAgo: number): number {
 }
 
 // =============================================================
-// Audit summary — 4 hacker/data-style render modes the user picks
-// from a tiny chip selector. Mode persists in localStorage so it
-// sticks across reloads.
+// Audit summary — single tree layout. The earlier 4-mode picker
+// (tree/log/k9s/shell) was clutter on a card the user glances at;
+// we kept the cleanest variant and made it nicer. Each row uses a
+// CSS grid `key · leader · num` so the dotted line scales with the
+// card width instead of being a fixed string of dots.
 // =============================================================
-
-type AuditMode = "tree" | "log" | "k9s" | "shell";
-const AUDIT_MODES: AuditMode[] = ["tree", "log", "k9s", "shell"];
-
-function isAuditMode(v: string): v is AuditMode {
-  return (AUDIT_MODES as string[]).includes(v);
-}
-
-function useAuditMode(): [AuditMode, (m: AuditMode) => void] {
-  const [mode, setMode] = useState<AuditMode>(() => {
-    try {
-      const saved = localStorage.getItem("csk-audit-mode");
-      if (saved && isAuditMode(saved)) return saved;
-    } catch {
-      /* localStorage unavailable */
-    }
-    return "tree";
-  });
-  const update = (m: AuditMode) => {
-    setMode(m);
-    try {
-      localStorage.setItem("csk-audit-mode", m);
-    } catch {
-      /* ignore */
-    }
-  };
-  return [mode, update];
-}
-
-// Pad numbers to align columns inside each ASCII layout. Width 3 fits
-// 0-999 which is the realistic range for a finding count.
-function pad(n: number, width = 3): string {
-  return String(n).padStart(width, " ");
-}
 
 interface AuditStats {
   crit: number;
   warn: number;
   info: number;
   total: number;
-}
-
-interface AuditModeProps {
-  stats: AuditStats;
-}
-
-// Mode 1 — Tree diagnostic (`tree` command output style).
-function AuditTreeMode({ stats }: AuditModeProps) {
-  const status =
-    stats.crit > 0 ? "ATTENTION" : stats.warn > 0 ? "WARNINGS" : "ALL CLEAR";
-  const statusClass =
-    stats.crit > 0
-      ? "audit-status-crit"
-      : stats.warn > 0
-      ? "audit-status-warn"
-      : "audit-status-ok";
-  return (
-    <div className="v3-audit-mode v3-audit-mode-tree">
-      <div>
-        <span className="audit-key">total </span>
-        <span className="audit-leader">─────── </span>
-        <span className="audit-num">{pad(stats.total)}</span>
-      </div>
-      <div className={stats.crit > 0 ? "audit-crit-active" : ""}>
-        <span className="audit-leader">├─ </span>
-        <span className="audit-key">crit </span>
-        <span className="audit-leader">······· </span>
-        <span className="audit-num">{pad(stats.crit)}</span>
-      </div>
-      <div>
-        <span className="audit-leader">├─ </span>
-        <span className="audit-key">warn </span>
-        <span className="audit-leader">······· </span>
-        <span className="audit-num">{pad(stats.warn)}</span>
-      </div>
-      <div>
-        <span className="audit-leader">└─ </span>
-        <span className="audit-key">info </span>
-        <span className="audit-leader">······· </span>
-        <span className="audit-num">{pad(stats.info)}</span>
-      </div>
-      <div style={{ marginTop: 8 }}>
-        <span className="audit-key">status: </span>
-        <span className={statusClass}>{status}</span>
-      </div>
-    </div>
-  );
-}
-
-// Mode 2 — top/htop-style log lines with `>` prompt.
-function AuditLogMode({ stats, t }: AuditModeProps & { t: (k: StringKey) => string }) {
-  const status =
-    stats.crit > 0 ? "crit" : stats.warn > 0 ? "warn" : "ok";
-  const statusClass =
-    stats.crit > 0
-      ? "audit-status-crit"
-      : stats.warn > 0
-      ? "audit-status-warn"
-      : "audit-status-ok";
-  return (
-    <div className="v3-audit-mode v3-audit-mode-log">
-      <div>
-        <span className="audit-prompt">{"> "}</span>
-        <span className="audit-num">{stats.total}</span>
-        <span className="audit-key"> findings</span>
-        <span style={{ marginLeft: 16 }} className="audit-key">status: </span>
-        <span className={statusClass}>{status}</span>
-      </div>
-      <div className={stats.crit > 0 ? "audit-crit-active" : ""}>
-        <span className="audit-prompt">{"> "}</span>
-        <span className="audit-key">crit </span>
-        <span className="audit-num">{String(stats.crit).padStart(2, "0")}</span>
-        <span className="audit-key">  warn </span>
-        <span className="audit-num">{String(stats.warn).padStart(2, "0")}</span>
-        <span className="audit-key">  info </span>
-        <span className="audit-num">{String(stats.info).padStart(2, "0")}</span>
-      </div>
-      <div>
-        <span className="audit-prompt">{"> "}</span>
-        <span className="audit-key">last scan: </span>
-        <span className="audit-num">{t("overview.audit_last_now")}</span>
-      </div>
-    </div>
-  );
-}
-
-// Mode 3 — k9s tabular view with status dots (● filled when value > 0).
-function AuditK9sMode({ stats }: AuditModeProps) {
-  const row = (key: string, n: number, isCrit = false) => {
-    const active = n > 0;
-    return (
-      <div
-        className={
-          (active ? "audit-row-active " : "") +
-          (isCrit && active ? "audit-crit-active" : "")
-        }
-      >
-        <span className="audit-dot">{active ? "●" : "○"}</span>
-        <span className="audit-key">  {key.padEnd(6, " ")}</span>
-        <span className="audit-num">{pad(n)}</span>
-      </div>
-    );
-  };
-  return (
-    <div className="v3-audit-mode v3-audit-mode-k9s">
-      {row("CRIT", stats.crit, true)}
-      {row("WARN", stats.warn)}
-      {row("INFO", stats.info)}
-      <div className="audit-leader">─────────────────</div>
-      <div>
-        <span style={{ display: "inline-block", width: 8 }} />
-        <span className="audit-key">  TOTAL </span>
-        <span className="audit-num">{pad(stats.total)}</span>
-      </div>
-    </div>
-  );
-}
-
-// Mode 4 — shell command echo (`$ csk audit --summary`).
-function AuditShellMode({ stats }: AuditModeProps) {
-  return (
-    <div className="v3-audit-mode v3-audit-mode-shell">
-      <div>
-        <span className="audit-prompt">$ </span>
-        <span className="audit-cmd">csk audit --summary</span>
-      </div>
-      <div style={{ marginTop: 4 }}>
-        <span className="audit-key">scanning ~/.claude .. done</span>
-      </div>
-      <div style={{ marginTop: 8 }} className={stats.crit > 0 ? "audit-crit-active" : ""}>
-        <span className="audit-key">CRIT ·· </span>
-        <span className="audit-num">{pad(stats.crit)}</span>
-      </div>
-      <div>
-        <span className="audit-key">WARN ·· </span>
-        <span className="audit-num">{pad(stats.warn)}</span>
-      </div>
-      <div>
-        <span className="audit-key">INFO ·· </span>
-        <span className="audit-num">{pad(stats.info)}</span>
-      </div>
-      <div className="audit-leader">────────────</div>
-      <div>
-        <span className="audit-key">TOTAL  </span>
-        <span className="audit-num">{pad(stats.total)}</span>
-      </div>
-    </div>
-  );
 }
 
 interface AuditSummaryCardProps {
@@ -457,25 +277,19 @@ interface AuditSummaryCardProps {
 }
 
 function AuditSummaryCard({ stats, onJump, t }: AuditSummaryCardProps) {
-  const [mode, setMode] = useAuditMode();
+  const statusKey: "crit" | "warn" | "ok" =
+    stats.crit > 0 ? "crit" : stats.warn > 0 ? "warn" : "ok";
+  const statusLabel = t(
+    statusKey === "crit"
+      ? "overview.audit_status_attention"
+      : statusKey === "warn"
+      ? "overview.audit_status_warnings"
+      : "overview.audit_status_clear"
+  );
   return (
-    <article className="v3-card">
+    <article className="v3-card v3-audit-summary-card">
       <header className="v3-card-head">
         <h2 className="v3-card-title">{t("overview.audit_summary")}</h2>
-        <div className="v3-audit-modes" role="tablist" aria-label="Audit layout">
-          {AUDIT_MODES.map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="tab"
-              aria-selected={mode === m}
-              className={"v3-audit-mode-btn" + (mode === m ? " active" : "")}
-              onClick={() => setMode(m)}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
         <button className="v3-link" onClick={() => onJump("audit")}>
           {t("overview.view_all")}
         </button>
@@ -484,10 +298,49 @@ function AuditSummaryCard({ stats, onJump, t }: AuditSummaryCardProps) {
         <div className="v3-empty">{t("overview.audit_clean")}</div>
       ) : (
         <>
-          {mode === "tree" && <AuditTreeMode stats={stats} />}
-          {mode === "log" && <AuditLogMode stats={stats} t={t} />}
-          {mode === "k9s" && <AuditK9sMode stats={stats} />}
-          {mode === "shell" && <AuditShellMode stats={stats} />}
+          <div className="v3-audit-tree">
+            <div className="v3-audit-tree-row v3-audit-tree-total">
+              <span className="v3-audit-tree-key">total</span>
+              <span className="v3-audit-tree-leader" aria-hidden="true" />
+              <span className="v3-audit-tree-num">{stats.total}</span>
+            </div>
+            <div
+              className={
+                "v3-audit-tree-row" +
+                (stats.crit > 0 ? " v3-audit-tree-row-crit" : "")
+              }
+            >
+              <span className="v3-audit-tree-branch" aria-hidden="true">├─</span>
+              <span className="v3-audit-tree-key">crit</span>
+              <span className="v3-audit-tree-leader" aria-hidden="true" />
+              <span className="v3-audit-tree-num">{stats.crit}</span>
+            </div>
+            <div
+              className={
+                "v3-audit-tree-row" +
+                (stats.warn > 0 ? " v3-audit-tree-row-warn" : "")
+              }
+            >
+              <span className="v3-audit-tree-branch" aria-hidden="true">├─</span>
+              <span className="v3-audit-tree-key">warn</span>
+              <span className="v3-audit-tree-leader" aria-hidden="true" />
+              <span className="v3-audit-tree-num">{stats.warn}</span>
+            </div>
+            <div className="v3-audit-tree-row">
+              <span className="v3-audit-tree-branch" aria-hidden="true">└─</span>
+              <span className="v3-audit-tree-key">info</span>
+              <span className="v3-audit-tree-leader" aria-hidden="true" />
+              <span className="v3-audit-tree-num">{stats.info}</span>
+            </div>
+          </div>
+          <div className="v3-audit-tree-status">
+            <span className="v3-audit-tree-status-key">status</span>
+            <span
+              className={"v3-audit-tree-status-badge v3-audit-status-" + statusKey}
+            >
+              {statusLabel}
+            </span>
+          </div>
           {stats.crit > 0 && (
             <footer className="v3-audit-foot">
               <AlertTriangle size={14} strokeWidth={2} />

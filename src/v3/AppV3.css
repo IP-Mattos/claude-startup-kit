@@ -1654,92 +1654,119 @@ body.v3-layout #root {
    All share monospace + tabular nums + neutral palette; only crit
    pulls --v3-crit when stats.crit > 0. */
 
-/* Mode selector chips in the card header. Tiny, unobtrusive,
-   keyboard-style — looks like a one-line tab bar. */
-.v3-audit-modes {
-  display: inline-flex;
-  margin-left: auto;
-  margin-right: 12px;
-  gap: 0;
-  border: 1px solid var(--v3-border);
-  border-radius: 4px;
-  overflow: hidden;
-  font-variant-numeric: tabular-nums;
-}
-.v3-audit-mode-btn {
-  background: transparent;
-  border: none;
-  padding: 3px 8px;
-  font-size: 10.5px;
-  font-family: var(--v3-font-mono, ui-monospace, "JetBrains Mono", monospace);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--v3-text-3);
-  cursor: pointer;
-  transition: background 120ms, color 120ms;
-}
-.v3-audit-mode-btn + .v3-audit-mode-btn {
-  border-left: 1px solid var(--v3-border);
-}
-.v3-audit-mode-btn:hover {
-  color: var(--v3-text);
-  background: var(--v3-surface-2);
-}
-.v3-audit-mode-btn.active {
-  color: var(--v3-text);
-  background: var(--v3-surface-2);
-}
-
-/* Shared mode body — monospaced ledger area. */
-.v3-audit-mode {
+/* Tree body — monospaced inset panel with a CSS-grid layout per row
+   so the dotted leader scales with card width instead of being a
+   fixed run of characters. */
+.v3-audit-tree {
   font-family: var(--v3-font-mono, ui-monospace, "JetBrains Mono", monospace);
   font-size: 12.5px;
   line-height: 1.7;
   color: var(--v3-text-2);
   font-variant-numeric: tabular-nums;
   margin-top: 12px;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: var(--v3-surface-2);
   border: 1px solid var(--v3-border);
   border-radius: 4px;
-  overflow-x: auto;
-  white-space: pre;
 }
 
-/* Numbers neutral; crit value-row glows red when > 0. */
-.v3-audit-mode .audit-num {
+.v3-audit-tree-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: baseline;
+  column-gap: 10px;
+  padding: 2px 0;
+}
+/* Total row gets no branch glyph — it spans 3 cols (key, leader, num). */
+.v3-audit-tree-row.v3-audit-tree-total {
+  grid-template-columns: auto 1fr auto;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--v3-text);
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--v3-border);
+}
+.v3-audit-tree-branch {
+  color: var(--v3-text-4);
+  font-weight: 400;
+}
+.v3-audit-tree-key {
+  color: var(--v3-text-3);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+}
+.v3-audit-tree-total .v3-audit-tree-key {
+  color: var(--v3-text);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+/* The leader cell fills the gap between key and number with a dotted
+   underline at baseline — scales to any card width without a fixed
+   char count. */
+.v3-audit-tree-leader {
+  align-self: end;
+  height: 1px;
+  border-bottom: 1px dotted var(--v3-text-4);
+  margin-bottom: 0.45em;
+  min-width: 12px;
+}
+.v3-audit-tree-num {
   color: var(--v3-text);
   font-weight: 600;
+  text-align: right;
+  min-width: 2em;
 }
-.v3-audit-mode .audit-crit-active .audit-num,
-.v3-audit-mode .audit-crit-active .audit-key {
+/* Severity-tinted rows when their count > 0. crit pulls red, warn
+   pulls amber — info stays neutral since it's informational. */
+.v3-audit-tree-row-crit .v3-audit-tree-key,
+.v3-audit-tree-row-crit .v3-audit-tree-num {
   color: var(--v3-crit);
 }
-.v3-audit-mode .audit-key,
-.v3-audit-mode .audit-leader,
-.v3-audit-mode .audit-prompt {
+.v3-audit-tree-row-warn .v3-audit-tree-key,
+.v3-audit-tree-row-warn .v3-audit-tree-num {
+  color: var(--v3-warn);
+}
+
+/* Status row sits below the tree as its own line, with a small badge
+   that picks the matching severity tint. */
+.v3-audit-tree-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--v3-border);
+  font-family: var(--v3-font-mono, ui-monospace, "JetBrains Mono", monospace);
+  font-variant-numeric: tabular-nums;
+}
+.v3-audit-tree-status-key {
   color: var(--v3-text-3);
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
 }
-.v3-audit-mode .audit-status-ok { color: var(--v3-success); }
-.v3-audit-mode .audit-status-warn { color: var(--v3-warn); }
-.v3-audit-mode .audit-status-crit { color: var(--v3-crit); }
-
-/* k9s status dot — filled when value > 0, hollow otherwise. */
-.v3-audit-mode .audit-dot {
-  display: inline-block;
-  width: 8px;
-  text-align: center;
-  color: var(--v3-text-4);
+.v3-audit-tree-status-badge {
+  padding: 3px 9px;
+  border-radius: 3px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
 }
-.v3-audit-mode .audit-row-active .audit-dot { color: var(--v3-text); }
-.v3-audit-mode .audit-row-active.audit-crit-active .audit-dot {
+.v3-audit-status-ok {
+  background: var(--v3-success-tint);
+  color: var(--v3-success);
+}
+.v3-audit-status-warn {
+  background: var(--v3-warn-tint);
+  color: var(--v3-warn);
+}
+.v3-audit-status-crit {
+  background: var(--v3-crit-tint);
   color: var(--v3-crit);
-}
-
-/* Shell mode — header line gets the prompt color of an inverted
-   accent so it reads as "command was executed". */
-.v3-audit-mode-shell .audit-cmd {
-  color: var(--v3-text);
 }
 
 /* Auto-resolve result banner — flash above the filters after the user
