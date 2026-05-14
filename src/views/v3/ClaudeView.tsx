@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { ExternalLink, RefreshCw, Wrench } from "lucide-react";
+import {
+  CheckCircle2,
+  Download,
+  ExternalLink,
+  RefreshCw,
+  Wrench,
+  XCircle,
+} from "lucide-react";
 import { friendlyErrorEn } from "../../lib/format";
 import { plural, useT } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
@@ -21,15 +28,40 @@ interface McpServer {
   path: string;
 }
 
+interface GentleAiComponent {
+  name: string;
+  installed: boolean;
+  description: string;
+  install_hint: string;
+}
+
+interface GentleAiStatus {
+  cli_version: string | null;
+  cli_path: string | null;
+  components: GentleAiComponent[];
+  skills_total: number;
+  skills_external_total: number;
+  hooks_total: number;
+  mcp_servers_total: number;
+  plugins_enabled: string[];
+}
+
 export function ClaudeView() {
   const { t } = useT();
   const [skills, setSkills] = useState<ClaudeSkill[]>([]);
   const [mcps, setMcps] = useState<McpServer[]>([]);
+  const [status, setStatus] = useState<GentleAiStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshNonce, setRefreshNonce] = useState(0);
   // Per-row pending state so toggling one MCP doesn't disable every switch.
   const [togglingName, setTogglingName] = useState<string | null>(null);
+
+  // Sync state — separate from `loading` so the components grid stays
+  // visible while the CLI runs. The result banner auto-dismisses after
+  // 5s so it doesn't linger after the next refresh.
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
 
   // VS Code extension fix — runs the bundled PowerShell patch and shows
   // the captured output below the button. Idempotent: safe to re-run.
@@ -51,6 +83,31 @@ export function ClaudeView() {
     }
   };
 
+  const runSync = async (includeTheme: boolean) => {
+    if (!IS_TAURI || syncing) return;
+    setSyncing(true);
+    setSyncResult(null);
+    setError(null);
+    try {
+      await invoke<string>("gentle_ai_sync", { includeTheme });
+      setSyncResult(t("claude.sync_done"));
+      // Bumping the nonce re-fetches status / skills / mcps so the
+      // grid reflects whatever sync just installed.
+      setRefreshNonce((n) => n + 1);
+    } catch (e) {
+      setError(friendlyErrorEn(e));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Auto-dismiss the sync result banner so it doesn't linger.
+  useEffect(() => {
+    if (!syncResult) return;
+    const timer = setTimeout(() => setSyncResult(null), 5000);
+    return () => clearTimeout(timer);
+  }, [syncResult]);
+
   useEffect(() => {
     if (!IS_TAURI) {
       setLoading(false);
@@ -59,15 +116,17 @@ export function ClaudeView() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    // Two-stage fetch: list_claude_skills returns the catalog instantly
-    // (no JSONL scan), then count_claude_skill_usage enriches counts in
-    // the background. Same pattern used elsewhere for project enrichment.
+    // Three-stage fetch: gentle_ai_status + list_claude_skills + list_mcp_servers
+    // all return instantly (no JSONL scan), then count_claude_skill_usage
+    // enriches counts in the background. Same pattern used for project enrichment.
     Promise.all([
+      invoke<GentleAiStatus>("gentle_ai_status").catch(() => null),
       invoke<ClaudeSkill[]>("list_claude_skills").catch(() => [] as ClaudeSkill[]),
       invoke<McpServer[]>("list_mcp_servers").catch(() => [] as McpServer[]),
     ])
-      .then(([s, m]) => {
+      .then(([st, s, m]) => {
         if (cancelled) return;
+        setStatus(st);
         setSkills(s);
         setMcps(m);
         setLoading(false);
@@ -131,6 +190,9 @@ export function ClaudeView() {
     [skills]
   );
 
+  const installedCount = status?.components.filter((c) => c.installed).length ?? 0;
+  const totalCount = status?.components.length ?? 0;
+
   return (
     <div className="v3-view">
       <header className="v3-view-head">
@@ -157,38 +219,112 @@ export function ClaudeView() {
         </div>
       )}
 
-      <article className="v3-card v3-fix-card">
+      {/* Gentle-AI header card — CLI version pill + sync actions. */}
+      <article className="v3-card v3-gai-header-card">
         <header className="v3-card-head">
-          <h2 className="v3-card-title">{t("claude.fix_title")}</h2>
+          <h2 className="v3-card-title">{t("claude.gentle_ai_title")}</h2>
+          <span className="v3-row-dim">
+            {status?.cli_version
+              ? `${t("claude.cli_version")} ${status.cli_version}`
+              : t("claude.cli_missing")}
+          </span>
         </header>
-        <p className="v3-subtitle v3-fix-lead">{t("claude.fix_lead")}</p>
-        <div className="v3-fix-actions">
+        <p className="v3-subtitle">{t("claude.gentle_ai_subtitle")}</p>
+        <div className="v3-gai-sync-actions">
           <button
             type="button"
-            className="v3-btn-primary v3-fix-button"
-            onClick={runFixVscode}
-            disabled={fixRunning}
+            className="v3-btn-primary"
+            onClick={() => runSync(false)}
+            disabled={syncing || !status?.cli_version}
           >
-            <Wrench size={13} strokeWidth={2} />
-            {fixRunning ? t("claude.fix_running") : t("claude.fix_button")}
+            <Download size={13} strokeWidth={2} />
+            {syncing ? t("claude.syncing") : t("claude.sync_all")}
+          </button>
+          <button
+            type="button"
+            className="v3-link"
+            onClick={() => runSync(true)}
+            disabled={syncing || !status?.cli_version}
+          >
+            {t("claude.sync_all_with_theme")}
           </button>
         </div>
-        {fixError && (
-          <div className="v3-error" role="alert" aria-live="assertive">
-            {fixError}
+        {syncResult && (
+          <div className="v3-success v3-gai-sync-result" role="status" aria-live="polite">
+            <CheckCircle2 size={14} strokeWidth={2} />
+            {syncResult}
           </div>
         )}
-        {fixOutput !== null && (
-          <pre
-            className="v3-fix-output"
-            role="status"
-            aria-live="polite"
-            aria-label={t("claude.fix_output_aria")}
-          >
-            {fixOutput || t("claude.fix_output_empty")}
-          </pre>
+      </article>
+
+      {/* Components grid — 8 cards, one per known gentle-ai component. */}
+      <article className="v3-card">
+        <header className="v3-card-head">
+          <h2 className="v3-card-title">{t("claude.components_title")}</h2>
+          <span className="v3-row-dim">
+            {installedCount}/{totalCount}
+          </span>
+        </header>
+        {loading ? (
+          <div className="v3-empty">{t("common.loading")}</div>
+        ) : !status || status.components.length === 0 ? (
+          <div className="v3-empty">{t("claude.cli_missing")}</div>
+        ) : (
+          <div className="v3-gai-components-grid">
+            {status.components.map((c) => (
+              <div
+                key={c.name}
+                className={
+                  "v3-gai-component-card" +
+                  (c.installed ? " is-installed" : " is-missing")
+                }
+              >
+                <div className="v3-gai-component-head">
+                  <span className="v3-gai-component-name">{c.name}</span>
+                  <span
+                    className={
+                      "v3-gai-status-pill " +
+                      (c.installed
+                        ? "v3-gai-status-pill-ok"
+                        : "v3-gai-status-pill-missing")
+                    }
+                  >
+                    {c.installed ? (
+                      <CheckCircle2 size={11} strokeWidth={2.4} />
+                    ) : (
+                      <XCircle size={11} strokeWidth={2.4} />
+                    )}
+                    {c.installed ? t("claude.installed") : t("claude.missing")}
+                  </span>
+                </div>
+                <p className="v3-gai-component-desc">{c.description}</p>
+              </div>
+            ))}
+          </div>
         )}
       </article>
+
+      {/* Stats strip — clickable tiles deep-link into matching sections.
+          Skills + MCPs scroll within this page; Hooks + Plugins are
+          informational counts (no in-page anchor yet). */}
+      <section className="v3-gai-stats-strip">
+        <div className="v3-gai-stat-tile">
+          <div className="v3-gai-stat-value">{status?.skills_total ?? 0}</div>
+          <div className="v3-gai-stat-label">{t("claude.stat_skills")}</div>
+        </div>
+        <div className="v3-gai-stat-tile">
+          <div className="v3-gai-stat-value">{status?.mcp_servers_total ?? 0}</div>
+          <div className="v3-gai-stat-label">{t("claude.stat_mcps")}</div>
+        </div>
+        <div className="v3-gai-stat-tile">
+          <div className="v3-gai-stat-value">{status?.hooks_total ?? 0}</div>
+          <div className="v3-gai-stat-label">{t("claude.stat_hooks")}</div>
+        </div>
+        <div className="v3-gai-stat-tile">
+          <div className="v3-gai-stat-value">{status?.plugins_enabled.length ?? 0}</div>
+          <div className="v3-gai-stat-label">{t("claude.stat_plugins")}</div>
+        </div>
+      </section>
 
       <article className="v3-card">
         <header className="v3-card-head">
@@ -295,6 +431,39 @@ export function ClaudeView() {
               </li>
             ))}
           </ul>
+        )}
+      </article>
+
+      <article className="v3-card v3-fix-card">
+        <header className="v3-card-head">
+          <h2 className="v3-card-title">{t("claude.fix_title")}</h2>
+        </header>
+        <p className="v3-subtitle v3-fix-lead">{t("claude.fix_lead")}</p>
+        <div className="v3-fix-actions">
+          <button
+            type="button"
+            className="v3-btn-primary v3-fix-button"
+            onClick={runFixVscode}
+            disabled={fixRunning}
+          >
+            <Wrench size={13} strokeWidth={2} />
+            {fixRunning ? t("claude.fix_running") : t("claude.fix_button")}
+          </button>
+        </div>
+        {fixError && (
+          <div className="v3-error" role="alert" aria-live="assertive">
+            {fixError}
+          </div>
+        )}
+        {fixOutput !== null && (
+          <pre
+            className="v3-fix-output"
+            role="status"
+            aria-live="polite"
+            aria-label={t("claude.fix_output_aria")}
+          >
+            {fixOutput || t("claude.fix_output_empty")}
+          </pre>
         )}
       </article>
     </div>

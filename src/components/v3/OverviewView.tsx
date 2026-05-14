@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import {
   Activity,
   AlertTriangle,
   ArrowUp,
+  Boxes,
   ChevronRight,
   Code2,
   Cog,
@@ -27,7 +29,100 @@ import type {
 } from "../../types";
 import type { V3Tab } from "../../v3/v3types";
 import { plural, useT, type StringKey } from "../../lib/i18n";
+import { IS_TAURI } from "../../lib/env";
 import { Sparkline } from "./Sparkline";
+
+// Mini Gentle-AI inventory shown on the Overview. Mirrors the shape of
+// `GentleAiStatus` in `ClaudeView.tsx` — we keep the type local so this file
+// doesn't depend on the verifier view import-wise.
+interface GentleAiMiniStatus {
+  cli_version: string | null;
+  components: { name: string; installed: boolean }[];
+}
+
+function GentleAiOverviewCard({
+  onJump,
+  t,
+}: {
+  onJump: (tab: V3Tab) => void;
+  t: (k: StringKey, vars?: Record<string, string | number>) => string;
+}) {
+  const [status, setStatus] = useState<GentleAiMiniStatus | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!IS_TAURI) {
+      setLoaded(true);
+      return;
+    }
+    let cancelled = false;
+    invoke<GentleAiMiniStatus>("gentle_ai_status")
+      .then((s) => {
+        if (!cancelled) {
+          setStatus(s);
+          setLoaded(true);
+        }
+      })
+      .catch(() => {
+        // gentle-ai might not be installed yet — render the empty state
+        // instead of bubbling the error to the whole overview.
+        if (!cancelled) setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const total = status?.components.length ?? 0;
+  const ok = status?.components.filter((c) => c.installed).length ?? 0;
+  const pct = total > 0 ? Math.round((ok / total) * 100) : 0;
+
+  return (
+    <article className="v3-card v3-gai-overview-card">
+      <header className="v3-card-head">
+        <h2 className="v3-card-title">
+          <Boxes
+            size={14}
+            strokeWidth={2}
+            style={{ verticalAlign: "-2px", marginRight: 6 }}
+          />
+          {t("overview.gentle_ai_card_title")}
+          {status?.cli_version && (
+            <span className="v3-row-dim" style={{ marginLeft: 8 }}>
+              v{status.cli_version}
+            </span>
+          )}
+        </h2>
+        <button className="v3-link" onClick={() => onJump("claude")}>
+          {t("overview.gentle_ai_view_details")}
+        </button>
+      </header>
+      {!loaded ? (
+        <div className="v3-empty">{t("common.loading")}</div>
+      ) : !status?.cli_version ? (
+        <div className="v3-empty">{t("overview.gentle_ai_cli_missing")}</div>
+      ) : (
+        <div className="v3-gai-overview-body">
+          <div
+            className="v3-gai-overview-bar"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-valuenow={ok}
+          >
+            <div
+              className="v3-gai-overview-bar-fill"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <div className="v3-gai-overview-count">
+            {t("overview.gentle_ai_components_count", { ok, total })}
+          </div>
+        </div>
+      )}
+    </article>
+  );
+}
 
 // =============================================================
 // Sub-components (only used by OverviewView, kept co-located).
@@ -645,6 +740,8 @@ export function OverviewView({
 
         <AuditSummaryCard stats={stats} onJump={onJump} t={t} />
       </section>
+
+      <GentleAiOverviewCard onJump={onJump} t={t} />
     </div>
   );
 }

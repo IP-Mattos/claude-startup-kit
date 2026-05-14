@@ -3779,6 +3779,309 @@ async fn apply_gentle_ai_update() -> Result<String, String> {
     Ok(after)
 }
 
+// ─── Gentle-AI verifier (components inventory + sync trigger) ────────────
+//
+// CSK's "Gentle-AI" tab is a verifier: it shows what gentle-ai SHOULD install
+// vs. what's actually on disk in ~/.claude/. Since gentle-ai itself doesn't
+// expose a JSON manifest of components, we hardcode the known component list
+// and probe disk markers ourselves. Best-effort — if a marker check is wrong
+// the user can refine later; sync is idempotent so re-running is cheap.
+
+#[derive(Debug, Serialize, Clone)]
+pub struct GentleAiComponent {
+    pub name: String,
+    pub installed: bool,
+    pub description: String,
+    pub install_hint: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct GentleAiStatus {
+    pub cli_version: Option<String>,
+    pub cli_path: Option<String>,
+    pub components: Vec<GentleAiComponent>,
+    pub skills_total: u32,
+    pub skills_external_total: u32,
+    pub hooks_total: u32,
+    pub mcp_servers_total: u32,
+    pub plugins_enabled: Vec<String>,
+}
+
+/// Hardcoded component definitions. Heuristics live next to the disk probes
+/// (`detect_component`) — keep them in sync if a new component lands.
+const GENTLE_AI_COMPONENTS: &[(&str, &str, &str)] = &[
+    (
+        "persona",
+        "Output style + persona instructions for Claude Code",
+        "gentle-ai sync",
+    ),
+    (
+        "sdd",
+        "Spec-Driven Development orchestrator + sub-agents",
+        "gentle-ai sync",
+    ),
+    (
+        "engram",
+        "Persistent memory across sessions",
+        "gentle-ai sync",
+    ),
+    (
+        "context7",
+        "MCP server: live framework/library docs",
+        "gentle-ai sync",
+    ),
+    (
+        "gga",
+        "Multi-provider AI model switcher",
+        "gentle-ai sync",
+    ),
+    (
+        "skills",
+        "Framework-design skill catalog (Next.js, Laravel, etc.)",
+        "gentle-ai sync",
+    ),
+    (
+        "theme",
+        "Gentleman Kanagawa visual theme",
+        "gentle-ai sync --include-theme",
+    ),
+];
+
+/// Returns `true` if the component appears installed. Heuristics are
+/// best-effort — false positives are OK (component might be partly there),
+/// but we err on the side of "missing" to surface the sync CTA.
+fn detect_component(
+    name: &str,
+    claude_dir: &Path,
+    settings: Option<&serde_json::Value>,
+) -> bool {
+    match name {
+        // persona → settings.json has a top-level `outputStyle` key set.
+        "persona" => settings
+            .and_then(|s| s.get("outputStyle"))
+            .and_then(|v| v.as_str())
+            .map(|s| !s.is_empty())
+            .unwrap_or(false),
+        // sdd → the orchestrator skill folder exists.
+        "sdd" => claude_dir.join("skills").join("sdd-orchestrator").is_dir(),
+        // engram → plugin cache OR engram CLI on PATH OR enabledPlugins entry.
+        "engram" => {
+            if claude_dir.join("plugins").join("cache").join("engram").exists() {
+                return true;
+            }
+            if resolve_managed_tool("engram").is_some() {
+                return true;
+            }
+            settings
+                .and_then(|s| s.get("enabledPlugins"))
+                .and_then(|v| v.as_object())
+                .map(|o| o.keys().any(|k| k.contains("engram")))
+                .unwrap_or(false)
+        }
+        // context7 → MCP config file OR plugin folder.
+        "context7" => {
+            claude_dir.join("mcp").join("context7.json").exists()
+                || claude_dir.join("plugins").join("context7").is_dir()
+        }
+        // gga → CLI on PATH (most reliable marker) OR known script under ~/.claude/scripts.
+        "gga" => {
+            if resolve_managed_tool("gga").is_some() {
+                return true;
+            }
+            let scripts = claude_dir.join("scripts");
+            if let Ok(entries) = fs::read_dir(&scripts) {
+                for entry in entries.flatten() {
+                    if let Some(fname) = entry.file_name().to_str() {
+                        if fname.to_lowercase().starts_with("gga") {
+                            return true;
+                        }
+                    }
+                }
+            }
+            false
+        }
+        // skills → catalog populated (>5 entries means more than just user-installed).
+        "skills" => {
+            let skills_dir = claude_dir.join("skills");
+            match fs::read_dir(&skills_dir) {
+                Ok(entries) => {
+                    let count = entries
+                        .flatten()
+                        .filter(|e| {
+                            e.file_type().map(|t| t.is_dir()).unwrap_or(false)
+                                && e.file_name()
+                                    .to_str()
+                                    .map(|n| !n.starts_with('_'))
+                                    .unwrap_or(false)
+                        })
+                        .count();
+                    count > 5
+                }
+                Err(_) => false,
+            }
+        }
+        // theme → kanagawa theme folder OR any theme marker file under ~/.claude/themes.
+        "theme" => {
+            let themes_dir = claude_dir.join("themes");
+            if themes_dir.join("gentleman-kanagawa").is_dir() {
+                return true;
+            }
+            if let Ok(entries) = fs::read_dir(&themes_dir) {
+                for entry in entries.flatten() {
+                    if let Some(fname) = entry.file_name().to_str() {
+                        if fname.to_lowercase().contains("kanagawa") {
+                            return true;
+                        }
+                    }
+                }
+            }
+            false
+        }
+        _ => false,
+    }
+}
+
+/// Count hook entries across all events in settings.json. Mirrors the
+/// per-event walk used by `audit_hooks` but returns a single total.
+fn count_hooks(settings: Option<&serde_json::Value>) -> u32 {
+    let Some(settings) = settings else { return 0 };
+    let mut n: u32 = 0;
+    for_each_hook(settings, |_event, _typ, _cmd, _to| {
+        n = n.saturating_add(1);
+    });
+    n
+}
+
+/// Count subdirectories under ~/.claude/skills/ that aren't `_shared` etc.
+/// Mirrors the filter used by `list_claude_skills` so the total agrees with
+/// what the Skills section actually shows.
+fn count_skills_dir(dir: &Path) -> u32 {
+    match fs::read_dir(dir) {
+        Ok(entries) => entries
+            .flatten()
+            .filter(|e| {
+                e.file_type().map(|t| t.is_dir()).unwrap_or(false)
+                    && e.file_name()
+                        .to_str()
+                        .map(|n| !n.starts_with('_'))
+                        .unwrap_or(false)
+            })
+            .count() as u32,
+        Err(_) => 0,
+    }
+}
+
+#[tauri::command]
+async fn gentle_ai_status() -> Result<GentleAiStatus, String> {
+    tokio::task::spawn_blocking(|| -> Result<GentleAiStatus, String> {
+        let home = dirs_home().ok_or("home directory unavailable")?;
+        let claude_dir = home.join(".claude");
+
+        // CLI presence + version. Both None when gentle-ai isn't installed —
+        // we don't surface this as an error because the UI still renders the
+        // component inventory + install hint.
+        let cli_path = resolve_gentle_ai();
+        let version = read_gentle_ai_version();
+        let cli_version = if version.is_empty() { None } else { Some(version) };
+
+        // settings.json is the source of truth for hooks + plugins. We
+        // tolerate a parse error here (gentle_ai_status must always succeed
+        // so the UI can render the rest of the page) — invalid JSON just
+        // means hooks/plugins counts read as 0.
+        let settings = load_settings(&claude_dir).ok().flatten();
+
+        let components: Vec<GentleAiComponent> = GENTLE_AI_COMPONENTS
+            .iter()
+            .map(|(name, desc, hint)| GentleAiComponent {
+                name: name.to_string(),
+                installed: detect_component(name, &claude_dir, settings.as_ref()),
+                description: desc.to_string(),
+                install_hint: hint.to_string(),
+            })
+            .collect();
+
+        let skills_total = count_skills_dir(&claude_dir.join("skills"));
+        // "skills-external" placeholder — if a future gentle-ai version
+        // ships a separate catalog dir, this picks it up automatically.
+        // For now most users don't have it; we return 0 silently rather
+        // than fabricating a number.
+        let skills_external_total =
+            count_skills_dir(&claude_dir.join("skills-external"));
+
+        let hooks_total = count_hooks(settings.as_ref());
+
+        // MCP servers: file-based under ~/.claude/mcp/ (active .json + disabled).
+        let mcp_dir = claude_dir.join("mcp");
+        let mcp_servers_total: u32 = match fs::read_dir(&mcp_dir) {
+            Ok(entries) => entries
+                .flatten()
+                .filter(|e| {
+                    e.file_name()
+                        .to_str()
+                        .map(|n| n.ends_with(".json") || n.ends_with(".json.disabled"))
+                        .unwrap_or(false)
+                })
+                .count() as u32,
+            Err(_) => 0,
+        };
+
+        let plugins_enabled: Vec<String> = settings
+            .as_ref()
+            .and_then(|s| s.get("enabledPlugins"))
+            .and_then(|v| v.as_object())
+            .map(|o| {
+                o.iter()
+                    .filter(|(_, v)| v.as_bool().unwrap_or(false))
+                    .map(|(k, _)| k.clone())
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        Ok(GentleAiStatus {
+            cli_version,
+            cli_path,
+            components,
+            skills_total,
+            skills_external_total,
+            hooks_total,
+            mcp_servers_total,
+            plugins_enabled,
+        })
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn gentle_ai_sync(include_theme: bool) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || -> Result<String, String> {
+        let program = resolve_gentle_ai()
+            .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
+        let mut cmd = silent_command(&program);
+        cmd.arg("sync");
+        if include_theme {
+            cmd.arg("--include-theme");
+        }
+        let out = cmd
+            .output()
+            .map_err(|e| format_spawn_error("gentle-ai", &e))?;
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            return Err(format!(
+                "gentle-ai sync exited {}:\n{stderr}\n{stdout}",
+                out.status
+            ));
+        }
+        // Cache bust — workspace_summary surfaces gentle-ai version and
+        // sync can install a brand-new CLI as a side effect.
+        invalidate_workspace_summary_cache();
+        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 // ─── Stack updates via gentle-ai (single source of truth) ────────────────
 //
 // gentle-ai already manages every CLI tool in the Gentle stack (engram, gga,
@@ -6353,6 +6656,8 @@ pub fn run() {
             apply_app_update,
             check_gentle_ai_update,
             apply_gentle_ai_update,
+            gentle_ai_status,
+            gentle_ai_sync,
             check_stack_update,
             apply_stack_update,
             open_stack_install_wizard,

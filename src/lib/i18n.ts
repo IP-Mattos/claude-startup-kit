@@ -27,7 +27,7 @@ const STRINGS = {
   "nav.conversations": { en: "Conversations", es: "Conversaciones" },
   "nav.tokens": { en: "Tokens", es: "Tokens" },
   "nav.standup": { en: "Standup", es: "Standup" },
-  "nav.claude": { en: "Claude", es: "Claude" },
+  "nav.claude": { en: "Gentle-AI", es: "Gentle-AI" },
   "nav.companions": { en: "Companions", es: "Compañeros" },
   "nav.settings": { en: "Settings", es: "Ajustes" },
   "nav.sync": { en: "Sync", es: "Sync" },
@@ -453,6 +453,18 @@ const STRINGS = {
   "overview.recent_prs": { en: "Recent Pull Requests", es: "Pull Requests recientes" },
   "overview.audit_summary": { en: "Audit Summary", es: "Resumen de auditoría" },
   "overview.view_all": { en: "View all", es: "Ver todos" },
+  // Gentle-AI mini-card on Overview — shows installed / total components +
+  // a deep link into the verifier tab.
+  "overview.gentle_ai_card_title": { en: "Gentle-AI", es: "Gentle-AI" },
+  "overview.gentle_ai_components_count": {
+    en: "{ok}/{total} components installed",
+    es: "{ok}/{total} componentes instalados",
+  },
+  "overview.gentle_ai_view_details": { en: "View details →", es: "Ver detalles →" },
+  "overview.gentle_ai_cli_missing": {
+    en: "gentle-ai CLI not detected",
+    es: "gentle-ai CLI no detectado",
+  },
   "overview.loading_projects": { en: "Loading projects…", es: "Cargando proyectos…" },
   "overview.loading_prs": { en: "Loading PRs…", es: "Cargando PRs…" },
   "overview.no_recent_projects": { en: "No recent projects detected.", es: "No se detectaron proyectos recientes." },
@@ -655,18 +667,40 @@ const STRINGS = {
   "cleanup.items_other": { en: "{n} items · {bytes}", es: "{n} ítems · {bytes}" },
   "cleanup.and_more": { en: "… and {n} more", es: "… y {n} más" },
 
-  // Claude view
-  "claude.title": { en: "Claude", es: "Claude" },
+  // Gentle-AI view (file is named ClaudeView but the tab is the
+  // Gentle-AI workspace verifier — installed components, skills, MCPs).
+  "claude.title": { en: "Gentle-AI · workspace", es: "Gentle-AI · workspace" },
   "claude.subtitle": {
-    en: "Skills available to Claude Code and MCP servers configured on this machine.",
-    es: "Skills disponibles para Claude Code y servidores MCP configurados en esta máquina.",
+    en: "What gentle-ai installs vs. what's on this machine. Components, skills, MCPs and hooks.",
+    es: "Qué instala gentle-ai vs. lo que hay en esta máquina. Componentes, skills, MCPs y hooks.",
   },
+  "claude.gentle_ai_title": { en: "Gentle-AI", es: "Gentle-AI" },
+  "claude.gentle_ai_subtitle": {
+    en: "Workspace components, skills, MCPs",
+    es: "Componentes, skills, MCPs del workspace",
+  },
+  "claude.components_title": { en: "Components", es: "Componentes" },
+  "claude.installed": { en: "installed", es: "instalado" },
+  "claude.missing": { en: "missing", es: "falta" },
+  "claude.sync_all": { en: "Sync", es: "Sincronizar" },
+  "claude.sync_all_with_theme": { en: "Sync with theme", es: "Sincronizar con tema" },
+  "claude.syncing": { en: "Syncing…", es: "Sincronizando…" },
+  "claude.sync_done": { en: "Sync complete", es: "Sync completo" },
+  "claude.cli_version": { en: "CLI version", es: "Versión CLI" },
+  "claude.cli_missing": {
+    en: "gentle-ai CLI not found on PATH",
+    es: "gentle-ai CLI no encontrado en PATH",
+  },
+  "claude.stat_skills": { en: "Skills", es: "Skills" },
+  "claude.stat_mcps": { en: "MCP servers", es: "Servidores MCP" },
+  "claude.stat_hooks": { en: "Hooks", es: "Hooks" },
+  "claude.stat_plugins": { en: "Plugins", es: "Plugins" },
   "claude.refreshing": { en: "Refreshing…", es: "Refrescando…" },
   "claude.refresh": { en: "Refresh", es: "Refrescar" },
   // Fix-Claude card — patches the recurring VS Code extension
   // activation bug ("command 'claude-vscode.editor.openLast' not found")
   // by rewriting the bad Linux CI path inside extension.js. Idempotent.
-  "claude.fix_title": { en: "Fix Claude VS Code extension", es: "Reparar extensión de Claude en VS Code" },
+  "claude.fix_title": { en: "Fix VS Code extension", es: "Reparar extensión de VS Code" },
   "claude.fix_lead": {
     en: "Patches the recurring 'claude-vscode.editor.openLast not found' activation bug. Re-run safely after every Claude Code extension update if the bug returns.",
     es: "Repara el bug recurrente de activación 'claude-vscode.editor.openLast not found'. Podés volver a ejecutarlo cada vez que actualicen la extensión y vuelva el problema.",

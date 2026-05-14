@@ -605,6 +605,134 @@ body.v3-layout #root {
 .v3-pill-source-config { background: var(--v3-accent-tint); color: var(--v3-accent); }
 .v3-pill-source-plugin { background: var(--v3-success-tint); color: var(--v3-success); }
 
+/* ========== Gentle-AI verifier (claude tab) ========== */
+/* Header card sync actions — primary CTA next to a 'with theme' link. */
+.v3-gai-sync-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 10px;
+}
+.v3-gai-sync-result {
+  margin-top: 10px;
+}
+/* Components grid — 8 small cards, mono name + status pill. */
+.v3-gai-components-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.v3-gai-component-card {
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.v3-gai-component-card.is-missing {
+  border-color: var(--v3-border);
+  background: var(--v3-surface-2);
+}
+.v3-gai-component-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.v3-gai-component-name {
+  font-family: var(--v3-mono, "SF Mono", ui-monospace, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--v3-text);
+}
+.v3-gai-component-desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--v3-text-3);
+}
+.v3-gai-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border);
+}
+.v3-gai-status-pill-ok {
+  color: var(--v3-success);
+}
+.v3-gai-status-pill-missing {
+  color: var(--v3-warn, var(--v3-text-2));
+}
+/* Stats strip — 4-tile row, mono numerics, hairline separators. */
+.v3-gai-stats-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.v3-gai-stat-tile {
+  padding: 12px 14px;
+  border-right: 1px solid var(--v3-border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.v3-gai-stat-tile:last-child {
+  border-right: 0;
+}
+.v3-gai-stat-value {
+  font-family: var(--v3-mono, "SF Mono", ui-monospace, monospace);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--v3-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.v3-gai-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--v3-text-3);
+}
+/* Overview mini-card — progress bar + count. */
+.v3-gai-overview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.v3-gai-overview-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--v3-surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.v3-gai-overview-bar-fill {
+  height: 100%;
+  background: var(--v3-success);
+  border-radius: 3px;
+  transition: width 200ms ease;
+}
+.v3-gai-overview-count {
+  font-size: 13px;
+  color: var(--v3-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
 /* iOS-style toggle switch (used in MCP rows). */
 .v3-switch {
   position: relative;
