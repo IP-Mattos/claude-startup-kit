@@ -40,6 +40,10 @@ export function parseAuditFindings(raw: unknown): AuditFinding[] {
       // (wrong kind, missing path/pid) silently becomes "no action" rather
       // than crashing the renderer when we destructure it.
       action: normalizeAction(r.action),
+      // Preserve the user-set ignore flag so the "Ignorar" filter chip
+      // works. Default to false if the backend didn't include it (older
+      // run_audit response).
+      ignored: r.ignored === true,
     });
   }
   return out;
