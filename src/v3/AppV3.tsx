@@ -242,10 +242,15 @@ export default function AppV3() {
   void lastScanTick; // referenced to subscribe
 
   const stats = useMemo(() => {
-    const crit = findings.filter((f) => f.level === "CRIT").length;
-    const warn = findings.filter((f) => f.level === "WARN").length;
-    const info = findings.filter((f) => f.level === "INFO").length;
-    const total = findings.length;
+    // Exclude findings the user explicitly muted via the "Ignorar" button.
+    // Sidebar dot, companion headline, overview tree, statusbar — they all
+    // read from here, and showing a yellow dot for a warn the user already
+    // marked benign is exactly what they complained about.
+    const active = findings.filter((f) => !f.ignored);
+    const crit = active.filter((f) => f.level === "CRIT").length;
+    const warn = active.filter((f) => f.level === "WARN").length;
+    const info = active.filter((f) => f.level === "INFO").length;
+    const total = active.length;
     const health = Math.max(0, 100 - crit * 4 - warn);
     return { crit, warn, info, total, health };
   }, [findings]);
