@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { FolderOpen, GitBranch, Info, Search } from "lucide-react";
+import { FolderOpen, GitBranch, Info, Search, Sparkles } from "lucide-react";
 import type { GitInfo, Project, ProjectEnrichment } from "../../types";
 import {
   activityLabelT,
@@ -71,6 +71,21 @@ export function ProjectsView({
     invoke("open_path_in_explorer", { path }).catch((e) =>
       setError(friendlyErrorEn(e))
     );
+  // Open `<project>/.atl/skill-registry.md` in VS Code. The Rust IPC
+  // returns Err("missing") as a sentinel when the file doesn't exist;
+  // we swap that for the localized hint so the user knows what command
+  // to run in their terminal. Any other error path (validate_open_path
+  // rejecting the path, VS Code not found, spawn failure) is surfaced
+  // verbatim through friendlyErrorEn.
+  const openSkillRegistry = (path: string) =>
+    invoke("open_skill_registry", { projectPath: path }).catch((e: unknown) => {
+      const msg = String(e);
+      if (msg === "missing") {
+        setError(t("projects.skill_registry_missing"));
+      } else {
+        setError(friendlyErrorEn(e));
+      }
+    });
 
   // Trigger the disk walk. We resolve sensible default roots from the
   // backend (Desktop/Code, OneDrive/Desktop, etc. — only those that
@@ -192,6 +207,7 @@ export function ProjectsView({
                 git={git}
                 onOpen={() => open(p.path)}
                 onOpenExplorer={() => openExplorer(p.path)}
+                onOpenSkills={() => openSkillRegistry(p.path)}
               />
             );
           })}
@@ -284,12 +300,14 @@ function ProjectListRow({
   git,
   onOpen,
   onOpenExplorer,
+  onOpenSkills,
 }: {
   project: Project;
   goal: string | null;
   git: GitInfo | null;
   onOpen: () => void;
   onOpenExplorer: () => void;
+  onOpenSkills: () => void;
 }) {
   const { t } = useT();
   return (
@@ -325,6 +343,14 @@ function ProjectListRow({
         <div className="v3-row-actions">
           <button className="v3-btn-primary v3-btn-sm" onClick={onOpen}>
             {t("common.open")}
+          </button>
+          <button
+            className="v3-btn-ghost v3-btn-sm v3-btn-icon"
+            onClick={onOpenSkills}
+            title={t("projects.skill_registry")}
+            aria-label={t("projects.skill_registry")}
+          >
+            <Sparkles size={13} strokeWidth={2} />
           </button>
           <button
             className="v3-btn-ghost v3-btn-sm v3-btn-icon"

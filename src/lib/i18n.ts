@@ -88,7 +88,12 @@ const STRINGS = {
   },
   "palette.section_nav": { en: "Navigate", es: "Navegar" },
   "palette.section_actions": { en: "Actions", es: "Acciones" },
+  "palette.section_search": { en: "Search", es: "Buscar" },
   "palette.cycle_theme": { en: "Cycle theme", es: "Cambiar tema" },
+  "palette.search_engram": {
+    en: "Search engram for '{query}'",
+    es: "Buscar en engram: '{query}'",
+  },
   "palette.foot_navigate": { en: "navigate", es: "navegar" },
   "palette.foot_select": { en: "select", es: "seleccionar" },
   "palette.foot_close": { en: "close", es: "cerrar" },
@@ -320,6 +325,15 @@ const STRINGS = {
     en: "Opens the app on every login, minimized to the tray. Toggle off any time.",
     es: "Abre la app en cada inicio de sesión, minimizada en la bandeja. Lo desactivás cuando quieras.",
   },
+  "settings.persona_title": {
+    en: "Persona / Output style",
+    es: "Persona / Estilo de salida",
+  },
+  "settings.persona_set_by": {
+    en: "Set by gentle-ai",
+    es: "Configurado por gentle-ai",
+  },
+  "settings.persona_default": { en: "(default)", es: "(por defecto)" },
   "settings.theme": { en: "Theme", es: "Tema" },
   "settings.curated_palettes": { en: "{n} curated palettes", es: "{n} paletas curadas" },
   "settings.shortcuts": { en: "Keyboard Shortcuts", es: "Atajos de teclado" },
@@ -497,6 +511,11 @@ const STRINGS = {
     es: 'Ningún proyecto coincide con "{q}".',
   },
   "projects.open_in_explorer": { en: "Open in Explorer", es: "Abrir en Explorer" },
+  "projects.skill_registry": { en: "Skills", es: "Skills" },
+  "projects.skill_registry_missing": {
+    en: "No skill registry — run `gentle-ai skill-registry refresh`",
+    es: "Sin registro de skills — corré `gentle-ai skill-registry refresh`",
+  },
   "projects.disk_scan_title": {
     en: "More projects (disk + VS Code)",
     es: "Más proyectos (disco + VSCode)",

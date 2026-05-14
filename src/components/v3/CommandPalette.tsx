@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useT } from "../../lib/i18n";
 import {
   KEYBOARD_TAB_ORDER,
@@ -6,6 +7,7 @@ import {
   TOPBAR_NAV,
 } from "../../constants/v3Nav";
 import type { V3Tab } from "../../v3/v3types";
+import { IS_TAURI } from "../../lib/env";
 
 // Cmd-K command palette — Linear / Raycast / VS Code style. Opens with
 // Cmd/Ctrl+K, closes with Esc, navigates with arrow keys, fires with
@@ -103,26 +105,59 @@ export function CommandPalette({
 
   // Fuzzy-ish match. Substring of label, case-insensitive. Hits early
   // (label.startsWith) rank above mid-string hits.
+  //
+  // Engram-search fall-through: when the user types >2 chars, we always
+  // append a "Search engram for '<query>'" item at the bottom (in its own
+  // Search section) so the palette becomes a discovery surface, not just a
+  // command launcher. Click → IPC writes results to a file and opens VS Code.
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return items;
-    const scored = items
-      .map((it) => {
-        const lbl = it.label.toLowerCase();
-        const idx = lbl.indexOf(q);
-        if (idx < 0) {
-          // Fall back to hint match (eg user types "ctrl+r")
-          if (it.hint && it.hint.toLowerCase().includes(q)) {
-            return { item: it, score: 1000 };
+    const raw = query.trim();
+    const q = raw.toLowerCase();
+    let matched: CommandItem[];
+    if (!q) {
+      matched = items;
+    } else {
+      const scored = items
+        .map((it) => {
+          const lbl = it.label.toLowerCase();
+          const idx = lbl.indexOf(q);
+          if (idx < 0) {
+            if (it.hint && it.hint.toLowerCase().includes(q)) {
+              return { item: it, score: 1000 };
+            }
+            return null;
           }
-          return null;
-        }
-        return { item: it, score: idx };
-      })
-      .filter((x): x is { item: CommandItem; score: number } => x !== null)
-      .sort((a, b) => a.score - b.score);
-    return scored.map((s) => s.item);
-  }, [query, items]);
+          return { item: it, score: idx };
+        })
+        .filter((x): x is { item: CommandItem; score: number } => x !== null)
+        .sort((a, b) => a.score - b.score);
+      matched = scored.map((s) => s.item);
+    }
+    if (raw.length > 2) {
+      matched = [
+        ...matched,
+        {
+          id: "search-engram",
+          label: t("palette.search_engram", { query: raw }),
+          section: t("palette.section_search"),
+          run: () => {
+            if (!IS_TAURI) return;
+            // Fire-and-forget — the IPC opens VS Code on success. We
+            // intentionally don't surface errors here: the palette is
+            // already closing. Worst case the user sees nothing happen
+            // and re-runs the search.
+            void invoke<string>("engram_search_to_file", { query: raw }).catch(
+              (e) => {
+                // eslint-disable-next-line no-console
+                console.warn("engram_search_to_file failed:", e);
+              }
+            );
+          },
+        },
+      ];
+    }
+    return matched;
+  }, [query, items, t]);
 
   // Group by section for rendering.
   const grouped = useMemo(() => {

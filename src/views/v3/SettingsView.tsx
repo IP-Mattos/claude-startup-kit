@@ -36,6 +36,12 @@ export function SettingsView() {
   const [autostartBusy, setAutostartBusy] = useState(false);
   const [autostartError, setAutostartError] = useState<string | null>(null);
 
+  // Persona / output style — read-only mirror of `outputStyle` in
+  // `~/.claude/settings.json`. gentle-ai writes it; CSK only surfaces it so
+  // the user knows which persona is active without opening the file. `null`
+  // means "not loaded yet", `undefined` means "loaded, key absent → default".
+  const [outputStyle, setOutputStyle] = useState<string | null | undefined>(null);
+
   useEffect(() => {
     if (!IS_TAURI) {
       setAutostart(false);
@@ -44,6 +50,16 @@ export function SettingsView() {
     isAutostartEnabled()
       .then((enabled) => setAutostart(enabled))
       .catch((e) => setAutostartError(String(e)));
+  }, []);
+
+  useEffect(() => {
+    if (!IS_TAURI) {
+      setOutputStyle(undefined);
+      return;
+    }
+    invoke<string | null>("read_output_style")
+      .then((v) => setOutputStyle(v ?? undefined))
+      .catch(() => setOutputStyle(undefined));
   }, []);
 
   const toggleAutostart = async () => {
@@ -379,6 +395,32 @@ export function SettingsView() {
               {autostartError}
             </div>
           )}
+        </div>
+      </article>
+
+      {/* Persona / output style — read-only mirror of the `outputStyle`
+          key in ~/.claude/settings.json. gentle-ai writes this when the
+          user picks a persona; CSK only surfaces it. Hairline card,
+          mono value, no actions. */}
+      <article className="v3-card">
+        <header className="v3-card-head">
+          <h2 className="v3-card-title">{t("settings.persona_title")}</h2>
+        </header>
+        <div className="v3-form">
+          <div className="v3-update-row">
+            <div className="v3-update-row-label">
+              {outputStyle === null ? (
+                <span className="v3-row-dim">{t("common.loading")}</span>
+              ) : outputStyle === undefined ? (
+                <span className="v3-row-dim">{t("settings.persona_default")}</span>
+              ) : (
+                <code className="v3-git-hash">{outputStyle}</code>
+              )}
+              <div className="v3-row-meta">
+                {t("settings.persona_set_by")}
+              </div>
+            </div>
+          </div>
         </div>
       </article>
 

@@ -2613,6 +2613,132 @@ async fn engram_sync_status(sync_dir: String) -> Result<String, String> {
         .map_err(|e| format!("task join: {e}"))?
 }
 
+// ─── Output style / persona ───────────────────────────────────────────────
+//
+// gentle-ai writes a top-level `outputStyle` key into `~/.claude/settings.json`
+// (e.g. `"Gentleman"`) to pin Claude's persona. CSK surfaces it read-only in
+// Settings so the user knows what persona is active without opening the file.
+#[tauri::command]
+async fn read_output_style() -> Result<Option<String>, String> {
+    tokio::task::spawn_blocking(move || -> Result<Option<String>, String> {
+        let home = dirs_home().ok_or_else(|| "no home dir".to_string())?;
+        let claude_dir = home.join(".claude");
+        let settings = load_settings(&claude_dir)?;
+        Ok(settings
+            .as_ref()
+            .and_then(|v| v.get("outputStyle"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()))
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+// ─── Engram search → file → VS Code ───────────────────────────────────────
+//
+// Cmd+K palette wants to surface "Search engram for '<query>'" as a fallback
+// when nothing else matches the query. Shelling out to `engram search` from
+// the renderer, parsing in JS, then writing a file from the renderer would
+// require 3 IPC round-trips and exposing FS write to the webview. Do it all
+// here: run `engram search`, write a markdown file with the raw output, open
+// VS Code at it. Same handoff pattern as `audit_open_in_claude`.
+#[tauri::command]
+async fn engram_search_to_file(query: String) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || -> Result<String, String> {
+        let q = query.trim();
+        if q.is_empty() {
+            return Err("empty query".to_string());
+        }
+        let home = dirs_home().ok_or_else(|| "no home dir".to_string())?;
+        let claude_dir = home.join(".claude");
+        if !claude_dir.exists() {
+            return Err(format!(
+                "~/.claude directory missing at {}",
+                claude_dir.display()
+            ));
+        }
+
+        let output = silent_command("engram")
+            .args(["search", q, "--limit", "10"])
+            .output()
+            .map_err(|e| format_spawn_error("engram", &e))?;
+        let stdout = String::from_utf8_lossy(&output.stdout).into_owned();
+        let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+        if !output.status.success() {
+            let combined = if stderr.trim().is_empty() {
+                stdout
+            } else if stdout.trim().is_empty() {
+                stderr
+            } else {
+                format!("{stdout}\n{stderr}")
+            };
+            return Err(combined.trim().to_string());
+        }
+
+        let body = if stdout.trim().is_empty() {
+            "_(no results)_".to_string()
+        } else {
+            format!("```\n{}\n```", stdout.trim_end())
+        };
+        let mut md = String::new();
+        md.push_str("# Engram search\n\n");
+        md.push_str(&format!("Query: `{q}`\n\n"));
+        md.push_str(&body);
+        if !stderr.trim().is_empty() {
+            md.push_str("\n\n---\n\n");
+            md.push_str("**stderr**\n\n```\n");
+            md.push_str(stderr.trim_end());
+            md.push_str("\n```\n");
+        }
+
+        let out_path = claude_dir.join("engram-search-result.md");
+        fs::write(&out_path, &md).map_err(|e| format!("write result file: {e}"))?;
+
+        let program = resolve_vscode_exe().ok_or_else(|| {
+            "VS Code no encontrado. Instalalo desde https://code.visualstudio.com/."
+                .to_string()
+        })?;
+        silent_command(&program)
+            .arg(&out_path)
+            .spawn()
+            .map_err(|e| format_spawn_error("VS Code (Code.exe)", &e))?;
+
+        Ok(out_path.to_string_lossy().to_string())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+// ─── Skill registry per project ───────────────────────────────────────────
+//
+// gentle-ai's `UserPromptSubmit` hook writes `.atl/skill-registry.md` into
+// each project's cwd. Surface it from the Projects view via a single IPC
+// that validates the project path, joins the registry file, and either
+// opens it in VS Code or returns a hint message the renderer can show.
+#[tauri::command]
+async fn open_skill_registry(project_path: String) -> Result<(), String> {
+    let canonical = validate_open_path(&project_path)?;
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let registry = canonical.join(".atl").join("skill-registry.md");
+        if !registry.exists() {
+            // Renderer keys off this exact prefix to swap in the localized
+            // hint. Don't reword without updating ProjectsView.
+            return Err("missing".to_string());
+        }
+        let program = resolve_vscode_exe().ok_or_else(|| {
+            "VS Code no encontrado. Instalalo desde https://code.visualstudio.com/."
+                .to_string()
+        })?;
+        silent_command(&program)
+            .arg(&registry)
+            .spawn()
+            .map_err(|e| format_spawn_error("VS Code (Code.exe)", &e))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 #[tauri::command]
 async fn open_in_vscode(path: String) -> Result<(), String> {
     let canonical = validate_open_path(&path)?;
@@ -6217,6 +6343,9 @@ pub fn run() {
             engram_sync_push,
             engram_sync_pull,
             engram_sync_status,
+            read_output_style,
+            engram_search_to_file,
+            open_skill_registry,
             open_in_vscode,
             open_path_in_explorer,
             open_url,
