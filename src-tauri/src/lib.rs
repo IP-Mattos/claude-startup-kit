@@ -5444,10 +5444,18 @@ async fn audit_open_in_claude(
     tokio::task::spawn_blocking(move || -> Result<AskClaudeContext, String> {
         let home = dirs_home().ok_or_else(|| "no home dir".to_string())?;
         let claude_dir = home.join(".claude");
-        let opened_path = claude_dir.to_string_lossy().to_string();
+        if !claude_dir.exists() {
+            return Err(format!(
+                "~/.claude directory missing at {}",
+                claude_dir.display()
+            ));
+        }
 
         // Build a Claude Code-friendly prompt with the full finding context.
         let mut prompt = String::new();
+        prompt.push_str("# Audit fix — handoff to Claude Code\n\n");
+        prompt.push_str("Paste the block below into the Claude Code panel.\n\n");
+        prompt.push_str("---\n\n");
         prompt.push_str(
             "The Claude Startup Kit audit flagged this issue under `~/.claude/`:\n\n",
         );
@@ -5466,17 +5474,25 @@ async fn audit_open_in_claude(
         }
         prompt.push_str(
             "\nInvestigate the relevant files (settings.json, hooks/, scripts/) \
-             and propose a fix. Don't apply changes until I confirm.",
+             and propose a fix. Don't apply changes until I confirm.\n",
         );
 
-        // Open VS Code at ~/.claude so the user can paste the prompt into
-        // Claude Code with the right working directory.
+        // Write the prompt to a file inside ~/.claude/ so VS Code can open
+        // it directly. Beats clipboard — Tauri webview clipboard can fail
+        // silently and the user has no idea what happened.
+        let prompt_path = claude_dir.join("audit-fix-prompt.md");
+        fs::write(&prompt_path, &prompt)
+            .map_err(|e| format!("write prompt file: {e}"))?;
+        let opened_path = prompt_path.to_string_lossy().to_string();
+
+        // Open VS Code AT the prompt file (not just the directory) so the
+        // user sees it immediately and can copy with Ctrl+A / Ctrl+C.
         let program = resolve_vscode_exe().ok_or_else(|| {
             "VS Code no encontrado. Instalalo desde https://code.visualstudio.com/."
                 .to_string()
         })?;
         silent_command(&program)
-            .arg(&claude_dir)
+            .arg(&prompt_path)
             .spawn()
             .map_err(|e| format_spawn_error("VS Code (Code.exe)", &e))?;
 

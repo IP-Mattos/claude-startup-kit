@@ -555,7 +555,7 @@ const STRINGS = {
   },
   "audit.ask_claude": { en: "Ask Claude", es: "Pedirle a Claude" },
   "audit.asking_claude": { en: "Opening…", es: "Abriendo…" },
-  "audit.asked_claude": { en: "Prompt copied", es: "Prompt copiado" },
+  "audit.asked_claude": { en: "Prompt opened", es: "Prompt abierto" },
   "audit.filter_all": { en: "All {n}", es: "Todos {n}" },
   "audit.filter_critical": { en: "Critical {n}", es: "Críticos {n}" },
   "audit.filter_warning": { en: "Warning {n}", es: "Advertencias {n}" },

@@ -244,35 +244,25 @@ export function AuditView({
     }
   }
 
-  // Opens VS Code at ~/.claude and copies a context-rich prompt to the
-  // clipboard so the user can paste it directly into Claude Code. Used on
-  // findings where auto-resolve isn't safe (DRIFT/HOOKS/PERMS/SCRIPTS) — and
-  // available on every finding row regardless, since "ask Claude" is always
-  // a valid alternative to the per-row resolver.
+  // Writes an audit context prompt to ~/.claude/audit-fix-prompt.md and
+  // opens VS Code on that file. The user copies the block and pastes it
+  // into Claude Code. Beats clipboard handoff — Tauri webview clipboard
+  // can fail silently and leaves the user wondering what happened.
   async function handleAskClaude(finding: AuditFinding) {
     const id = findingKey(finding);
     setAskingClaudeId(id);
     setError(null);
     try {
-      const ctx = await invoke<{ prompt: string; opened_path: string }>(
-        "audit_open_in_claude",
-        {
-          title: finding.title,
-          level: finding.level,
-          category: finding.category,
-          detail: finding.detail || null,
-          path:
-            finding.action && "path" in finding.action
-              ? finding.action.path
-              : null,
-        }
-      );
-      try {
-        await navigator.clipboard.writeText(ctx.prompt);
-      } catch {
-        // Clipboard write may fail in restricted contexts (no focus, etc.).
-        // The VS Code window is already open; the user can re-trigger.
-      }
+      await invoke("audit_open_in_claude", {
+        title: finding.title,
+        level: finding.level,
+        category: finding.category,
+        detail: finding.detail || null,
+        path:
+          finding.action && "path" in finding.action
+            ? finding.action.path
+            : null,
+      });
       if (askedTimeoutRef.current !== null) {
         clearTimeout(askedTimeoutRef.current);
       }
