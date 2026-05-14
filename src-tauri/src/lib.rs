@@ -3920,16 +3920,20 @@ fn detect_component(
                 Err(_) => false,
             }
         }
-        // theme → kanagawa theme folder OR any theme marker file under ~/.claude/themes.
+        // theme → any theme marker file or folder under ~/.claude/themes/
+        // whose name contains "gentleman" or "kanagawa". gentle-ai 1.29.x
+        // drops it as `themes/gentleman.json` (single file); older /
+        // future drops may be `themes/gentleman-kanagawa/` (folder).
         "theme" => {
             let themes_dir = claude_dir.join("themes");
-            if themes_dir.join("gentleman-kanagawa").is_dir() {
-                return true;
+            if !themes_dir.exists() {
+                return false;
             }
             if let Ok(entries) = fs::read_dir(&themes_dir) {
                 for entry in entries.flatten() {
                     if let Some(fname) = entry.file_name().to_str() {
-                        if fname.to_lowercase().contains("kanagawa") {
+                        let lower = fname.to_lowercase();
+                        if lower.contains("gentleman") || lower.contains("kanagawa") {
                             return true;
                         }
                     }
