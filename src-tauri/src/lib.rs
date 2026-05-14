@@ -4082,6 +4082,45 @@ async fn gentle_ai_sync(include_theme: bool) -> Result<String, String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+// Removes a single component from the user's Claude Code config. Backed by
+// gentle-ai's snapshot system so the user can always restore. Component
+// must be one of the known list — we let gentle-ai validate the name and
+// surface the error verbatim.
+#[tauri::command]
+async fn gentle_ai_uninstall_component(component: String) -> Result<String, String> {
+    let component = component.trim().to_string();
+    if component.is_empty() {
+        return Err("component name required".to_string());
+    }
+    tokio::task::spawn_blocking(move || -> Result<String, String> {
+        let program = resolve_gentle_ai()
+            .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
+        let out = silent_command(&program)
+            .args([
+                "uninstall",
+                "--component",
+                &component,
+                "--agent",
+                "claude-code",
+                "--yes",
+            ])
+            .output()
+            .map_err(|e| format_spawn_error("gentle-ai", &e))?;
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            return Err(format!(
+                "gentle-ai uninstall exited {}:\n{stderr}\n{stdout}",
+                out.status
+            ));
+        }
+        invalidate_workspace_summary_cache();
+        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 // ─── Stack updates via gentle-ai (single source of truth) ────────────────
 //
 // gentle-ai already manages every CLI tool in the Gentle stack (engram, gga,
@@ -6658,6 +6697,7 @@ pub fn run() {
             apply_gentle_ai_update,
             gentle_ai_status,
             gentle_ai_sync,
+            gentle_ai_uninstall_component,
             check_stack_update,
             apply_stack_update,
             open_stack_install_wizard,

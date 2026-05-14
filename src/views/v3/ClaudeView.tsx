@@ -101,6 +101,25 @@ export function ClaudeView() {
     }
   };
 
+  // Per-component uninstall — gentle-ai takes a backup snapshot first so
+  // this is reversible via `gentle-ai restore`. Single-flight by component.
+  const [uninstallingComponent, setUninstallingComponent] = useState<string | null>(null);
+  const runUninstall = async (componentName: string) => {
+    if (!IS_TAURI || uninstallingComponent) return;
+    setUninstallingComponent(componentName);
+    setSyncResult(null);
+    setError(null);
+    try {
+      await invoke<string>("gentle_ai_uninstall_component", { component: componentName });
+      setSyncResult(t("claude.uninstall_done", { name: componentName }));
+      setRefreshNonce((n) => n + 1);
+    } catch (e) {
+      setError(friendlyErrorEn(e));
+    } finally {
+      setUninstallingComponent(null);
+    }
+  };
+
   // Auto-dismiss the sync result banner so it doesn't linger.
   useEffect(() => {
     if (!syncResult) return;
@@ -223,11 +242,28 @@ export function ClaudeView() {
       <article className="v3-card v3-gai-header-card">
         <header className="v3-card-head">
           <h2 className="v3-card-title">{t("claude.gentle_ai_title")}</h2>
-          <span className="v3-row-dim">
-            {status?.cli_version
-              ? `${t("claude.cli_version")} ${status.cli_version}`
-              : t("claude.cli_missing")}
-          </span>
+          {status?.cli_version ? (
+            <span className="v3-row-dim v3-gai-version-row">
+              {t("claude.cli_version")} {status.cli_version}
+              <button
+                type="button"
+                className="v3-link v3-gai-release-notes"
+                onClick={() =>
+                  invoke("open_url", {
+                    url: `https://github.com/Gentleman-Programming/gentle-ai/releases/tag/v${status.cli_version}`,
+                  }).catch(() => {
+                    /* best-effort — silently ignore if the opener fails */
+                  })
+                }
+                title={t("claude.release_notes_hint")}
+              >
+                <ExternalLink size={11} strokeWidth={2} />
+                {t("claude.release_notes")}
+              </button>
+            </span>
+          ) : (
+            <span className="v3-row-dim">{t("claude.cli_missing")}</span>
+          )}
         </header>
         <p className="v3-subtitle">{t("claude.gentle_ai_subtitle")}</p>
         <div className="v3-gai-sync-actions">
@@ -298,6 +334,19 @@ export function ClaudeView() {
                   </span>
                 </div>
                 <p className="v3-gai-component-desc">{c.description}</p>
+                {c.installed && (
+                  <button
+                    type="button"
+                    className="v3-gai-component-uninstall"
+                    onClick={() => runUninstall(c.name)}
+                    disabled={uninstallingComponent !== null}
+                    title={t("claude.uninstall_hint", { name: c.name })}
+                  >
+                    {uninstallingComponent === c.name
+                      ? t("claude.uninstalling")
+                      : t("claude.uninstall")}
+                  </button>
+                )}
               </div>
             ))}
           </div>

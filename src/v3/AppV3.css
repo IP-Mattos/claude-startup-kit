@@ -635,6 +635,43 @@ body.v3-layout #root {
   border-color: var(--v3-border);
   background: var(--v3-surface-2);
 }
+.v3-gai-component-uninstall {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 3px 8px;
+  background: transparent;
+  color: var(--v3-text-4);
+  border: 1px solid var(--v3-border);
+  border-radius: 3px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: var(--v3-font-mono, ui-monospace, "JetBrains Mono", monospace);
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+.v3-gai-component-uninstall:hover:not([disabled]) {
+  border-color: var(--v3-crit);
+  color: var(--v3-crit);
+}
+.v3-gai-component-uninstall[disabled] {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+/* Release notes link in the header — small inline button, sits next to
+   the CLI version pill so the user can quickly check what changed. */
+.v3-gai-version-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.v3-gai-release-notes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
 .v3-gai-component-head {
   display: flex;
   align-items: center;

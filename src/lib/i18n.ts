@@ -686,6 +686,18 @@ const STRINGS = {
   "claude.sync_all_with_theme": { en: "Sync with theme", es: "Sincronizar con tema" },
   "claude.syncing": { en: "Syncing…", es: "Sincronizando…" },
   "claude.sync_done": { en: "Sync complete", es: "Sync completo" },
+  "claude.uninstall": { en: "Uninstall", es: "Desinstalar" },
+  "claude.uninstalling": { en: "Uninstalling…", es: "Desinstalando…" },
+  "claude.uninstall_hint": {
+    en: "Remove {name} via gentle-ai uninstall (a backup snapshot is taken first)",
+    es: "Quitar {name} con gentle-ai uninstall (toma snapshot de backup primero)",
+  },
+  "claude.uninstall_done": { en: "Uninstalled {name}", es: "{name} desinstalado" },
+  "claude.release_notes": { en: "Release notes", es: "Release notes" },
+  "claude.release_notes_hint": {
+    en: "Open the gentle-ai release notes for this version on GitHub",
+    es: "Abrir las release notes de gentle-ai para esta versión en GitHub",
+  },
   "claude.cli_version": { en: "CLI version", es: "Versión CLI" },
   "claude.cli_missing": {
     en: "gentle-ai CLI not found on PATH",
