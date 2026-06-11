@@ -3263,11 +3263,15 @@ async fn toggle_mcp_server(name: String, source: String, enabled: bool) -> Resul
 
 const APP_RELEASES_REPO: &str = "IP-Mattos/claude-startup-kit";
 const GENTLE_AI_RELEASES_REPO: &str = "Gentleman-Programming/gentle-ai";
-// TODO(security): pin install.ps1 to a commit SHA — see engram #875 WARN-tier item 6.
-// Today this fetches HEAD of `main`, so an upstream compromise (or a forced
-// branch reset) lands directly in `irm <url> | iex` on the user's box.
-const GENTLE_AI_INSTALLER_URL: &str =
-    "https://raw.githubusercontent.com/Gentleman-Programming/gentle-ai/main/scripts/install.ps1";
+// Installer URLs are pinned to the release tag resolved at call time — never
+// HEAD of `main`, so an upstream compromise (or a forced branch reset) can't
+// land directly in `irm <url> | iex` on the user's box. Callers that cannot
+// resolve a tag fail closed (skip the install) instead of falling back to main.
+fn gentle_ai_installer_url(tag: &str) -> String {
+    format!(
+        "https://raw.githubusercontent.com/Gentleman-Programming/gentle-ai/{tag}/scripts/install.ps1"
+    )
+}
 
 #[derive(Serialize, Clone)]
 pub struct UpdateStatus {
@@ -3750,8 +3754,10 @@ async fn workspace_summary() -> Result<WorkspaceSummary, String> {
 async fn apply_gentle_ai_update() -> Result<String, String> {
     // Mirrors the legacy SessionStart hook: irm <installer> | iex via
     // PowerShell. We capture combined stdout+stderr so the renderer can show
-    // a useful tail if something goes wrong.
-    let cmd = format!("irm {GENTLE_AI_INSTALLER_URL} | iex");
+    // a useful tail if something goes wrong. The URL is pinned to the release
+    // tag resolved here; if resolution fails we fail closed (no install).
+    let rel = fetch_latest_release(GENTLE_AI_RELEASES_REPO).await?;
+    let cmd = format!("irm {} | iex", gentle_ai_installer_url(&rel.tag_name));
     let out = tokio::task::spawn_blocking(move || -> Result<std::process::Output, String> {
         silent_command("powershell")
             .args(["-NoProfile", "-NonInteractive", "-Command", &cmd])
@@ -4416,7 +4422,29 @@ async fn apply_stack_update() -> Result<String, String> {
         let needs_self_upgrade = log.contains("manual update required")
             && log.contains("gentle-ai");
         if needs_self_upgrade {
-            let installer_cmd = format!("irm {GENTLE_AI_INSTALLER_URL} | iex");
+            // Resolve the release tag synchronously (we're already on the
+            // blocking pool) so the installer URL is pinned. If resolution
+            // fails we skip the self-upgrade — consistent with this branch's
+            // no-op-not-a-regression design — rather than fall back to main.
+            let endpoint = format!("repos/{GENTLE_AI_RELEASES_REPO}/releases/latest");
+            let rel_out = silent_command("gh")
+                .args(["api", &endpoint, "-H", "Accept: application/vnd.github+json"])
+                .output()
+                .map_err(|e| format_spawn_error("gh", &e))?;
+            let tag = if rel_out.status.success() {
+                serde_json::from_slice::<GhRelease>(&rel_out.stdout)
+                    .ok()
+                    .map(|r| r.tag_name)
+            } else {
+                None
+            };
+            let Some(tag) = tag else {
+                log.push_str(
+                    "\n--- gentle-ai self-upgrade skipped: could not resolve release tag (fail-closed, no main fallback) ---\n",
+                );
+                return Ok(log);
+            };
+            let installer_cmd = format!("irm {} | iex", gentle_ai_installer_url(&tag));
             let installer_out = silent_command("powershell")
                 .args(["-NoProfile", "-NonInteractive", "-Command", &installer_cmd])
                 .output()
