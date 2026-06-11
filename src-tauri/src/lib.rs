@@ -4160,6 +4160,7 @@ pub struct StackToolStatus {
 /// Examples accepted:
 ///   `  [ok] gentle-ai     installed: 1.25.4      latest: 1.25.4`
 ///   `  [--] gga           installed: -           latest: 2.8.1`
+///   `  [??] gga           installed: -           latest: 2.8.1`
 ///   `  [!]  engram        installed: 1.15.0      latest: 1.15.4`
 ///
 /// We avoid the `regex` crate (no extra dep) — the format is regular enough
@@ -4201,12 +4202,16 @@ fn parse_gentle_ai_update_line(line: &str) -> Option<StackToolStatus> {
     } else {
         Some(installed_raw.to_string())
     };
-    // Marker semantics. `ok` = up to date, `--` = not installed.
+    // Marker semantics. `ok` = up to date, `--` = not installed, `??` =
+    // gentle-ai found traces of the tool but couldn't read its version
+    // (happens for gga under a GUI PATH where its bash wrapper can't run).
+    // Both `--` and `??` mean "not installed until proven otherwise" so the
+    // local detection-override in check_stack_update gets a chance to probe.
     // Anything else (`!`, `up`, `↑`, etc.) we conservatively treat as
     // "update available" so the UI surfaces an actionable row.
     let state = match marker {
         "ok" => "up_to_date",
-        "--" => "not_installed",
+        "--" | "??" => "not_installed",
         _ => "update_available",
     };
     Some(StackToolStatus {
@@ -4275,7 +4280,10 @@ async fn check_stack_update() -> Result<Vec<StackToolStatus>, String> {
         // to confirm. If we find a real version, we re-derive `state` from
         // the installed-vs-latest comparison so the UI stops lying.
         for row in rows.iter_mut() {
-            if row.state != "not_installed" {
+            // Probe any row where gentle-ai couldn't read an installed
+            // version (`installed: -` → `[--]`/`[??]`/future markers).
+            // Rows with a real version are trustworthy — skip them.
+            if row.installed.is_some() {
                 continue;
             }
             let Some(program) = resolve_managed_tool(&row.name) else {
