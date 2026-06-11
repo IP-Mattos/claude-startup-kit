@@ -1340,7 +1340,12 @@ fn audit_hooks(
         String::new(),
     );
     for (event, cmd, _to) in &all {
-        if !expected.iter().any(|e| e == cmd) {
+        // Hooks installed by the gentle-ai stack itself (e.g. the
+        // skill-registry refresh on UserPromptSubmit) are part of the kit —
+        // flagging them as foreign contradicts the app's own Gentle-AI
+        // verifier tab.
+        let is_gentle_ai_managed = cmd.trim_start().starts_with("gentle-ai ");
+        if !is_gentle_ai_managed && !expected.iter().any(|e| e == cmd) {
             push_finding(
                 out,
                 "WARN",
@@ -4318,12 +4323,14 @@ async fn check_stack_update() -> Result<Vec<StackToolStatus>, String> {
 /// available in *currently open* Claude Code instances until they reload.
 const STACK_TOOL_PROCESS_NAMES_FALLBACK: &[&str] = &["engram", "gga"];
 
-/// Discover which managed-tool binaries are currently installed by parsing
-/// `gentle-ai update`. Returns the names of every tool whose state isn't
-/// `not_installed` — those are the ones that could have a live process
-/// holding their .exe and need a taskkill before the upgrade. Falls back
-/// to the hardcoded list on any failure (gentle-ai missing, format drift,
-/// network issue).
+/// Discover which managed-tool binaries need a taskkill before upgrading by
+/// parsing `gentle-ai update`. Only tools with an update actually pending
+/// (`update_available`) get their .exe replaced — an up-to-date tool's
+/// process doesn't need to be killed (killing it anyway took down the live
+/// engram MCP server on every "Update all", even when only one tool had an
+/// update). Falls back to the hardcoded list only when discovery itself
+/// fails (gentle-ai missing, format drift, network issue); a successful
+/// parse where nothing needs updating returns an empty list — kill nothing.
 fn discover_stack_tool_names(program: &str) -> Vec<String> {
     let output = match silent_command(program).arg("update").output() {
         Ok(o) if o.status.success() => o,
@@ -4333,20 +4340,22 @@ fn discover_stack_tool_names(program: &str) -> Vec<String> {
             .collect(),
     };
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let names: Vec<String> = stdout
+    let rows: Vec<StackToolStatus> = stdout
         .lines()
         .filter_map(parse_gentle_ai_update_line)
-        .filter(|row| row.state != "not_installed")
-        .map(|row| row.name)
         .collect();
-    if names.is_empty() {
-        STACK_TOOL_PROCESS_NAMES_FALLBACK
+    if rows.is_empty() {
+        // Unparseable output (format drift) — can't tell what's pending, so
+        // keep the old conservative behavior.
+        return STACK_TOOL_PROCESS_NAMES_FALLBACK
             .iter()
             .map(|s| s.to_string())
-            .collect()
-    } else {
-        names
+            .collect();
     }
+    rows.into_iter()
+        .filter(|row| row.state == "update_available")
+        .map(|row| row.name)
+        .collect()
 }
 
 /// Run `gentle-ai upgrade` (applies updates to ALL managed tools in one call).
