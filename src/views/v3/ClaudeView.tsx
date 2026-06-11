@@ -11,6 +11,7 @@ import {
 import { friendlyErrorEn } from "../../lib/format";
 import { plural, useT } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
+import { ConfirmModal } from "../../components/v3/ConfirmModal";
 
 interface ClaudeSkill {
   name: string;
@@ -103,7 +104,10 @@ export function ClaudeView() {
 
   // Per-component uninstall — gentle-ai takes a backup snapshot first so
   // this is reversible via `gentle-ai restore`. Single-flight by component.
+  // Destructive, so the button opens a ConfirmModal instead of firing directly
+  // (same pattern as the stack "Update all" flow in SettingsView).
   const [uninstallingComponent, setUninstallingComponent] = useState<string | null>(null);
+  const [confirmingUninstall, setConfirmingUninstall] = useState<string | null>(null);
   const runUninstall = async (componentName: string) => {
     if (!IS_TAURI || uninstallingComponent) return;
     setUninstallingComponent(componentName);
@@ -338,7 +342,7 @@ export function ClaudeView() {
                   <button
                     type="button"
                     className="v3-gai-component-uninstall"
-                    onClick={() => runUninstall(c.name)}
+                    onClick={() => setConfirmingUninstall(c.name)}
                     disabled={uninstallingComponent !== null}
                     title={t("claude.uninstall_hint", { name: c.name })}
                   >
@@ -515,6 +519,23 @@ export function ClaudeView() {
           </pre>
         )}
       </article>
+
+      <ConfirmModal
+        open={confirmingUninstall !== null}
+        title={t("claude.uninstall_confirm_title")}
+        message={t("claude.uninstall_confirm_message", {
+          name: confirmingUninstall ?? "",
+        })}
+        confirmLabel={t("claude.uninstall")}
+        cancelLabel={t("common.cancel")}
+        danger
+        onCancel={() => setConfirmingUninstall(null)}
+        onConfirm={() => {
+          const name = confirmingUninstall;
+          setConfirmingUninstall(null);
+          if (name) void runUninstall(name);
+        }}
+      />
     </div>
   );
 }

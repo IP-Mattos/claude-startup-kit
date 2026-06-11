@@ -696,6 +696,14 @@ const STRINGS = {
     es: "Quitar {name} con gentle-ai uninstall (toma snapshot de backup primero)",
   },
   "claude.uninstall_done": { en: "Uninstalled {name}", es: "{name} desinstalado" },
+  "claude.uninstall_confirm_title": {
+    en: "Uninstall component?",
+    es: "¿Desinstalar componente?",
+  },
+  "claude.uninstall_confirm_message": {
+    en: "This removes {name} from your Claude setup. gentle-ai takes a backup snapshot first, so you can bring it back with gentle-ai restore.",
+    es: "Esto quita {name} de tu setup de Claude. gentle-ai toma un snapshot de backup primero, así que podés recuperarlo con gentle-ai restore.",
+  },
   "claude.release_notes": { en: "Release notes", es: "Release notes" },
   "claude.release_notes_hint": {
     en: "Open the gentle-ai release notes for this version on GitHub",
