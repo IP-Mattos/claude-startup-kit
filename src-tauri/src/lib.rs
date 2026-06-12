@@ -4381,22 +4381,59 @@ async fn apply_stack_update() -> Result<String, String> {
         let program = resolve_gentle_ai()
             .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
 
-        // Kill any live instances of managed tool binaries. Names come
-        // from `gentle-ai update` so new upstream tools participate
-        // automatically — falls back to the hardcoded list if discovery
-        // fails. Errors are best-effort (process might already be gone,
-        // or `taskkill` might need admin for some).
+        // Kill any live instances of managed tool binaries (except engram —
+        // see the in-loop comment: gentle-ai stops it itself, and killing it
+        // first triggers gentle-ai#815). Names come from `gentle-ai update`
+        // so new upstream tools participate automatically — falls back to
+        // the hardcoded list if discovery fails. Errors are best-effort
+        // (process might already be gone, or `taskkill` might need admin).
         let process_names = discover_stack_tool_names(&program);
+        let engram_update_pending = process_names.iter().any(|n| n == "engram");
         for name in &process_names {
+            // engram is deliberately NOT pre-killed: gentle-ai ≥1.39 stops
+            // engram itself before replacing engram.exe (upstream 7d6f805a),
+            // and its stop step FAILS when no engram process exists
+            // (gentle-ai#815 — Get-Process -ErrorAction SilentlyContinue
+            // still flips $?, so powershell exits 1 with empty output).
+            // Pre-killing engram here guaranteed that failure on every
+            // engram update.
+            if name == "engram" {
+                continue;
+            }
             let _ = silent_command("taskkill")
                 .args(["/IM", &format!("{}.exe", name), "/F"])
                 .output();
+        }
+        // Belt-and-suspenders for gentle-ai#815: ensure at least one engram
+        // process exists before the upgrade so gentle-ai's stop step finds
+        // something to kill and exits 0. `engram serve` is the same daemon
+        // the engram SessionStart hook launches, so a survivor is benign;
+        // if another instance already holds the port, the spawn exits on
+        // its own — also fine, because that instance satisfies the check.
+        if engram_update_pending {
+            let engram_running = silent_command("tasklist")
+                .args(["/NH", "/FI", "IMAGENAME eq engram.exe"])
+                .output()
+                .map(|o| {
+                    String::from_utf8_lossy(&o.stdout)
+                        .to_lowercase()
+                        .contains("engram.exe")
+                })
+                .unwrap_or(false);
+            if !engram_running {
+                // Spawn error swallowed on purpose: if engram isn't actually
+                // installed (fallback list can include it), there's nothing
+                // to keep alive and the upgrade has nothing to replace — the
+                // degraded path is the same as before this workaround.
+                let _ = silent_command("engram").arg("serve").spawn();
+            }
         }
         // Bumped from 800ms — Defender's real-time scan has been observed
         // holding handles to just-killed binaries on slow/contended
         // machines, causing the rename-then-replace inside `gentle-ai
         // upgrade` to fail with "Access is denied". 1.5s is empirically
-        // enough without making the user wait noticeably.
+        // enough without making the user wait noticeably. The same window
+        // gives the just-spawned `engram serve` (if any) time to come up.
         std::thread::sleep(Duration::from_millis(1500));
 
         // Phase 1 — `gentle-ai upgrade` for everything except gentle-ai itself.
