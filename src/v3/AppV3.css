@@ -4201,6 +4201,40 @@ body.v3-layout #root {
   word-break: break-all;
 }
 
+/* ========== Conversations filters (segmented controls) ========== */
+.v3-conv-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+.v3-segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--v3-bg);
+  border: 1px solid var(--v3-border);
+  border-radius: 999px;
+}
+.v3-segmented-btn {
+  padding: 3px 12px;
+  font-size: 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--v3-text);
+  cursor: pointer;
+  opacity: 0.65;
+}
+.v3-segmented-btn:hover {
+  opacity: 1;
+}
+.v3-segmented-btn.active {
+  background: var(--v3-accent);
+  color: var(--v3-bg);
+  opacity: 1;
+}
+
 /* ========== Pager (skills, lists) ========== */
 .v3-pager {
   display: flex;

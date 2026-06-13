@@ -932,6 +932,17 @@ const STRINGS = {
     es: "Abrir conversación en VS Code",
   },
   "conversations.all_projects": { en: "All projects", es: "Todos los proyectos" },
+  "conversations.no_matches_filtered": {
+    en: "No matches with the current filters. Try widening the date range or role.",
+    es: "Sin coincidencias con los filtros actuales. Probá ampliar el rango de fechas o el rol.",
+  },
+  "conversations.filter_range": { en: "Date range", es: "Rango de fechas" },
+  "conversations.filter_role": { en: "Role", es: "Rol" },
+  "conversations.range_all": { en: "All time", es: "Todo" },
+  "conversations.range_month": { en: "Month", es: "Mes" },
+  "conversations.range_week": { en: "Week", es: "Semana" },
+  "conversations.range_day": { en: "Day", es: "Día" },
+  "conversations.role_all": { en: "Both", es: "Ambos" },
 
   // Token usage view — aggregates ~/.claude/projects/*.jsonl assistant
   // message usage fields into per-day buckets. Window-aware totals + a

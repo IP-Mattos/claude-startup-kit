@@ -82,6 +82,14 @@ export function ConversationsView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Client-side refinement of the result set (the backend already scoped by
+  // query + project). Date range filters by match timestamp; role filters
+  // user vs assistant turns.
+  type DateRange = "all" | "month" | "week" | "day";
+  type RoleFilter = "all" | "user" | "assistant";
+  const [dateRange, setDateRange] = useState<DateRange>("all");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
+
   // Persist project filter.
   useEffect(() => {
     try {
@@ -150,6 +158,27 @@ export function ConversationsView() {
     );
   };
 
+  // Apply the date + role refinements to the backend result set.
+  const filteredMatches = useMemo(() => {
+    const now = Date.now();
+    const rangeMs =
+      dateRange === "day"
+        ? 86_400_000
+        : dateRange === "week"
+          ? 7 * 86_400_000
+          : dateRange === "month"
+            ? 30 * 86_400_000
+            : null;
+    return matches.filter((m) => {
+      if (roleFilter !== "all" && m.role !== roleFilter) return false;
+      if (rangeMs !== null) {
+        const ms = isoToMs(m.timestamp);
+        if (ms === null || now - ms > rangeMs) return false;
+      }
+      return true;
+    });
+  }, [matches, dateRange, roleFilter]);
+
   const trimmedQuery = debouncedQuery.trim();
   // Live query (not debounced) decides whether to show "type to search" so
   // the empty state disappears the moment the user starts typing — the
@@ -193,7 +222,7 @@ export function ConversationsView() {
             className="v3-select"
             value={selectedProject ?? ""}
             onChange={(e) => setSelectedProject(e.target.value || null)}
-            aria-label={t("todos.project_picker_label")}
+            aria-label={t("conversations.all_projects")}
           >
             <option value="">{t("conversations.all_projects")}</option>
             {projects.map((p) => (
@@ -202,6 +231,48 @@ export function ConversationsView() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Refinement filters — date range + role, both client-side over
+            the current result set. */}
+        <div className="v3-conv-filters">
+          <div className="v3-segmented" role="group" aria-label={t("conversations.filter_range")}>
+            {(
+              [
+                ["all", "conversations.range_all"],
+                ["month", "conversations.range_month"],
+                ["week", "conversations.range_week"],
+                ["day", "conversations.range_day"],
+              ] as const
+            ).map(([val, key]) => (
+              <button
+                key={val}
+                type="button"
+                className={"v3-segmented-btn" + (dateRange === val ? " active" : "")}
+                onClick={() => setDateRange(val)}
+              >
+                {t(key)}
+              </button>
+            ))}
+          </div>
+          <div className="v3-segmented" role="group" aria-label={t("conversations.filter_role")}>
+            {(
+              [
+                ["all", "conversations.role_all"],
+                ["user", "conversations.role_user"],
+                ["assistant", "conversations.role_assistant"],
+              ] as const
+            ).map(([val, key]) => (
+              <button
+                key={val}
+                type="button"
+                className={"v3-segmented-btn" + (roleFilter === val ? " active" : "")}
+                onClick={() => setRoleFilter(val)}
+              >
+                {t(key)}
+              </button>
+            ))}
+          </div>
         </div>
       </article>
 
@@ -217,13 +288,15 @@ export function ConversationsView() {
         </div>
       ) : !hasQuery ? (
         <div className="v3-empty">{t("conversations.no_query")}</div>
-      ) : matches.length === 0 ? (
+      ) : filteredMatches.length === 0 ? (
         <div className="v3-empty">
-          {t("conversations.no_matches", { n: scannedProjectCount })}
+          {matches.length > 0
+            ? t("conversations.no_matches_filtered")
+            : t("conversations.no_matches", { n: scannedProjectCount })}
         </div>
       ) : (
         <ul className="v3-list v3-conv-results">
-          {matches.map((m) => {
+          {filteredMatches.map((m) => {
             const ms = isoToMs(m.timestamp);
             const ago = ms !== null ? agoLabel(ms, t) : m.timestamp;
             const roleLabel =
