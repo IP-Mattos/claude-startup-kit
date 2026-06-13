@@ -4201,6 +4201,20 @@ body.v3-layout #root {
   word-break: break-all;
 }
 
+/* ========== Pager (skills, lists) ========== */
+.v3-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.v3-pager-info {
+  font-size: 12px;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ========== Overview signal feed ========== */
 .v3-signal-feed {
   margin-bottom: 16px;

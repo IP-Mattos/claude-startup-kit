@@ -51,6 +51,10 @@ interface GentleAiStatus {
 export function ClaudeView() {
   const { t } = useT();
   const [skills, setSkills] = useState<ClaudeSkill[]>([]);
+  // Skills can run into the dozens — paginate so the card stays a glance,
+  // not an endless scroll.
+  const SKILLS_PER_PAGE = 8;
+  const [skillsPage, setSkillsPage] = useState(0);
   const [mcps, setMcps] = useState<McpServer[]>([]);
   const [status, setStatus] = useState<GentleAiStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -453,41 +457,80 @@ export function ClaudeView() {
         ) : skills.length === 0 ? (
           <div className="v3-empty">{t("claude.skills_empty")}</div>
         ) : (
-          <ul className="v3-list">
-            {skills.map((s) => (
-              <li key={s.name} className="v3-claude-row">
-                <div className="v3-claude-row-body">
-                  <div className="v3-claude-row-title">
-                    <span className="v3-claude-row-name">{s.name}</span>
-                    {s.usage_count > 0 && (
-                      <span
-                        className={
-                          "v3-usage-badge " +
-                          (s.usage_count === maxUsage
-                            ? "v3-usage-badge-top"
-                            : "v3-usage-badge-some")
-                        }
-                        title={t("claude.usage_title", { n: s.usage_count })}
-                      >
-                        {s.usage_count}
-                      </span>
-                    )}
-                  </div>
-                  <div className="v3-claude-row-meta">
-                    {s.description || t("claude.no_description")}
-                  </div>
-                </div>
+          <>
+            <ul className="v3-list">
+              {skills
+                .slice(skillsPage * SKILLS_PER_PAGE, (skillsPage + 1) * SKILLS_PER_PAGE)
+                .map((s) => (
+                  <li key={s.name} className="v3-claude-row">
+                    <div className="v3-claude-row-body">
+                      <div className="v3-claude-row-title">
+                        <span className="v3-claude-row-name">{s.name}</span>
+                        {s.usage_count > 0 && (
+                          <span
+                            className={
+                              "v3-usage-badge " +
+                              (s.usage_count === maxUsage
+                                ? "v3-usage-badge-top"
+                                : "v3-usage-badge-some")
+                            }
+                            title={t("claude.usage_title", { n: s.usage_count })}
+                          >
+                            {s.usage_count}
+                          </span>
+                        )}
+                      </div>
+                      <div className="v3-claude-row-meta">
+                        {s.description || t("claude.no_description")}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="v3-btn-ghost"
+                      onClick={() => openSkill(s.path)}
+                    >
+                      <ExternalLink size={13} strokeWidth={2} />
+                      {t("claude.open")}
+                    </button>
+                  </li>
+                ))}
+            </ul>
+            {skills.length > SKILLS_PER_PAGE && (
+              <div className="v3-pager">
                 <button
                   type="button"
-                  className="v3-btn-ghost"
-                  onClick={() => openSkill(s.path)}
+                  className="v3-btn-ghost v3-btn-sm"
+                  onClick={() => setSkillsPage((p) => Math.max(0, p - 1))}
+                  disabled={skillsPage === 0}
                 >
-                  <ExternalLink size={13} strokeWidth={2} />
-                  {t("claude.open")}
+                  {t("common.prev")}
                 </button>
-              </li>
-            ))}
-          </ul>
+                <span className="v3-pager-info">
+                  {t("common.page_of", {
+                    page: skillsPage + 1,
+                    total: Math.ceil(skills.length / SKILLS_PER_PAGE),
+                  })}
+                </span>
+                <button
+                  type="button"
+                  className="v3-btn-ghost v3-btn-sm"
+                  onClick={() =>
+                    setSkillsPage((p) =>
+                      Math.min(
+                        Math.ceil(skills.length / SKILLS_PER_PAGE) - 1,
+                        p + 1
+                      )
+                    )
+                  }
+                  disabled={
+                    skillsPage >= Math.ceil(skills.length / SKILLS_PER_PAGE) - 1
+                  }
+                >
+                  {t("common.next")}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </article>
 
