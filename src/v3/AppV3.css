@@ -4435,11 +4435,11 @@ body.v3-layout #root {
   background: var(--v3-text-3, var(--v3-text-2));
 }
 .v3-trello-live-live .v3-trello-live-dot {
-  background: #3fb950;
-  box-shadow: 0 0 0 3px rgba(63, 185, 80, 0.18);
+  background: var(--v3-success, #3fb950);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--v3-success, #3fb950) 18%, transparent);
 }
 .v3-trello-live-connecting .v3-trello-live-dot {
-  background: #d29922;
+  background: var(--v3-warn, #d29922);
   animation: v3-trello-pulse 1.2s ease-in-out infinite;
 }
 .v3-trello-live-error .v3-trello-live-dot {
@@ -4494,10 +4494,6 @@ body.v3-layout #root {
   display: flex;
   flex-direction: column;
 }
-.v3-board-col.is-drop-active {
-  border-color: var(--v3-accent);
-  box-shadow: 0 0 0 1px var(--v3-accent) inset;
-}
 .v3-board-col-head {
   display: flex;
   align-items: center;
@@ -4551,41 +4547,22 @@ body.v3-layout #root {
   padding: 14px 0;
   margin: 0;
 }
-.v3-board-slot {
-  position: relative;
-}
-.v3-board-slot.show-indicator::before {
-  content: "";
-  position: absolute;
-  top: -5px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--v3-accent);
-  border-radius: 2px;
-}
-
 /* Task card */
 .v3-task-card {
   background: var(--v3-surface, #1b1f26);
   border: 1px solid var(--v3-border);
   border-radius: 8px;
-  padding: 10px;
-  cursor: grab;
-  transition: border-color 0.12s ease, transform 0.06s ease;
+  padding: 10px 10px 8px;
+  cursor: default;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 .v3-task-card:hover {
   border-color: var(--v3-accent);
-}
-.v3-task-card:active {
-  cursor: grabbing;
+  box-shadow: var(--v3-shadow-1, 0 1px 3px rgba(0, 0, 0, 0.3));
 }
 .v3-task-card:focus-visible {
   outline: 2px solid var(--v3-accent);
   outline-offset: 2px;
-}
-.v3-task-card.is-dragging {
-  opacity: 0.4;
 }
 .v3-task-card.is-done {
   opacity: 0.62;
@@ -4623,9 +4600,13 @@ body.v3-layout #root {
   color: var(--v3-text-2);
   cursor: pointer;
 }
-.v3-task-complete:hover {
-  border-color: #3fb950;
-  color: #3fb950;
+.v3-task-complete:hover:not(:disabled) {
+  border-color: var(--v3-success, #3fb950);
+  color: var(--v3-success, #3fb950);
+}
+.v3-task-complete:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .v3-task-progress {
   height: 4px;
@@ -4658,6 +4639,67 @@ body.v3-layout #root {
   margin-left: auto;
   font-size: 11px;
   color: var(--v3-text-3, var(--v3-text-2));
+}
+.v3-task-done-label {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--v3-success, #3fb950);
+}
+.v3-task-flow-chip {
+  gap: 0; /* icon-only; no trailing text */
+}
+
+/* Move footer — arrow controls (replaced native drag & drop) */
+.v3-task-move {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--v3-border);
+}
+.v3-task-move-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.v3-task-move-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-sm, 6px);
+  background: transparent;
+  color: var(--v3-text-2);
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease,
+    background 0.12s ease, transform 0.06s ease;
+}
+/* Reorder (up/down) is the quiet secondary action — borderless at rest. */
+.v3-task-move-btn.is-reorder {
+  border-color: transparent;
+  color: var(--v3-text-3, var(--v3-text-2));
+}
+.v3-task-move-btn:hover:not(:disabled) {
+  background: var(--v3-accent-tint, color-mix(in srgb, var(--v3-accent) 14%, transparent));
+  border-color: var(--v3-accent);
+  color: var(--v3-accent);
+}
+.v3-task-move-btn:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 2px;
+}
+.v3-task-move-btn:active:not(:disabled) {
+  transform: scale(0.9);
+}
+.v3-task-move-btn:disabled {
+  opacity: 0.32;
+  cursor: default;
 }
 
 /* Form fields (shared by the editor + config) */

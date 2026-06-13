@@ -1,4 +1,4 @@
-import { useMemo, useState, type DragEvent } from "react";
+import { useMemo } from "react";
 import { Plus } from "lucide-react";
 import { useT } from "../../../lib/i18n";
 import type { Column, Task } from "../../../lib/trello/types";
@@ -14,9 +14,27 @@ interface Props {
   onMoveTask: (taskId: string, toColumnId: string, position: number) => void;
 }
 
-interface DropTarget {
-  columnId: string;
-  beforeTaskId: string | null; // null → append to the end of the column
+type MoveDir = "left" | "right" | "up" | "down";
+
+// Fractional position helpers — the same proven midpoint math the old drag
+// path used, now driving the arrow controls. Cross-column moves append to the
+// destination's end; within-column reorder inserts between neighbors.
+function appendPosition(destList: Task[]): number {
+  const last = destList[destList.length - 1];
+  return (last ? last.position : 0) + 1;
+}
+function positionAbove(list: Task[], i: number): number {
+  const before = list[i - 1];
+  const prev = list[i - 2];
+  if (prev) return (prev.position + before.position) / 2;
+  // Inserting above the current top card: land strictly below it even if its
+  // position is 0 or negative (possible with API-seeded data) so they never tie.
+  return before.position > 0 ? before.position / 2 : before.position - 1;
+}
+function positionBelow(list: Task[], i: number): number {
+  const next = list[i + 1];
+  const after = list[i + 2];
+  return after ? (next.position + after.position) / 2 : next.position + 1;
 }
 
 export function TrelloBoard({
@@ -29,8 +47,6 @@ export function TrelloBoard({
   onMoveTask,
 }: Props) {
   const { t } = useT();
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
 
   // Tasks grouped by column, each sorted by fractional position.
   const byColumn = useMemo(() => {
@@ -44,75 +60,30 @@ export function TrelloBoard({
     return map;
   }, [columns, tasks]);
 
-  const beginDrag = (task: Task, e: DragEvent) => {
-    setDraggingId(task.id);
-    try {
-      e.dataTransfer.setData("text/plain", task.id);
-      e.dataTransfer.effectAllowed = "move";
-    } catch {
-      /* some webviews are picky about setData — draggingId state covers us */
-    }
-  };
-
-  const endDrag = () => {
-    setDraggingId(null);
-    setDropTarget(null);
-  };
-
-  // Compute the fractional position for the current drop target and commit.
-  const commitDrop = (columnId: string) => {
-    if (!draggingId) return;
-    const target = dropTarget;
-    // Dropping a card onto its own slot is the natural "lift and put it back"
-    // gesture — it must be a no-op, never a real move_task to the column end.
-    if (target && target.beforeTaskId === draggingId) {
-      endDrag();
-      return;
-    }
-    // Sorted tasks already in the destination column, minus the dragged one.
-    const dest = (byColumn.get(columnId) ?? []).filter((x) => x.id !== draggingId);
-
-    let position: number;
-    if (!target || target.beforeTaskId === null) {
-      const last = dest[dest.length - 1];
-      position = (last ? last.position : 0) + 1;
-    } else {
-      const idx = dest.findIndex((x) => x.id === target.beforeTaskId);
-      if (idx === -1) {
-        const last = dest[dest.length - 1];
-        position = (last ? last.position : 0) + 1;
-      } else {
-        const before = dest[idx];
-        const prev = dest[idx - 1];
-        position = prev ? (prev.position + before.position) / 2 : before.position / 2;
-      }
-    }
-    onMoveTask(draggingId, columnId, position);
-    endDrag();
-  };
-
   return (
-    <div className="v3-board" onDragEnd={endDrag}>
-      {columns.map((col) => {
+    <div className="v3-board">
+      {columns.map((col, colIndex) => {
         const list = byColumn.get(col.id) ?? [];
-        const isActiveCol = dropTarget?.columnId === col.id;
+        const prevCol = columns[colIndex - 1];
+        const nextCol = columns[colIndex + 1];
+        const canLeft = colIndex > 0;
+        const canRight = colIndex < columns.length - 1;
+        const showReorder = list.length > 1;
+
+        const move = (task: Task, i: number, dir: MoveDir) => {
+          if (dir === "left" && prevCol) {
+            onMoveTask(task.id, prevCol.id, appendPosition(byColumn.get(prevCol.id) ?? []));
+          } else if (dir === "right" && nextCol) {
+            onMoveTask(task.id, nextCol.id, appendPosition(byColumn.get(nextCol.id) ?? []));
+          } else if (dir === "up" && i > 0) {
+            onMoveTask(task.id, col.id, positionAbove(list, i));
+          } else if (dir === "down" && i < list.length - 1) {
+            onMoveTask(task.id, col.id, positionBelow(list, i));
+          }
+        };
+
         return (
-          <section
-            key={col.id}
-            className={"v3-board-col" + (isActiveCol ? " is-drop-active" : "")}
-            onDragOver={(e) => {
-              if (!draggingId) return;
-              e.preventDefault();
-              // Default: append (set only if not already targeting a card).
-              setDropTarget((prev) =>
-                prev && prev.columnId === col.id ? prev : { columnId: col.id, beforeTaskId: null },
-              );
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              commitDrop(col.id);
-            }}
-          >
+          <section key={col.id} className="v3-board-col">
             <header className="v3-board-col-head">
               <span className="v3-board-col-name">{col.name}</span>
               <span className="v3-board-col-count">{list.length}</span>
@@ -131,32 +102,23 @@ export function TrelloBoard({
               {list.length === 0 && (
                 <p className="v3-board-col-empty">{t("trello.no_tasks")}</p>
               )}
-              {list.map((task) => {
-                const showBefore =
-                  isActiveCol && dropTarget?.beforeTaskId === task.id && draggingId !== task.id;
-                return (
-                  <div
-                    key={task.id}
-                    className={"v3-board-slot" + (showBefore ? " show-indicator" : "")}
-                    onDragOver={(e) => {
-                      if (!draggingId) return;
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setDropTarget({ columnId: col.id, beforeTaskId: task.id });
-                    }}
-                  >
-                    <TaskCard
-                      task={task}
-                      dragging={draggingId === task.id}
-                      busy={busyTaskIds.has(task.id)}
-                      onOpen={onOpenTask}
-                      onComplete={onCompleteTask}
-                      onDragStart={beginDrag}
-                      onDragEnd={endDrag}
-                    />
-                  </div>
-                );
-              })}
+              {list.map((task, i) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  busy={busyTaskIds.has(task.id)}
+                  canLeft={canLeft}
+                  canRight={canRight}
+                  canUp={i > 0}
+                  canDown={i < list.length - 1}
+                  showReorder={showReorder}
+                  prevColName={prevCol ? prevCol.name : null}
+                  nextColName={nextCol ? nextCol.name : null}
+                  onOpen={onOpenTask}
+                  onComplete={onCompleteTask}
+                  onMove={(dir) => move(task, i, dir)}
+                />
+              ))}
             </div>
           </section>
         );

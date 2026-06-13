@@ -1025,6 +1025,24 @@ const STRINGS = {
     en: "An action on this task is still finishing…",
     es: "Hay una acción en curso sobre esta tarea…",
   },
+  "trello.move_next": { en: "Move to {col}", es: "Mover a {col}" },
+  "trello.move_prev": { en: "Move to {col}", es: "Mover a {col}" },
+  "trello.move_up": { en: "Move up", es: "Subir" },
+  "trello.move_down": { en: "Move down", es: "Bajar" },
+  "trello.at_first": {
+    en: "Already in the first column",
+    es: "Ya está en la primera columna",
+  },
+  "trello.at_last": {
+    en: "Already in the last column",
+    es: "Ya está en la última columna",
+  },
+  "trello.move_hint": {
+    en: "Hold Alt and use the arrow keys to move this task",
+    es: "Mantené Alt y usá las flechas para mover esta tarea",
+  },
+  "trello.flow_indicator": { en: "Has flow notes", es: "Tiene notas de flujo" },
+  "trello.done": { en: "Done", es: "Listo" },
 
   // Token usage view — aggregates ~/.claude/projects/*.jsonl assistant
   // message usage fields into per-day buckets. Window-aware totals + a
