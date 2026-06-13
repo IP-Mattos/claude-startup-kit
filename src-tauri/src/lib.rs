@@ -3352,6 +3352,79 @@ fn audit_cache_key(source: &str, skill_id: &str, sha: &str) -> String {
     format!("{}__{}__{}", safe(source), safe(skill_id), safe(&sha[..sha.len().min(12)]))
 }
 
+/// Extract the YAML frontmatter `name:` from a SKILL.md body. Skills.sh
+/// publishes skills under this name, which can differ from the folder.
+fn skill_frontmatter_name(text: &str) -> Option<String> {
+    let mut in_fm = false;
+    for raw in text.lines().take(60) {
+        let line = raw.trim_end();
+        if line.trim() == "---" {
+            if in_fm {
+                break; // end of frontmatter
+            }
+            in_fm = true;
+            continue;
+        }
+        if in_fm {
+            if let Some(rest) = line.strip_prefix("name:") {
+                let v = rest.trim().trim_matches('"').trim_matches('\'').to_string();
+                if !v.is_empty() {
+                    return Some(v);
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Fallback folder resolution: when no folder name matches `skill_id`, fetch
+/// each candidate SKILL.md (pinned to `sha`) and match its frontmatter
+/// `name:` against `skill_id`. Bounded and concurrent. Returns the folder
+/// path (no trailing slash) of the first exact name match.
+async fn resolve_folder_by_frontmatter(
+    source: &str,
+    sha: &str,
+    tree: &GhTree,
+    skill_id: &str,
+) -> Option<String> {
+    let dirs: Vec<String> = tree
+        .tree
+        .iter()
+        .filter(|e| e.kind == "blob" && e.path.ends_with("/SKILL.md"))
+        .map(|e| e.path[..e.path.len() - "/SKILL.md".len()].to_string())
+        .filter(|d| is_safe_rel_path(d))
+        .take(40)
+        .collect();
+    if dirs.is_empty() {
+        return None;
+    }
+    let client = reqwest::Client::builder()
+        .user_agent("claude-startup-kit/skill-resolve")
+        .timeout(Duration::from_secs(12))
+        .build()
+        .ok()?;
+    let mut handles = Vec::with_capacity(dirs.len());
+    for dir in dirs {
+        let client = client.clone();
+        let url = format!("https://raw.githubusercontent.com/{source}/{sha}/{dir}/SKILL.md");
+        handles.push(tokio::spawn(async move {
+            let body = match client.get(&url).send().await {
+                Ok(r) if r.status().is_success() => r.text().await.ok()?,
+                _ => return None,
+            };
+            skill_frontmatter_name(&body).map(|name| (dir, name))
+        }));
+    }
+    for h in handles {
+        if let Ok(Some((dir, name))) = h.await {
+            if name == skill_id {
+                return Some(dir);
+            }
+        }
+    }
+    None
+}
+
 /// Audit a skill: fetch its SHA-pinned snapshot, static-scan it, then (if
 /// clean) run the LLM review. Persists the verdict next to the cached
 /// snapshot and returns it.
@@ -3394,8 +3467,17 @@ async fn skill_audit(
 
     let tree: GhTree =
         serde_json::from_slice(&tree_bytes).map_err(|e| format!("parse tree: {e}"))?;
-    let folder = pick_skill_folder(&tree, &skill_id)
-        .ok_or_else(|| format!("could not locate skill '{skill_id}' in {source}"))?;
+    // Resolve the skill's folder. First by folder name (free, no network).
+    // If that misses, fall back to matching the SKILL.md frontmatter `name:`
+    // — skills.sh indexes by the published frontmatter name, which often
+    // differs from the on-disk folder (e.g. folder `taste-skill` publishes
+    // as `design-taste-frontend`).
+    let folder = match pick_skill_folder(&tree, &skill_id) {
+        Some(f) => f,
+        None => resolve_folder_by_frontmatter(&source, &sha, &tree, &skill_id)
+            .await
+            .ok_or_else(|| format!("could not locate skill '{skill_id}' in {source}"))?,
+    };
 
     // 2. Collect the blob paths under the skill folder (bounded).
     let prefix = if folder.is_empty() {
