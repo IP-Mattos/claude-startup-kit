@@ -10,7 +10,6 @@ export function CompanionWidget({
   companionImage,
   critCount,
   warnCount,
-  prCount,
   todayProject,
   todayProjectPath,
   lastScanAgo,
@@ -21,7 +20,6 @@ export function CompanionWidget({
   companionImage: string | null;
   critCount: number;
   warnCount: number;
-  prCount: number;
   todayProject: string | null;
   todayProjectPath: string | null;
   lastScanAgo: string;
@@ -36,8 +34,6 @@ export function CompanionWidget({
       ? t("companion.has_crits", { n: critCount })
       : warnCount > 0
       ? t("companion.has_warns", { n: warnCount })
-      : prCount > 0
-      ? t("companion.has_prs", { n: prCount })
       : todayProject
       ? t("companion.today", { project: todayProject })
       : t("companion.idle");
@@ -60,11 +56,6 @@ export function CompanionWidget({
       ? {
           label: t("companion.action_review_audit"),
           onClick: () => onJump("audit"),
-        }
-      : prCount > 0
-      ? {
-          label: t("companion.action_open_prs"),
-          onClick: () => onJump("prs"),
         }
       : todayProject && todayProjectPath
       ? {

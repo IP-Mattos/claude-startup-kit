@@ -854,91 +854,6 @@ fn cleanup_apply_blocking(paths: Vec<String>) -> CleanupResult {
     }
 }
 
-#[derive(Serialize, Clone)]
-pub struct GhPullRequest {
-    pub title: String,
-    pub url: String,
-    pub repository: String,
-    pub author: String,
-    pub created_at: String,
-}
-
-fn github_review_queue_blocking(limit: u32) -> Result<Vec<GhPullRequest>, String> {
-    let limit_str = limit.to_string();
-    let output = silent_command("gh")
-        .args([
-            "search",
-            "prs",
-            "--review-requested=@me",
-            "--state=open",
-            "--limit",
-            &limit_str,
-            "--json",
-            "title,url,repository,author,createdAt",
-        ])
-        .output()
-        .map_err(|e| format!("gh not available: {e}"))?;
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        if stderr.contains("authentication required") || stderr.contains("not logged into") {
-            return Err("gh not authenticated — run 'gh auth login'".to_string());
-        }
-        return Err(format!("gh failed: {}", stderr.trim()));
-    }
-    let text = String::from_utf8_lossy(&output.stdout);
-    let trimmed = text.trim();
-    if trimmed.is_empty() {
-        return Ok(Vec::new());
-    }
-    let raw: serde_json::Value =
-        serde_json::from_str(trimmed).map_err(|e| format!("gh JSON parse: {e}"))?;
-    let arr = raw.as_array().ok_or("gh output is not an array")?;
-    let prs = arr
-        .iter()
-        .map(|item| GhPullRequest {
-            title: item
-                .get("title")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
-            url: item
-                .get("url")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
-            repository: item
-                .get("repository")
-                .and_then(|r| r.get("nameWithOwner").or_else(|| r.get("name")))
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
-            author: item
-                .get("author")
-                .and_then(|a| a.get("login"))
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
-            created_at: item
-                .get("createdAt")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string(),
-        })
-        .collect();
-    Ok(prs)
-}
-
-#[tauri::command]
-async fn github_review_queue(limit: u32) -> Result<Vec<GhPullRequest>, String> {
-    // 15s timeout: gh is normally subsecond; if it's stalling on auth or
-    // network, surface that to the UI instead of hanging the panel forever.
-    let fut = tokio::task::spawn_blocking(move || github_review_queue_blocking(limit));
-    match tokio::time::timeout(Duration::from_secs(15), fut).await {
-        Ok(Ok(res)) => res,
-        Ok(Err(join_err)) => Err(format!("gh task join error: {join_err}")),
-        Err(_) => Err("gh timed out after 15s".to_string()),
-    }
-}
 
 #[tauri::command]
 fn open_url(url: String) -> Result<(), String> {
@@ -7082,7 +6997,6 @@ pub fn run() {
             run_audit,
             kill_process,
             restore_settings_backup,
-            github_review_queue,
             cleanup_plan,
             cleanup_apply,
             audit_resolve_delete,

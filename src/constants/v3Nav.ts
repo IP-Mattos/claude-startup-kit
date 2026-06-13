@@ -9,7 +9,6 @@ import {
   Boxes,
   Cog,
   FolderOpen,
-  GitPullRequest,
   Home,
   Search,
   Trash2,
@@ -38,7 +37,6 @@ export const SIDEBAR_SECTIONS: NavSection[] = [
     entries: [
       { id: "overview", navKey: "nav.overview", Icon: Home },
       { id: "projects", navKey: "nav.projects", Icon: FolderOpen },
-      { id: "prs", navKey: "nav.prs", Icon: GitPullRequest },
     ],
   },
   {
@@ -69,7 +67,6 @@ export const TOPBAR_NAV: NavEntry[] = [
 export const KEYBOARD_TAB_ORDER: ReadonlyArray<V3Tab> = [
   "overview",
   "projects",
-  "prs",
   "conversations",
   "audit",
   "cleanup",

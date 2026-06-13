@@ -4,12 +4,7 @@ import {
   enable as enableAutostart,
   isEnabled as isAutostartEnabled,
 } from "@tauri-apps/plugin-autostart";
-import type {
-  AuditFinding,
-  GhPullRequest,
-  Project,
-  ProjectEnrichment,
-} from "../types";
+import type { AuditFinding, Project, ProjectEnrichment } from "../types";
 import { agoLabel, pickGreeting, projectName, friendlyErrorEn } from "../lib/format";
 import { IS_TAURI } from "../lib/env";
 import type { V3Tab } from "./v3types";
@@ -27,7 +22,6 @@ import { enrichProjects } from "../lib/enrichProjects";
 import { useUpdates } from "../lib/useUpdates";
 import { useT } from "../lib/i18n";
 import { ProjectsView } from "../views/v3/ProjectsView";
-import { PrsView } from "../views/v3/PrsView";
 import { AuditView } from "../views/v3/AuditView";
 import { CleanupView } from "../views/v3/CleanupView";
 import { ConversationsView } from "../views/v3/ConversationsView";
@@ -39,7 +33,6 @@ import "./AppV3.css";
 export default function AppV3() {
   const [tab, setTab] = useState<V3Tab>("overview");
   const [projects, setProjects] = useState<Project[]>([]);
-  const [prs, setPrs] = useState<GhPullRequest[]>([]);
   const [findings, setFindings] = useState<AuditFinding[]>([]);
   const [goals, setGoals] = useState<Record<string, string | null>>({});
   // Full enrichment (goal + git_last_commit) shared with ProjectsView so
@@ -171,7 +164,7 @@ export default function AppV3() {
           return fallback;
         };
       try {
-        const [projectsP, knownP, findingsP, prsP] = [
+        const [projectsP, knownP, findingsP] = [
           invoke<Project[]>("scan_projects", { windowDays }).catch(
             trap<Project[]>("Projects", [])
           ),
@@ -181,19 +174,11 @@ export default function AppV3() {
           invoke<unknown>("run_audit")
             .then(parseAuditFindings)
             .catch(trap<AuditFinding[]>("Audit", [])),
-          // limit=50 because the standalone Pull-requests tab needs the
-          // longer list. Overview slices to its own visible cap from the
-          // same data — avoids a duplicate fetch when the user clicks the
-          // PRs tab.
-          invoke<GhPullRequest[]>("github_review_queue", { limit: 50 }).catch(
-            trap<GhPullRequest[]>("Pull requests", [])
-          ),
         ];
-        const [projectsRes, known, findingsRes, prsRes] = await Promise.all([
+        const [projectsRes, known, findingsRes] = await Promise.all([
           projectsP,
           knownP,
           findingsP,
-          prsP,
         ]);
         if (cancelled) return;
         const enrichment: Record<string, ProjectEnrichment> = await enrichProjects(
@@ -206,7 +191,6 @@ export default function AppV3() {
           goalMap[p.path] = enrichment[p.path]?.goal ?? null;
         }
         setProjects(projectsRes);
-        setPrs(prsRes);
         setFindings(findingsRes);
         setGoals(goalMap);
         setEnrichment(enrichment);
@@ -264,13 +248,6 @@ export default function AppV3() {
     invoke("open_in_vscode", { path }).catch((e) =>
       console.error(friendlyErrorEn(e))
     );
-  };
-  const handleOpenUrl = (url: string) => {
-    if (!IS_TAURI) {
-      window.open(url, "_blank");
-      return;
-    }
-    invoke("open_url", { url }).catch((e) => console.error(friendlyErrorEn(e)));
   };
   const handleRunAudit = () => setRefreshNonce((n) => n + 1);
 
@@ -429,12 +406,10 @@ export default function AppV3() {
             <OverviewView
               greeting={`${pickGreeting(t)}.`}
               projects={projects}
-              prs={prs}
               goals={goals}
               stats={stats}
               loading={loading}
               onOpenProject={handleOpenProject}
-              onOpenUrl={handleOpenUrl}
               onJump={setTab}
               onCycleTheme={handleCycleTheme}
             />
@@ -447,9 +422,6 @@ export default function AppV3() {
               windowDays={windowDays}
               setWindowDays={setWindowDays}
             />
-          )}
-          {tab === "prs" && (
-            <PrsView prs={prs} loading={loading} onRefresh={handleRunAudit} />
           )}
           {tab === "audit" && (
             <AuditView
@@ -477,7 +449,6 @@ export default function AppV3() {
             companionImage={companionImage}
             critCount={stats.crit}
             warnCount={stats.warn}
-            prCount={prs.length}
             todayProject={todayProject}
             todayProjectPath={todayProjectPath}
             lastScanAgo={agoLabel(lastScanAt, t)}

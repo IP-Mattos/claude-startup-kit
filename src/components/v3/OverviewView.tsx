@@ -17,7 +17,7 @@ import {
   onKeyboardActivate,
   projectName,
 } from "../../lib/format";
-import type { GhPullRequest, Project } from "../../types";
+import type { Project } from "../../types";
 import type { V3Tab } from "../../v3/v3types";
 import { useT, type StringKey } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
@@ -335,12 +335,10 @@ export function OverviewView({
 }: {
   greeting: string;
   projects: Project[];
-  prs: GhPullRequest[];
   goals: Record<string, string | null>;
   stats: { crit: number; warn: number; info: number; total: number; health: number };
   loading: boolean;
   onOpenProject: (path: string) => void;
-  onOpenUrl: (url: string) => void;
   onJump: (tab: V3Tab) => void;
   onCycleTheme: () => void;
 }) {
