@@ -3649,8 +3649,14 @@ async fn skill_install_audited(
             .map_err(|e| format!("read audit.json: {e}"))?;
         let av: skills_audit::AuditVerdict =
             serde_json::from_str(&raw).map_err(|e| format!("parse audit.json: {e}"))?;
-        if av.verdict == "rejected" {
-            return Err("audit verdict is REJECTED — install blocked".to_string());
+        // Allowlist, not blocklist: only the two explicitly-safe verdicts may
+        // install. Anything else (rejected, or a non-canonical value from a
+        // tampered audit.json) is refused.
+        if !matches!(av.verdict.as_str(), "approved" | "warnings") {
+            return Err(format!(
+                "install blocked — audit verdict is '{}', expected 'approved' or 'warnings'",
+                av.verdict
+            ));
         }
         // Sanity: the cached audit must be for THIS source/skill.
         if av.source != source || av.skill_id != skill_id {
