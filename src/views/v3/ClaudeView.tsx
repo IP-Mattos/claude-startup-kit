@@ -12,6 +12,7 @@ import { friendlyErrorEn } from "../../lib/format";
 import { plural, useT } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
 import { ConfirmModal } from "../../components/v3/ConfirmModal";
+import { SkillDiscovery } from "../../components/v3/SkillDiscovery";
 
 interface ClaudeSkill {
   name: string;
@@ -296,6 +297,9 @@ export function ClaudeView() {
           </div>
         )}
       </article>
+
+      {/* Suggested skills from skills.sh, ranked by the user's stack. */}
+      <SkillDiscovery />
 
       {/* Components grid — 8 cards, one per known gentle-ai component. */}
       <article className="v3-card">

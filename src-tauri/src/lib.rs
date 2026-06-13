@@ -14,6 +14,8 @@ use tauri::{
     Manager,
 };
 
+mod skills_discovery;
+
 /// Format a `Command::spawn` / `Command::output` IO error into a renderer-
 /// friendly message.
 ///
@@ -3116,6 +3118,68 @@ async fn count_claude_skill_usage(
     tokio::task::spawn_blocking(move || count_skill_usage_cached(&names))
         .await
         .map_err(|e| format!("task join: {e}"))
+}
+
+/// Folder names of installed skills under ~/.claude/skills (skips _shared).
+/// Used both to derive domain keywords and to exclude already-installed
+/// skills from discovery suggestions.
+fn installed_skill_folder_names() -> Vec<String> {
+    let Some(dir) = claude_skills_dir() else {
+        return vec![];
+    };
+    let Ok(entries) = fs::read_dir(&dir) else {
+        return vec![];
+    };
+    entries
+        .flatten()
+        .filter(|e| e.path().is_dir())
+        .filter_map(|e| e.file_name().to_str().map(|s| s.to_string()))
+        .filter(|name| !name.starts_with('_'))
+        .collect()
+}
+
+/// Derive the auto keywords for skill discovery from the user's actual
+/// stack: project manifests across active projects (last 30 days) plus the
+/// domains implied by already-installed skill names. The frontend unions
+/// these with the user's added keywords and subtracts excluded ones.
+#[tauri::command]
+async fn skills_stack_keywords() -> Result<Vec<String>, String> {
+    tokio::task::spawn_blocking(|| -> Result<Vec<String>, String> {
+        let dirs: Vec<String> = scan_projects_blocking(30)
+            .into_iter()
+            .map(|p| p.path)
+            .collect();
+        let installed = installed_skill_folder_names();
+        Ok(skills_discovery::derive_keywords(&dirs, &installed))
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+/// Discover skill candidates from skills.sh for the given effective keyword
+/// set. `hidden_ids` are candidates the user dismissed. Already-installed
+/// skills are excluded automatically. Returns metadata only — no fetch,
+/// audit, or install happens here (those are later slices).
+#[tauri::command]
+async fn skills_discover(
+    keywords: Vec<String>,
+    hidden_ids: Vec<String>,
+) -> Result<Vec<skills_discovery::SkillCandidate>, String> {
+    // We only know local installs by their folder name, while skills.sh ids
+    // are "owner/repo/skill". discover() excludes by full id (we have none to
+    // pass), so we exclude installed skills here by matching the candidate's
+    // short skill_id segment against installed folder names.
+    let installed_set: std::collections::BTreeSet<String> =
+        installed_skill_folder_names().into_iter().collect();
+    let hidden_set: std::collections::BTreeSet<String> = hidden_ids.into_iter().collect();
+
+    let candidates =
+        skills_discovery::discover(&keywords, &std::collections::BTreeSet::new(), &hidden_set)
+            .await?;
+    Ok(candidates
+        .into_iter()
+        .filter(|c| !installed_set.contains(&c.skill_id))
+        .collect())
 }
 
 #[tauri::command]
@@ -6800,6 +6864,8 @@ pub fn run() {
             clone_project,
             list_claude_skills,
             count_claude_skill_usage,
+            skills_stack_keywords,
+            skills_discover,
             list_mcp_servers,
             toggle_mcp_server,
             fix_claude_vscode_extension,

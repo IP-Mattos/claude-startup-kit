@@ -714,6 +714,34 @@ const STRINGS = {
     en: "gentle-ai CLI not found on PATH",
     es: "gentle-ai CLI no encontrado en PATH",
   },
+  // Skill discovery (suggested skills from skills.sh)
+  "discovery.title": { en: "Suggested skills", es: "Skills sugeridas" },
+  "discovery.lead": {
+    en: "New skills from skills.sh, ranked by your stack. They are audited before you can install them.",
+    es: "Skills nuevas de skills.sh, rankeadas por tu stack. Se auditan antes de que puedas instalarlas.",
+  },
+  "discovery.refresh": { en: "Refresh suggestions", es: "Actualizar sugerencias" },
+  "discovery.add_keyword": { en: "Add a topic…", es: "Agregar un tema…" },
+  "discovery.remove_keyword": {
+    en: "Remove topic {kw}",
+    es: "Quitar tema {kw}",
+  },
+  "discovery.searching": { en: "Searching skills.sh…", es: "Buscando en skills.sh…" },
+  "discovery.no_keywords": {
+    en: "No topics yet. Add one above to get suggestions.",
+    es: "Todavía no hay temas. Agregá uno arriba para recibir sugerencias.",
+  },
+  "discovery.no_results": {
+    en: "No new skills matched your topics.",
+    es: "Ninguna skill nueva coincidió con tus temas.",
+  },
+  "discovery.installs": { en: "{n} installs", es: "{n} instalaciones" },
+  "discovery.view": { en: "View", es: "Ver" },
+  "discovery.view_hint": {
+    en: "Open this skill on skills.sh",
+    es: "Abrir esta skill en skills.sh",
+  },
+  "discovery.hide": { en: "Hide this suggestion", es: "Ocultar esta sugerencia" },
   "claude.stat_skills": { en: "Skills", es: "Skills" },
   "claude.stat_mcps": { en: "MCP servers", es: "Servidores MCP" },
   "claude.stat_hooks": { en: "Hooks", es: "Hooks" },

@@ -3897,6 +3897,154 @@ body.v3-layout #root {
   font-style: italic;
 }
 
+/* ========== Skill discovery (suggested skills) ========== */
+.v3-card-title-icon {
+  vertical-align: -2px;
+  margin-right: 6px;
+  color: var(--v3-accent);
+}
+.v3-discovery-lead {
+  margin: 0 0 12px;
+}
+.v3-discovery-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.v3-kw-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 999px;
+  background: var(--v3-accent-tint);
+  color: var(--v3-text);
+  border: 1px solid var(--v3-border);
+}
+.v3-kw-chip-match {
+  background: var(--v3-info-tint);
+  font-size: 11px;
+  padding: 1px 7px;
+}
+.v3-kw-chip-x {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: var(--v3-text);
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 0;
+}
+.v3-kw-chip-x:hover {
+  opacity: 1;
+}
+.v3-kw-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.v3-kw-add-input {
+  width: 110px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px dashed var(--v3-border-strong);
+  background: var(--v3-bg);
+  color: var(--v3-text);
+  font-family: var(--v3-font);
+}
+.v3-kw-add-input:focus {
+  outline: none;
+  border-color: var(--v3-accent);
+}
+.v3-kw-add-btn {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: var(--v3-accent-soft);
+  color: var(--v3-text);
+  border-radius: 999px;
+  width: 20px;
+  height: 20px;
+  justify-content: center;
+  cursor: pointer;
+}
+.v3-kw-add-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.v3-discovery-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.v3-discovery-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-sm);
+  background: var(--v3-surface);
+}
+.v3-discovery-row-main {
+  min-width: 0;
+  flex: 1;
+}
+.v3-discovery-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.v3-discovery-name {
+  font-weight: 600;
+  color: var(--v3-text);
+}
+.v3-discovery-source {
+  font-size: 11px;
+  opacity: 0.6;
+}
+.v3-discovery-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.v3-discovery-installs {
+  font-size: 12px;
+  opacity: 0.75;
+}
+.v3-discovery-matches {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.v3-discovery-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.v3-discovery-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+.v3-discovery-hide {
+  opacity: 0.55;
+}
+.v3-discovery-hide:hover {
+  opacity: 1;
+  color: var(--v3-crit);
+}
+
 /* ========== Reduced motion ========== */
 @media (prefers-reduced-motion: reduce) {
   .appv3 *,
