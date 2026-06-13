@@ -3302,6 +3302,9 @@ fn output_with_timeout(
             let _ = silent_command("taskkill")
                 .args(["/PID", &pid.to_string(), "/T", "/F"])
                 .output();
+            // Drain the watcher thread (the killed child makes wait() return)
+            // so it doesn't outlive this call as a lingering thread.
+            let _ = rx.recv_timeout(Duration::from_secs(3));
             Err(format!("timed out after {secs}s"))
         }
     }
@@ -3449,10 +3452,17 @@ async fn skill_audit(
                         return None;
                     }
                     let bytes = r.bytes().await.ok()?;
-                    let capped = &bytes[..bytes.len().min(MAX_FILE_BYTES as usize)];
+                    // Decode first, then cap on a char boundary so a cut
+                    // doesn't mangle a multibyte codepoint at the edge.
+                    let text = String::from_utf8_lossy(&bytes);
+                    let max = (MAX_FILE_BYTES as usize).min(text.len());
+                    let mut end = max;
+                    while end > 0 && !text.is_char_boundary(end) {
+                        end -= 1;
+                    }
                     Some(skills_audit::SkillFile {
                         path: rel,
-                        content: String::from_utf8_lossy(capped).into_owned(),
+                        content: text[..end].to_string(),
                     })
                 }
                 _ => None,
@@ -3477,12 +3487,20 @@ async fn skill_audit(
     //    leaves llm = None and the verdict falls back to the static result.
     let llm = if static_report.passed {
         // Per-call nonce delimiter so a skill can't embed the closing marker
-        // to escape the untrusted block and inject instructions.
+        // to escape the untrusted block and inject instructions. Entropy
+        // mixes the clock, the process id, AND a monotonic counter, so even
+        // if the clock is broken (nanos=0) the nonce never degrades to a
+        // SHA-only value the skill author could precompute.
+        static NONCE_COUNTER: std::sync::atomic::AtomicU64 =
+            std::sync::atomic::AtomicU64::new(0);
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_nanos())
             .unwrap_or(0);
-        let nonce = skills_audit::delimiter_nonce(&sha, nanos);
+        let entropy = nanos
+            ^ (std::process::id() as u128)
+            ^ ((NONCE_COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed) as u128) << 64);
+        let nonce = skills_audit::delimiter_nonce(&sha, entropy);
         let prompt = skills_audit::wrap_untrusted(&files, LLM_PROMPT_BUDGET, &nonce);
         let system = skills_audit::llm_system_prompt(&nonce);
         tokio::task::spawn_blocking(move || run_claude_skill_audit(&prompt, &system))
@@ -3592,10 +3610,13 @@ fn run_claude_skill_audit(
 
     let out = match rx.recv_timeout(Duration::from_secs(90)) {
         Ok(Ok(o)) => o,
-        _ => {
+        Ok(Err(_)) => return None,
+        Err(_) => {
             let _ = silent_command("taskkill")
                 .args(["/PID", &pid.to_string(), "/T", "/F"])
                 .output();
+            // Drain the watcher so it doesn't outlive this call.
+            let _ = rx.recv_timeout(Duration::from_secs(3));
             return None;
         }
     };

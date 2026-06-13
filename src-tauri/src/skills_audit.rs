@@ -92,8 +92,8 @@ const BLOCKING_RULES: &[BlockingRule] = &[
     BlockingRule { rule: "shell-exec", detail: "Spawns an arbitrary process (PowerShell).", all_of: &["start-process"] },
     BlockingRule { rule: "shell-exec", detail: "Python shell-out.", all_of: &["os.system("] },
     BlockingRule { rule: "shell-exec", detail: "Python subprocess execution.", all_of: &["subprocess.", "shell=true"] },
-    BlockingRule { rule: "shell-exec", detail: "Node child_process execution.", all_of: &["child_process"] },
-    BlockingRule { rule: "shell-exec", detail: "Python eval/exec of dynamic code.", all_of: &["exec(", "import "] },
+    BlockingRule { rule: "shell-exec", detail: "Node child_process exec/spawn.", all_of: &["child_process", "exec"] },
+    BlockingRule { rule: "shell-exec", detail: "Python dynamic code execution.", all_of: &["exec(", "compile("] },
     // ── Encoded / obfuscated execution ───────────────────────────────────
     BlockingRule {
         rule: "obfuscated-exec",
