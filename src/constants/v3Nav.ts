@@ -6,7 +6,6 @@
 
 import {
   Activity,
-  BarChart3,
   Boxes,
   Cloud,
   Cog,
@@ -47,7 +46,6 @@ export const SIDEBAR_SECTIONS: NavSection[] = [
     labelKey: "nav.section_insights",
     entries: [
       { id: "conversations", navKey: "nav.conversations", Icon: Search },
-      { id: "tokens", navKey: "nav.tokens", Icon: BarChart3 },
     ],
   },
   {
@@ -75,7 +73,6 @@ export const KEYBOARD_TAB_ORDER: ReadonlyArray<V3Tab> = [
   "projects",
   "prs",
   "conversations",
-  "tokens",
   "audit",
   "cleanup",
 ];

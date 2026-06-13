@@ -4201,6 +4201,110 @@ body.v3-layout #root {
   word-break: break-all;
 }
 
+/* ========== Overview signal feed ========== */
+.v3-signal-feed {
+  margin-bottom: 16px;
+}
+.v3-signal-clear {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  color: var(--v3-success);
+  font-size: 14px;
+}
+.v3-signal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.v3-signal-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--v3-border);
+  border-left-width: 3px;
+  border-radius: var(--v3-radius-sm);
+  background: var(--v3-surface);
+  color: var(--v3-text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.v3-signal-row:hover {
+  background: var(--v3-hover);
+}
+.v3-signal-text {
+  flex: 1;
+}
+.v3-signal-crit {
+  border-left-color: var(--v3-crit);
+  background: var(--v3-crit-tint);
+}
+.v3-signal-crit svg {
+  color: var(--v3-crit);
+}
+.v3-signal-warn {
+  border-left-color: var(--v3-warn);
+  background: var(--v3-warn-tint);
+}
+.v3-signal-warn svg {
+  color: var(--v3-warn);
+}
+.v3-signal-row .v3-chev {
+  opacity: 0.5;
+}
+
+/* ========== Overview inline tokens panel ========== */
+.v3-tokens-range-filter {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--v3-bg);
+  border: 1px solid var(--v3-border);
+  border-radius: 999px;
+}
+.v3-tokens-range-btn {
+  padding: 3px 12px;
+  font-size: 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--v3-text);
+  cursor: pointer;
+  opacity: 0.65;
+}
+.v3-tokens-range-btn:hover {
+  opacity: 1;
+}
+.v3-tokens-range-btn.active {
+  background: var(--v3-accent);
+  color: var(--v3-bg);
+  opacity: 1;
+}
+.v3-tokens-panel-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.v3-tokens-panel-kpi {
+  display: flex;
+  flex-direction: column;
+}
+.v3-tokens-panel-num {
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.v3-tokens-panel-sub {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
 /* ========== Settings sub-nav (grouped sections) ========== */
 .v3-settings-subnav {
   display: flex;

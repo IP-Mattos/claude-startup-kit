@@ -458,6 +458,28 @@ const STRINGS = {
   "overview.recent_prs": { en: "Recent Pull Requests", es: "Pull Requests recientes" },
   "overview.audit_summary": { en: "Audit Summary", es: "Resumen de auditoría" },
   "overview.view_all": { en: "View all", es: "Ver todos" },
+  // Signal feed — actionable items only (no INFO).
+  "overview.signal_title": { en: "Needs attention", es: "Requiere atención" },
+  "overview.signal_checking": { en: "Checking…", es: "Revisando…" },
+  "overview.signal_all_clear": {
+    en: "All clear — nothing needs your attention.",
+    es: "Todo en orden — nada requiere tu atención.",
+  },
+  "overview.signal_crit": {
+    en: "{n} critical audit finding(s) — review now",
+    es: "{n} hallazgo(s) crítico(s) de auditoría — revisar ahora",
+  },
+  "overview.signal_warn": {
+    en: "{n} audit warning(s) to review",
+    es: "{n} advertencia(s) de auditoría para revisar",
+  },
+  // Inline tokens panel.
+  "overview.tokens_title": { en: "Token usage", es: "Uso de tokens" },
+  "overview.tokens_day": { en: "Day", es: "Día" },
+  "overview.tokens_week": { en: "Week", es: "Semana" },
+  "overview.tokens_month": { en: "Month", es: "Mes" },
+  "overview.tokens_empty": { en: "No token usage in this range.", es: "Sin uso de tokens en este rango." },
+  "overview.tokens_sub": { en: "across {n} session(s)", es: "en {n} sesión(es)" },
   // Gentle-AI mini-card on Overview — shows installed / total components +
   // a deep link into the verifier tab.
   "overview.gentle_ai_card_title": { en: "Gentle-AI", es: "Gentle-AI" },

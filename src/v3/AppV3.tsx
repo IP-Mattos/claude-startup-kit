@@ -31,7 +31,6 @@ import { PrsView } from "../views/v3/PrsView";
 import { AuditView } from "../views/v3/AuditView";
 import { CleanupView } from "../views/v3/CleanupView";
 import { ConversationsView } from "../views/v3/ConversationsView";
-import { TokenUsageView } from "../views/v3/TokenUsageView";
 import { ClaudeView } from "../views/v3/ClaudeView";
 import { SettingsView } from "../views/v3/SettingsView";
 import { SyncView } from "../views/v3/SyncView";
@@ -463,7 +462,6 @@ export default function AppV3() {
           )}
           {tab === "cleanup" && <CleanupView />}
           {tab === "conversations" && <ConversationsView />}
-          {tab === "tokens" && <TokenUsageView />}
           {tab === "sync" && <SyncView />}
           {tab === "claude" && <ClaudeView />}
           {tab === "settings" && (

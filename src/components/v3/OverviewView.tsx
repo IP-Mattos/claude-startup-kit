@@ -1,52 +1,37 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
-  Activity,
   AlertTriangle,
-  ArrowUp,
   Boxes,
+  CheckCircle2,
   ChevronRight,
   Code2,
   Cog,
-  FolderOpen,
-  GitPullRequest,
-  Home,
   Palette,
-  ShieldCheck,
+  ShieldAlert,
   Sparkles,
   X,
 } from "lucide-react";
 import {
   activityLabelT,
   onKeyboardActivate,
-  prNumberFromUrl,
   projectName,
 } from "../../lib/format";
-import type {
-  AuditFinding as _AuditFinding,
-  GhPullRequest,
-  Project,
-} from "../../types";
+import type { GhPullRequest, Project } from "../../types";
 import type { V3Tab } from "../../v3/v3types";
-import { plural, useT, type StringKey } from "../../lib/i18n";
+import { useT, type StringKey } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
 import { Sparkline } from "./Sparkline";
 
-// Mini Gentle-AI inventory shown on the Overview. Mirrors the shape of
-// `GentleAiStatus` in `ClaudeView.tsx` — we keep the type local so this file
-// doesn't depend on the verifier view import-wise.
+type T = (k: StringKey, vars?: Record<string, string | number>) => string;
+
+// Mini Gentle-AI inventory shown on the Overview.
 interface GentleAiMiniStatus {
   cli_version: string | null;
   components: { name: string; installed: boolean }[];
 }
 
-function GentleAiOverviewCard({
-  onJump,
-  t,
-}: {
-  onJump: (tab: V3Tab) => void;
-  t: (k: StringKey, vars?: Record<string, string | number>) => string;
-}) {
+function GentleAiOverviewCard({ onJump, t }: { onJump: (tab: V3Tab) => void; t: T }) {
   const [status, setStatus] = useState<GentleAiMiniStatus | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -64,8 +49,6 @@ function GentleAiOverviewCard({
         }
       })
       .catch(() => {
-        // gentle-ai might not be installed yet — render the empty state
-        // instead of bubbling the error to the whole overview.
         if (!cancelled) setLoaded(true);
       });
     return () => {
@@ -81,11 +64,7 @@ function GentleAiOverviewCard({
     <article className="v3-card v3-gai-overview-card">
       <header className="v3-card-head">
         <h2 className="v3-card-title">
-          <Boxes
-            size={14}
-            strokeWidth={2}
-            style={{ verticalAlign: "-2px", marginRight: 6 }}
-          />
+          <Boxes size={14} strokeWidth={2} style={{ verticalAlign: "-2px", marginRight: 6 }} />
           {t("overview.gentle_ai_card_title")}
           {status?.cli_version && (
             <span className="v3-row-dim" style={{ marginLeft: 8 }}>
@@ -110,61 +89,13 @@ function GentleAiOverviewCard({
             aria-valuemax={total}
             aria-valuenow={ok}
           >
-            <div
-              className="v3-gai-overview-bar-fill"
-              style={{ width: `${pct}%` }}
-            />
+            <div className="v3-gai-overview-bar-fill" style={{ width: `${pct}%` }} />
           </div>
           <div className="v3-gai-overview-count">
             {t("overview.gentle_ai_components_count", { ok, total })}
           </div>
         </div>
       )}
-    </article>
-  );
-}
-
-// =============================================================
-// Sub-components (only used by OverviewView, kept co-located).
-// =============================================================
-
-type StatTint = "orange" | "purple" | "amber" | "green";
-type DeltaSeverity = "good" | "warn" | "crit";
-
-function StatCard({
-  Icon,
-  label,
-  value,
-  delta,
-  tint,
-  severity = "good",
-  trend,
-}: {
-  Icon: typeof Home;
-  label: string;
-  value: string;
-  delta: string;
-  tint: StatTint;
-  severity?: DeltaSeverity;
-  /** Optional sparkline data (oldest → newest). Rendered only by themes
-   *  that opt into showing it via CSS (data-dense). On other themes
-   *  the SVG element is invisible via display:none. */
-  trend?: number[];
-}) {
-  return (
-    <article className="v3-stat-card">
-      <div className={`v3-stat-icon v3-stat-icon-${tint}`} aria-hidden="true">
-        <Icon size={18} strokeWidth={2} />
-      </div>
-      <div className="v3-stat-body">
-        <div className="v3-stat-value">{value}</div>
-        <div className="v3-stat-label">{label}</div>
-        <div className={`v3-stat-delta v3-stat-delta-${severity}`}>
-          <ArrowUp size={11} strokeWidth={2.2} />
-          {delta}
-        </div>
-        {trend && trend.length > 0 && <Sparkline data={trend} />}
-      </div>
     </article>
   );
 }
@@ -209,45 +140,6 @@ function RecentProjectCard({
   );
 }
 
-function PrRow({
-  title,
-  repo,
-  num,
-  onOpen,
-  ariaLabel,
-  openLabel,
-}: {
-  title: string;
-  repo: string;
-  num: number | null;
-  onOpen: () => void;
-  ariaLabel: string;
-  openLabel: string;
-}) {
-  return (
-    <div
-      className="v3-pr-row"
-      onClick={onOpen}
-      onKeyDown={onKeyboardActivate(onOpen)}
-      role="button"
-      tabIndex={0}
-      aria-label={ariaLabel}
-    >
-      <span className="v3-pr-icon" aria-hidden="true">
-        <GitPullRequest size={14} strokeWidth={2} />
-      </span>
-      <div className="v3-pr-body">
-        <div className="v3-pr-title">{title}</div>
-        <div className="v3-pr-meta">
-          {num !== null ? `#${num} · ` : ""}
-          {repo}
-        </div>
-      </div>
-      <span className="v3-pr-pill v3-pr-pill-open">{openLabel}</span>
-    </div>
-  );
-}
-
 // 0-100 freshness based on days since last activity. 0d → 100, 30d+ → 50.
 function freshnessScore(daysAgo: number): number {
   if (daysAgo <= 0) return 100;
@@ -256,125 +148,188 @@ function freshnessScore(daysAgo: number): number {
 }
 
 // =============================================================
-// Audit summary — single tree layout. The earlier 4-mode picker
-// (tree/log/k9s/shell) was clutter on a card the user glances at;
-// we kept the cleanest variant and made it nicer. Each row uses a
-// CSS grid `key · leader · num` so the dotted line scales with the
-// card width instead of being a fixed string of dots.
+// Signal feed — the Overview leads with what needs a DECISION, not
+// counts. Only actionable items raise a row: critical/warning audit
+// findings (INFO is never shown), and an "all clear" when there's
+// nothing. Updates/cleanup reminders plug in here as later phases add
+// their data sources.
 // =============================================================
 
-interface AuditStats {
+interface SignalFeedProps {
   crit: number;
   warn: number;
-  info: number;
-  total: number;
-}
-
-interface AuditSummaryCardProps {
-  stats: AuditStats;
+  loading: boolean;
   onJump: (tab: V3Tab) => void;
-  t: (k: StringKey, vars?: Record<string, string | number>) => string;
+  t: T;
 }
 
-function AuditSummaryCard({ stats, onJump, t }: AuditSummaryCardProps) {
-  const statusKey: "crit" | "warn" | "ok" =
-    stats.crit > 0 ? "crit" : stats.warn > 0 ? "warn" : "ok";
-  const statusLabel = t(
-    statusKey === "crit"
-      ? "overview.audit_status_attention"
-      : statusKey === "warn"
-      ? "overview.audit_status_warnings"
-      : "overview.audit_status_clear"
-  );
+function SignalFeed({ crit, warn, loading, onJump, t }: SignalFeedProps) {
+  if (loading) {
+    return (
+      <section className="v3-card v3-signal-feed">
+        <div className="v3-empty">{t("overview.signal_checking")}</div>
+      </section>
+    );
+  }
+  const hasSignal = crit > 0 || warn > 0;
   return (
-    <article className="v3-card v3-audit-summary-card">
+    <section className="v3-card v3-signal-feed">
       <header className="v3-card-head">
-        <h2 className="v3-card-title">{t("overview.audit_summary")}</h2>
-        <button className="v3-link" onClick={() => onJump("audit")}>
-          {t("overview.view_all")}
-        </button>
+        <h2 className="v3-card-title">{t("overview.signal_title")}</h2>
       </header>
-      {stats.total === 0 ? (
-        <div className="v3-empty">{t("overview.audit_clean")}</div>
+      {!hasSignal ? (
+        <div className="v3-signal-clear">
+          <CheckCircle2 size={16} strokeWidth={2.2} />
+          <span>{t("overview.signal_all_clear")}</span>
+        </div>
       ) : (
-        <>
-          <div className="v3-audit-tree">
-            <div className="v3-audit-tree-row v3-audit-tree-total">
-              <span className="v3-audit-tree-key">total</span>
-              <span className="v3-audit-tree-leader" aria-hidden="true" />
-              <span className="v3-audit-tree-num">{stats.total}</span>
-            </div>
-            <div
-              className={
-                "v3-audit-tree-row" +
-                (stats.crit > 0 ? " v3-audit-tree-row-crit" : "")
-              }
+        <div className="v3-signal-list">
+          {crit > 0 && (
+            <button
+              type="button"
+              className="v3-signal-row v3-signal-crit"
+              onClick={() => onJump("audit")}
             >
-              <span className="v3-audit-tree-branch" aria-hidden="true">├─</span>
-              <span className="v3-audit-tree-key">crit</span>
-              <span className="v3-audit-tree-leader" aria-hidden="true" />
-              <span className="v3-audit-tree-num">{stats.crit}</span>
-            </div>
-            <div
-              className={
-                "v3-audit-tree-row" +
-                (stats.warn > 0 ? " v3-audit-tree-row-warn" : "")
-              }
+              <AlertTriangle size={15} strokeWidth={2.2} />
+              <span className="v3-signal-text">
+                {t("overview.signal_crit", { n: crit })}
+              </span>
+              <ChevronRight size={15} strokeWidth={2} className="v3-chev" />
+            </button>
+          )}
+          {warn > 0 && (
+            <button
+              type="button"
+              className="v3-signal-row v3-signal-warn"
+              onClick={() => onJump("audit")}
             >
-              <span className="v3-audit-tree-branch" aria-hidden="true">├─</span>
-              <span className="v3-audit-tree-key">warn</span>
-              <span className="v3-audit-tree-leader" aria-hidden="true" />
-              <span className="v3-audit-tree-num">{stats.warn}</span>
-            </div>
-            <div className="v3-audit-tree-row">
-              <span className="v3-audit-tree-branch" aria-hidden="true">└─</span>
-              <span className="v3-audit-tree-key">info</span>
-              <span className="v3-audit-tree-leader" aria-hidden="true" />
-              <span className="v3-audit-tree-num">{stats.info}</span>
-            </div>
-          </div>
-          <div className="v3-audit-tree-status">
-            <span className="v3-audit-tree-status-key">status</span>
-            <span
-              className={"v3-audit-tree-status-badge v3-audit-status-" + statusKey}
+              <ShieldAlert size={15} strokeWidth={2.2} />
+              <span className="v3-signal-text">
+                {t("overview.signal_warn", { n: warn })}
+              </span>
+              <ChevronRight size={15} strokeWidth={2} className="v3-chev" />
+            </button>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// =============================================================
+// Tokens panel — inline on the Overview (no longer its own tab). A
+// simple day/week/month filter over the existing token_usage IPC.
+// =============================================================
+
+interface DayUsage {
+  date: string;
+  total: number;
+  sessions: number;
+}
+interface TokenStats {
+  by_day: DayUsage[];
+  range_start: string;
+  range_end: string;
+  total_all: number;
+  sessions: number;
+}
+
+const TOKEN_RANGES: { key: StringKey; days: number }[] = [
+  { key: "overview.tokens_day", days: 1 },
+  { key: "overview.tokens_week", days: 7 },
+  { key: "overview.tokens_month", days: 30 },
+];
+
+function formatTokens(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return "0";
+  const s = Math.trunc(n).toString();
+  const out: string[] = [];
+  let i = s.length;
+  while (i > 0) {
+    const start = Math.max(0, i - 3);
+    out.unshift(s.slice(start, i));
+    i = start;
+  }
+  return out.join(" ");
+}
+
+function TokensPanel({ t }: { t: T }) {
+  const [days, setDays] = useState(7);
+  const [stats, setStats] = useState<TokenStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!IS_TAURI) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    invoke<TokenStats>("token_usage", { windowDays: days })
+      .then((res) => {
+        if (!cancelled) setStats(res);
+      })
+      .catch(() => {
+        if (!cancelled) setStats(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [days]);
+
+  const spark = useMemo(() => (stats ? stats.by_day.map((d) => d.total) : []), [stats]);
+
+  return (
+    <article className="v3-card v3-tokens-panel">
+      <header className="v3-card-head">
+        <h2 className="v3-card-title">{t("overview.tokens_title")}</h2>
+        <div className="v3-tokens-range-filter">
+          {TOKEN_RANGES.map((r) => (
+            <button
+              key={r.days}
+              type="button"
+              className={"v3-tokens-range-btn" + (days === r.days ? " active" : "")}
+              onClick={() => setDays(r.days)}
             >
-              {statusLabel}
+              {t(r.key)}
+            </button>
+          ))}
+        </div>
+      </header>
+      {loading ? (
+        <div className="v3-empty">{t("common.loading")}</div>
+      ) : !stats || stats.total_all === 0 ? (
+        <div className="v3-empty">{t("overview.tokens_empty")}</div>
+      ) : (
+        <div className="v3-tokens-panel-body">
+          <div className="v3-tokens-panel-kpi">
+            <span className="v3-tokens-panel-num">{formatTokens(stats.total_all)}</span>
+            <span className="v3-tokens-panel-sub">
+              {t("overview.tokens_sub", { n: stats.sessions })}
             </span>
           </div>
-          {stats.crit > 0 && (
-            <footer className="v3-audit-foot">
-              <AlertTriangle size={14} strokeWidth={2} />
-              <span>
-                {plural(
-                  t,
-                  stats.crit,
-                  "overview.crit_attention_one",
-                  "overview.crit_attention_other"
-                )}
-              </span>
-              <ChevronRight size={14} strokeWidth={2} className="v3-chev" />
-            </footer>
-          )}
-        </>
+          <Sparkline data={spark} width={420} height={48} />
+        </div>
       )}
     </article>
   );
 }
 
 // =============================================================
-// Overview view — top page, stat row + recent projects + recent PRs +
-// audit summary card.
+// Overview view — leads with the signal feed, then recent projects,
+// an inline tokens panel, and the gentle-ai inventory.
 // =============================================================
 
 export function OverviewView({
   greeting,
   projects,
-  prs,
   goals,
   stats,
   loading,
   onOpenProject,
-  onOpenUrl,
   onJump,
   onCycleTheme,
 }: {
@@ -382,13 +337,7 @@ export function OverviewView({
   projects: Project[];
   prs: GhPullRequest[];
   goals: Record<string, string | null>;
-  stats: {
-    crit: number;
-    warn: number;
-    info: number;
-    total: number;
-    health: number;
-  };
+  stats: { crit: number; warn: number; info: number; total: number; health: number };
   loading: boolean;
   onOpenProject: (path: string) => void;
   onOpenUrl: (url: string) => void;
@@ -397,23 +346,15 @@ export function OverviewView({
 }) {
   const { t } = useT();
   const recentProjects = projects.slice(0, 3);
-  const recentPrs = prs.slice(0, 4);
-  const projectsThisWeek = projects.filter((p) => p.days_ago <= 7).length;
-  const openPrs = prs.length;
 
-  // Welcome card shown only on first launch. Dismissible — once dismissed
-  // never reappears. We use localStorage so the flag survives reinstalls
-  // (the user identity is the same browser/account on this machine).
   const ONBOARDING_KEY = "csk-onboarding-dismissed";
-  const [onboardingDismissed, setOnboardingDismissed] = useState<boolean>(
-    () => {
-      try {
-        return localStorage.getItem(ONBOARDING_KEY) === "1";
-      } catch {
-        return true;
-      }
-    },
-  );
+  const [onboardingDismissed, setOnboardingDismissed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(ONBOARDING_KEY) === "1";
+    } catch {
+      return true;
+    }
+  });
   const dismissOnboarding = () => {
     try {
       localStorage.setItem(ONBOARDING_KEY, "1");
@@ -422,12 +363,6 @@ export function OverviewView({
     }
     setOnboardingDismissed(true);
   };
-
-  // Health delta — placeholder until we track history. Static label.
-  const healthDelta =
-    stats.crit === 0
-      ? t("overview.zero_critical")
-      : t("overview.n_critical", { n: stats.crit });
 
   return (
     <div className="v3-view v3-view-overview">
@@ -468,14 +403,7 @@ export function OverviewView({
               <button
                 type="button"
                 className="v3-btn-ghost v3-btn-sm"
-                onClick={() => onJump("sync")}
-              >
-                {t("onboarding.cta_sync")}
-              </button>
-              <button
-                type="button"
-                className="v3-btn-ghost v3-btn-sm"
-                onClick={() => onJump("settings")}
+                onClick={() => onJump("claude")}
               >
                 {t("onboarding.cta_settings")}
               </button>
@@ -493,42 +421,7 @@ export function OverviewView({
         </article>
       )}
 
-      <section className="v3-stats-row">
-        <StatCard
-          Icon={FolderOpen}
-          label={t("overview.stat_projects")}
-          value={loading ? "—" : String(projects.length)}
-          delta={t("overview.this_week", { n: projectsThisWeek })}
-          tint="orange"
-          severity={projectsThisWeek === 0 ? "warn" : "good"}
-        />
-        <StatCard
-          Icon={Code2}
-          label={t("overview.stat_prs")}
-          value={loading ? "—" : String(openPrs)}
-          delta={t("overview.open_count", { n: openPrs })}
-          tint="purple"
-          severity={openPrs > 5 ? "warn" : "good"}
-        />
-        <StatCard
-          Icon={ShieldCheck}
-          label={t("overview.stat_findings")}
-          value={loading ? "—" : String(stats.total)}
-          delta={t("overview.high_priority", { n: stats.crit })}
-          tint="amber"
-          severity={stats.crit > 0 ? "crit" : "good"}
-        />
-        <StatCard
-          Icon={Activity}
-          label={t("overview.stat_health")}
-          value={loading ? "—" : `${stats.health}%`}
-          delta={healthDelta}
-          tint="green"
-          severity={
-            stats.health < 70 ? "crit" : stats.health < 90 ? "warn" : "good"
-          }
-        />
-      </section>
+      <SignalFeed crit={stats.crit} warn={stats.warn} loading={loading} onJump={onJump} t={t} />
 
       <section className="v3-card v3-recent-projects">
         <header className="v3-card-head">
@@ -562,37 +455,7 @@ export function OverviewView({
         )}
       </section>
 
-      <section className="v3-row-2col">
-        <article className="v3-card">
-          <header className="v3-card-head">
-            <h2 className="v3-card-title">{t("overview.recent_prs")}</h2>
-            <button className="v3-link" onClick={() => onJump("prs")}>
-              {t("overview.view_all")}
-            </button>
-          </header>
-          {loading ? (
-            <div className="v3-empty">{t("overview.loading_prs")}</div>
-          ) : recentPrs.length === 0 ? (
-            <div className="v3-empty">{t("overview.no_prs")}</div>
-          ) : (
-            <div className="v3-pr-list">
-              {recentPrs.map((pr) => (
-                <PrRow
-                  key={pr.url}
-                  title={pr.title}
-                  repo={pr.repository}
-                  num={prNumberFromUrl(pr.url)}
-                  onOpen={() => onOpenUrl(pr.url)}
-                  ariaLabel={t("overview.open_pr_label", { title: pr.title })}
-                  openLabel={t("prs.open")}
-                />
-              ))}
-            </div>
-          )}
-        </article>
-
-        <AuditSummaryCard stats={stats} onJump={onJump} t={t} />
-      </section>
+      <TokensPanel t={t} />
 
       <GentleAiOverviewCard onJump={onJump} t={t} />
     </div>
