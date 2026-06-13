@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   AlertTriangle,
   CheckCircle2,
   Compass,
+  Download,
   ExternalLink,
   Plus,
   RefreshCw,
@@ -67,6 +68,7 @@ interface AuditVerdict {
 const LS_ADDED = "csk-skill-kw-added";
 const LS_EXCLUDED = "csk-skill-kw-excluded";
 const LS_HIDDEN = "csk-skill-hidden-ids";
+const LS_SEEN = "csk-skill-seen-ids";
 
 function readList(key: string): string[] {
   try {
@@ -103,6 +105,15 @@ export function SkillDiscovery() {
   const [audits, setAudits] = useState<Record<string, AuditVerdict>>({});
   const [auditErrors, setAuditErrors] = useState<Record<string, string>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // Install state, keyed by candidate id.
+  const [installing, setInstalling] = useState<string | null>(null);
+  const [installed, setInstalled] = useState<Record<string, string>>({});
+  const [installErrors, setInstallErrors] = useState<Record<string, string>>({});
+  // "New since last visit" badge: ids seen on the previous open.
+  const [seenIds, setSeenIds] = useState<string[]>(() => readList(LS_SEEN));
+  // Stable snapshot of what was seen when this view mounted, so the "new"
+  // badge stays put for the whole visit instead of vanishing mid-session.
+  const initialSeenRef = useRef<Set<string>>(new Set(readList(LS_SEEN)));
 
   // Effective keyword set: (auto ∪ added) − excluded, deduped, lowercased.
   const effectiveKeywords = useMemo(() => {
@@ -129,6 +140,20 @@ export function SkillDiscovery() {
           hiddenIds,
         });
         setCandidates(found);
+        // Re-hydrate any verdicts already cached on disk so a prior audit
+        // survives a reload without re-running the pipeline.
+        for (const c of found) {
+          invoke<AuditVerdict | null>("skill_audit_cached", {
+            source: c.source,
+            skillId: c.skill_id,
+          })
+            .then((v) => {
+              if (v) setAudits((prev) => ({ ...prev, [c.id]: v }));
+            })
+            .catch(() => {
+              /* best-effort re-hydration */
+            });
+        }
       } catch (e) {
         setError(friendlyErrorEn(e));
       } finally {
@@ -238,6 +263,44 @@ export function SkillDiscovery() {
     }
   };
 
+  // Install the audited snapshot. Backend refuses if the verdict is rejected
+  // or the folder already exists; it copies exactly the audited bytes.
+  const runInstall = async (c: SkillCandidate) => {
+    if (!IS_TAURI || installing) return;
+    setInstalling(c.id);
+    setInstallErrors((prev) => {
+      const next = { ...prev };
+      delete next[c.id];
+      return next;
+    });
+    try {
+      const path = await invoke<string>("skill_install_audited", {
+        source: c.source,
+        skillId: c.skill_id,
+      });
+      setInstalled((prev) => ({ ...prev, [c.id]: path }));
+    } catch (e) {
+      setInstallErrors((prev) => ({ ...prev, [c.id]: friendlyErrorEn(e) }));
+    } finally {
+      setInstalling(null);
+    }
+  };
+
+  // Mark the currently-shown candidates as seen, so the "new" badge only
+  // highlights ones that appear on a later visit.
+  useEffect(() => {
+    if (candidates.length === 0) return undefined;
+    const ids = candidates.map((c) => c.id);
+    const merged = [...new Set([...seenIds, ...ids])];
+    // Only persist if it actually grew, to avoid a write loop.
+    if (merged.length === seenIds.length) return undefined;
+    const timer = setTimeout(() => {
+      setSeenIds(merged);
+      writeList(LS_SEEN, merged);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [candidates, seenIds]);
+
   return (
     <article className="v3-card v3-skill-discovery" aria-busy={loading}>
       <header className="v3-card-head">
@@ -314,11 +377,17 @@ export function SkillDiscovery() {
           {candidates.map((c) => {
             const audit = audits[c.id];
             const isExpanded = expanded[c.id];
+            const isNew = !initialSeenRef.current.has(c.id);
+            const installPath = installed[c.id];
+            const canInstall = audit && audit.verdict !== "rejected";
             return (
               <li key={c.id} className="v3-discovery-row-wrap">
                 <div className="v3-discovery-row">
                   <div className="v3-discovery-row-main">
                     <div className="v3-discovery-row-head">
+                      {isNew && (
+                        <span className="v3-discovery-new">{t("discovery.new")}</span>
+                      )}
                       <span className="v3-discovery-name">{c.name}</span>
                       <span className="v3-discovery-source">{c.source}</span>
                       {audit && <VerdictBadge verdict={audit.verdict} t={t} />}
@@ -360,6 +429,29 @@ export function SkillDiscovery() {
                         {auditing === c.id ? t("discovery.auditing") : t("discovery.audit")}
                       </button>
                     )}
+                    {/* Install only after an audit, and only if not rejected.
+                        Backend re-checks the verdict + folder collision. */}
+                    {installPath ? (
+                      <span className="v3-discovery-installed">
+                        <CheckCircle2 size={12} strokeWidth={2.4} />
+                        {t("discovery.installed")}
+                      </span>
+                    ) : (
+                      canInstall && (
+                        <button
+                          type="button"
+                          className="v3-btn-primary v3-discovery-install"
+                          onClick={() => runInstall(c)}
+                          disabled={installing !== null}
+                          title={t("discovery.install_hint")}
+                        >
+                          <Download size={12} strokeWidth={2} />
+                          {installing === c.id
+                            ? t("discovery.installing")
+                            : t("discovery.install")}
+                        </button>
+                      )
+                    )}
                     <button
                       type="button"
                       className="v3-btn-ghost v3-discovery-view"
@@ -383,6 +475,11 @@ export function SkillDiscovery() {
                 {auditErrors[c.id] && (
                   <div className="v3-error v3-discovery-audit-error" role="alert">
                     {auditErrors[c.id]}
+                  </div>
+                )}
+                {installErrors[c.id] && (
+                  <div className="v3-error v3-discovery-audit-error" role="alert">
+                    {installErrors[c.id]}
                   </div>
                 )}
                 {audit && isExpanded && <AuditPanel audit={audit} t={t} />}

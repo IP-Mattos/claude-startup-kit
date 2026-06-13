@@ -3530,12 +3530,10 @@ async fn skill_audit(
             .join("csk-skill-audits")
             .join(audit_cache_key(&source, &skill_id, &sha));
         if fs::create_dir_all(&dir).is_ok() {
-            if let Ok(j) = serde_json::to_string_pretty(&av) {
-                let _ = fs::write(dir.join("audit.json"), j);
-            }
-            // Cache the snapshot bytes so slice 3 installs exactly these.
-            // Confine every write under the snapshot dir: reject unsafe
-            // relative paths, then verify the joined parent stays inside.
+            // Write the snapshot bytes FIRST, then audit.json — so a crash
+            // can never leave a verdict on disk without the matching bytes
+            // slice 3 would install. Confine every write under the snapshot
+            // dir: reject unsafe relative paths, then verify containment.
             let snap = dir.join("snapshot");
             for f in &files {
                 if !is_safe_rel_path(&f.path) {
@@ -3555,10 +3553,181 @@ async fn skill_audit(
                     _ => {}
                 }
             }
+            // Verdict last (atomically via tmp + rename).
+            if let Ok(j) = serde_json::to_string_pretty(&av) {
+                let tmp = dir.join("audit.json.tmp");
+                if fs::write(&tmp, j).is_ok() {
+                    let _ = fs::rename(&tmp, dir.join("audit.json"));
+                }
+            }
         }
     }
 
     Ok(av)
+}
+
+/// Locate the cached audit dir for a (source, skill_id), newest first. The
+/// cache key embeds a SHA we don't have at re-hydration time, so we match on
+/// the `safe(source)__safe(skill)__` prefix and pick the most recent.
+fn newest_audit_dir(source: &str, skill_id: &str) -> Option<PathBuf> {
+    let root = dirs_home()?.join(".claude").join("csk-skill-audits");
+    let safe = |s: &str| {
+        s.chars()
+            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+            .collect::<String>()
+    };
+    let prefix = format!("{}__{}__", safe(source), safe(skill_id));
+    let mut best: Option<(SystemTime, PathBuf)> = None;
+    for entry in fs::read_dir(&root).ok()?.flatten() {
+        let name = entry.file_name();
+        let Some(name) = name.to_str() else { continue };
+        if !name.starts_with(&prefix) {
+            continue;
+        }
+        let p = entry.path();
+        if !p.join("audit.json").is_file() {
+            continue;
+        }
+        let mtime = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .unwrap_or(UNIX_EPOCH);
+        if best.as_ref().map(|(t, _)| mtime > *t).unwrap_or(true) {
+            best = Some((mtime, p));
+        }
+    }
+    best.map(|(_, p)| p)
+}
+
+/// Re-hydrate a previously-computed audit verdict from disk (so the UI can
+/// show "already audited" after a reload without re-running the pipeline).
+/// Returns None if nothing cached.
+#[tauri::command]
+async fn skill_audit_cached(
+    source: String,
+    skill_id: String,
+) -> Result<Option<skills_audit::AuditVerdict>, String> {
+    if !is_valid_source(&source) || !is_valid_short_skill_id(&skill_id) {
+        return Ok(None);
+    }
+    tokio::task::spawn_blocking(move || -> Option<skills_audit::AuditVerdict> {
+        let dir = newest_audit_dir(&source, &skill_id)?;
+        let raw = fs::read_to_string(dir.join("audit.json")).ok()?;
+        serde_json::from_str(&raw).ok()
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))
+}
+
+/// The on-disk folder name a skill installs to: the short skill id with any
+/// `:` (namespaced ids like `react:components`) flattened to `-` so it's a
+/// valid single path segment.
+fn install_folder_name(skill_id: &str) -> String {
+    skill_id.replace(':', "-")
+}
+
+/// Install a skill from its AUDITED, SHA-pinned snapshot — copies exactly the
+/// bytes that were audited, never re-downloading. Refuses if: no cached
+/// audit, the verdict is "rejected", or the target skill folder already
+/// exists. Every write is confined under the target dir.
+#[tauri::command]
+async fn skill_install_audited(
+    source: String,
+    skill_id: String,
+) -> Result<String, String> {
+    if !is_valid_source(&source) {
+        return Err(format!("invalid source repo: {source}"));
+    }
+    if !is_valid_short_skill_id(&skill_id) {
+        return Err(format!("invalid skill id: {skill_id}"));
+    }
+    tokio::task::spawn_blocking(move || -> Result<String, String> {
+        let audit_dir = newest_audit_dir(&source, &skill_id)
+            .ok_or("no audited snapshot found — run the audit first")?;
+        // Gate on the recorded verdict.
+        let raw = fs::read_to_string(audit_dir.join("audit.json"))
+            .map_err(|e| format!("read audit.json: {e}"))?;
+        let av: skills_audit::AuditVerdict =
+            serde_json::from_str(&raw).map_err(|e| format!("parse audit.json: {e}"))?;
+        if av.verdict == "rejected" {
+            return Err("audit verdict is REJECTED — install blocked".to_string());
+        }
+        // Sanity: the cached audit must be for THIS source/skill.
+        if av.source != source || av.skill_id != skill_id {
+            return Err("cached audit does not match the requested skill".to_string());
+        }
+
+        let snap = audit_dir.join("snapshot");
+        let snap_canon = snap
+            .canonicalize()
+            .map_err(|_| "audited snapshot is missing on disk".to_string())?;
+
+        let skills_root = dirs_home()
+            .ok_or("home dir unavailable")?
+            .join(".claude")
+            .join("skills");
+        let folder = install_folder_name(&skill_id);
+        if !is_safe_rel_path(&folder) {
+            return Err("unsafe skill folder name".to_string());
+        }
+        let target = skills_root.join(&folder);
+        if target.exists() {
+            return Err(format!(
+                "a skill folder named '{folder}' already exists — remove it first"
+            ));
+        }
+        fs::create_dir_all(&target).map_err(|e| format!("create target: {e}"))?;
+        let target_canon = target
+            .canonicalize()
+            .map_err(|e| format!("resolve target: {e}"))?;
+
+        // Walk the snapshot and copy each file, confining every write under
+        // the install root (target_canon).
+        let mut copied = 0usize;
+        copy_tree_confined(&target_canon, &snap_canon, &target, &mut copied)?;
+        if copied == 0 {
+            // Nothing copied — roll back the empty dir we created.
+            let _ = fs::remove_dir_all(&target);
+            return Err("audited snapshot was empty".to_string());
+        }
+        Ok(target.to_string_lossy().to_string())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+/// Recursively copy `src_dir` into `dst_dir`, verifying every directory we
+/// descend into resolves inside `install_root` (canonicalized) before
+/// writing. Guards against symlink/junction escapes in the cached snapshot.
+/// Best-effort per file; increments `count` for each file copied.
+fn copy_tree_confined(
+    install_root: &Path,
+    src_dir: &Path,
+    dst_dir: &Path,
+    count: &mut usize,
+) -> Result<(), String> {
+    // The directory we're about to write into must stay under install_root.
+    match dst_dir.canonicalize() {
+        Ok(dc) if dc.starts_with(install_root) => {}
+        _ => return Ok(()), // outside the tree — skip silently
+    }
+    for entry in fs::read_dir(src_dir).map_err(|e| format!("read snapshot: {e}"))?.flatten() {
+        let p = entry.path();
+        let Some(name) = p.file_name() else { continue };
+        // Never follow symlinks out of the snapshot.
+        let Ok(ft) = entry.file_type() else { continue };
+        let dst = dst_dir.join(name);
+        if ft.is_dir() {
+            if fs::create_dir_all(&dst).is_ok() {
+                copy_tree_confined(install_root, &p, &dst, count)?;
+            }
+        } else if ft.is_file() {
+            if fs::copy(&p, &dst).is_ok() {
+                *count += 1;
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Invoke `claude -p` to review skill content. Returns None on any failure
@@ -7324,6 +7493,8 @@ pub fn run() {
             skills_stack_keywords,
             skills_discover,
             skill_audit,
+            skill_audit_cached,
+            skill_install_audited,
             list_mcp_servers,
             toggle_mcp_server,
             fix_claude_vscode_extension,
