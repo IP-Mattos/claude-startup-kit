@@ -5,6 +5,7 @@ export type V3Tab =
   | "overview"
   | "projects"
   | "conversations"
+  | "trello"
   | "audit"
   | "cleanup"
   | "settings"
