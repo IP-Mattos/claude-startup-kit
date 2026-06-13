@@ -9,8 +9,6 @@ import {
   BarChart3,
   Bot,
   Boxes,
-  CheckSquare,
-  ClipboardList,
   Cloud,
   Cog,
   FolderOpen,
@@ -51,13 +49,11 @@ export const SIDEBAR_SECTIONS: NavSection[] = [
     entries: [
       { id: "conversations", navKey: "nav.conversations", Icon: Search },
       { id: "tokens", navKey: "nav.tokens", Icon: BarChart3 },
-      { id: "standup", navKey: "nav.standup", Icon: ClipboardList },
     ],
   },
   {
     labelKey: "nav.section_work",
     entries: [
-      { id: "todos", navKey: "nav.todos", Icon: CheckSquare },
       { id: "audit", navKey: "nav.audit", Icon: Activity },
       { id: "cleanup", navKey: "nav.cleanup", Icon: Trash2 },
     ],
@@ -82,8 +78,6 @@ export const KEYBOARD_TAB_ORDER: ReadonlyArray<V3Tab> = [
   "prs",
   "conversations",
   "tokens",
-  "standup",
-  "todos",
   "audit",
   "cleanup",
 ];

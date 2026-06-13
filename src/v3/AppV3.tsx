@@ -32,8 +32,6 @@ import { AuditView } from "../views/v3/AuditView";
 import { CleanupView } from "../views/v3/CleanupView";
 import { ConversationsView } from "../views/v3/ConversationsView";
 import { TokenUsageView } from "../views/v3/TokenUsageView";
-import { StandupView } from "../views/v3/StandupView";
-import { TodosView } from "../views/v3/TodosView";
 import { ClaudeView } from "../views/v3/ClaudeView";
 import { CompanionsView } from "../views/v3/CompanionsView";
 import { SettingsView } from "../views/v3/SettingsView";
@@ -467,8 +465,6 @@ export default function AppV3() {
           {tab === "cleanup" && <CleanupView />}
           {tab === "conversations" && <ConversationsView />}
           {tab === "tokens" && <TokenUsageView />}
-          {tab === "standup" && <StandupView />}
-          {tab === "todos" && <TodosView />}
           {tab === "sync" && <SyncView />}
           {tab === "claude" && <ClaudeView />}
           {tab === "companions" && (
