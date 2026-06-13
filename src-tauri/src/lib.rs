@@ -14,6 +14,7 @@ use tauri::{
     Manager,
 };
 
+mod skills_audit;
 mod skills_discovery;
 
 /// Format a `Command::spawn` / `Command::output` IO error into a renderer-
@@ -3180,6 +3181,333 @@ async fn skills_discover(
     // discover() excludes installed skills internally by matching each
     // candidate's short skill_id against these folder names.
     skills_discovery::discover(&keywords, &installed_set, &hidden_set).await
+}
+
+// ─── Skill audit (slice 2): SHA-pinned snapshot → static gate → LLM ────────
+//
+// Fetches the skill's files from GitHub pinned to a commit SHA, runs the
+// deterministic static scanner, and (only if that passes) a semantic review
+// via the `claude` CLI. Nothing fetched is ever executed — the snapshot is
+// read as text and handed to the scanner/LLM as untrusted data. The SHA the
+// bytes came from is recorded so slice 3 installs exactly what was audited.
+
+/// `owner/repo` — exactly two segments of safe chars. Rejects anything that
+/// could escape a URL path or shell out.
+fn is_valid_source(source: &str) -> bool {
+    let segs: Vec<&str> = source.split('/').collect();
+    segs.len() == 2
+        && segs.iter().all(|s| {
+            !s.is_empty()
+                && *s != ".."
+                && *s != "."
+                && s.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+        })
+}
+
+/// Short skill id / folder name — single safe segment.
+fn is_valid_short_skill_id(id: &str) -> bool {
+    !id.is_empty()
+        && id != ".."
+        && id != "."
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | ':'))
+}
+
+#[derive(serde::Deserialize)]
+struct GhTreeEntry {
+    path: String,
+    #[serde(rename = "type")]
+    kind: String,
+    #[serde(default)]
+    size: Option<u64>,
+}
+#[derive(serde::Deserialize)]
+struct GhTree {
+    tree: Vec<GhTreeEntry>,
+}
+
+/// From all SKILL.md paths in the tree, pick the folder for `skill_id`.
+/// skills.sh ids sometimes carry a namespace prefix the on-disk folder drops
+/// (e.g. id `vercel-react-best-practices` → folder `react-best-practices`),
+/// so match in priority order: exact basename, then id ends-with basename,
+/// then a sole SKILL.md. Returns the folder path (no trailing slash).
+fn pick_skill_folder(tree: &GhTree, skill_id: &str) -> Option<String> {
+    let skill_dirs: Vec<&str> = tree
+        .tree
+        .iter()
+        .filter(|e| e.kind == "blob" && e.path.ends_with("/SKILL.md"))
+        .map(|e| &e.path[..e.path.len() - "/SKILL.md".len()])
+        .collect();
+    // Also handle a root-level SKILL.md (folder == "").
+    let has_root = tree
+        .tree
+        .iter()
+        .any(|e| e.kind == "blob" && e.path == "SKILL.md");
+
+    let basename = |p: &str| p.rsplit('/').next().unwrap_or(p).to_string();
+
+    // 1. exact basename match.
+    if let Some(d) = skill_dirs.iter().find(|d| basename(d) == skill_id) {
+        return Some(d.to_string());
+    }
+    // 2. id ends with basename (namespace prefix dropped on disk).
+    let mut suffix: Vec<&&str> = skill_dirs
+        .iter()
+        .filter(|d| {
+            let b = basename(d);
+            skill_id == b || skill_id.ends_with(&format!("-{b}"))
+        })
+        .collect();
+    suffix.sort_by_key(|d| std::cmp::Reverse(basename(d).len()));
+    if let Some(d) = suffix.first() {
+        return Some(d.to_string());
+    }
+    // 3. sole SKILL.md anywhere.
+    if skill_dirs.len() == 1 {
+        return Some(skill_dirs[0].to_string());
+    }
+    if has_root && skill_dirs.is_empty() {
+        return Some(String::new());
+    }
+    None
+}
+
+/// Run `gh api` and return stdout bytes, or an error string.
+fn gh_api_blocking(endpoint: &str) -> Result<Vec<u8>, String> {
+    let out = silent_command("gh")
+        .args(["api", endpoint, "-H", "Accept: application/vnd.github+json"])
+        .output()
+        .map_err(|e| format_spawn_error("gh", &e))?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        return Err(format!("gh api {endpoint}: {}", stderr.trim()));
+    }
+    Ok(out.stdout)
+}
+
+const MAX_SNAPSHOT_FILES: usize = 40;
+const MAX_FILE_BYTES: u64 = 256 * 1024;
+const LLM_PROMPT_BUDGET: usize = 60 * 1024;
+
+/// Sanitize "owner/repo" + skill id into a single cache-dir-safe token.
+fn audit_cache_key(source: &str, skill_id: &str, sha: &str) -> String {
+    let safe = |s: &str| {
+        s.chars()
+            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+            .collect::<String>()
+    };
+    format!("{}__{}__{}", safe(source), safe(skill_id), safe(&sha[..sha.len().min(12)]))
+}
+
+/// Audit a skill: fetch its SHA-pinned snapshot, static-scan it, then (if
+/// clean) run the LLM review. Persists the verdict next to the cached
+/// snapshot and returns it.
+#[tauri::command]
+async fn skill_audit(
+    source: String,
+    skill_id: String,
+) -> Result<skills_audit::AuditVerdict, String> {
+    if !is_valid_source(&source) {
+        return Err(format!("invalid source repo: {source}"));
+    }
+    if !is_valid_short_skill_id(&skill_id) {
+        return Err(format!("invalid skill id: {skill_id}"));
+    }
+
+    // 1. Resolve HEAD SHA + recursive tree via gh (auth'd, off the runtime).
+    let (sha, tree_bytes) = {
+        let src = source.clone();
+        tokio::task::spawn_blocking(move || -> Result<(String, Vec<u8>), String> {
+            let sha_raw = gh_api_blocking(&format!("repos/{src}/commits/HEAD"))?;
+            let commit: serde_json::Value = serde_json::from_slice(&sha_raw)
+                .map_err(|e| format!("parse commit: {e}"))?;
+            let sha = commit
+                .get("sha")
+                .and_then(|v| v.as_str())
+                .ok_or("no sha in commit response")?
+                .to_string();
+            let tree = gh_api_blocking(&format!("repos/{src}/git/trees/{sha}?recursive=1"))?;
+            Ok((sha, tree))
+        })
+        .await
+        .map_err(|e| format!("task join: {e}"))??
+    };
+
+    let tree: GhTree =
+        serde_json::from_slice(&tree_bytes).map_err(|e| format!("parse tree: {e}"))?;
+    let folder = pick_skill_folder(&tree, &skill_id)
+        .ok_or_else(|| format!("could not locate skill '{skill_id}' in {source}"))?;
+
+    // 2. Collect the blob paths under the skill folder (bounded).
+    let prefix = if folder.is_empty() {
+        String::new()
+    } else {
+        format!("{folder}/")
+    };
+    let file_paths: Vec<String> = tree
+        .tree
+        .iter()
+        .filter(|e| e.kind == "blob")
+        .filter(|e| {
+            if prefix.is_empty() {
+                !e.path.contains('/') // root-level files only
+            } else {
+                e.path.starts_with(&prefix)
+            }
+        })
+        .filter(|e| e.size.map(|s| s <= MAX_FILE_BYTES).unwrap_or(true))
+        .filter(|e| !e.path.contains("..")) // defense-in-depth
+        .take(MAX_SNAPSHOT_FILES)
+        .map(|e| e.path.clone())
+        .collect();
+    if file_paths.is_empty() {
+        return Err(format!("no files found for skill '{skill_id}' in {source}"));
+    }
+
+    // 3. Download each blob pinned to the SHA from raw.githubusercontent
+    //    (no auth, immutable at the SHA). Concurrent, size-capped.
+    let client = reqwest::Client::builder()
+        .user_agent("claude-startup-kit/skill-audit")
+        .timeout(Duration::from_secs(15))
+        .build()
+        .map_err(|e| format!("http client: {e}"))?;
+    let mut dl = Vec::with_capacity(file_paths.len());
+    for path in file_paths.iter().cloned() {
+        let client = client.clone();
+        let url = format!(
+            "https://raw.githubusercontent.com/{source}/{sha}/{path}"
+        );
+        let rel = if prefix.is_empty() {
+            path.clone()
+        } else {
+            path[prefix.len()..].to_string()
+        };
+        dl.push(tokio::spawn(async move {
+            match client.get(&url).send().await {
+                Ok(r) if r.status().is_success() => {
+                    r.text().await.ok().map(|c| skills_audit::SkillFile { path: rel, content: c })
+                }
+                _ => None,
+            }
+        }));
+    }
+    let mut files: Vec<skills_audit::SkillFile> = Vec::new();
+    for h in dl {
+        if let Ok(Some(f)) = h.await {
+            files.push(f);
+        }
+    }
+    if files.is_empty() {
+        return Err("failed to download any skill files".to_string());
+    }
+
+    // 4. Static gate.
+    let static_report = skills_audit::static_scan(&files);
+
+    // 5. LLM layer — only if static passed and `claude` is available.
+    //    Best-effort: any failure (no CLI, auth, timeout, unparseable) just
+    //    leaves llm = None and the verdict falls back to the static result.
+    let llm = if static_report.passed {
+        let prompt = skills_audit::wrap_untrusted(&files, LLM_PROMPT_BUDGET);
+        let system = skills_audit::llm_system_prompt();
+        tokio::task::spawn_blocking(move || run_claude_skill_audit(&prompt, &system))
+            .await
+            .ok()
+            .flatten()
+    } else {
+        None
+    };
+
+    let verdict = skills_audit::combine_verdict(&static_report, &llm);
+    let audited_at = Utc::now().to_rfc3339();
+    let av = skills_audit::AuditVerdict {
+        sha: sha.clone(),
+        source: source.clone(),
+        skill_id: skill_id.clone(),
+        static_report,
+        llm,
+        verdict,
+        audited_at,
+    };
+
+    // 6. Persist the verdict + snapshot for slice 3 (install the audited bytes).
+    if let Some(home) = dirs_home() {
+        let dir = home
+            .join(".claude")
+            .join("csk-skill-audits")
+            .join(audit_cache_key(&source, &skill_id, &sha));
+        if fs::create_dir_all(&dir).is_ok() {
+            if let Ok(j) = serde_json::to_string_pretty(&av) {
+                let _ = fs::write(dir.join("audit.json"), j);
+            }
+            // Cache the snapshot bytes so slice 3 installs exactly these.
+            // Guard against path escape: only write under the snapshot dir.
+            let snap = dir.join("snapshot");
+            for f in &files {
+                if f.path.contains("..") {
+                    continue;
+                }
+                let dest = snap.join(&f.path);
+                if let Some(p) = dest.parent() {
+                    let _ = fs::create_dir_all(p);
+                }
+                let _ = fs::write(&dest, &f.content);
+            }
+        }
+    }
+
+    Ok(av)
+}
+
+/// Invoke `claude -p` to review skill content. Returns None on any failure
+/// (CLI missing, auth, timeout, non-JSON output) — the caller treats a None
+/// as "LLM layer unavailable" and relies on the static gate.
+fn run_claude_skill_audit(
+    untrusted_prompt: &str,
+    system_prompt: &str,
+) -> Option<skills_audit::LlmReport> {
+    use std::io::Write;
+    use std::process::Stdio;
+
+    let mut child = silent_command("claude")
+        .args([
+            "-p",
+            "--output-format",
+            "json",
+            "--append-system-prompt",
+            system_prompt,
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+    // Feed the untrusted content on stdin so size isn't bounded by argv.
+    child
+        .stdin
+        .take()?
+        .write_all(untrusted_prompt.as_bytes())
+        .ok()?;
+    let out = child.wait_with_output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    // `claude --output-format json` wraps the model reply in an envelope with
+    // a `result` string. The model was told to emit only our JSON object.
+    let envelope: serde_json::Value = serde_json::from_slice(&out.stdout).ok()?;
+    let result = envelope.get("result").and_then(|v| v.as_str())?;
+    let cleaned = strip_code_fence(result);
+    serde_json::from_str::<skills_audit::LlmReport>(&cleaned).ok()
+}
+
+/// Strip a ```json … ``` fence if the model wrapped its JSON in one.
+fn strip_code_fence(s: &str) -> String {
+    let t = s.trim();
+    let t = t.strip_prefix("```json").or_else(|| t.strip_prefix("```")).unwrap_or(t);
+    let t = t.strip_suffix("```").unwrap_or(t);
+    t.trim().to_string()
 }
 
 #[tauri::command]
@@ -6866,6 +7194,7 @@ pub fn run() {
             count_claude_skill_usage,
             skills_stack_keywords,
             skills_discover,
+            skill_audit,
             list_mcp_servers,
             toggle_mcp_server,
             fix_claude_vscode_extension,

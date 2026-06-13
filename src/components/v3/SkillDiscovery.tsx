@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Compass, ExternalLink, Plus, RefreshCw, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Compass,
+  ExternalLink,
+  Plus,
+  RefreshCw,
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
+  X,
+  XCircle,
+} from "lucide-react";
 import { friendlyErrorEn } from "../../lib/format";
 import { useT } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
@@ -18,6 +31,33 @@ interface SkillCandidate {
   matched_keywords: string[];
   score: number;
   url: string;
+}
+
+// Verdict returned by the slice-2 `skill_audit` command. Mirrors the Rust
+// AuditVerdict shape (serde). The skill content itself is never returned —
+// only the verdict + findings.
+interface StaticFinding {
+  severity: "Blocking" | "Warning";
+  rule: string;
+  detail: string;
+  file: string;
+  line: number;
+  snippet: string;
+}
+interface LlmFinding {
+  severity: string;
+  title: string;
+  why: string;
+  quote: string;
+}
+interface AuditVerdict {
+  sha: string;
+  source: string;
+  skill_id: string;
+  static_report: { passed: boolean; findings: StaticFinding[] };
+  llm: { verdict: string; summary: string; findings: LlmFinding[] } | null;
+  verdict: "approved" | "warnings" | "rejected" | string;
+  audited_at: string;
 }
 
 // localStorage keys — added/excluded keywords and dismissed candidates
@@ -56,6 +96,12 @@ export function SkillDiscovery() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newKeyword, setNewKeyword] = useState("");
+  // Audit state, keyed by candidate id. `auditing` tracks the in-flight id;
+  // `audits` caches verdicts; `auditError` holds a per-candidate failure.
+  const [auditing, setAuditing] = useState<string | null>(null);
+  const [audits, setAudits] = useState<Record<string, AuditVerdict>>({});
+  const [auditErrors, setAuditErrors] = useState<Record<string, string>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   // Effective keyword set: (auto ∪ added) − excluded, deduped, lowercased.
   const effectiveKeywords = useMemo(() => {
@@ -167,6 +213,30 @@ export function SkillDiscovery() {
     });
   };
 
+  // Run the slice-2 audit for one candidate. The verdict is cached so the
+  // user can collapse/expand without re-auditing.
+  const runAudit = async (c: SkillCandidate) => {
+    if (!IS_TAURI || auditing) return;
+    setAuditing(c.id);
+    setAuditErrors((prev) => {
+      const next = { ...prev };
+      delete next[c.id];
+      return next;
+    });
+    try {
+      const verdict = await invoke<AuditVerdict>("skill_audit", {
+        source: c.source,
+        skillId: c.skill_id,
+      });
+      setAudits((prev) => ({ ...prev, [c.id]: verdict }));
+      setExpanded((prev) => ({ ...prev, [c.id]: true }));
+    } catch (e) {
+      setAuditErrors((prev) => ({ ...prev, [c.id]: friendlyErrorEn(e) }));
+    } finally {
+      setAuditing(null);
+    }
+  };
+
   return (
     <article className="v3-card v3-skill-discovery" aria-busy={loading}>
       <header className="v3-card-head">
@@ -240,52 +310,207 @@ export function SkillDiscovery() {
         <div className="v3-empty">{t("discovery.no_results")}</div>
       ) : (
         <ul className="v3-list v3-discovery-list">
-          {candidates.map((c) => (
-            <li key={c.id} className="v3-discovery-row">
-              <div className="v3-discovery-row-main">
-                <div className="v3-discovery-row-head">
-                  <span className="v3-discovery-name">{c.name}</span>
-                  <span className="v3-discovery-source">{c.source}</span>
-                </div>
-                <div className="v3-discovery-meta">
-                  <span className="v3-discovery-installs">
-                    {t("discovery.installs", { n: c.installs.toLocaleString() })}
-                  </span>
-                  <span className="v3-discovery-matches">
-                    {c.matched_keywords.map((k) => (
-                      <span key={k} className="v3-kw-chip v3-kw-chip-match">
-                        {k}
+          {candidates.map((c) => {
+            const audit = audits[c.id];
+            const isExpanded = expanded[c.id];
+            return (
+              <li key={c.id} className="v3-discovery-row-wrap">
+                <div className="v3-discovery-row">
+                  <div className="v3-discovery-row-main">
+                    <div className="v3-discovery-row-head">
+                      <span className="v3-discovery-name">{c.name}</span>
+                      <span className="v3-discovery-source">{c.source}</span>
+                      {audit && <VerdictBadge verdict={audit.verdict} t={t} />}
+                    </div>
+                    <div className="v3-discovery-meta">
+                      <span className="v3-discovery-installs">
+                        {t("discovery.installs", { n: c.installs.toLocaleString() })}
                       </span>
-                    ))}
-                  </span>
+                      <span className="v3-discovery-matches">
+                        {c.matched_keywords.map((k) => (
+                          <span key={k} className="v3-kw-chip v3-kw-chip-match">
+                            {k}
+                          </span>
+                        ))}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="v3-discovery-row-actions">
+                    {audit ? (
+                      <button
+                        type="button"
+                        className="v3-btn-ghost v3-discovery-view"
+                        onClick={() =>
+                          setExpanded((p) => ({ ...p, [c.id]: !p[c.id] }))
+                        }
+                      >
+                        <Shield size={12} strokeWidth={2} />
+                        {isExpanded ? t("discovery.hide_audit") : t("discovery.show_audit")}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="v3-btn-primary v3-discovery-audit"
+                        onClick={() => runAudit(c)}
+                        disabled={auditing !== null}
+                        title={t("discovery.audit_hint")}
+                      >
+                        <Shield size={12} strokeWidth={2} />
+                        {auditing === c.id ? t("discovery.auditing") : t("discovery.audit")}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="v3-btn-ghost v3-discovery-view"
+                      onClick={() => openUrl(c.url)}
+                      title={t("discovery.view_hint")}
+                    >
+                      <ExternalLink size={12} strokeWidth={2} />
+                      {t("discovery.view")}
+                    </button>
+                    <button
+                      type="button"
+                      className="v3-icon-btn v3-discovery-hide"
+                      onClick={() => hideCandidate(c.id)}
+                      title={t("discovery.hide")}
+                      aria-label={t("discovery.hide")}
+                    >
+                      <X size={13} strokeWidth={2} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div className="v3-discovery-row-actions">
-                {/* Audit (slice 2) and Install (slice 3) buttons land here.
-                    For now we surface the skills.sh page and a hide action. */}
-                <button
-                  type="button"
-                  className="v3-btn-ghost v3-discovery-view"
-                  onClick={() => openUrl(c.url)}
-                  title={t("discovery.view_hint")}
-                >
-                  <ExternalLink size={12} strokeWidth={2} />
-                  {t("discovery.view")}
-                </button>
-                <button
-                  type="button"
-                  className="v3-icon-btn v3-discovery-hide"
-                  onClick={() => hideCandidate(c.id)}
-                  title={t("discovery.hide")}
-                  aria-label={t("discovery.hide")}
-                >
-                  <X size={13} strokeWidth={2} />
-                </button>
-              </div>
-            </li>
-          ))}
+                {auditErrors[c.id] && (
+                  <div className="v3-error v3-discovery-audit-error" role="alert">
+                    {auditErrors[c.id]}
+                  </div>
+                )}
+                {audit && isExpanded && <AuditPanel audit={audit} t={t} />}
+              </li>
+            );
+          })}
         </ul>
       )}
     </article>
+  );
+}
+
+type TFn = (key: any, vars?: Record<string, string | number>) => string;
+
+// Small colored pill summarizing the final verdict.
+function VerdictBadge({ verdict, t }: { verdict: string; t: TFn }) {
+  const map: Record<string, { cls: string; icon: ReactNode; key: string }> = {
+    approved: {
+      cls: "v3-verdict-approved",
+      icon: <ShieldCheck size={11} strokeWidth={2.4} />,
+      key: "discovery.verdict_approved",
+    },
+    warnings: {
+      cls: "v3-verdict-warnings",
+      icon: <ShieldAlert size={11} strokeWidth={2.4} />,
+      key: "discovery.verdict_warnings",
+    },
+    rejected: {
+      cls: "v3-verdict-rejected",
+      icon: <XCircle size={11} strokeWidth={2.4} />,
+      key: "discovery.verdict_rejected",
+    },
+  };
+  const v = map[verdict] ?? map.warnings;
+  return (
+    <span className={"v3-verdict-badge " + v.cls}>
+      {v.icon}
+      {t(v.key)}
+    </span>
+  );
+}
+
+// Expanded audit detail: static findings + LLM summary/findings. Install
+// (slice 3) will hook in here, gated on verdict !== "rejected".
+function AuditPanel({ audit, t }: { audit: AuditVerdict; t: TFn }) {
+  const sf = audit.static_report.findings;
+  const blocking = sf.filter((f) => f.severity === "Blocking");
+  const warns = sf.filter((f) => f.severity === "Warning");
+  return (
+    <div className="v3-audit-panel">
+      <div className="v3-audit-meta">
+        {t("discovery.audited_sha", { sha: audit.sha.slice(0, 7) })}
+      </div>
+
+      {/* Static layer */}
+      <div className="v3-audit-layer">
+        <div className="v3-audit-layer-head">
+          {audit.static_report.passed ? (
+            <CheckCircle2 size={13} strokeWidth={2} className="v3-ok-icon" />
+          ) : (
+            <XCircle size={13} strokeWidth={2} className="v3-crit-icon" />
+          )}
+          {t("discovery.static_layer")}
+        </div>
+        {sf.length === 0 ? (
+          <p className="v3-audit-clean">{t("discovery.static_clean")}</p>
+        ) : (
+          <ul className="v3-audit-findings">
+            {[...blocking, ...warns].map((f, i) => (
+              <li
+                key={i}
+                className={
+                  "v3-audit-finding " +
+                  (f.severity === "Blocking" ? "is-blocking" : "is-warning")
+                }
+              >
+                <span className="v3-audit-finding-head">
+                  {f.severity === "Blocking" ? (
+                    <XCircle size={11} strokeWidth={2.4} />
+                  ) : (
+                    <AlertTriangle size={11} strokeWidth={2.4} />
+                  )}
+                  <code>{f.rule}</code>
+                  <span className="v3-audit-finding-loc">
+                    {f.file}:{f.line}
+                  </span>
+                </span>
+                <span className="v3-audit-finding-detail">{f.detail}</span>
+                {f.snippet && <code className="v3-audit-snippet">{f.snippet}</code>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* LLM layer */}
+      <div className="v3-audit-layer">
+        <div className="v3-audit-layer-head">
+          <Shield size={13} strokeWidth={2} />
+          {t("discovery.llm_layer")}
+        </div>
+        {audit.llm ? (
+          <>
+            <p className="v3-audit-llm-summary">{audit.llm.summary}</p>
+            {audit.llm.findings.length > 0 && (
+              <ul className="v3-audit-findings">
+                {audit.llm.findings.map((f, i) => (
+                  <li
+                    key={i}
+                    className={
+                      "v3-audit-finding " +
+                      (f.severity === "critical" ? "is-blocking" : "is-warning")
+                    }
+                  >
+                    <span className="v3-audit-finding-head">
+                      <code>{f.severity}</code>
+                      <span>{f.title}</span>
+                    </span>
+                    {f.why && <span className="v3-audit-finding-detail">{f.why}</span>}
+                    {f.quote && <code className="v3-audit-snippet">{f.quote}</code>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        ) : (
+          <p className="v3-audit-clean">{t("discovery.llm_unavailable")}</p>
+        )}
+      </div>
+    </div>
   );
 }

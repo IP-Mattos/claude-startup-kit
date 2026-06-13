@@ -4047,6 +4047,140 @@ body.v3-layout #root {
   opacity: 1;
   color: var(--v3-crit);
 }
+.v3-discovery-row-wrap {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-sm);
+  background: var(--v3-surface);
+}
+.v3-discovery-row-wrap .v3-discovery-row {
+  border: none;
+  background: transparent;
+}
+.v3-discovery-audit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 4px 10px;
+}
+.v3-discovery-audit-error {
+  margin: 0 12px 10px;
+}
+
+/* Verdict badge */
+.v3-verdict-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: 999px;
+}
+.v3-verdict-approved {
+  background: var(--v3-success-tint);
+  color: var(--v3-success);
+}
+.v3-verdict-warnings {
+  background: var(--v3-warn-tint);
+  color: var(--v3-warn);
+}
+.v3-verdict-rejected {
+  background: var(--v3-crit-tint);
+  color: var(--v3-crit);
+}
+
+/* Audit panel */
+.v3-audit-panel {
+  border-top: 1px dashed var(--v3-border);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.v3-audit-meta {
+  font-size: 11px;
+  opacity: 0.6;
+  font-family: monospace;
+}
+.v3-audit-layer-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.v3-ok-icon {
+  color: var(--v3-success);
+}
+.v3-crit-icon {
+  color: var(--v3-crit);
+}
+.v3-audit-clean {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.7;
+}
+.v3-audit-llm-summary {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+.v3-audit-findings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.v3-audit-finding {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 9px;
+  border-radius: var(--v3-radius-sm);
+  border-left: 3px solid var(--v3-border);
+}
+.v3-audit-finding.is-blocking {
+  background: var(--v3-crit-tint);
+  border-left-color: var(--v3-crit);
+}
+.v3-audit-finding.is-warning {
+  background: var(--v3-warn-tint);
+  border-left-color: var(--v3-warn);
+}
+.v3-audit-finding-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.v3-audit-finding-loc {
+  font-family: monospace;
+  font-size: 11px;
+  opacity: 0.65;
+  font-weight: 400;
+}
+.v3-audit-finding-detail {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.v3-audit-snippet {
+  font-family: monospace;
+  font-size: 11px;
+  background: var(--v3-bg);
+  padding: 3px 6px;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
 
 /* ========== Reduced motion ========== */
 @media (prefers-reduced-motion: reduce) {
