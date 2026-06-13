@@ -92,7 +92,9 @@ const BLOCKING_RULES: &[BlockingRule] = &[
     BlockingRule { rule: "shell-exec", detail: "Spawns an arbitrary process (PowerShell).", all_of: &["start-process"] },
     BlockingRule { rule: "shell-exec", detail: "Python shell-out.", all_of: &["os.system("] },
     BlockingRule { rule: "shell-exec", detail: "Python subprocess execution.", all_of: &["subprocess.", "shell=true"] },
-    BlockingRule { rule: "shell-exec", detail: "Node child_process exec/spawn.", all_of: &["child_process", "exec"] },
+    BlockingRule { rule: "shell-exec", detail: "Node child_process exec.", all_of: &["child_process", "exec"] },
+    BlockingRule { rule: "shell-exec", detail: "Node child_process spawn.", all_of: &["child_process", "spawn"] },
+    BlockingRule { rule: "shell-exec", detail: "Node child_process fork.", all_of: &["child_process", "fork"] },
     BlockingRule { rule: "shell-exec", detail: "Python dynamic code execution.", all_of: &["exec(", "compile("] },
     // ── Encoded / obfuscated execution ───────────────────────────────────
     BlockingRule {
@@ -480,6 +482,18 @@ mod tests {
             let r = static_scan(&[f("x.sh", bad)]);
             assert!(!r.passed, "should block: {bad}");
         }
+    }
+
+    #[test]
+    fn child_process_and_python_exec_rules() {
+        // Blocked: actual execution constructs.
+        assert!(!static_scan(&[f("a.js", "require('child_process').exec('x')")]).passed);
+        assert!(!static_scan(&[f("a.js", "child_process.spawn('bash', ['-c', 'x'])")]).passed);
+        assert!(!static_scan(&[f("a.js", "child_process.fork('w.js')")]).passed);
+        assert!(!static_scan(&[f("a.py", "exec(compile(src, '<s>', 'exec'))")]).passed);
+        // NOT blocked: mere mentions / unrelated imports (the relaxation).
+        assert!(static_scan(&[f("README.md", "This skill uses the child_process module.")]).passed);
+        assert!(static_scan(&[f("a.py", "import os\nexec(user_code)")]).passed);
     }
 
     #[test]
