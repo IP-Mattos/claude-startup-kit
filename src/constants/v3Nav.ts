@@ -7,7 +7,6 @@
 import {
   Activity,
   Boxes,
-  Cloud,
   Cog,
   FolderOpen,
   GitPullRequest,
@@ -61,7 +60,6 @@ export const SIDEBAR_NAV: NavEntry[] = SIDEBAR_SECTIONS.flatMap((s) => s.entries
 
 export const TOPBAR_NAV: NavEntry[] = [
   { id: "claude", navKey: "nav.claude", Icon: Boxes },
-  { id: "sync", navKey: "nav.sync", Icon: Cloud },
   { id: "settings", navKey: "nav.settings", Icon: Cog },
 ];
 

@@ -9,8 +9,7 @@ export type V3Tab =
   | "audit"
   | "cleanup"
   | "settings"
-  | "claude"
-  | "sync";
+  | "claude";
 
 // Backend payload returned by the `workspace_summary` Tauri command.
 // Both the WorkspaceCard and any future caller share this shape so a Rust

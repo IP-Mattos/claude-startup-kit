@@ -33,7 +33,6 @@ import { CleanupView } from "../views/v3/CleanupView";
 import { ConversationsView } from "../views/v3/ConversationsView";
 import { ClaudeView } from "../views/v3/ClaudeView";
 import { SettingsView } from "../views/v3/SettingsView";
-import { SyncView } from "../views/v3/SyncView";
 import "./AppV3.css";
 
 // ===== Root =====
@@ -462,7 +461,6 @@ export default function AppV3() {
           )}
           {tab === "cleanup" && <CleanupView />}
           {tab === "conversations" && <ConversationsView />}
-          {tab === "sync" && <SyncView />}
           {tab === "claude" && <ClaudeView />}
           {tab === "settings" && (
             <SettingsView

@@ -10,6 +10,7 @@ import {
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { useT } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
+import { GhReposCard } from "../../components/v3/GhReposCard";
 
 interface DiskGitRepo {
   path: string;
@@ -290,6 +291,10 @@ export function ProjectsView({
           ))}
         </div>
       )}
+
+      {/* Clone from GitHub — moved here from the retired Sync tab. Cloning a
+          repo is a project action, so it belongs with Projects. */}
+      <GhReposCard />
     </div>
   );
 }
