@@ -4478,55 +4478,62 @@ body.v3-layout #root {
 
 /* Board: a horizontal strip of columns; the content area scrolls vertically
    if a column gets tall, the board scrolls horizontally for many columns. */
+/* Board: side-by-side status SECTIONS, not boxed Trello lanes. The columns
+   carry no frame — they read as records under a section header, like the rest
+   of CSK (Overview feed / Conversations), separated only by the gap. */
 .v3-board {
   display: flex;
-  gap: 14px;
+  gap: 20px;
   align-items: flex-start;
   overflow-x: auto;
   padding-bottom: 8px;
 }
 .v3-board-col {
-  flex: 0 0 282px;
-  width: 282px;
-  background: var(--v3-surface-2, var(--v3-surface, #1b1f26));
-  border: 1px solid var(--v3-border);
-  border-radius: var(--v3-radius);
+  flex: 0 0 286px;
+  width: 286px;
   display: flex;
   flex-direction: column;
 }
+/* Section header — small-caps label + square count tag (the house idiom, cf.
+   the sidebar section labels and .v3-pill). */
 .v3-board-col-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--v3-border);
+  padding: 2px 6px 8px;
+  border-bottom: 1px solid var(--v3-border-strong, var(--v3-border));
+  margin-bottom: 2px;
 }
 .v3-board-col-name {
-  font-weight: 600;
-  font-size: 13px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--v3-text-2);
 }
 .v3-board-col-count {
-  font-size: 11px;
-  color: var(--v3-text-2);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--v3-text-3, var(--v3-text-2));
   background: var(--v3-hover);
-  border-radius: 10px;
-  padding: 1px 7px;
+  border-radius: 3px;
+  padding: 1px 6px;
 }
 .v3-board-col-add {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--v3-radius-sm, 6px);
   background: transparent;
-  color: var(--v3-text-2);
+  color: var(--v3-text-3, var(--v3-text-2));
   cursor: pointer;
 }
 .v3-board-col-add:hover {
@@ -4534,41 +4541,41 @@ body.v3-layout #root {
   color: var(--v3-text);
 }
 .v3-board-col-body {
-  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: 40px;
+  min-height: 36px;
 }
 .v3-board-col-empty {
   font-size: 12px;
-  color: var(--v3-text-3, var(--v3-text-2));
-  text-align: center;
-  padding: 14px 0;
+  color: var(--v3-text-4, var(--v3-text-3, var(--v3-text-2)));
+  padding: 12px 6px;
   margin: 0;
 }
-/* Task card */
+/* Task = a flat CSK record row (no tile chrome): hairline divider + hover wash,
+   exactly like .v3-row. Clicking the row opens the editor; the small actions
+   gain contrast on hover. */
 .v3-task-card {
-  background: var(--v3-surface, #1b1f26);
-  border: 1px solid var(--v3-border);
-  border-radius: 8px;
-  padding: 10px 10px 8px;
-  cursor: default;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  display: block;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--v3-border);
+  border-radius: 0;
+  padding: 9px 6px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
 }
 .v3-task-card:hover {
-  border-color: var(--v3-accent);
-  box-shadow: var(--v3-shadow-1, 0 1px 3px rgba(0, 0, 0, 0.3));
+  background: var(--v3-hover);
 }
 .v3-task-card:focus-visible {
   outline: 2px solid var(--v3-accent);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 .v3-task-card.is-done {
-  opacity: 0.62;
+  opacity: 0.55;
 }
 .v3-task-card.is-pending {
-  opacity: 0.55;
+  opacity: 0.5;
   pointer-events: none;
 }
 .v3-task-card-top {
@@ -4579,26 +4586,31 @@ body.v3-layout #root {
 .v3-task-title {
   margin: 0;
   font-size: 13px;
-  line-height: 1.35;
+  font-weight: 500;
+  line-height: 1.4;
   flex: 1;
   min-width: 0;
+  color: var(--v3-text);
   word-break: break-word;
 }
 .v3-task-card.is-done .v3-task-title {
   text-decoration: line-through;
+  text-decoration-color: var(--v3-text-3, var(--v3-text-2));
 }
+/* Complete: quiet ghost check; gains the success tint on hover. */
 .v3-task-complete {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border: 1px solid var(--v3-border);
   border-radius: 50%;
   background: transparent;
-  color: var(--v3-text-2);
+  color: var(--v3-text-3, var(--v3-text-2));
   cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease;
 }
 .v3-task-complete:hover:not(:disabled) {
   border-color: var(--v3-success, #3fb950);
@@ -4608,24 +4620,23 @@ body.v3-layout #root {
   opacity: 0.4;
   cursor: default;
 }
+/* Progress: a thin hairline under the title — a signal, not a chunky bar. */
 .v3-task-progress {
-  height: 4px;
-  background: var(--v3-hover);
-  border-radius: 2px;
-  margin-top: 9px;
+  height: 2px;
+  background: var(--v3-border);
+  margin-top: 7px;
   overflow: hidden;
 }
 .v3-task-progress-fill {
   height: 100%;
   background: var(--v3-accent);
-  border-radius: 2px;
   transition: width 0.2s ease;
 }
 .v3-task-meta {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 6px;
   flex-wrap: wrap;
 }
 .v3-task-chip {
@@ -4633,61 +4644,60 @@ body.v3-layout #root {
   align-items: center;
   gap: 3px;
   font-size: 11px;
-  color: var(--v3-text-2);
+  color: var(--v3-text-3, var(--v3-text-2));
 }
 .v3-task-progress-label {
   margin-left: auto;
   font-size: 11px;
+  font-variant-numeric: tabular-nums;
   color: var(--v3-text-3, var(--v3-text-2));
 }
 .v3-task-done-label {
   margin-left: auto;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--v3-success, #3fb950);
 }
 .v3-task-flow-chip {
   gap: 0; /* icon-only; no trailing text */
 }
 
-/* Move footer — arrow controls (replaced native drag & drop) */
+/* Move actions — quiet ghost arrows clustered at the right (cf. .v3-row-actions).
+   Present at rest in low contrast, gain contrast on row hover, accent on press.
+   No button frames: they read as inline row affordances, not Trello buttons. */
 .v3-task-move {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  margin-top: 8px;
-  padding-top: 7px;
-  border-top: 1px solid var(--v3-border);
+  justify-content: flex-end;
+  gap: 2px;
+  margin-top: 6px;
 }
 .v3-task-move-group {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
 }
 .v3-task-move-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
-  border: 1px solid var(--v3-border);
+  border: 0;
   border-radius: var(--v3-radius-sm, 6px);
   background: transparent;
-  color: var(--v3-text-2);
+  color: var(--v3-text-4, var(--v3-text-3, var(--v3-text-2)));
   cursor: pointer;
-  transition: border-color 0.12s ease, color 0.12s ease,
-    background 0.12s ease, transform 0.06s ease;
+  transition: color 0.12s ease, background 0.12s ease, transform 0.06s ease;
 }
-/* Reorder (up/down) is the quiet secondary action — borderless at rest. */
-.v3-task-move-btn.is-reorder {
-  border-color: transparent;
-  color: var(--v3-text-3, var(--v3-text-2));
+.v3-task-card:hover .v3-task-move-btn {
+  color: var(--v3-text-2);
 }
 .v3-task-move-btn:hover:not(:disabled) {
   background: var(--v3-accent-tint, color-mix(in srgb, var(--v3-accent) 14%, transparent));
-  border-color: var(--v3-accent);
   color: var(--v3-accent);
 }
 .v3-task-move-btn:focus-visible {
@@ -4698,7 +4708,7 @@ body.v3-layout #root {
   transform: scale(0.9);
 }
 .v3-task-move-btn:disabled {
-  opacity: 0.32;
+  opacity: 0.3;
   cursor: default;
 }
 
