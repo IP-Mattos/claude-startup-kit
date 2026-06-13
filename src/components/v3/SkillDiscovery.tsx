@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { friendlyErrorEn } from "../../lib/format";
 import { useT } from "../../lib/i18n";
+import type { StringKey } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
 
 // Slice 1 of the "suggested skills" feature: discover + rank only. No fetch,
@@ -394,11 +395,11 @@ export function SkillDiscovery() {
   );
 }
 
-type TFn = (key: any, vars?: Record<string, string | number>) => string;
+type TFn = (key: StringKey, vars?: Record<string, string | number>) => string;
 
 // Small colored pill summarizing the final verdict.
 function VerdictBadge({ verdict, t }: { verdict: string; t: TFn }) {
-  const map: Record<string, { cls: string; icon: ReactNode; key: string }> = {
+  const map: Record<string, { cls: string; icon: ReactNode; key: StringKey }> = {
     approved: {
       cls: "v3-verdict-approved",
       icon: <ShieldCheck size={11} strokeWidth={2.4} />,
@@ -452,7 +453,7 @@ function AuditPanel({ audit, t }: { audit: AuditVerdict; t: TFn }) {
           <ul className="v3-audit-findings">
             {[...blocking, ...warns].map((f, i) => (
               <li
-                key={i}
+                key={`${f.file}:${f.line}:${f.rule}:${i}`}
                 className={
                   "v3-audit-finding " +
                   (f.severity === "Blocking" ? "is-blocking" : "is-warning")
@@ -490,7 +491,7 @@ function AuditPanel({ audit, t }: { audit: AuditVerdict; t: TFn }) {
               <ul className="v3-audit-findings">
                 {audit.llm.findings.map((f, i) => (
                   <li
-                    key={i}
+                    key={`${f.title}:${i}`}
                     className={
                       "v3-audit-finding " +
                       (f.severity === "critical" ? "is-blocking" : "is-warning")

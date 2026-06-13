@@ -3252,7 +3252,9 @@ fn pick_skill_folder(tree: &GhTree, skill_id: &str) -> Option<String> {
     if let Some(d) = skill_dirs.iter().find(|d| basename(d) == skill_id) {
         return Some(d.to_string());
     }
-    // 2. id ends with basename (namespace prefix dropped on disk).
+    // 2. id ends with basename (namespace prefix dropped on disk). Sort by
+    //    longest basename, then by path, so the choice is deterministic even
+    //    when two folders share a basename (monorepo namespacing).
     let mut suffix: Vec<&&str> = skill_dirs
         .iter()
         .filter(|d| {
@@ -3260,7 +3262,12 @@ fn pick_skill_folder(tree: &GhTree, skill_id: &str) -> Option<String> {
             skill_id == b || skill_id.ends_with(&format!("-{b}"))
         })
         .collect();
-    suffix.sort_by_key(|d| std::cmp::Reverse(basename(d).len()));
+    suffix.sort_by(|a, b| {
+        basename(b)
+            .len()
+            .cmp(&basename(a).len())
+            .then_with(|| a.cmp(b))
+    });
     if let Some(d) = suffix.first() {
         return Some(d.to_string());
     }
@@ -3274,17 +3281,58 @@ fn pick_skill_folder(tree: &GhTree, skill_id: &str) -> Option<String> {
     None
 }
 
-/// Run `gh api` and return stdout bytes, or an error string.
+/// Run a command to completion with a hard wall-clock timeout. A watcher
+/// thread owns the child and `wait`s; the caller blocks on a channel with a
+/// deadline. On timeout the process tree is force-killed (taskkill /T) so a
+/// hung `gh`/`claude` can't pin a blocking-pool thread forever.
+fn output_with_timeout(
+    mut command: Command,
+    secs: u64,
+) -> Result<std::process::Output, String> {
+    use std::sync::mpsc;
+    let child = command.spawn().map_err(|e| format!("spawn: {e}"))?;
+    let pid = child.id();
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(child.wait_with_output());
+    });
+    match rx.recv_timeout(Duration::from_secs(secs)) {
+        Ok(r) => r.map_err(|e| format!("wait: {e}")),
+        Err(_) => {
+            let _ = silent_command("taskkill")
+                .args(["/PID", &pid.to_string(), "/T", "/F"])
+                .output();
+            Err(format!("timed out after {secs}s"))
+        }
+    }
+}
+
+/// Run `gh api` (with a timeout) and return stdout bytes, or an error string.
 fn gh_api_blocking(endpoint: &str) -> Result<Vec<u8>, String> {
-    let out = silent_command("gh")
-        .args(["api", endpoint, "-H", "Accept: application/vnd.github+json"])
-        .output()
-        .map_err(|e| format_spawn_error("gh", &e))?;
+    let mut cmd = silent_command("gh");
+    cmd.args(["api", endpoint, "-H", "Accept: application/vnd.github+json"])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    let out = output_with_timeout(cmd, 25)?;
     if !out.status.success() {
         let stderr = String::from_utf8_lossy(&out.stderr);
         return Err(format!("gh api {endpoint}: {}", stderr.trim()));
     }
     Ok(out.stdout)
+}
+
+/// True if `p` is a safe relative path: no traversal, no absolute/drive/UNC
+/// forms, no control chars or backslashes. Tree-entry paths and snapshot
+/// write targets must pass this before touching the filesystem or a URL.
+fn is_safe_rel_path(p: &str) -> bool {
+    !p.is_empty()
+        && !p.contains("..")
+        && !p.contains('\\')
+        && !p.starts_with('/')
+        && !std::path::Path::new(p).is_absolute()
+        // Windows drive letter "C:".
+        && !(p.len() >= 2 && p.as_bytes()[1] == b':')
+        && p.chars().all(|c| !c.is_control())
 }
 
 const MAX_SNAPSHOT_FILES: usize = 40;
@@ -3335,6 +3383,12 @@ async fn skill_audit(
         .map_err(|e| format!("task join: {e}"))??
     };
 
+    // The SHA flows into URLs and a CLI argument — pin it to exactly 40 hex
+    // so a tampered/unexpected value can't redirect or inject.
+    if sha.len() != 40 || !sha.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err("GitHub returned a malformed commit sha".to_string());
+    }
+
     let tree: GhTree =
         serde_json::from_slice(&tree_bytes).map_err(|e| format!("parse tree: {e}"))?;
     let folder = pick_skill_folder(&tree, &skill_id)
@@ -3358,7 +3412,9 @@ async fn skill_audit(
             }
         })
         .filter(|e| e.size.map(|s| s <= MAX_FILE_BYTES).unwrap_or(true))
-        .filter(|e| !e.path.contains("..")) // defense-in-depth
+        // Every path is fed into a URL and a filesystem join — reject any
+        // traversal / absolute / drive / control-char form outright.
+        .filter(|e| is_safe_rel_path(&e.path))
         .take(MAX_SNAPSHOT_FILES)
         .map(|e| e.path.clone())
         .collect();
@@ -3387,7 +3443,17 @@ async fn skill_audit(
         dl.push(tokio::spawn(async move {
             match client.get(&url).send().await {
                 Ok(r) if r.status().is_success() => {
-                    r.text().await.ok().map(|c| skills_audit::SkillFile { path: rel, content: c })
+                    // Reject a body that lies about its size, then cap the
+                    // read so a malicious server can't force a huge alloc.
+                    if r.content_length().map(|l| l > MAX_FILE_BYTES).unwrap_or(false) {
+                        return None;
+                    }
+                    let bytes = r.bytes().await.ok()?;
+                    let capped = &bytes[..bytes.len().min(MAX_FILE_BYTES as usize)];
+                    Some(skills_audit::SkillFile {
+                        path: rel,
+                        content: String::from_utf8_lossy(capped).into_owned(),
+                    })
                 }
                 _ => None,
             }
@@ -3410,8 +3476,15 @@ async fn skill_audit(
     //    Best-effort: any failure (no CLI, auth, timeout, unparseable) just
     //    leaves llm = None and the verdict falls back to the static result.
     let llm = if static_report.passed {
-        let prompt = skills_audit::wrap_untrusted(&files, LLM_PROMPT_BUDGET);
-        let system = skills_audit::llm_system_prompt();
+        // Per-call nonce delimiter so a skill can't embed the closing marker
+        // to escape the untrusted block and inject instructions.
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let nonce = skills_audit::delimiter_nonce(&sha, nanos);
+        let prompt = skills_audit::wrap_untrusted(&files, LLM_PROMPT_BUDGET, &nonce);
+        let system = skills_audit::llm_system_prompt(&nonce);
         tokio::task::spawn_blocking(move || run_claude_skill_audit(&prompt, &system))
             .await
             .ok()
@@ -3443,17 +3516,26 @@ async fn skill_audit(
                 let _ = fs::write(dir.join("audit.json"), j);
             }
             // Cache the snapshot bytes so slice 3 installs exactly these.
-            // Guard against path escape: only write under the snapshot dir.
+            // Confine every write under the snapshot dir: reject unsafe
+            // relative paths, then verify the joined parent stays inside.
             let snap = dir.join("snapshot");
             for f in &files {
-                if f.path.contains("..") {
+                if !is_safe_rel_path(&f.path) {
                     continue;
                 }
                 let dest = snap.join(&f.path);
-                if let Some(p) = dest.parent() {
-                    let _ = fs::create_dir_all(p);
+                let Some(parent) = dest.parent() else { continue };
+                if fs::create_dir_all(parent).is_err() {
+                    continue;
                 }
-                let _ = fs::write(&dest, &f.content);
+                // Post-join containment check (defense in depth on Windows,
+                // where an absolute component would replace the base).
+                match (parent.canonicalize(), snap.canonicalize()) {
+                    (Ok(pc), Ok(sc)) if pc.starts_with(&sc) => {
+                        let _ = fs::write(&dest, &f.content);
+                    }
+                    _ => {}
+                }
             }
         }
     }
@@ -3464,12 +3546,19 @@ async fn skill_audit(
 /// Invoke `claude -p` to review skill content. Returns None on any failure
 /// (CLI missing, auth, timeout, non-JSON output) — the caller treats a None
 /// as "LLM layer unavailable" and relies on the static gate.
+///
+/// stdin is written from a SEPARATE thread while the main thread waits on
+/// stdout, so a large prompt (up to ~60KB, bigger than the OS pipe buffer)
+/// can't deadlock the way write-then-read would. A watchdog force-kills the
+/// child after a wall-clock timeout so a hung/interactive `claude` can't pin
+/// the blocking-pool thread.
 fn run_claude_skill_audit(
     untrusted_prompt: &str,
     system_prompt: &str,
 ) -> Option<skills_audit::LlmReport> {
     use std::io::Write;
     use std::process::Stdio;
+    use std::sync::mpsc;
 
     let mut child = silent_command("claude")
         .args([
@@ -3484,13 +3573,32 @@ fn run_claude_skill_audit(
         .stderr(Stdio::null())
         .spawn()
         .ok()?;
-    // Feed the untrusted content on stdin so size isn't bounded by argv.
-    child
-        .stdin
-        .take()?
-        .write_all(untrusted_prompt.as_bytes())
-        .ok()?;
-    let out = child.wait_with_output().ok()?;
+
+    // Write stdin from its own thread; dropping the handle closes stdin so
+    // claude sees EOF. Doing this concurrently with the stdout read below is
+    // what prevents the pipe-buffer deadlock.
+    let mut stdin = child.stdin.take()?;
+    let payload = untrusted_prompt.as_bytes().to_vec();
+    std::thread::spawn(move || {
+        let _ = stdin.write_all(&payload);
+        // stdin dropped here → EOF.
+    });
+
+    let pid = child.id();
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(child.wait_with_output());
+    });
+
+    let out = match rx.recv_timeout(Duration::from_secs(90)) {
+        Ok(Ok(o)) => o,
+        _ => {
+            let _ = silent_command("taskkill")
+                .args(["/PID", &pid.to_string(), "/T", "/F"])
+                .output();
+            return None;
+        }
+    };
     if !out.status.success() {
         return None;
     }
