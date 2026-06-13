@@ -25,6 +25,7 @@ import { ProjectsView } from "../views/v3/ProjectsView";
 import { AuditView } from "../views/v3/AuditView";
 import { CleanupView } from "../views/v3/CleanupView";
 import { ConversationsView } from "../views/v3/ConversationsView";
+import { TrelloView } from "../views/v3/TrelloView";
 import { ClaudeView } from "../views/v3/ClaudeView";
 import { SettingsView } from "../views/v3/SettingsView";
 import "./AppV3.css";
@@ -260,8 +261,8 @@ export default function AppV3() {
     const handler = (e: KeyboardEvent) => {
       const mod = e.ctrlKey || e.metaKey;
       if (!mod) return;
-      // Ctrl+1..9 — switch tab in sidebar order (overview, projects, prs,
-      // conversations, tokens, standup, todos, audit, cleanup).
+      // Ctrl+1..9 — switch tab in sidebar order (overview, projects,
+      // conversations, trello, audit, cleanup). Driven by KEYBOARD_TAB_ORDER.
       if (e.key >= "1" && e.key <= "9") {
         const idx = Number(e.key) - 1;
         const next = KEYBOARD_TAB_ORDER[idx];
@@ -433,6 +434,7 @@ export default function AppV3() {
           )}
           {tab === "cleanup" && <CleanupView />}
           {tab === "conversations" && <ConversationsView />}
+          {tab === "trello" && <TrelloView />}
           {tab === "claude" && <ClaudeView />}
           {tab === "settings" && (
             <SettingsView

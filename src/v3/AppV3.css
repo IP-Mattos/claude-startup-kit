@@ -4404,3 +4404,402 @@ body.v3-layout #root {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   Trello board view (projects → columns → tasks, full CRUD)
+   ============================================================ */
+
+.v3-trello-head {
+  flex-wrap: wrap;
+}
+.v3-trello-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Live subscriber status pill */
+.v3-trello-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--v3-text-2);
+  white-space: nowrap;
+}
+.v3-trello-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--v3-text-3, var(--v3-text-2));
+}
+.v3-trello-live-live .v3-trello-live-dot {
+  background: #3fb950;
+  box-shadow: 0 0 0 3px rgba(63, 185, 80, 0.18);
+}
+.v3-trello-live-connecting .v3-trello-live-dot {
+  background: #d29922;
+  animation: v3-trello-pulse 1.2s ease-in-out infinite;
+}
+.v3-trello-live-error .v3-trello-live-dot {
+  background: var(--v3-crit, #d9534f);
+}
+@keyframes v3-trello-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.v3-trello-lag,
+.v3-trello-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  padding: 9px 14px;
+  border-radius: var(--v3-radius);
+  border: 1px solid var(--v3-border);
+  background: var(--v3-hover);
+  color: var(--v3-text-2);
+}
+.v3-trello-notice {
+  justify-content: space-between;
+}
+.v3-trello-conflict {
+  font-size: 12.5px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--v3-crit, #d9534f);
+  background: color-mix(in srgb, var(--v3-crit, #d9534f) 12%, transparent);
+  color: var(--v3-text);
+  line-height: 1.4;
+}
+
+/* Board: a horizontal strip of columns; the content area scrolls vertically
+   if a column gets tall, the board scrolls horizontally for many columns. */
+.v3-board {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.v3-board-col {
+  flex: 0 0 282px;
+  width: 282px;
+  background: var(--v3-surface-2, var(--v3-surface, #1b1f26));
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius);
+  display: flex;
+  flex-direction: column;
+}
+.v3-board-col.is-drop-active {
+  border-color: var(--v3-accent);
+  box-shadow: 0 0 0 1px var(--v3-accent) inset;
+}
+.v3-board-col-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--v3-border);
+}
+.v3-board-col-name {
+  font-weight: 600;
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.v3-board-col-count {
+  font-size: 11px;
+  color: var(--v3-text-2);
+  background: var(--v3-hover);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+.v3-board-col-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--v3-text-2);
+  cursor: pointer;
+}
+.v3-board-col-add:hover {
+  background: var(--v3-hover);
+  color: var(--v3-text);
+}
+.v3-board-col-body {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 40px;
+}
+.v3-board-col-empty {
+  font-size: 12px;
+  color: var(--v3-text-3, var(--v3-text-2));
+  text-align: center;
+  padding: 14px 0;
+  margin: 0;
+}
+.v3-board-slot {
+  position: relative;
+}
+.v3-board-slot.show-indicator::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--v3-accent);
+  border-radius: 2px;
+}
+
+/* Task card */
+.v3-task-card {
+  background: var(--v3-surface, #1b1f26);
+  border: 1px solid var(--v3-border);
+  border-radius: 8px;
+  padding: 10px;
+  cursor: grab;
+  transition: border-color 0.12s ease, transform 0.06s ease;
+}
+.v3-task-card:hover {
+  border-color: var(--v3-accent);
+}
+.v3-task-card:active {
+  cursor: grabbing;
+}
+.v3-task-card:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 2px;
+}
+.v3-task-card.is-dragging {
+  opacity: 0.4;
+}
+.v3-task-card.is-done {
+  opacity: 0.62;
+}
+.v3-task-card.is-pending {
+  opacity: 0.55;
+  pointer-events: none;
+}
+.v3-task-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.v3-task-title {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+.v3-task-card.is-done .v3-task-title {
+  text-decoration: line-through;
+}
+.v3-task-complete {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--v3-border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--v3-text-2);
+  cursor: pointer;
+}
+.v3-task-complete:hover {
+  border-color: #3fb950;
+  color: #3fb950;
+}
+.v3-task-progress {
+  height: 4px;
+  background: var(--v3-hover);
+  border-radius: 2px;
+  margin-top: 9px;
+  overflow: hidden;
+}
+.v3-task-progress-fill {
+  height: 100%;
+  background: var(--v3-accent);
+  border-radius: 2px;
+  transition: width 0.2s ease;
+}
+.v3-task-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.v3-task-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--v3-text-2);
+}
+.v3-task-progress-label {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--v3-text-3, var(--v3-text-2));
+}
+
+/* Form fields (shared by the editor + config) */
+.v3-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 13px;
+}
+.v3-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--v3-text-2);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.v3-field-hint {
+  font-size: 11px;
+  color: var(--v3-text-3, var(--v3-text-2));
+}
+.v3-field-row {
+  display: flex;
+  gap: 12px;
+}
+.v3-field-row .v3-field {
+  flex: 1;
+  min-width: 0;
+}
+.v3-textarea {
+  resize: vertical;
+  min-height: 54px;
+  font: inherit;
+  line-height: 1.4;
+}
+
+/* Task editor modal (reuses .v3-modal box styling) */
+.v3-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+.v3-task-editor {
+  max-width: 520px;
+  padding: 0;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+}
+.v3-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--v3-border);
+}
+.v3-modal-head h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+.v3-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--v3-text-2);
+  cursor: pointer;
+}
+.v3-modal-close:hover {
+  background: var(--v3-hover);
+  color: var(--v3-text);
+}
+.v3-modal-body {
+  padding: 16px 18px;
+  overflow-y: auto;
+}
+.v3-modal-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 18px;
+  border-top: 1px solid var(--v3-border);
+}
+.v3-modal-foot-right {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Danger buttons (delete) */
+.v3-btn-danger,
+.v3-btn-ghost-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.v3-btn-danger {
+  background: var(--v3-crit, #d9534f);
+  color: #fff;
+  border: 1px solid var(--v3-crit, #d9534f);
+}
+.v3-btn-danger:hover {
+  filter: brightness(1.08);
+}
+.v3-btn-ghost-danger {
+  background: transparent;
+  color: var(--v3-crit, #d9534f);
+  border: 1px solid transparent;
+}
+.v3-btn-ghost-danger:hover {
+  background: color-mix(in srgb, var(--v3-crit, #d9534f) 12%, transparent);
+}
+
+/* Config screen */
+.v3-trello-config {
+  max-width: 520px;
+}
+.v3-trello-config-form {
+  display: flex;
+  flex-direction: column;
+}
+.v3-trello-config-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--v3-text-3, var(--v3-text-2));
+  margin: 10px 0 0;
+  line-height: 1.45;
+}

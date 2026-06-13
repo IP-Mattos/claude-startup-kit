@@ -8,6 +8,7 @@ import {
   Activity,
   Boxes,
   Cog,
+  Columns3,
   FolderOpen,
   Home,
   Search,
@@ -48,6 +49,7 @@ export const SIDEBAR_SECTIONS: NavSection[] = [
   {
     labelKey: "nav.section_work",
     entries: [
+      { id: "trello", navKey: "nav.trello", Icon: Columns3 },
       { id: "audit", navKey: "nav.audit", Icon: Activity },
       { id: "cleanup", navKey: "nav.cleanup", Icon: Trash2 },
     ],
@@ -68,6 +70,7 @@ export const KEYBOARD_TAB_ORDER: ReadonlyArray<V3Tab> = [
   "overview",
   "projects",
   "conversations",
+  "trello",
   "audit",
   "cleanup",
 ];
