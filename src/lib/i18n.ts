@@ -722,6 +722,7 @@ const STRINGS = {
   },
   "discovery.refresh": { en: "Refresh suggestions", es: "Actualizar sugerencias" },
   "discovery.add_keyword": { en: "Add a topic…", es: "Agregar un tema…" },
+  "discovery.add_keyword_btn": { en: "Add topic", es: "Agregar tema" },
   "discovery.remove_keyword": {
     en: "Remove topic {kw}",
     es: "Quitar tema {kw}",

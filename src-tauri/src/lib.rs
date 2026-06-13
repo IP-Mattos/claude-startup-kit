@@ -3132,7 +3132,9 @@ fn installed_skill_folder_names() -> Vec<String> {
     };
     entries
         .flatten()
-        .filter(|e| e.path().is_dir())
+        // file_type() doesn't follow symlinks (unlike path.is_dir()), so a
+        // symlink in ~/.claude/skills can't masquerade as an installed skill.
+        .filter(|e| e.file_type().map(|ft| ft.is_dir()).unwrap_or(false))
         .filter_map(|e| e.file_name().to_str().map(|s| s.to_string()))
         .filter(|name| !name.starts_with('_'))
         .collect()
@@ -3165,21 +3167,19 @@ async fn skills_discover(
     keywords: Vec<String>,
     hidden_ids: Vec<String>,
 ) -> Result<Vec<skills_discovery::SkillCandidate>, String> {
-    // We only know local installs by their folder name, while skills.sh ids
-    // are "owner/repo/skill". discover() excludes by full id (we have none to
-    // pass), so we exclude installed skills here by matching the candidate's
-    // short skill_id segment against installed folder names.
+    // Reading the skills directory is blocking IO — keep it off the async
+    // runtime per repo convention.
     let installed_set: std::collections::BTreeSet<String> =
-        installed_skill_folder_names().into_iter().collect();
+        tokio::task::spawn_blocking(|| -> std::collections::BTreeSet<String> {
+            installed_skill_folder_names().into_iter().collect()
+        })
+        .await
+        .map_err(|e| format!("task join: {e}"))?;
     let hidden_set: std::collections::BTreeSet<String> = hidden_ids.into_iter().collect();
 
-    let candidates =
-        skills_discovery::discover(&keywords, &std::collections::BTreeSet::new(), &hidden_set)
-            .await?;
-    Ok(candidates
-        .into_iter()
-        .filter(|c| !installed_set.contains(&c.skill_id))
-        .collect())
+    // discover() excludes installed skills internally by matching each
+    // candidate's short skill_id against these folder names.
+    skills_discovery::discover(&keywords, &installed_set, &hidden_set).await
 }
 
 #[tauri::command]

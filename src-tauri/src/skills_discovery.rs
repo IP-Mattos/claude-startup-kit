@@ -195,9 +195,14 @@ fn keywords_from_project_dir(dir: &Path) -> BTreeSet<String> {
     scan_one(dir);
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten().take(64) {
-            let p = entry.path();
-            if p.is_dir() {
-                scan_one(&p);
+            // file_type() does NOT follow symlinks (unlike path.is_dir()), so
+            // a symlinked subdir can't redirect the scan outside the project.
+            let is_real_dir = entry
+                .file_type()
+                .map(|ft| ft.is_dir())
+                .unwrap_or(false);
+            if is_real_dir {
+                scan_one(&entry.path());
             }
         }
     }
@@ -262,24 +267,57 @@ async fn search_one(client: &reqwest::Client, keyword: &str) -> Vec<ApiSkill> {
     }
 }
 
+/// Skills.sh ids are "owner/repo/skill"; locally-installed skills are known
+/// only by their folder name, which equals the trailing `skill` segment.
+/// A candidate is "already installed" when its short skill id matches an
+/// installed folder name.
+fn is_installed(skill_id: &str, installed_skill_ids: &BTreeSet<String>) -> bool {
+    installed_skill_ids.contains(skill_id)
+}
+
+/// True if `id` is a clean skills.sh id: 2-4 `/`-separated segments, each
+/// made of `[A-Za-z0-9._:-]`. Rejects path traversal (`..`), whitespace,
+/// control chars, and anything that could escape the `https://skills.sh/{}`
+/// template. (`:` is allowed because some ids use it, e.g. `react:components`.)
+fn is_valid_skill_id(id: &str) -> bool {
+    let segs: Vec<&str> = id.split('/').collect();
+    if !(2..=4).contains(&segs.len()) {
+        return false;
+    }
+    segs.iter().all(|seg| {
+        !seg.is_empty()
+            && *seg != ".."
+            && *seg != "."
+            && seg
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | ':'))
+    })
+}
+
+/// Largest byte length we'll accept for a single keyword. Auto-derived
+/// keywords are short tokens; this only bounds pathological user-typed
+/// chips so they can't build a multi-KB query string.
+const MAX_KEYWORD_LEN: usize = 64;
+
 /// Discover and rank skill candidates.
 ///
 /// - `keywords`: the effective keyword set (auto ∪ added − excluded), already
 ///   resolved by the caller.
-/// - `installed_ids`: fully-qualified ids of skills the user already has, so
-///   we never suggest something they've installed.
-/// - `hidden_ids`: candidates the user explicitly dismissed.
+/// - `installed_skill_ids`: short skill ids (folder names) the user already
+///   has, so we never suggest something installed. Matched against each
+///   candidate's trailing `skill_id` segment.
+/// - `hidden_ids`: fully-qualified ids the user explicitly dismissed.
 ///
 /// Returns up to `MAX_CANDIDATES`, ranked by `score` descending.
 pub async fn discover(
     keywords: &[String],
-    installed_ids: &BTreeSet<String>,
+    installed_skill_ids: &BTreeSet<String>,
     hidden_ids: &BTreeSet<String>,
 ) -> Result<Vec<SkillCandidate>, String> {
     let kws: Vec<String> = keywords
         .iter()
         .map(|k| k.trim().to_lowercase())
-        .filter(|k| !k.is_empty())
+        .filter(|k| !k.is_empty() && k.len() <= MAX_KEYWORD_LEN)
         .take(MAX_KEYWORDS)
         .collect();
     if kws.is_empty() {
@@ -329,7 +367,12 @@ pub async fn discover(
     let mut candidates: Vec<SkillCandidate> = hits
         .into_values()
         .filter(|(s, _)| s.installs >= MIN_INSTALLS)
-        .filter(|(s, _)| !installed_ids.contains(&s.id))
+        // `id` is untrusted remote data and is interpolated into a URL.
+        // Reject anything that isn't a clean "owner/repo/skill" so a crafted
+        // id (path traversal, newlines, scheme tricks) can never reach
+        // open_url. This also implicitly guards `source` and `skill_id`.
+        .filter(|(s, _)| is_valid_skill_id(&s.id))
+        .filter(|(s, _)| !is_installed(&s.skill_id, installed_skill_ids))
         .filter(|(s, _)| !hidden_ids.contains(&s.id))
         .map(|(s, matched)| {
             let matched_keywords: Vec<String> = matched.into_iter().collect();
@@ -403,6 +446,31 @@ mod tests {
         let small = score_candidate(2_000, 3);
         let giant = score_candidate(400_000, 1);
         assert!(small > giant, "small={small} giant={giant}");
+    }
+
+    #[test]
+    fn valid_skill_id_accepts_clean_and_rejects_malicious() {
+        assert!(is_valid_skill_id("vercel-labs/agent-skills/react-best-practices"));
+        assert!(is_valid_skill_id("google-labs-code/stitch-skills/react:components"));
+        assert!(is_valid_skill_id("owner/repo"));
+        // Path traversal / escapes.
+        assert!(!is_valid_skill_id("../../etc/passwd"));
+        assert!(!is_valid_skill_id("owner/../evil"));
+        assert!(!is_valid_skill_id("foo\nhttps://evil.com"));
+        assert!(!is_valid_skill_id("owner/repo/skill/extra/toomany"));
+        assert!(!is_valid_skill_id("single"));
+        assert!(!is_valid_skill_id("owner//skill"));
+        assert!(!is_valid_skill_id("owner/repo skill")); // space
+    }
+
+    #[test]
+    fn is_installed_matches_short_id() {
+        let installed: BTreeSet<String> =
+            ["react-best-practices".to_string(), "go-testing".to_string()]
+                .into_iter()
+                .collect();
+        assert!(is_installed("react-best-practices", &installed));
+        assert!(!is_installed("vue-best-practices", &installed));
     }
 
     #[test]

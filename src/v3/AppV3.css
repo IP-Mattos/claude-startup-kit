@@ -3957,8 +3957,11 @@ body.v3-layout #root {
   font-family: var(--v3-font);
 }
 .v3-kw-add-input:focus {
-  outline: none;
   border-color: var(--v3-accent);
+}
+.v3-kw-add-input:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 2px;
 }
 .v3-kw-add-btn {
   display: inline-flex;

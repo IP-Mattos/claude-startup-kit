@@ -91,7 +91,10 @@ export function SkillDiscovery() {
     []
   );
 
-  // On mount: derive auto keywords from the stack, then discover.
+  // On mount: derive auto keywords from the stack. Setting autoKeywords
+  // changes effectiveKeywords, which triggers the debounced discovery effect
+  // below — do NOT call runDiscovery() here directly, or it would run with a
+  // stale (empty) `hidden` and skip the user's dismissals on first load.
   useEffect(() => {
     if (!IS_TAURI) return;
     let cancelled = false;
@@ -165,7 +168,7 @@ export function SkillDiscovery() {
   };
 
   return (
-    <article className="v3-card v3-skill-discovery">
+    <article className="v3-card v3-skill-discovery" aria-busy={loading}>
       <header className="v3-card-head">
         <h2 className="v3-card-title">
           <Compass size={15} strokeWidth={2} className="v3-card-title-icon" />
@@ -216,7 +219,7 @@ export function SkillDiscovery() {
             className="v3-kw-add-btn"
             onClick={addKeyword}
             disabled={!newKeyword.trim()}
-            aria-label={t("discovery.add_keyword")}
+            aria-label={t("discovery.add_keyword_btn")}
           >
             <Plus size={12} strokeWidth={2.5} />
           </button>
