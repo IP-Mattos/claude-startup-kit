@@ -4201,6 +4201,41 @@ body.v3-layout #root {
   word-break: break-all;
 }
 
+/* ========== Settings sub-nav (grouped sections) ========== */
+.v3-settings-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius);
+}
+.v3-settings-subnav-btn {
+  flex: 1;
+  min-width: max-content;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--v3-radius-sm);
+  background: transparent;
+  color: var(--v3-text);
+  cursor: pointer;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.v3-settings-subnav-btn:hover {
+  background: var(--v3-hover);
+  opacity: 1;
+}
+.v3-settings-subnav-btn.active {
+  background: var(--v3-accent);
+  color: var(--v3-bg);
+  opacity: 1;
+}
+
 /* ========== Reduced motion ========== */
 @media (prefers-reduced-motion: reduce) {
   .appv3 *,

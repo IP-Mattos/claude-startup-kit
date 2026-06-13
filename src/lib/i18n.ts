@@ -265,6 +265,11 @@ const STRINGS = {
 
   // Settings
   "settings.title": { en: "Settings", es: "Ajustes" },
+  "settings.section_general": { en: "General", es: "General" },
+  "settings.section_shortcuts": { en: "Shortcuts", es: "Atajos" },
+  "settings.section_gentle_ai": { en: "Gentle AI", es: "Gentle AI" },
+  "settings.section_csk": { en: "Claude Startup Kit", es: "Claude Startup Kit" },
+  "settings.section_companion": { en: "Companion", es: "Compañero" },
   "settings.subtitle": {
     en: "App preferences and configuration.",
     es: "Preferencias y configuración de la app.",

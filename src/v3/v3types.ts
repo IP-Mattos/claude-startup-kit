@@ -11,7 +11,6 @@ export type V3Tab =
   | "cleanup"
   | "settings"
   | "claude"
-  | "companions"
   | "sync";
 
 // Backend payload returned by the `workspace_summary` Tauri command.

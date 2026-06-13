@@ -33,7 +33,6 @@ import { CleanupView } from "../views/v3/CleanupView";
 import { ConversationsView } from "../views/v3/ConversationsView";
 import { TokenUsageView } from "../views/v3/TokenUsageView";
 import { ClaudeView } from "../views/v3/ClaudeView";
-import { CompanionsView } from "../views/v3/CompanionsView";
 import { SettingsView } from "../views/v3/SettingsView";
 import { SyncView } from "../views/v3/SyncView";
 import "./AppV3.css";
@@ -467,15 +466,14 @@ export default function AppV3() {
           {tab === "tokens" && <TokenUsageView />}
           {tab === "sync" && <SyncView />}
           {tab === "claude" && <ClaudeView />}
-          {tab === "companions" && (
-            <CompanionsView
-              name={companionName}
-              image={companionImage}
-              onNameChange={setCompanionName}
-              onImageChange={setCompanionImage}
+          {tab === "settings" && (
+            <SettingsView
+              companionName={companionName}
+              companionImage={companionImage}
+              onCompanionNameChange={setCompanionName}
+              onCompanionImageChange={setCompanionImage}
             />
           )}
-          {tab === "settings" && <SettingsView />}
         </main>
         <aside className="appv3-rightpanel" aria-label={t("window.companion_panel")}>
           <CompanionWidget

@@ -7,7 +7,6 @@
 import {
   Activity,
   BarChart3,
-  Bot,
   Boxes,
   Cloud,
   Cog,
@@ -65,7 +64,6 @@ export const SIDEBAR_NAV: NavEntry[] = SIDEBAR_SECTIONS.flatMap((s) => s.entries
 export const TOPBAR_NAV: NavEntry[] = [
   { id: "claude", navKey: "nav.claude", Icon: Boxes },
   { id: "sync", navKey: "nav.sync", Icon: Cloud },
-  { id: "companions", navKey: "nav.companions", Icon: Bot },
   { id: "settings", navKey: "nav.settings", Icon: Cog },
 ];
 
