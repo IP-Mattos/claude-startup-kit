@@ -476,6 +476,14 @@ const STRINGS = {
     en: "{n} audit warning(s) to review",
     es: "{n} advertencia(s) de auditoría para revisar",
   },
+  "overview.signal_updates": {
+    en: "{n} update(s) available",
+    es: "{n} actualización(es) disponible(s)",
+  },
+  "overview.signal_cleanup": {
+    en: "{size} of old files can be cleaned up",
+    es: "{size} de archivos viejos para limpiar",
+  },
   // Inline tokens panel.
   "overview.tokens_title": { en: "Token usage", es: "Uso de tokens" },
   "overview.tokens_day": { en: "Day", es: "Día" },

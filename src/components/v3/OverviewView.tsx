@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   AlertTriangle,
+  ArrowUpCircle,
   Boxes,
   CheckCircle2,
   ChevronRight,
@@ -10,6 +11,7 @@ import {
   Palette,
   ShieldAlert,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
 import {
@@ -21,7 +23,15 @@ import type { Project } from "../../types";
 import type { V3Tab } from "../../v3/v3types";
 import { useT, type StringKey } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
+import { useUpdates } from "../../lib/useUpdates";
+import { useStackUpdates } from "../../lib/useStackUpdates";
 import { Sparkline } from "./Sparkline";
+
+// Only nag about reclaimable space once it's worth a click.
+const CLEANUP_REMINDER_THRESHOLD = 50 * 1024 * 1024; // 50 MB
+interface CleanupItem {
+  bytes: number;
+}
 
 type T = (k: StringKey, vars?: Record<string, string | number>) => string;
 
@@ -155,15 +165,39 @@ function freshnessScore(daysAgo: number): number {
 // their data sources.
 // =============================================================
 
+// Bytes → "12.3 MB". Reclaimable space below the reminder threshold is
+// treated as "nothing worth nagging about".
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  const units = ["KB", "MB", "GB"];
+  let v = n / 1024;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i += 1;
+  }
+  return `${v.toFixed(v >= 10 ? 0 : 1)} ${units[i]}`;
+}
+
 interface SignalFeedProps {
   crit: number;
   warn: number;
+  reclaimableBytes: number;
+  updateCount: number;
   loading: boolean;
   onJump: (tab: V3Tab) => void;
   t: T;
 }
 
-function SignalFeed({ crit, warn, loading, onJump, t }: SignalFeedProps) {
+function SignalFeed({
+  crit,
+  warn,
+  reclaimableBytes,
+  updateCount,
+  loading,
+  onJump,
+  t,
+}: SignalFeedProps) {
   if (loading) {
     return (
       <section className="v3-card v3-signal-feed">
@@ -171,7 +205,9 @@ function SignalFeed({ crit, warn, loading, onJump, t }: SignalFeedProps) {
       </section>
     );
   }
-  const hasSignal = crit > 0 || warn > 0;
+  const showCleanup = reclaimableBytes > 0;
+  const showUpdates = updateCount > 0;
+  const hasSignal = crit > 0 || warn > 0 || showCleanup || showUpdates;
   return (
     <section className="v3-card v3-signal-feed">
       <header className="v3-card-head">
@@ -206,6 +242,32 @@ function SignalFeed({ crit, warn, loading, onJump, t }: SignalFeedProps) {
               <ShieldAlert size={15} strokeWidth={2.2} />
               <span className="v3-signal-text">
                 {t("overview.signal_warn", { n: warn })}
+              </span>
+              <ChevronRight size={15} strokeWidth={2} className="v3-chev" />
+            </button>
+          )}
+          {showUpdates && (
+            <button
+              type="button"
+              className="v3-signal-row v3-signal-info"
+              onClick={() => onJump("settings")}
+            >
+              <ArrowUpCircle size={15} strokeWidth={2.2} />
+              <span className="v3-signal-text">
+                {t("overview.signal_updates", { n: updateCount })}
+              </span>
+              <ChevronRight size={15} strokeWidth={2} className="v3-chev" />
+            </button>
+          )}
+          {showCleanup && (
+            <button
+              type="button"
+              className="v3-signal-row v3-signal-info"
+              onClick={() => onJump("cleanup")}
+            >
+              <Trash2 size={15} strokeWidth={2.2} />
+              <span className="v3-signal-text">
+                {t("overview.signal_cleanup", { size: formatBytes(reclaimableBytes) })}
               </span>
               <ChevronRight size={15} strokeWidth={2} className="v3-chev" />
             </button>
@@ -345,6 +407,34 @@ export function OverviewView({
   const { t } = useT();
   const recentProjects = projects.slice(0, 3);
 
+  // Reclaimable space (cleanup reminder). Sum the cleanup plan's bytes for
+  // items older than 30 days; only surfaced past the threshold.
+  const [reclaimableBytes, setReclaimableBytes] = useState(0);
+  useEffect(() => {
+    if (!IS_TAURI) return;
+    let cancelled = false;
+    invoke<CleanupItem[]>("cleanup_plan", { olderThanDays: 30 })
+      .then((items) => {
+        if (cancelled) return;
+        const total = items.reduce((sum, it) => sum + (it.bytes || 0), 0);
+        setReclaimableBytes(total >= CLEANUP_REMINDER_THRESHOLD ? total : 0);
+      })
+      .catch(() => {
+        /* best-effort — no reminder if the scan fails */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Available updates (app self-update + gentle-ai stack tools). Both hooks
+  // do their own IPCs on mount; we only read the resulting counts.
+  const updates = useUpdates();
+  const stack = useStackUpdates();
+  const updateCount =
+    (updates.app?.available ? 1 : 0) +
+    stack.tools.filter((tool) => tool.state === "update_available").length;
+
   const ONBOARDING_KEY = "csk-onboarding-dismissed";
   const [onboardingDismissed, setOnboardingDismissed] = useState<boolean>(() => {
     try {
@@ -419,7 +509,15 @@ export function OverviewView({
         </article>
       )}
 
-      <SignalFeed crit={stats.crit} warn={stats.warn} loading={loading} onJump={onJump} t={t} />
+      <SignalFeed
+        crit={stats.crit}
+        warn={stats.warn}
+        reclaimableBytes={reclaimableBytes}
+        updateCount={updateCount}
+        loading={loading}
+        onJump={onJump}
+        t={t}
+      />
 
       <section className="v3-card v3-recent-projects">
         <header className="v3-card-head">

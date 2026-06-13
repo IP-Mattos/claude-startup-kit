@@ -4301,6 +4301,13 @@ body.v3-layout #root {
 .v3-signal-warn svg {
   color: var(--v3-warn);
 }
+.v3-signal-info {
+  border-left-color: var(--v3-info);
+  background: var(--v3-info-tint);
+}
+.v3-signal-info svg {
+  color: var(--v3-info);
+}
 .v3-signal-row .v3-chev {
   opacity: 0.5;
 }
