@@ -16,6 +16,7 @@ use tauri::{
 
 mod skills_audit;
 mod skills_discovery;
+mod trello;
 
 /// Format a `Command::spawn` / `Command::output` IO error into a renderer-
 /// friendly message.
@@ -7045,7 +7046,25 @@ pub fn run() {
             toggle_mcp_server,
             fix_claude_vscode_extension,
             search_conversations,
-            token_usage
+            token_usage,
+            // Trello equipo integration (PR#7 + PR#8).
+            trello::commands::trello_configure,
+            trello::commands::trello_load_persisted,
+            trello::commands::trello_clear_config,
+            trello::commands::trello_me,
+            trello::commands::trello_list_projects,
+            trello::commands::trello_get_project,
+            trello::commands::trello_list_columns,
+            trello::commands::trello_list_tasks,
+            trello::commands::trello_get_task,
+            trello::commands::trello_create_task,
+            trello::commands::trello_patch_task,
+            trello::commands::trello_move_task,
+            trello::commands::trello_complete_task,
+            trello::commands::trello_delete_task,
+            trello::commands::trello_changes,
+            trello::commands::trello_start_subscriber,
+            trello::commands::trello_stop_subscriber,
         ])
         .setup(|app| {
             let show_i = MenuItem::with_id(app, "show", "Mostrar ventana", true, None::<&str>)?;
