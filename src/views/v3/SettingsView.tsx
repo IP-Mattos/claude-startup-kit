@@ -25,21 +25,13 @@ import { CompanionsView } from "./CompanionsView";
 
 // Grouped settings — a segmented sub-nav instead of one long scroll. The id
 // stays English; the label resolves via useT() at render.
-type SettingsSection =
-  | "general"
-  | "shortcuts"
-  | "claude_code"
-  | "gentle_ai"
-  | "csk"
-  | "companion";
+type SettingsSection = "general" | "claude_code" | "gentle_ai" | "csk";
 
 const SETTINGS_SECTIONS: { id: SettingsSection; key: StringKey }[] = [
   { id: "general", key: "settings.section_general" },
-  { id: "shortcuts", key: "settings.section_shortcuts" },
   { id: "claude_code", key: "settings.section_claude_code" },
   { id: "gentle_ai", key: "settings.section_gentle_ai" },
   { id: "csk", key: "settings.section_csk" },
-  { id: "companion", key: "settings.section_companion" },
 ];
 
 interface SettingsViewProps {
@@ -306,36 +298,33 @@ export function SettingsView({
               )}
             </div>
           </article>
-        </>
-      )}
 
-      {/* ── Shortcuts ── */}
-      {section === "shortcuts" && (
-        <article className="v3-card">
-          <header className="v3-card-head">
-            <h2 className="v3-card-title">{t("settings.shortcuts")}</h2>
-          </header>
-          <div className="v3-form">
-            <div className="v3-shortcuts">
-              <div className="v3-shortcut">
-                <kbd>Ctrl</kbd> + <kbd>1</kbd>…<kbd>7</kbd>
-                <span>{t("settings.shortcut_switch_tabs")}</span>
-              </div>
-              <div className="v3-shortcut">
-                <kbd>Ctrl</kbd> + <kbd>R</kbd>
-                <span>{t("settings.shortcut_refresh")}</span>
-              </div>
-              <div className="v3-shortcut">
-                <kbd>Ctrl</kbd> + <kbd>,</kbd>
-                <span>{t("settings.shortcut_open_settings")}</span>
-              </div>
-              <div className="v3-shortcut">
-                <kbd>Ctrl</kbd> + <kbd>T</kbd>
-                <span>{t("settings.shortcut_cycle_theme")}</span>
+          <article className="v3-card">
+            <header className="v3-card-head">
+              <h2 className="v3-card-title">{t("settings.shortcuts")}</h2>
+            </header>
+            <div className="v3-form">
+              <div className="v3-shortcuts">
+                <div className="v3-shortcut">
+                  <kbd>Ctrl</kbd> + <kbd>1</kbd>…<kbd>7</kbd>
+                  <span>{t("settings.shortcut_switch_tabs")}</span>
+                </div>
+                <div className="v3-shortcut">
+                  <kbd>Ctrl</kbd> + <kbd>R</kbd>
+                  <span>{t("settings.shortcut_refresh")}</span>
+                </div>
+                <div className="v3-shortcut">
+                  <kbd>Ctrl</kbd> + <kbd>,</kbd>
+                  <span>{t("settings.shortcut_open_settings")}</span>
+                </div>
+                <div className="v3-shortcut">
+                  <kbd>Ctrl</kbd> + <kbd>T</kbd>
+                  <span>{t("settings.shortcut_cycle_theme")}</span>
+                </div>
               </div>
             </div>
-          </div>
-        </article>
+          </article>
+        </>
       )}
 
       {/* ── Claude Code: VS Code extension fix ── */}
@@ -532,46 +521,44 @@ export function SettingsView({
 
       {/* ── Claude Startup Kit: the app's own self-update ── */}
       {section === "csk" && (
-        <article className="v3-card">
-          <header className="v3-card-head">
-            <h2 className="v3-card-title">{t("settings.updates")}</h2>
-            <button
-              type="button"
-              className="v3-link"
-              onClick={updates.checkNow}
-              disabled={updates.checking}
-            >
-              {updates.checking ? t("settings.checking") : t("settings.check_now")}
-            </button>
-          </header>
-          <div className="v3-form">
-            <UpdateRow
-              label={t("settings.update_app_label")}
-              status={updates.app}
-              notConfiguredHint={t("settings.update_app_hint")}
-              onApply={() => {
-                void updates.applyApp();
-              }}
-              applying={updates.applyingApp}
-            />
-            {updates.appError && (
-              <div className="v3-error" role="alert" aria-live="assertive">
-                {updates.appError}
-              </div>
-            )}
-            <p className="v3-row-meta">{t("settings.updates_auto_hint")}</p>
-          </div>
-        </article>
-      )}
-
-      {/* ── Companion ── */}
-      {section === "companion" && (
-        <CompanionsView
-          name={companionName}
-          image={companionImage}
-          onNameChange={onCompanionNameChange}
-          onImageChange={onCompanionImageChange}
-        />
+        <>
+          <article className="v3-card">
+            <header className="v3-card-head">
+              <h2 className="v3-card-title">{t("settings.updates")}</h2>
+              <button
+                type="button"
+                className="v3-link"
+                onClick={updates.checkNow}
+                disabled={updates.checking}
+              >
+                {updates.checking ? t("settings.checking") : t("settings.check_now")}
+              </button>
+            </header>
+            <div className="v3-form">
+              <UpdateRow
+                label={t("settings.update_app_label")}
+                status={updates.app}
+                notConfiguredHint={t("settings.update_app_hint")}
+                onApply={() => {
+                  void updates.applyApp();
+                }}
+                applying={updates.applyingApp}
+              />
+              {updates.appError && (
+                <div className="v3-error" role="alert" aria-live="assertive">
+                  {updates.appError}
+                </div>
+              )}
+              <p className="v3-row-meta">{t("settings.updates_auto_hint")}</p>
+            </div>
+          </article>
+          <CompanionsView
+            name={companionName}
+            image={companionImage}
+            onNameChange={onCompanionNameChange}
+            onImageChange={onCompanionImageChange}
+          />
+        </>
       )}
 
       <ConfirmModal
