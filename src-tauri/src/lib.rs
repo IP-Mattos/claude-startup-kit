@@ -2702,6 +2702,29 @@ async fn open_path_in_explorer(path: String) -> Result<(), String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+/// Set the main window's icon at runtime from raw RGBA pixels. The frontend
+/// draws the brand shield in the active theme's accent colour onto a canvas
+/// and ships the pixels here, so the TASKBAR icon follows the in-app theme.
+/// (The installed desktop-shortcut icon is baked at build time and can't
+/// change at runtime — this only affects the running window/taskbar icon.)
+#[tauri::command]
+fn set_window_icon(
+    window: tauri::WebviewWindow,
+    rgba: Vec<u8>,
+    width: u32,
+    height: u32,
+) -> Result<(), String> {
+    let expected = (width as usize) * (height as usize) * 4;
+    if rgba.len() != expected {
+        return Err(format!(
+            "icon rgba length {} != expected {expected} for {width}x{height}",
+            rgba.len()
+        ));
+    }
+    let icon = tauri::image::Image::new_owned(rgba, width, height);
+    window.set_icon(icon).map_err(|e| e.to_string())
+}
+
 // ─── Fix Claude VS Code extension ─────────────────────────────────────────
 //
 // The Anthropic Claude Code extension ships with a hardcoded Linux CI path
@@ -7013,6 +7036,7 @@ pub fn run() {
             open_skill_registry,
             open_in_vscode,
             open_path_in_explorer,
+            set_window_icon,
             open_url,
             check_app_update,
             apply_app_update,

@@ -3,6 +3,8 @@
 // two files drift and a new theme breaks the cycle order.
 
 import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { IS_TAURI } from "./env";
 
 export const V3_THEME_ORDER = [
   "light",
@@ -78,6 +80,62 @@ const themeLoaders = import.meta.glob<unknown>("../v3/themes/*.css");
 const loadedThemes = new Set<string>();
 let loadingPromise: Promise<void> | null = null;
 
+// Brand shield geometry (matches public/Shield.svg, lucide ShieldCheck).
+const ICON_SHIELD =
+  "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z";
+const ICON_CHECK = "M9 12l2 2 4-4";
+
+// Redraw the brand mark in the active theme's accent/ink and push it to the
+// window so the TASKBAR icon follows the in-app theme (the installed desktop
+// shortcut icon is baked at build time and can't change). Reads the live CSS
+// vars so it always matches whatever the theme stylesheet defines — the
+// V3_THEME_OPTIONS swatches drift and aren't reliable for this. No-op outside
+// Tauri (browser preview) and best-effort: a failure never breaks theming.
+async function updateTaskbarIcon(): Promise<void> {
+  if (!IS_TAURI) return;
+  try {
+    const root = document.querySelector(".appv3") ?? document.body;
+    const cs = getComputedStyle(root);
+    const accent = cs.getPropertyValue("--v3-accent").trim() || "#ED7B26";
+    const ink = cs.getPropertyValue("--v3-accent-ink").trim() || "#FFFFFF";
+
+    const SIZE = 64;
+    const canvas = document.createElement("canvas");
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // rounded square in the theme accent (corner radius from Shield.svg)
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, SIZE, SIZE, SIZE * (116 / 512));
+    ctx.fill();
+
+    // shield-check stroked in the on-accent ink (Shield.svg transform)
+    const k = SIZE / 512;
+    ctx.save();
+    ctx.translate(86 * k, 86 * k);
+    ctx.scale(14.16667 * k, 14.16667 * k);
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.stroke(new Path2D(ICON_SHIELD));
+    ctx.stroke(new Path2D(ICON_CHECK));
+    ctx.restore();
+
+    const rgba = ctx.getImageData(0, 0, SIZE, SIZE).data;
+    await invoke("set_window_icon", {
+      rgba: Array.from(rgba),
+      width: SIZE,
+      height: SIZE,
+    });
+  } catch (e) {
+    console.warn("[v3] taskbar icon update failed:", e);
+  }
+}
+
 // Load (and cache) the requested theme's stylesheet, applying it to <body>
 // once present. Safe to call repeatedly — subsequent calls for the same
 // theme are a no-op. Returns the promise so callers can await first paint.
@@ -87,10 +145,14 @@ export async function loadV3Theme(name: V3Theme | string): Promise<void> {
   // defines the light tokens, so we always load it.
   applyV3ThemeAttribute(name);
 
-  if (loadedThemes.has(name)) return;
+  if (loadedThemes.has(name)) {
+    void updateTaskbarIcon();
+    return;
+  }
   const loader = themeLoaders[`../v3/themes/${name}.css`];
   if (!loader) {
     console.warn(`[v3] theme "${name}" not found in glob — using current tokens`);
+    void updateTaskbarIcon();
     return;
   }
   loadingPromise = (async () => {
@@ -100,6 +162,8 @@ export async function loadV3Theme(name: V3Theme | string): Promise<void> {
     } catch (e) {
       console.error(`[v3] failed to load theme ${name}:`, e);
     }
+    // CSS is applied now — redraw the taskbar icon to match.
+    void updateTaskbarIcon();
   })();
   return loadingPromise;
 }
