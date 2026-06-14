@@ -1594,6 +1594,101 @@ body.v3-layout #root {
   color: #B45309;
 }
 
+/* ── Modern theme: Recent Projects as hover "folders" ─────────
+   Cards become folder-shaped tiles in the high-contrast ink colour
+   (white on dark, near-black on light). Only the name + time show;
+   the description reveals as a tooltip on hover. ^="modern" covers
+   both modern modes; lives here (always-loaded) to avoid per-theme
+   duplication and any OverviewView change. */
+body[data-theme-v3^="modern"] .v3-recent-projects,
+body[data-theme-v3^="modern"] .v3-recent-projects-grid,
+body[data-theme-v3^="modern"] .v3-recent-project {
+  overflow: visible; /* let the hover tooltip escape the card */
+}
+body[data-theme-v3^="modern"] .v3-recent-projects-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+body[data-theme-v3^="modern"] .v3-recent-project {
+  position: relative;
+  width: 190px;
+  flex: 0 0 auto;
+  gap: 7px;
+  padding: 14px 15px 13px;
+  background: var(--v3-text);
+  border: none;
+  border-radius: 4px 13px 13px 13px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+body[data-theme-v3^="modern"] .v3-recent-project::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 0;
+  width: 60px;
+  height: 10px;
+  background: var(--v3-text);
+  border-radius: 5px 9px 0 0;
+}
+body[data-theme-v3^="modern"] .v3-recent-project:hover {
+  border: none;
+  transform: translateY(-3px);
+  box-shadow: 0 15px 34px rgba(0, 0, 0, 0.5);
+}
+body[data-theme-v3^="modern"] .v3-recent-project-icon {
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  color: var(--v3-bg);
+  opacity: 0.9;
+}
+body[data-theme-v3^="modern"] .v3-recent-project-name {
+  color: var(--v3-bg);
+  font-weight: 650;
+}
+body[data-theme-v3^="modern"] .v3-recent-project-foot {
+  margin-top: 2px;
+}
+body[data-theme-v3^="modern"] .v3-recent-ago {
+  color: var(--v3-bg);
+  opacity: 0.6;
+}
+body[data-theme-v3^="modern"] .v3-pct-pill {
+  display: none; /* freshness pill not needed on the folder face */
+}
+body[data-theme-v3^="modern"] .v3-recent-project-desc {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 12px);
+  width: 244px;
+  padding: 11px 13px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border-strong);
+  border-radius: 12px;
+  color: var(--v3-text-2);
+  box-shadow: var(--v3-shadow-3);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(5px);
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s;
+  z-index: 30;
+  pointer-events: none;
+}
+body[data-theme-v3^="modern"] .v3-recent-project:hover .v3-recent-project-desc {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 24px;
+  border: 6px solid transparent;
+  border-top-color: var(--v3-surface);
+}
+
 /* 2-col row (PRs + Audit summary) */
 .v3-row-2col {
   display: grid;
