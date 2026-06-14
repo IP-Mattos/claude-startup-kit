@@ -3,10 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import {
   Boxes,
   CheckCircle2,
+  Compass,
   Download,
   ExternalLink,
   RefreshCw,
-  Wrench,
   XCircle,
 } from "lucide-react";
 import { friendlyErrorEn } from "../../lib/format";
@@ -49,8 +49,13 @@ interface GentleAiStatus {
   plugins_enabled: string[];
 }
 
+// Segmented sub-tabs replace the old single long scroll. Each id stays
+// English; labels resolve via t() at render.
+type GaiSubTab = "overview" | "components" | "skills" | "mcps" | "discover";
+
 export function ClaudeView() {
   const { t } = useT();
+  const [subTab, setSubTab] = useState<GaiSubTab>("overview");
   const [skills, setSkills] = useState<ClaudeSkill[]>([]);
   // Skills can run into the dozens — paginate so the card stays a glance,
   // not an endless scroll.
@@ -69,26 +74,6 @@ export function ClaudeView() {
   // 5s so it doesn't linger after the next refresh.
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
-
-  // VS Code extension fix — runs the bundled PowerShell patch and shows
-  // the captured output below the button. Idempotent: safe to re-run.
-  const [fixRunning, setFixRunning] = useState(false);
-  const [fixOutput, setFixOutput] = useState<string | null>(null);
-  const [fixError, setFixError] = useState<string | null>(null);
-  const runFixVscode = async () => {
-    if (!IS_TAURI) return;
-    setFixRunning(true);
-    setFixError(null);
-    setFixOutput(null);
-    try {
-      const result = await invoke<string>("fix_claude_vscode_extension");
-      setFixOutput(result);
-    } catch (e) {
-      setFixError(friendlyErrorEn(e));
-    } finally {
-      setFixRunning(false);
-    }
-  };
 
   const runSync = async (includeTheme: boolean) => {
     if (!IS_TAURI || syncing) return;
@@ -232,10 +217,6 @@ export function ClaudeView() {
       /* best-effort */
     });
 
-  // Stats tiles deep-link to their section further down the same page.
-  const scrollToId = (id: string) =>
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-
   return (
     <div className="v3-view">
       <header className="v3-view-head">
@@ -262,8 +243,8 @@ export function ClaudeView() {
         </div>
       )}
 
-      {/* Header: loading skeleton, full health card, or the not-installed
-          onboarding (a clear "what it is + how to install"). */}
+      {/* Header: loading skeleton, the not-installed onboarding, or — when
+          installed — the segmented sub-tabs + the active panel. */}
       {loading ? (
         <article className="v3-card v3-gai-header-card">
           <header className="v3-card-head">
@@ -271,76 +252,7 @@ export function ClaudeView() {
           </header>
           <div className="v3-empty">{t("common.loading")}</div>
         </article>
-      ) : installed ? (
-        <article className="v3-card v3-gai-header-card">
-          <header className="v3-card-head">
-            <h2 className="v3-card-title">{t("claude.gentle_ai_title")}</h2>
-            <span className="v3-row-dim v3-gai-version-row">
-              {t("claude.cli_version")} {status!.cli_version}
-              <button
-                type="button"
-                className="v3-link v3-gai-release-notes"
-                onClick={() =>
-                  invoke("open_url", {
-                    url: `https://github.com/Gentleman-Programming/gentle-ai/releases/tag/v${status!.cli_version}`,
-                  }).catch(() => {
-                    /* best-effort */
-                  })
-                }
-                title={t("claude.release_notes_hint")}
-              >
-                <ExternalLink size={11} strokeWidth={2} />
-                {t("claude.release_notes")}
-              </button>
-            </span>
-          </header>
-          <p className="v3-subtitle">{t("claude.gentle_ai_subtitle")}</p>
-          <div className="v3-gai-health">
-            <span className="v3-gai-health-count">
-              <strong>{installedCount}</strong>/{totalCount} {t("claude.components_word")}
-            </span>
-            <div
-              className="v3-gai-health-bar"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={totalCount}
-              aria-valuenow={installedCount}
-            >
-              <div
-                className="v3-gai-health-bar-fill"
-                style={{
-                  width: `${totalCount > 0 ? Math.round((installedCount / totalCount) * 100) : 0}%`,
-                }}
-              />
-            </div>
-          </div>
-          <div className="v3-gai-sync-actions">
-            <button
-              type="button"
-              className="v3-btn-primary"
-              onClick={() => runSync(false)}
-              disabled={syncing}
-            >
-              <Download size={13} strokeWidth={2} />
-              {syncing ? t("claude.syncing") : t("claude.sync_all")}
-            </button>
-            <button
-              type="button"
-              className="v3-link"
-              onClick={() => runSync(true)}
-              disabled={syncing}
-            >
-              {t("claude.sync_all_with_theme")}
-            </button>
-          </div>
-          {syncResult && (
-            <div className="v3-success v3-gai-sync-result" role="status" aria-live="polite">
-              <CheckCircle2 size={14} strokeWidth={2} />
-              {syncResult}
-            </div>
-          )}
-        </article>
-      ) : (
+      ) : !installed ? (
         <article className="v3-card v3-gai-onboarding">
           <div className="v3-gai-onboarding-glyph" aria-hidden="true">
             <Boxes size={26} strokeWidth={1.6} />
@@ -363,14 +275,183 @@ export function ClaudeView() {
             </button>
           </div>
         </article>
+      ) : (
+        <>
+      {/* Segmented sub-tabs — one panel at a time replaces the old long scroll. */}
+      <nav className="v3-gai-subtabs" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subTab === "overview"}
+          className={"v3-gai-subtab" + (subTab === "overview" ? " active" : "")}
+          onClick={() => setSubTab("overview")}
+        >
+          {t("claude.subtab_overview")}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subTab === "components"}
+          className={"v3-gai-subtab" + (subTab === "components" ? " active" : "")}
+          onClick={() => setSubTab("components")}
+        >
+          {t("claude.subtab_components")}
+          <span className="v3-gai-subtab-count">
+            {installedCount}/{totalCount}
+          </span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subTab === "skills"}
+          className={"v3-gai-subtab" + (subTab === "skills" ? " active" : "")}
+          onClick={() => setSubTab("skills")}
+        >
+          {t("claude.subtab_skills")}
+          <span className="v3-gai-subtab-count">{status?.skills_total ?? 0}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subTab === "mcps"}
+          className={"v3-gai-subtab" + (subTab === "mcps" ? " active" : "")}
+          onClick={() => setSubTab("mcps")}
+        >
+          {t("claude.subtab_mcps")}
+          <span className="v3-gai-subtab-count">
+            {status?.mcp_servers_total ?? 0}
+          </span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={subTab === "discover"}
+          className={"v3-gai-subtab" + (subTab === "discover" ? " active" : "")}
+          onClick={() => setSubTab("discover")}
+        >
+          {t("claude.subtab_discover")}
+        </button>
+      </nav>
+
+      {/* ── Overview: health card + stats strip + discover hint ── */}
+      {subTab === "overview" && (
+        <>
+          <article className="v3-card v3-gai-header-card">
+            <header className="v3-card-head">
+              <h2 className="v3-card-title">{t("claude.gentle_ai_title")}</h2>
+              <span className="v3-row-dim v3-gai-version-row">
+                {t("claude.cli_version")} {status!.cli_version}
+                <button
+                  type="button"
+                  className="v3-link v3-gai-release-notes"
+                  onClick={() =>
+                    invoke("open_url", {
+                      url: `https://github.com/Gentleman-Programming/gentle-ai/releases/tag/v${status!.cli_version}`,
+                    }).catch(() => {
+                      /* best-effort */
+                    })
+                  }
+                  title={t("claude.release_notes_hint")}
+                >
+                  <ExternalLink size={11} strokeWidth={2} />
+                  {t("claude.release_notes")}
+                </button>
+              </span>
+            </header>
+            <p className="v3-subtitle">{t("claude.gentle_ai_subtitle")}</p>
+            <div className="v3-gai-health">
+              <span className="v3-gai-health-count">
+                <strong>{installedCount}</strong>/{totalCount} {t("claude.components_word")}
+              </span>
+              <div
+                className="v3-gai-health-bar"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={totalCount}
+                aria-valuenow={installedCount}
+              >
+                <div
+                  className="v3-gai-health-bar-fill"
+                  style={{
+                    width: `${totalCount > 0 ? Math.round((installedCount / totalCount) * 100) : 0}%`,
+                  }}
+                />
+              </div>
+            </div>
+            <div className="v3-gai-sync-actions">
+              <button
+                type="button"
+                className="v3-btn-primary"
+                onClick={() => runSync(false)}
+                disabled={syncing}
+              >
+                <Download size={13} strokeWidth={2} />
+                {syncing ? t("claude.syncing") : t("claude.sync_all")}
+              </button>
+              <button
+                type="button"
+                className="v3-link"
+                onClick={() => runSync(true)}
+                disabled={syncing}
+              >
+                {t("claude.sync_all_with_theme")}
+              </button>
+            </div>
+            {syncResult && (
+              <div className="v3-success v3-gai-sync-result" role="status" aria-live="polite">
+                <CheckCircle2 size={14} strokeWidth={2} />
+                {syncResult}
+              </div>
+            )}
+          </article>
+
+          {/* Stats strip — Skills + MCPs jump to their sub-tab; Hooks +
+              Plugins are informational counts. */}
+          <section className="v3-gai-stats-strip">
+            <button
+              type="button"
+              className="v3-gai-stat-tile is-link"
+              onClick={() => setSubTab("skills")}
+            >
+              <div className="v3-gai-stat-value">{status?.skills_total ?? 0}</div>
+              <div className="v3-gai-stat-label">{t("claude.stat_skills")}</div>
+            </button>
+            <button
+              type="button"
+              className="v3-gai-stat-tile is-link"
+              onClick={() => setSubTab("mcps")}
+            >
+              <div className="v3-gai-stat-value">{status?.mcp_servers_total ?? 0}</div>
+              <div className="v3-gai-stat-label">{t("claude.stat_mcps")}</div>
+            </button>
+            <div className="v3-gai-stat-tile">
+              <div className="v3-gai-stat-value">{status?.hooks_total ?? 0}</div>
+              <div className="v3-gai-stat-label">{t("claude.stat_hooks")}</div>
+            </div>
+            <div className="v3-gai-stat-tile">
+              <div className="v3-gai-stat-value">{status?.plugins_enabled.length ?? 0}</div>
+              <div className="v3-gai-stat-label">{t("claude.stat_plugins")}</div>
+            </div>
+          </section>
+
+          {/* Discover hint — points to the Discover tab. Non-numeric, since
+              status carries no "new skills" count. */}
+          <button
+            type="button"
+            className="v3-gai-hint"
+            onClick={() => setSubTab("discover")}
+          >
+            <span className="v3-gai-hint-left">
+              <Compass size={15} strokeWidth={2} className="v3-gai-hint-icon" aria-hidden="true" />
+              <span className="v3-gai-hint-text">{t("claude.discover_hint")}</span>
+            </span>
+            <span className="v3-gai-hint-cta">{t("claude.discover_cta")} ›</span>
+          </button>
+        </>
       )}
 
-      {installed && (
-        <>
-      {/* Suggested skills from skills.sh, ranked by the user's stack. */}
-      <SkillDiscovery />
-
-      {/* Components grid — 8 cards, one per known gentle-ai component. */}
+      {/* ── Components: 8 cards, one per known gentle-ai component ── */}
+      {subTab === "components" && (
       <article className="v3-card">
         <header className="v3-card-head">
           <h2 className="v3-card-title">{t("claude.components_title")}</h2>
@@ -429,37 +510,11 @@ export function ClaudeView() {
           </div>
         )}
       </article>
+      )}
 
-      {/* Stats strip — Skills + MCPs are buttons that scroll to their section;
-          Hooks + Plugins are informational counts (no in-page section yet). */}
-      <section className="v3-gai-stats-strip">
-        <button
-          type="button"
-          className="v3-gai-stat-tile is-link"
-          onClick={() => scrollToId("v3-gai-skills")}
-        >
-          <div className="v3-gai-stat-value">{status?.skills_total ?? 0}</div>
-          <div className="v3-gai-stat-label">{t("claude.stat_skills")}</div>
-        </button>
-        <button
-          type="button"
-          className="v3-gai-stat-tile is-link"
-          onClick={() => scrollToId("v3-gai-mcp")}
-        >
-          <div className="v3-gai-stat-value">{status?.mcp_servers_total ?? 0}</div>
-          <div className="v3-gai-stat-label">{t("claude.stat_mcps")}</div>
-        </button>
-        <div className="v3-gai-stat-tile">
-          <div className="v3-gai-stat-value">{status?.hooks_total ?? 0}</div>
-          <div className="v3-gai-stat-label">{t("claude.stat_hooks")}</div>
-        </div>
-        <div className="v3-gai-stat-tile">
-          <div className="v3-gai-stat-value">{status?.plugins_enabled.length ?? 0}</div>
-          <div className="v3-gai-stat-label">{t("claude.stat_plugins")}</div>
-        </div>
-      </section>
-
-      <article className="v3-card" id="v3-gai-mcp">
+      {/* ── MCPs ── */}
+      {subTab === "mcps" && (
+      <article className="v3-card">
         <header className="v3-card-head">
           <h2 className="v3-card-title">{t("claude.mcp_title")}</h2>
           <span className="v3-row-dim">
@@ -511,8 +566,11 @@ export function ClaudeView() {
           </ul>
         )}
       </article>
+      )}
 
-      <article className="v3-card" id="v3-gai-skills">
+      {/* ── Skills ── */}
+      {subTab === "skills" && (
+      <article className="v3-card">
         <header className="v3-card-head">
           <h2 className="v3-card-title">{t("claude.skills_title")}</h2>
           <span className="v3-row-dim">
@@ -605,41 +663,12 @@ export function ClaudeView() {
           </>
         )}
       </article>
-        </>
       )}
 
-      <article className="v3-card v3-fix-card">
-        <header className="v3-card-head">
-          <h2 className="v3-card-title">{t("claude.fix_title")}</h2>
-        </header>
-        <p className="v3-subtitle v3-fix-lead">{t("claude.fix_lead")}</p>
-        <div className="v3-fix-actions">
-          <button
-            type="button"
-            className="v3-btn-primary v3-fix-button"
-            onClick={runFixVscode}
-            disabled={fixRunning}
-          >
-            <Wrench size={13} strokeWidth={2} />
-            {fixRunning ? t("claude.fix_running") : t("claude.fix_button")}
-          </button>
-        </div>
-        {fixError && (
-          <div className="v3-error" role="alert" aria-live="assertive">
-            {fixError}
-          </div>
-        )}
-        {fixOutput !== null && (
-          <pre
-            className="v3-fix-output"
-            role="status"
-            aria-live="polite"
-            aria-label={t("claude.fix_output_aria")}
-          >
-            {fixOutput || t("claude.fix_output_empty")}
-          </pre>
-        )}
-      </article>
+      {/* ── Discover ── */}
+      {subTab === "discover" && <SkillDiscovery />}
+        </>
+      )}
 
       <ConfirmModal
         open={confirmingUninstall !== null}

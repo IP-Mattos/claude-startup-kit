@@ -1104,6 +1104,89 @@ body[data-theme-v3^="modern"] .v3-empty::before {
   font-variant-numeric: tabular-nums;
 }
 
+/* Segmented sub-tabs — pill row that splits the Gentle-AI view into
+   Overview / Components / Skills / MCPs / Discover. One panel at a time.
+   Visual sibling of .v3-settings-subnav. */
+.v3-gai-subtabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius, 10px);
+  margin-bottom: 18px;
+}
+.v3-gai-subtab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--v3-text-3);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease;
+}
+.v3-gai-subtab:hover {
+  color: var(--v3-text-2);
+}
+.v3-gai-subtab.active {
+  background: var(--v3-accent);
+  color: var(--v3-accent-ink, #0a0a0a);
+  font-weight: 700;
+}
+.v3-gai-subtab-count {
+  font-family: var(--v3-mono, "SF Mono", ui-monospace, monospace);
+  font-size: 10.5px;
+  margin-left: 5px;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Overview "Discover" hint — full-width button pointing to the Discover tab. */
+.v3-gai-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius, 12px);
+  padding: 13px 16px;
+  cursor: pointer;
+  color: var(--v3-text-2);
+  font-size: 13px;
+  text-align: left;
+  transition: border-color 120ms ease;
+}
+.v3-gai-hint:hover {
+  border-color: var(--v3-border-strong, var(--v3-border));
+}
+.v3-gai-hint-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.v3-gai-hint-icon {
+  color: var(--v3-text-3);
+  flex: none;
+}
+.v3-gai-hint-text {
+  min-width: 0;
+}
+.v3-gai-hint-cta {
+  color: var(--v3-text-3);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* iOS-style toggle switch (used in MCP rows). */
 .v3-switch {
   position: relative;

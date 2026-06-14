@@ -274,6 +274,7 @@ const STRINGS = {
   "settings.title": { en: "Settings", es: "Ajustes" },
   "settings.section_general": { en: "General", es: "General" },
   "settings.section_shortcuts": { en: "Shortcuts", es: "Atajos" },
+  "settings.section_claude_code": { en: "Claude Code", es: "Claude Code" },
   "settings.section_gentle_ai": { en: "Gentle AI", es: "Gentle AI" },
   "settings.section_csk": { en: "Claude Startup Kit", es: "Claude Startup Kit" },
   "settings.section_companion": { en: "Companion", es: "Compañero" },
@@ -830,6 +831,17 @@ const STRINGS = {
   "claude.stat_mcps": { en: "MCP servers", es: "Servidores MCP" },
   "claude.stat_hooks": { en: "Hooks", es: "Hooks" },
   "claude.stat_plugins": { en: "Plugins", es: "Plugins" },
+  // Segmented sub-tabs in the Gentle-AI view.
+  "claude.subtab_overview": { en: "Overview", es: "Resumen" },
+  "claude.subtab_components": { en: "Components", es: "Componentes" },
+  "claude.subtab_skills": { en: "Skills", es: "Skills" },
+  "claude.subtab_mcps": { en: "MCPs", es: "MCPs" },
+  "claude.subtab_discover": { en: "Discover", es: "Descubrir" },
+  "claude.discover_hint": {
+    en: "Discover skills ranked by your stack.",
+    es: "Descubrí skills rankeadas por tu stack.",
+  },
+  "claude.discover_cta": { en: "View in Discover", es: "Ver en Descubrir" },
   "claude.refreshing": { en: "Refreshing…", es: "Refrescando…" },
   "claude.refresh": { en: "Refresh", es: "Refrescar" },
   // Fix-Claude card — patches the recurring VS Code extension
