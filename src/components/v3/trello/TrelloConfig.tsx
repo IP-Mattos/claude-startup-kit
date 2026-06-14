@@ -34,7 +34,7 @@ export function TrelloConfig({ available, initialError, onConfigure }: Props) {
   };
 
   return (
-    <div className="v3-view">
+    <div className="v3-view v3-trello-config-screen">
       <header className="v3-view-head">
         <div>
           <h1 className="v3-greeting">{t("trello.title")}</h1>

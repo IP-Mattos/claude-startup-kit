@@ -4944,7 +4944,19 @@ body.v3-layout #root {
 }
 
 /* Config screen */
+/* Connect screen — center the card in the content area instead of stranding
+   it to the left (the board view is empty until the key is configured). */
+.v3-trello-config-screen {
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 170px);
+}
+.v3-trello-config-screen .v3-view-head {
+  text-align: center;
+  justify-content: center;
+}
 .v3-trello-config {
+  width: 100%;
   max-width: 520px;
 }
 .v3-trello-config-form {
