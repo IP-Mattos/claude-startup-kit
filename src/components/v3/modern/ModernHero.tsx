@@ -1,6 +1,5 @@
 import { Search } from "lucide-react";
 import "./ModernHero.css";
-import type { V3Tab } from "../../../v3/v3types";
 import { useT } from "../../../lib/i18n";
 
 interface Stats {
@@ -15,7 +14,6 @@ interface Props {
   greeting: string;
   stats: Stats;
   projectsCount: number;
-  onJump: (tab: V3Tab) => void;
   onOpenPalette: () => void;
 }
 
@@ -62,7 +60,7 @@ function Orb() {
 // The modern dashboard header: a centered search, the big greeting + actions,
 // and the orb hero card. Rendered by OverviewView in place of the default
 // header when a modern theme is active; the real Overview sections follow.
-export function ModernHero({ greeting, stats, projectsCount, onJump, onOpenPalette }: Props) {
+export function ModernHero({ greeting, stats, projectsCount, onOpenPalette }: Props) {
   const { t } = useT();
 
   // The hero card carries the whole status at a glance: greeting, how many
@@ -87,14 +85,6 @@ export function ModernHero({ greeting, stats, projectsCount, onJump, onOpenPalet
 
       <section className="mov-hero-head">
         <p className="mov-eyebrow">{t("modern.eyebrow")}</p>
-        <div className="mov-hero-actions">
-          <button className="mov-btn-ghost" type="button" onClick={onOpenPalette}>
-            {t("modern.search")}
-          </button>
-          <button className="mov-btn-dark" type="button" onClick={() => onJump("projects")}>
-            <span className="mov-plus">+</span> {t("modern.new_project")}
-          </button>
-        </div>
       </section>
 
       <section className="mov-hero-card">
