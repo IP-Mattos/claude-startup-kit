@@ -490,6 +490,98 @@ body.v3-layout #root {
   justify-content: center;
 }
 
+/* ── Modern theme: decluttered "Flat & quiet" sidebar (V1) ────
+   No section headers, no projects list, and the bulky system-status
+   card collapses to a single slim line. ^="modern" → both modern
+   modes; pure CSS, no Sidebar.tsx change (so no gameboy entanglement). */
+body[data-theme-v3^="modern"] .v3-sidebar-section-title {
+  display: none;
+}
+body[data-theme-v3^="modern"] .v3-sidebar-section {
+  padding-top: 0;
+  gap: 2px;
+}
+body[data-theme-v3^="modern"] .v3-sidebar-section-sep {
+  margin-top: 2px;
+  padding-top: 0;
+  border-top: none;
+}
+body[data-theme-v3^="modern"] .v3-sidebar-projects {
+  display: none;
+}
+body[data-theme-v3^="modern"] .v3-system-status {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--v3-border);
+  border-radius: 0;
+  padding: 14px 8px 4px;
+}
+body[data-theme-v3^="modern"] .v3-system-status-row {
+  min-width: 0;
+  font-size: 11.5px;
+}
+body[data-theme-v3^="modern"] .v3-system-status-headline {
+  font-weight: 500;
+  color: var(--v3-text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body[data-theme-v3^="modern"] .v3-system-status-meta {
+  display: none;
+}
+body[data-theme-v3^="modern"] .v3-system-status-cta {
+  width: auto;
+  margin: 0 0 0 auto;
+  padding: 2px 2px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: var(--v3-text-4);
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+body[data-theme-v3^="modern"] .v3-system-status-cta:hover {
+  background: transparent;
+  border: none;
+  color: var(--v3-text-2);
+}
+body[data-theme-v3^="modern"] .v3-system-status-cta span {
+  display: none; /* icon-only so the full status text fits the slim line */
+}
+
+/* compact brand: a small inline mark + wordmark instead of the big
+   centered logo, to match the lighter sidebar */
+body[data-theme-v3^="modern"] .v3-sidebar-logo {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 11px;
+  padding: 6px 8px 18px;
+  border-bottom: none;
+}
+body[data-theme-v3^="modern"] .v3-sidebar-logo-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+body[data-theme-v3^="modern"] .v3-sidebar-logo-text {
+  align-items: flex-start;
+}
+body[data-theme-v3^="modern"] .v3-sidebar-logo-line1 {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+}
+body[data-theme-v3^="modern"] .v3-sidebar-logo-line2 {
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+}
+
 /* ========== Content area ========== */
 .appv3-content {
   background: var(--v3-bg);
