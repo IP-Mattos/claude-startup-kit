@@ -75,32 +75,35 @@ export function CompanionWidget({
 
   return (
     <section className="v3-companion-widget">
-      <header className="v3-companion-head">
-        <span className="v3-companion-title">{companionName}</span>
-        <span className="v3-companion-status">
+      <div className="v3-companion-hero">
+        <img
+          className="v3-companion-hero-img"
+          src={avatarSrc}
+          alt=""
+          draggable={false}
+        />
+        <div className="v3-companion-hero-scrim" aria-hidden="true" />
+        <span className="v3-companion-chip">
           <span className="v3-status-dot" aria-hidden="true" />
-          {t("companion.online")}
+          <span className="v3-companion-chip-name">{companionName}</span>
         </span>
-      </header>
-      <div className="v3-companion-stage">
-        <div className="v3-companion-avatar" aria-hidden="true">
-          <img src={avatarSrc} alt="" draggable={false} />
-        </div>
       </div>
-      <div className="v3-companion-message">{message}</div>
-      <div className="v3-companion-foot">
-        <span
-          className="v3-companion-scan"
-          title={`${t("companion.stat_scan")}: ${lastScanAgo}`}
-        >
-          {lastScanAgo}
-        </span>
-        <button
-          className="v3-btn-primary v3-companion-cta"
-          onClick={action.onClick}
-        >
-          {action.label}
-        </button>
+      <div className="v3-companion-glass">
+        <div className="v3-companion-message">{message}</div>
+        <div className="v3-companion-foot">
+          <span
+            className="v3-companion-scan"
+            title={`${t("companion.stat_scan")}: ${lastScanAgo}`}
+          >
+            {lastScanAgo}
+          </span>
+          <button
+            className="v3-btn-primary v3-companion-cta"
+            onClick={action.onClick}
+          >
+            {action.label}
+          </button>
+        </div>
       </div>
     </section>
   );

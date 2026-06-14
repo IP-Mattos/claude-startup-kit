@@ -610,24 +610,9 @@ body[data-theme-v3^="modern"] .v3-workspace-bar-track {
   background: var(--v3-border);
 }
 
-/* ── 2. Companion → calmer (smaller avatar, no glow, plain msg) ─ */
-body[data-theme-v3^="modern"] .v3-companion-stage {
-  background: none;
-  padding: 2px 0 4px;
-}
-body[data-theme-v3^="modern"] .v3-companion-avatar {
-  width: 128px;
-  height: 128px;
-  border: 1px solid var(--v3-border-strong);
-}
-body[data-theme-v3^="modern"] .v3-companion-message {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 6px 4px 2px;
-  text-align: center;
-  color: var(--v3-text-2);
-}
+/* ── 2. Companion → token-based hybrid card now covers modern; no
+   layout-specific overrides needed (the old centered-avatar overrides
+   were removed with the avatar/stage markup). ─────────────────── */
 
 /* ── 3. Welcome → slim one-line dismissable banner ───────────── */
 body[data-theme-v3^="modern"] .v3-onboarding-card {
@@ -2327,105 +2312,117 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   min-height: 0;
 }
 
-/* Companion widget — natural height. Stretching it across the full panel
-   makes the mascot float in dead space; instead, the right panel pairs it
-   with a Workspace card below so the column reads as a stack of two
-   distinct cards. */
+/* Companion widget — "Option B" hybrid: a tall portrait fills the card top,
+   a gradient scrim fades the photo into the surface, and a frosted-glass
+   comment panel overlaps up onto the image's bottom edge. All colors come
+   from v3 tokens so the same markup adapts across every light AND dark
+   theme. The card itself is overflow:visible so the glass panel can sit
+   over the image; the hero block clips the photo to the rounded top. */
 .v3-companion-widget {
   background: var(--v3-surface);
   border: 1px solid var(--v3-border);
-  border-radius: var(--v3-radius);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  border-radius: var(--v3-radius, 14px);
+  overflow: visible;
+  padding: 0 0 16px;
   box-shadow: var(--v3-shadow-1);
 }
-.v3-companion-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.v3-companion-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--v3-text);
-}
-.v3-companion-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  color: var(--v3-success);
-  font-weight: 500;
-}
-/* Stage hugs the avatar — soft halo behind, no padding bloat. */
-.v3-companion-stage {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 8px;
-  background: radial-gradient(
-    ellipse 80% 70% at 50% 50%,
-    var(--v3-accent-tint) 0%,
-    transparent 70%
-  );
-  border-radius: var(--v3-radius);
-}
-.v3-companion-avatar {
-  /* Fixed-aspect circle. Always proportional regardless of panel width. */
-  width: 168px;
-  height: 168px;
-  border-radius: 50%;
+
+/* ── Tall portrait hero — clips the photo to the rounded top corners ── */
+.v3-companion-hero {
+  position: relative;
+  height: 210px;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
 }
-.v3-companion-avatar img {
+.v3-companion-hero-img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 22%;
+  display: block;
 }
-/* Bordered message box — quotes the line so the assistant feels like it's
-   actually telling you something instead of being plain page copy.
-   pre-line preserves manual \n in the i18n strings so the headline ('Sin
-   críticos.') sits on its own line without us having to ship JSX. */
-.v3-companion-message {
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--v3-text-2);
-  padding: 12px 14px;
-  background: var(--v3-surface-2);
-  border: 1px solid var(--v3-border);
-  border-radius: var(--v3-radius);
-  white-space: pre-line;
-}
-.v3-companion-emph {
-  color: var(--v3-accent);
-  font-weight: 600;
+/* Fades the bottom of the photo into the card surface so the glass panel
+   reads as part of the same object. Token surface works on light + dark. */
+.v3-companion-hero-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 45%,
+    var(--v3-surface) 100%
+  );
 }
 
-/* Footer: muted scan label on the left, primary action on the right. */
+/* ── Frosted "● {name}" chip, top-left over the photo ── */
+.v3-companion-chip {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px 5px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--v3-border-strong, var(--v3-border));
+  /* Fallback for browsers without color-mix; overridden below. */
+  background: var(--v3-surface);
+  background: color-mix(in srgb, var(--v3-bg) 62%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.v3-companion-chip-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--v3-text);
+}
+
+/* ── Frosted-glass comment panel — overlaps up onto the image ── */
+.v3-companion-glass {
+  position: relative;
+  z-index: 2;
+  margin: -26px 14px 0;
+  padding: 13px 14px 12px;
+  border: 1px solid var(--v3-border-strong, var(--v3-border));
+  border-radius: 12px;
+  box-shadow: var(--v3-shadow-2, 0 10px 30px rgba(0, 0, 0, 0.45));
+  /* Fallback for browsers without color-mix; overridden below. */
+  background: var(--v3-surface);
+  background: color-mix(in srgb, var(--v3-surface) 90%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.v3-companion-message {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--v3-text-2);
+}
+.v3-companion-emph {
+  color: var(--v3-text);
+  font-weight: 700;
+}
+
+/* ── Footer: timestamp left, CTA pill right ── */
 .v3-companion-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 10px;
+  margin-top: 11px;
 }
 .v3-companion-scan {
-  font-size: 11.5px;
-  color: var(--v3-text-3);
+  font-size: 11px;
+  color: var(--v3-text-4);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.v3-companion-scan strong {
-  color: var(--v3-text-2);
-  font-weight: 600;
-}
+/* Inherits .v3-btn-primary colors; this just makes it a compact pill. */
 .v3-companion-cta {
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 12.5px;
   flex-shrink: 0;
 }
 
