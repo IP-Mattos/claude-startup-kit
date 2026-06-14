@@ -16,8 +16,8 @@ use super::error::TrelloError;
 use super::storage::{self, TrelloConfig};
 use super::subscriber;
 use super::types::{
-    ChangesPage, Column, CompleteOutcome, CompleteTaskBody, CreateTaskPayload, MoveTaskBody, Page,
-    PatchTaskPayload, Profile, Project, ProjectsFilter, Task, TasksFilter,
+    ChangesPage, Column, CompleteOutcome, CompleteTaskBody, CreateTaskPayload, Member, MoveTaskBody,
+    Page, PatchTaskPayload, Profile, Project, ProjectsFilter, Task, TasksFilter,
 };
 use super::{CLIENT, DEFAULT_BASE_URL, SUBSCRIBER};
 
@@ -135,6 +135,12 @@ pub async fn trello_get_project(id: String) -> Result<Project, String> {
 pub async fn trello_list_columns(project_id: String) -> Result<Vec<Column>, String> {
     let c = get_client()?;
     c.columns(&project_id).await.map_err(map_err)
+}
+
+#[tauri::command]
+pub async fn trello_list_members(project_id: String) -> Result<Vec<Member>, String> {
+    let c = get_client()?;
+    c.members(&project_id).await.map_err(map_err)
 }
 
 #[tauri::command]

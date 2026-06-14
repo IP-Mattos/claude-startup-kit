@@ -35,6 +35,15 @@ export interface Column {
   created_at: string;
 }
 
+// A person on a project (GET /projects/{id}/members). name/avatar_url are
+// nullable on the wire; role is "member" | "supervisor".
+export interface Member {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
+  role: string;
+}
+
 export interface Task {
   id: string;
   column_id: string;

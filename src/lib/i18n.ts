@@ -1043,6 +1043,8 @@ const STRINGS = {
   },
   "trello.flow_indicator": { en: "Has flow notes", es: "Tiene notas de flujo" },
   "trello.done": { en: "Done", es: "Listo" },
+  "trello.team": { en: "Team", es: "Equipo" },
+  "trello.role_supervisor": { en: "supervisor", es: "supervisor" },
 
   // Token usage view — aggregates ~/.claude/projects/*.jsonl assistant
   // message usage fields into per-day buckets. Window-aware totals + a

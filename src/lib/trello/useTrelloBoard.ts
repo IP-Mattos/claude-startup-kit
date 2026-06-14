@@ -19,6 +19,7 @@ import {
   trelloCreateTask,
   trelloDeleteTask,
   trelloListColumns,
+  trelloListMembers,
   trelloListProjects,
   trelloListTasks,
   trelloLoadPersisted,
@@ -31,6 +32,7 @@ import {
 import type {
   Column,
   CreateTaskPayload,
+  Member,
   PatchTaskPayload,
   Profile,
   Project,
@@ -80,6 +82,7 @@ export interface UseTrelloBoard {
   activeProjectId: string | null;
   columns: Column[];
   tasks: Task[];
+  members: Member[];
   projectsLoading: boolean;
   boardLoading: boolean;
   live: LiveStatus;
@@ -114,6 +117,7 @@ export function useTrelloBoard(): UseTrelloBoard {
   });
   const [columns, setColumns] = useState<Column[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [projectsLoading, setProjectsLoading] = useState(false);
   const [boardLoading, setBoardLoading] = useState(false);
   const [live, setLive] = useState<LiveStatus>("off");
@@ -174,6 +178,28 @@ export function useTrelloBoard(): UseTrelloBoard {
       if (reqId === boardReqId.current) setBoardLoading(false);
     }
   }, []);
+
+  // Load the project's people roster when the active project changes. Members
+  // change rarely, so this stays out of the high-frequency board refetch.
+  // Non-critical: on failure we just render without faces.
+  useEffect(() => {
+    // Clear first so the roster + assignee faces never show the PREVIOUS
+    // project's people during the fetch window of a project switch (they show
+    // empty/"?" until the new project's members land — never the wrong team).
+    setMembers([]);
+    if (!IS_TAURI || boot !== "ready" || !activeProjectId) return;
+    let cancelled = false;
+    trelloListMembers(activeProjectId)
+      .then((m) => {
+        if (!cancelled) setMembers(m);
+      })
+      .catch(() => {
+        /* already cleared above — non-critical, just render without faces */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeProjectId, boot]);
 
   const scheduleRefetch = useCallback(() => {
     if (refetchTimer.current !== null) window.clearTimeout(refetchTimer.current);
@@ -556,6 +582,7 @@ export function useTrelloBoard(): UseTrelloBoard {
     activeProjectId,
     columns,
     tasks,
+    members,
     projectsLoading,
     boardLoading,
     live,

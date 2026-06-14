@@ -7055,6 +7055,7 @@ pub fn run() {
             trello::commands::trello_list_projects,
             trello::commands::trello_get_project,
             trello::commands::trello_list_columns,
+            trello::commands::trello_list_members,
             trello::commands::trello_list_tasks,
             trello::commands::trello_get_task,
             trello::commands::trello_create_task,

@@ -13,8 +13,8 @@ use url::Url;
 use super::error::TrelloError;
 use super::types::{
     ChangesPage, Column, CompleteOutcome, CompleteTaskBody, CreateTaskPayload, ListEnvelope,
-    MoveTaskBody, Page, PatchTaskPayload, Profile, Project, ProjectsFilter, ResponseMeta, Task,
-    TasksFilter,
+    Member, MoveTaskBody, Page, PatchTaskPayload, Profile, Project, ProjectsFilter, ResponseMeta,
+    Task, TasksFilter,
 };
 
 const REPLAY_HEADER: &str = "x-idempotent-replay";
@@ -167,6 +167,12 @@ impl TrelloClient {
     pub async fn columns(&self, project_id: &str) -> Result<Vec<Column>, TrelloError> {
         let req = self.request(Method::GET, &format!("projects/{project_id}/columns"))?;
         let (env, _) = self.send::<ListEnvelope<Column>>(req, None).await?;
+        Ok(env.data)
+    }
+
+    pub async fn members(&self, project_id: &str) -> Result<Vec<Member>, TrelloError> {
+        let req = self.request(Method::GET, &format!("projects/{project_id}/members"))?;
+        let (env, _) = self.send::<ListEnvelope<Member>>(req, None).await?;
         Ok(env.data)
     }
 

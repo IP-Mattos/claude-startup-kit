@@ -5,7 +5,7 @@ import { useTrelloBoard } from "../../lib/trello/useTrelloBoard";
 import type { LiveStatus } from "../../lib/trello/useTrelloBoard";
 import type { Task } from "../../lib/trello/types";
 import { TrelloConfig } from "../../components/v3/trello/TrelloConfig";
-import { TrelloBoard } from "../../components/v3/trello/TrelloBoard";
+import { TrelloWorkList } from "../../components/v3/trello/TrelloWorkList";
 import { TaskEditor } from "../../components/v3/trello/TaskEditor";
 
 interface EditorState {
@@ -147,9 +147,10 @@ export function TrelloView() {
       ) : board.columns.length === 0 ? (
         <div className="v3-empty">{t("trello.no_columns")}</div>
       ) : (
-        <TrelloBoard
+        <TrelloWorkList
           columns={board.columns}
           tasks={board.tasks}
+          members={board.members}
           busyTaskIds={board.busyTaskIds}
           onOpenTask={(task) => setEditor({ task, columnId: task.column_id })}
           onAddTask={(columnId) => setEditor({ task: null, columnId })}

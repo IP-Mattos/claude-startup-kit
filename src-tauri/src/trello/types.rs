@@ -39,6 +39,17 @@ pub struct Column {
     pub created_at: String,
 }
 
+/// A person who is part of a project (`GET /projects/{id}/members`). `name`
+/// and `avatar_url` are nullable on the wire (placeholder profiles). `role` is
+/// kept as `String` (not enum) so a new role won't break deserialization.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Member {
+    pub id: String,
+    pub name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub role: String,
+}
+
 /// A task in a column. Mirrors the API shape exactly.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {

@@ -15,6 +15,7 @@ import type {
   CompleteOutcome,
   CompleteTaskBody,
   CreateTaskPayload,
+  Member,
   Page,
   PatchTaskPayload,
   Profile,
@@ -88,6 +89,10 @@ export function trelloGetProject(id: string): Promise<Project> {
 
 export function trelloListColumns(projectId: string): Promise<Column[]> {
   return invoke<Column[]>("trello_list_columns", { projectId });
+}
+
+export function trelloListMembers(projectId: string): Promise<Member[]> {
+  return invoke<Member[]>("trello_list_members", { projectId });
 }
 
 export function trelloListTasks(filter?: TasksFilter): Promise<Page<Task>> {

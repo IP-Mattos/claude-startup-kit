@@ -4478,45 +4478,93 @@ body.v3-layout #root {
 
 /* Board: a horizontal strip of columns; the content area scrolls vertically
    if a column gets tall, the board scrolls horizontally for many columns. */
-/* Board: side-by-side status SECTIONS, not boxed Trello lanes. The columns
-   carry no frame — they read as records under a section header, like the rest
-   of CSK (Overview feed / Conversations), separated only by the gap. */
-.v3-board {
+/* Trello WORK-LIST — a vertical, CSK-native record list (no kanban columns).
+   Status = collapsible sections; tasks = full-width flat records with faces. */
+.v3-wl {
   display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  overflow-x: auto;
-  padding-bottom: 8px;
+  flex-direction: column;
+  gap: 18px;
 }
-.v3-board-col {
-  flex: 0 0 286px;
-  width: 286px;
+
+/* Team roster strip */
+.v3-wl-roster {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 9px 12px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius);
+}
+.v3-wl-roster-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--v3-text-3, var(--v3-text-2));
+}
+.v3-wl-roster-people {
+  display: flex;
+  align-items: center;
+  gap: 6px 14px;
+  flex-wrap: wrap;
+}
+.v3-wl-roster-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--v3-text);
+}
+.v3-wl-roster-name {
+  font-weight: 500;
+}
+.v3-wl-roster-role {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v3-text-3, var(--v3-text-2));
+  background: var(--v3-hover);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+/* Status section — small-caps header (collapsible) over a list of records. */
+.v3-wl-section {
   display: flex;
   flex-direction: column;
 }
-/* Section header — small-caps label + square count tag (the house idiom, cf.
-   the sidebar section labels and .v3-pill). */
-.v3-board-col-head {
+.v3-wl-section-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 2px 6px 8px;
+  gap: 4px;
   border-bottom: 1px solid var(--v3-border-strong, var(--v3-border));
-  margin-bottom: 2px;
 }
-.v3-board-col-name {
+.v3-wl-section-toggle {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 4px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--v3-text-3, var(--v3-text-2));
+  cursor: pointer;
+}
+.v3-wl-section-toggle:hover {
+  color: var(--v3-text);
+}
+.v3-wl-section-name {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--v3-text-2);
 }
-.v3-board-col-count {
+.v3-wl-section-count {
   font-size: 10.5px;
   font-weight: 600;
   color: var(--v3-text-3, var(--v3-text-2));
@@ -4524,81 +4572,62 @@ body.v3-layout #root {
   border-radius: 3px;
   padding: 1px 6px;
 }
-.v3-board-col-add {
+.v3-wl-section-add {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border: none;
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px;
+  border: 0;
   border-radius: var(--v3-radius-sm, 6px);
   background: transparent;
   color: var(--v3-text-3, var(--v3-text-2));
   cursor: pointer;
 }
-.v3-board-col-add:hover {
+.v3-wl-section-add:hover {
   background: var(--v3-hover);
   color: var(--v3-text);
 }
-.v3-board-col-body {
+.v3-wl-section-body {
   display: flex;
   flex-direction: column;
-  min-height: 36px;
 }
-.v3-board-col-empty {
+.v3-wl-empty {
   font-size: 12px;
   color: var(--v3-text-4, var(--v3-text-3, var(--v3-text-2)));
-  padding: 12px 6px;
+  padding: 10px 8px;
   margin: 0;
 }
-/* Task = a flat CSK record row (no tile chrome): hairline divider + hover wash,
-   exactly like .v3-row. Clicking the row opens the editor; the small actions
-   gain contrast on hover. */
-.v3-task-card {
-  display: block;
-  background: transparent;
-  border: 0;
+
+/* Task RECORD — a full-width flat row: hairline divider + hover wash, with the
+   people / progress / move arrows on the right. */
+.v3-wl-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
   border-bottom: 1px solid var(--v3-border);
-  border-radius: 0;
-  padding: 9px 6px;
   cursor: pointer;
   transition: background-color 0.12s ease;
 }
-.v3-task-card:hover {
+.v3-wl-row:hover {
   background: var(--v3-hover);
 }
-.v3-task-card:focus-visible {
+.v3-wl-row:focus-visible {
   outline: 2px solid var(--v3-accent);
   outline-offset: -2px;
 }
-.v3-task-card.is-done {
+.v3-wl-row.is-done {
   opacity: 0.55;
 }
-.v3-task-card.is-pending {
+.v3-wl-row.is-pending {
   opacity: 0.5;
   pointer-events: none;
 }
-.v3-task-card-top {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-.v3-task-title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
-  flex: 1;
-  min-width: 0;
-  color: var(--v3-text);
-  word-break: break-word;
-}
-.v3-task-card.is-done .v3-task-title {
-  text-decoration: line-through;
-  text-decoration-color: var(--v3-text-3, var(--v3-text-2));
-}
-/* Complete: quiet ghost check; gains the success tint on hover. */
-.v3-task-complete {
+
+/* Left: completion check — reveals on hover, filled when done. */
+.v3-wl-check {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -4608,78 +4637,154 @@ body.v3-layout #root {
   border: 1px solid var(--v3-border);
   border-radius: 50%;
   background: transparent;
-  color: var(--v3-text-3, var(--v3-text-2));
+  color: transparent;
   cursor: pointer;
-  transition: color 0.12s ease, border-color 0.12s ease;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
 }
-.v3-task-complete:hover:not(:disabled) {
+.v3-wl-row:hover .v3-wl-check {
+  color: var(--v3-text-3, var(--v3-text-2));
+}
+.v3-wl-check:hover:not(:disabled) {
   border-color: var(--v3-success, #3fb950);
   color: var(--v3-success, #3fb950);
 }
-.v3-task-complete:disabled {
-  opacity: 0.4;
+.v3-wl-row.is-done .v3-wl-check {
+  border-color: var(--v3-success, #3fb950);
+  background: var(--v3-success, #3fb950);
+  color: #fff;
+}
+.v3-wl-check:disabled {
   cursor: default;
 }
-/* Progress: a thin hairline under the title — a signal, not a chunky bar. */
-.v3-task-progress {
-  height: 2px;
-  background: var(--v3-border);
-  margin-top: 7px;
+
+/* Middle: title + meta */
+.v3-wl-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.v3-wl-row-title {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--v3-text);
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
 }
-.v3-task-progress-fill {
-  height: 100%;
-  background: var(--v3-accent);
-  transition: width 0.2s ease;
+.v3-wl-row.is-done .v3-wl-row-title {
+  text-decoration: line-through;
+  text-decoration-color: var(--v3-text-3, var(--v3-text-2));
 }
-.v3-task-meta {
+.v3-wl-row-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 10px;
   flex-wrap: wrap;
 }
-.v3-task-chip {
+.v3-wl-chip {
   display: inline-flex;
   align-items: center;
   gap: 3px;
   font-size: 11px;
   color: var(--v3-text-3, var(--v3-text-2));
 }
-.v3-task-progress-label {
-  margin-left: auto;
+
+/* Right cluster: faces, progress, move arrows */
+.v3-wl-row-aside {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.v3-wl-avatars {
+  display: inline-flex;
+  align-items: center;
+}
+.v3-wl-avatars > * + * {
+  margin-left: -6px; /* overlap the faces */
+}
+.v3-wl-prog {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: 96px;
+}
+.v3-wl-prog-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--v3-hover);
+  overflow: hidden;
+}
+.v3-wl-prog-fill {
+  display: block;
+  height: 100%;
+  background: var(--v3-accent);
+  transition: width 0.2s ease;
+}
+.v3-wl-row.is-done .v3-wl-prog-fill {
+  background: var(--v3-success, #3fb950);
+}
+.v3-wl-prog-pct {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--v3-text-3, var(--v3-text-2));
+  min-width: 30px;
+  text-align: right;
 }
-.v3-task-done-label {
-  margin-left: auto;
-  font-size: 10.5px;
+.v3-wl-row.is-done .v3-wl-prog-pct {
   font-weight: 700;
+  font-size: 10px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--v3-success, #3fb950);
 }
-.v3-task-flow-chip {
-  gap: 0; /* icon-only; no trailing text */
+
+/* Avatar — image or initials in a tinted circle (faces overlap via margin). */
+.v3-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--v3-accent-tint, var(--v3-hover));
+  color: var(--v3-accent);
+  font-weight: 600;
+  line-height: 1;
+  border: 1.5px solid var(--v3-surface);
+  box-sizing: border-box;
+  user-select: none;
+}
+.v3-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.v3-avatar-more {
+  width: 22px;
+  height: 22px;
+  font-size: 9.5px;
+  color: var(--v3-text-2);
+  background: var(--v3-hover);
 }
 
-/* Move actions — quiet ghost arrows clustered at the right (cf. .v3-row-actions).
-   Present at rest in low contrast, gain contrast on row hover, accent on press.
-   No button frames: they read as inline row affordances, not Trello buttons. */
-.v3-task-move {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 2px;
-  margin-top: 6px;
-}
-.v3-task-move-group {
-  display: flex;
+/* Move arrows: ghost, low contrast at rest, accent on hover/press. */
+.v3-wl-move {
+  display: inline-flex;
   align-items: center;
   gap: 1px;
 }
-.v3-task-move-btn {
+.v3-wl-move-group {
+  display: inline-flex;
+  align-items: center;
+}
+.v3-wl-move-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -4693,21 +4798,21 @@ body.v3-layout #root {
   cursor: pointer;
   transition: color 0.12s ease, background 0.12s ease, transform 0.06s ease;
 }
-.v3-task-card:hover .v3-task-move-btn {
+.v3-wl-row:hover .v3-wl-move-btn {
   color: var(--v3-text-2);
 }
-.v3-task-move-btn:hover:not(:disabled) {
+.v3-wl-move-btn:hover:not(:disabled) {
   background: var(--v3-accent-tint, color-mix(in srgb, var(--v3-accent) 14%, transparent));
   color: var(--v3-accent);
 }
-.v3-task-move-btn:focus-visible {
+.v3-wl-move-btn:focus-visible {
   outline: 2px solid var(--v3-accent);
   outline-offset: 2px;
 }
-.v3-task-move-btn:active:not(:disabled) {
+.v3-wl-move-btn:active:not(:disabled) {
   transform: scale(0.9);
 }
-.v3-task-move-btn:disabled {
+.v3-wl-move-btn:disabled {
   opacity: 0.3;
   cursor: default;
 }
