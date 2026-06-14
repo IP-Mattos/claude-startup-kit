@@ -182,7 +182,8 @@ body.v3-layout #root {
   justify-content: center;
   flex-shrink: 0;
 }
-.v3-brand-mark > img {
+.v3-brand-mark > img,
+.v3-brand-mark > svg {
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -299,6 +300,15 @@ body.v3-layout #root {
   display: block;
   user-select: none;
   -webkit-user-drag: none;
+}
+/* Theme-adaptive brand mark: the square fills with the theme accent and the
+   shield strokes with its on-accent ink. Light/dark keep orange + white
+   (their accent is orange; accent-ink is unset → the #fff fallback). */
+.v3-logo-sq {
+  fill: var(--v3-accent);
+}
+.v3-logo-shield {
+  stroke: var(--v3-accent-ink, #fff);
 }
 .v3-sidebar-logo-text {
   display: flex;

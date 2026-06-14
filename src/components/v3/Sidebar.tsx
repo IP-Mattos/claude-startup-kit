@@ -62,7 +62,24 @@ export function Sidebar({
     <aside className="v3-sidebar" aria-label={t("window.primary_nav")}>
       <div className="v3-sidebar-logo">
         <div className="v3-sidebar-logo-mark" aria-hidden="true">
-          <img src="/Shield.svg" alt="" draggable={false} />
+          {/* Inlined so the mark adapts per theme: the square fills with the
+              theme accent and the shield strokes with its on-accent ink
+              (orange+white on light/dark, mono on modern, olive+lime on
+              gameboy). Geometry matches public/Shield.svg. */}
+          <svg className="v3-logo-svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+            <rect className="v3-logo-sq" width="512" height="512" rx="116" ry="116" />
+            <g
+              className="v3-logo-shield"
+              transform="translate(86 86) scale(14.16667)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            >
+              <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+              <path d="m9 12 2 2 4-4" />
+            </g>
+          </svg>
         </div>
         <div className="v3-sidebar-logo-text">
           <span className="v3-sidebar-logo-line1">CLAUDE</span>
