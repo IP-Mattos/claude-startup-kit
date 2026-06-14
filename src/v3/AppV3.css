@@ -2408,22 +2408,30 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
 /* ── Footer: timestamp left, CTA pill right ── */
 .v3-companion-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px 10px;
   margin-top: 11px;
 }
 .v3-companion-scan {
   font-size: 11px;
   color: var(--v3-text-4);
   white-space: nowrap;
+  flex-shrink: 0;
 }
-/* Inherits .v3-btn-primary colors; this just makes it a compact pill. */
+/* Inherits .v3-btn-primary colors; this just makes it a compact pill.
+   margin-left:auto right-aligns it; flex-wrap on the row drops it onto its
+   own line when a long (e.g. Spanish) action label can't fit beside the
+   timestamp, instead of overflowing the glass panel. */
 .v3-companion-cta {
+  margin-left: auto;
+  max-width: 100%;
   border-radius: 999px;
   padding: 8px 16px;
   font-size: 12.5px;
-  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Workspace card — sits under the companion in the right panel.
@@ -4899,6 +4907,22 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   border: 1px solid var(--v3-border);
   border-radius: var(--v3-radius);
 }
+/* Separator between the two groups in the Claude Startup Kit section
+   (app updates vs the embedded Companion editor). The CompanionsView ships
+   its own page-level heading, which is too loud here, so we also dial it
+   down to a group-title scale when it follows this separator. */
+.v3-settings-group-sep {
+  height: 1px;
+  background: var(--v3-border);
+  margin: 24px 2px;
+}
+.v3-settings-group-sep + .v3-view .v3-view-head {
+  margin-bottom: 14px;
+}
+.v3-settings-group-sep + .v3-view .v3-greeting {
+  font-size: 18px;
+}
+
 .v3-settings-subnav-btn {
   flex: 1;
   min-width: max-content;

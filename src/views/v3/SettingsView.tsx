@@ -552,6 +552,7 @@ export function SettingsView({
               <p className="v3-row-meta">{t("settings.updates_auto_hint")}</p>
             </div>
           </article>
+          <div className="v3-settings-group-sep" aria-hidden="true" />
           <CompanionsView
             name={companionName}
             image={companionImage}
