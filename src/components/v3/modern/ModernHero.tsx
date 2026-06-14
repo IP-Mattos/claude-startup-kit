@@ -53,7 +53,7 @@ function Orb() {
         <g transform="rotate(-9 124 96)">
           <path className="mov-orb-ring front" d="M18 96 A106 27 0 0 0 230 96" />
         </g>
-        <circle className="mov-orb-moon" cx="188" cy="116" r="8" fill="url(#movMoon)" />
+        <circle className="mov-orb-moon" cx="188" cy="108" r="8" fill="url(#movMoon)" />
       </svg>
     </div>
   );
@@ -65,13 +65,15 @@ function Orb() {
 export function ModernHero({ greeting, stats, projectsCount, onJump, onOpenPalette }: Props) {
   const { t } = useT();
 
-  const headline =
+  // The hero card carries the whole status at a glance: greeting, how many
+  // projects are active, and whether anything needs review.
+  const review =
     stats.crit > 0
-      ? t("modern.hero_crit", { n: stats.crit })
+      ? t("modern.card_review", { n: stats.crit })
       : stats.warn > 0
-        ? t("modern.hero_warn", { n: stats.warn })
-        : t("modern.hero_stable");
-  const sub = t("modern.hero_sub", { findings: stats.total, projects: projectsCount });
+        ? t("modern.card_review", { n: stats.warn })
+        : t("modern.card_clear");
+  const cardStatus = `${t("modern.card_projects", { n: projectsCount })} · ${review}`;
 
   return (
     <div className="mov-hero">
@@ -84,11 +86,7 @@ export function ModernHero({ greeting, stats, projectsCount, onJump, onOpenPalet
       </header>
 
       <section className="mov-hero-head">
-        <div>
-          <p className="mov-eyebrow">{t("modern.eyebrow")}</p>
-          <h2>{greeting}</h2>
-          <span>{t("modern.subtitle")}</span>
-        </div>
+        <p className="mov-eyebrow">{t("modern.eyebrow")}</p>
         <div className="mov-hero-actions">
           <button className="mov-btn-ghost" type="button" onClick={onOpenPalette}>
             {t("modern.search")}
@@ -104,8 +102,8 @@ export function ModernHero({ greeting, stats, projectsCount, onJump, onOpenPalet
           <span className="mov-status-pill">
             <span className="mov-dot" aria-hidden="true" /> {t("modern.gentle_online")}
           </span>
-          <h3>{headline}</h3>
-          <p>{sub}</p>
+          <h3 className="mov-card-greeting">{greeting}</h3>
+          <p className="mov-card-status">{cardStatus}</p>
         </div>
         <Orb />
       </section>

@@ -527,15 +527,20 @@ export function OverviewView({
         </article>
       )}
 
-      <SignalFeed
-        crit={stats.crit}
-        warn={stats.warn}
-        reclaimableBytes={reclaimableBytes}
-        updateCount={updateCount}
-        loading={loading}
-        onJump={onJump}
-        t={t}
-      />
+      {/* Modern's orb hero card already carries the review status ("All clear"
+          / "N need review"), so the signal feed would just repeat it. Other
+          themes have no hero summary, so they keep it. */}
+      {!isModern && (
+        <SignalFeed
+          crit={stats.crit}
+          warn={stats.warn}
+          reclaimableBytes={reclaimableBytes}
+          updateCount={updateCount}
+          loading={loading}
+          onJump={onJump}
+          t={t}
+        />
+      )}
 
       <section className="v3-card v3-recent-projects">
         <header className="v3-card-head">

@@ -1060,19 +1060,11 @@ const STRINGS = {
   "modern.search": { en: "Search", es: "Buscar" },
   "modern.new_project": { en: "New project", es: "Nuevo proyecto" },
   "modern.gentle_online": { en: "Gentle-AI online", es: "Gentle-AI online" },
-  "modern.hero_stable": { en: "Your workspace is stable.", es: "Tu workspace está estable." },
-  "modern.hero_crit": {
-    en: "{n} critical findings need attention.",
-    es: "{n} hallazgos críticos necesitan atención.",
-  },
-  "modern.hero_warn": {
-    en: "{n} warnings to review.",
-    es: "{n} advertencias para revisar.",
-  },
-  "modern.hero_sub": {
-    en: "{findings} findings · {projects} active projects.",
-    es: "{findings} hallazgos · {projects} proyectos activos.",
-  },
+  // Hero card status line: greeting + active projects + whether anything
+  // needs review.
+  "modern.card_projects": { en: "{n} active projects", es: "{n} proyectos activos" },
+  "modern.card_review": { en: "{n} need review", es: "{n} requieren revisión" },
+  "modern.card_clear": { en: "All clear", es: "Todo en orden" },
 
   // Token usage view — aggregates ~/.claude/projects/*.jsonl assistant
   // message usage fields into per-day buckets. Window-aware totals + a
