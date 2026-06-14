@@ -490,21 +490,24 @@ body.v3-layout #root {
   justify-content: center;
 }
 
-/* ── Modern theme: decluttered "Flat & quiet" sidebar (V1) ────
-   No section headers, no projects list, and the bulky system-status
-   card collapses to a single slim line. ^="modern" → both modern
-   modes; pure CSS, no Sidebar.tsx change (so no gameboy entanglement). */
+/* ── Modern theme: decluttered "Light groups" sidebar (V2) ────
+   Faint tiny section labels + a hairline divider between groups; no
+   projects list; the bulky system-status card collapses to a slim line.
+   ^="modern" → both modern modes; pure CSS, no Sidebar.tsx change. */
 body[data-theme-v3^="modern"] .v3-sidebar-section-title {
-  display: none;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--v3-text-4);
+  margin-bottom: 5px;
+  padding: 0 10px;
 }
 body[data-theme-v3^="modern"] .v3-sidebar-section {
-  padding-top: 0;
   gap: 2px;
 }
 body[data-theme-v3^="modern"] .v3-sidebar-section-sep {
-  margin-top: 2px;
-  padding-top: 0;
-  border-top: none;
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid var(--v3-border);
 }
 body[data-theme-v3^="modern"] .v3-sidebar-projects {
   display: none;
@@ -1845,14 +1848,13 @@ body[data-theme-v3^="modern"] .v3-recent-project {
   overflow: visible; /* let the hover tooltip escape the card */
 }
 body[data-theme-v3^="modern"] .v3-recent-projects-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 body[data-theme-v3^="modern"] .v3-recent-project {
   position: relative;
-  width: 190px;
-  flex: 0 0 auto;
+  width: auto;
   gap: 7px;
   padding: 14px 15px 13px;
   background: var(--v3-text);
