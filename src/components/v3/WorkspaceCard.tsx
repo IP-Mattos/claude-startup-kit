@@ -52,7 +52,13 @@ export function WorkspaceCard() {
   return (
     <section className="v3-workspace-card">
       <header className="v3-workspace-head">
-        <h3 className="v3-workspace-title">{t("workspace.title")}</h3>
+        <div className="v3-workspace-title-row">
+          {summary && <span className="v3-workspace-dot" aria-hidden="true" />}
+          <h3 className="v3-workspace-title">{t("workspace.title")}</h3>
+        </div>
+        {summary && (
+          <span className="v3-workspace-online">{t("workspace.online")}</span>
+        )}
       </header>
       <div className="v3-workspace-section">
         <div className="v3-workspace-row">

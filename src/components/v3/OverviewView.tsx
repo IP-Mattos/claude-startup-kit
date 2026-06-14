@@ -317,6 +317,24 @@ function formatTokens(n: number): string {
   return out.join(" ");
 }
 
+// Calm monochrome bar chart for the modern theme (replaces the sparkline).
+// Heights are proportional to the window max; the most recent bar is hi-lit.
+function TokenBars({ data }: { data: number[] }) {
+  if (data.length === 0) return null;
+  const max = Math.max(1, ...data);
+  return (
+    <div className="v3-token-bars" aria-hidden="true">
+      {data.map((v, i) => (
+        <span
+          key={i}
+          className={"v3-token-bar" + (i === data.length - 1 ? " is-last" : "")}
+          style={{ height: `${Math.max(4, Math.round((v / max) * 100))}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function TokensPanel({ t }: { t: T }) {
   const [days, setDays] = useState(7);
   const [stats, setStats] = useState<TokenStats | null>(null);
@@ -345,6 +363,8 @@ function TokensPanel({ t }: { t: T }) {
   }, [days]);
 
   const spark = useMemo(() => (stats ? stats.by_day.map((d) => d.total) : []), [stats]);
+  // Modern theme swaps the line sparkline for a calm monochrome bar chart.
+  const isModern = useV3Theme().startsWith("modern");
 
   return (
     <article className="v3-card v3-tokens-panel">
@@ -375,7 +395,11 @@ function TokensPanel({ t }: { t: T }) {
               {t("overview.tokens_sub", { n: stats.sessions })}
             </span>
           </div>
-          <Sparkline data={spark} width={420} height={48} />
+          {isModern ? (
+            <TokenBars data={spark} />
+          ) : (
+            <Sparkline data={spark} width={420} height={48} />
+          )}
         </div>
       )}
     </article>

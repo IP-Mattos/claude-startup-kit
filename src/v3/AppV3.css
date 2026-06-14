@@ -613,8 +613,8 @@ body[data-theme-v3^="modern"] .v3-companion-stage {
   padding: 2px 0 4px;
 }
 body[data-theme-v3^="modern"] .v3-companion-avatar {
-  width: 78px;
-  height: 78px;
+  width: 128px;
+  height: 128px;
   border: 1px solid var(--v3-border-strong);
 }
 body[data-theme-v3^="modern"] .v3-companion-message {
@@ -689,6 +689,24 @@ body[data-theme-v3^="modern"] .v3-tokens-panel-num {
   font-size: 40px;
   font-weight: 600;
   letter-spacing: -1.5px;
+}
+body[data-theme-v3^="modern"] .v3-token-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  width: 320px;
+  max-width: 100%;
+  height: 76px;
+  flex-shrink: 0;
+}
+body[data-theme-v3^="modern"] .v3-token-bar {
+  flex: 1;
+  min-height: 4px;
+  border-radius: 3px 3px 1px 1px;
+  background: var(--v3-border-strong);
+}
+body[data-theme-v3^="modern"] .v3-token-bar.is-last {
+  background: var(--v3-accent);
 }
 
 /* ── 5. Empty states → framed, intentional (faint icon + copy) ─ */
@@ -2257,7 +2275,21 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   gap: 12px;
   box-shadow: var(--v3-shadow-1);
 }
-.v3-workspace-head { display: flex; align-items: center; }
+.v3-workspace-head { display: flex; align-items: center; justify-content: space-between; }
+.v3-workspace-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.v3-workspace-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--v3-success);
+  flex-shrink: 0;
+}
+.v3-workspace-online {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--v3-text-3);
+  flex-shrink: 0;
+}
 .v3-workspace-title {
   font-size: 14px;
   font-weight: 600;

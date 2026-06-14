@@ -258,6 +258,7 @@ const STRINGS = {
 
   // Workspace card (sits under the companion in the right panel)
   "workspace.title": { en: "Workspace", es: "Workspace" },
+  "workspace.online": { en: "Online", es: "En línea" },
   "workspace.skills": { en: "Skills used", es: "Skills usadas" },
   "workspace.engram": { en: "Engram memory", es: "Memoria Engram" },
   "workspace.engram_obs": { en: "{n} obs", es: "{n} obs" },
