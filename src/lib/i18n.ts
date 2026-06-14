@@ -756,6 +756,17 @@ const STRINGS = {
     en: "gentle-ai CLI not found on PATH",
     es: "gentle-ai CLI no encontrado en PATH",
   },
+  "claude.components_word": { en: "components", es: "componentes" },
+  "claude.onboarding_title": {
+    en: "gentle-ai isn't installed yet",
+    es: "Todavía no tenés gentle-ai instalado",
+  },
+  "claude.onboarding_desc": {
+    en: "gentle-ai keeps your Claude setup in sync — components, skills, MCPs and hooks. Install the CLI to manage everything from here.",
+    es: "gentle-ai mantiene sincronizado tu setup de Claude: componentes, skills, MCPs y hooks. Instalá la CLI para gestionar todo desde acá.",
+  },
+  "claude.onboarding_install": { en: "How to install", es: "Cómo instalar" },
+  "claude.onboarding_retry": { en: "Retry detection", es: "Reintentar detección" },
   // Skill discovery (suggested skills from skills.sh)
   "discovery.title": { en: "Suggested skills", es: "Skills sugeridas" },
   "discovery.lead": {

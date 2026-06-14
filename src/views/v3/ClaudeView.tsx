@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
+  Boxes,
   CheckCircle2,
   Download,
   ExternalLink,
@@ -220,6 +221,20 @@ export function ClaudeView() {
 
   const installedCount = status?.components.filter((c) => c.installed).length ?? 0;
   const totalCount = status?.components.length ?? 0;
+  // gentle-ai present once we have a CLI version; drives the not-installed
+  // onboarding vs the full management view.
+  const installed = !!status?.cli_version;
+
+  const openInstallGuide = () =>
+    invoke("open_url", {
+      url: "https://github.com/Gentleman-Programming/gentle-ai#installation",
+    }).catch(() => {
+      /* best-effort */
+    });
+
+  // Stats tiles deep-link to their section further down the same page.
+  const scrollToId = (id: string) =>
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
     <div className="v3-view">
@@ -247,21 +262,29 @@ export function ClaudeView() {
         </div>
       )}
 
-      {/* Gentle-AI header card — CLI version pill + sync actions. */}
-      <article className="v3-card v3-gai-header-card">
-        <header className="v3-card-head">
-          <h2 className="v3-card-title">{t("claude.gentle_ai_title")}</h2>
-          {status?.cli_version ? (
+      {/* Header: loading skeleton, full health card, or the not-installed
+          onboarding (a clear "what it is + how to install"). */}
+      {loading ? (
+        <article className="v3-card v3-gai-header-card">
+          <header className="v3-card-head">
+            <h2 className="v3-card-title">{t("claude.gentle_ai_title")}</h2>
+          </header>
+          <div className="v3-empty">{t("common.loading")}</div>
+        </article>
+      ) : installed ? (
+        <article className="v3-card v3-gai-header-card">
+          <header className="v3-card-head">
+            <h2 className="v3-card-title">{t("claude.gentle_ai_title")}</h2>
             <span className="v3-row-dim v3-gai-version-row">
-              {t("claude.cli_version")} {status.cli_version}
+              {t("claude.cli_version")} {status!.cli_version}
               <button
                 type="button"
                 className="v3-link v3-gai-release-notes"
                 onClick={() =>
                   invoke("open_url", {
-                    url: `https://github.com/Gentleman-Programming/gentle-ai/releases/tag/v${status.cli_version}`,
+                    url: `https://github.com/Gentleman-Programming/gentle-ai/releases/tag/v${status!.cli_version}`,
                   }).catch(() => {
-                    /* best-effort — silently ignore if the opener fails */
+                    /* best-effort */
                   })
                 }
                 title={t("claude.release_notes_hint")}
@@ -270,38 +293,80 @@ export function ClaudeView() {
                 {t("claude.release_notes")}
               </button>
             </span>
-          ) : (
-            <span className="v3-row-dim">{t("claude.cli_missing")}</span>
-          )}
-        </header>
-        <p className="v3-subtitle">{t("claude.gentle_ai_subtitle")}</p>
-        <div className="v3-gai-sync-actions">
-          <button
-            type="button"
-            className="v3-btn-primary"
-            onClick={() => runSync(false)}
-            disabled={syncing || !status?.cli_version}
-          >
-            <Download size={13} strokeWidth={2} />
-            {syncing ? t("claude.syncing") : t("claude.sync_all")}
-          </button>
-          <button
-            type="button"
-            className="v3-link"
-            onClick={() => runSync(true)}
-            disabled={syncing || !status?.cli_version}
-          >
-            {t("claude.sync_all_with_theme")}
-          </button>
-        </div>
-        {syncResult && (
-          <div className="v3-success v3-gai-sync-result" role="status" aria-live="polite">
-            <CheckCircle2 size={14} strokeWidth={2} />
-            {syncResult}
+          </header>
+          <p className="v3-subtitle">{t("claude.gentle_ai_subtitle")}</p>
+          <div className="v3-gai-health">
+            <span className="v3-gai-health-count">
+              <strong>{installedCount}</strong>/{totalCount} {t("claude.components_word")}
+            </span>
+            <div
+              className="v3-gai-health-bar"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={totalCount}
+              aria-valuenow={installedCount}
+            >
+              <div
+                className="v3-gai-health-bar-fill"
+                style={{
+                  width: `${totalCount > 0 ? Math.round((installedCount / totalCount) * 100) : 0}%`,
+                }}
+              />
+            </div>
           </div>
-        )}
-      </article>
+          <div className="v3-gai-sync-actions">
+            <button
+              type="button"
+              className="v3-btn-primary"
+              onClick={() => runSync(false)}
+              disabled={syncing}
+            >
+              <Download size={13} strokeWidth={2} />
+              {syncing ? t("claude.syncing") : t("claude.sync_all")}
+            </button>
+            <button
+              type="button"
+              className="v3-link"
+              onClick={() => runSync(true)}
+              disabled={syncing}
+            >
+              {t("claude.sync_all_with_theme")}
+            </button>
+          </div>
+          {syncResult && (
+            <div className="v3-success v3-gai-sync-result" role="status" aria-live="polite">
+              <CheckCircle2 size={14} strokeWidth={2} />
+              {syncResult}
+            </div>
+          )}
+        </article>
+      ) : (
+        <article className="v3-card v3-gai-onboarding">
+          <div className="v3-gai-onboarding-glyph" aria-hidden="true">
+            <Boxes size={26} strokeWidth={1.6} />
+          </div>
+          <h2 className="v3-gai-onboarding-title">{t("claude.onboarding_title")}</h2>
+          <p className="v3-gai-onboarding-desc">{t("claude.onboarding_desc")}</p>
+          <div className="v3-gai-onboarding-actions">
+            <button type="button" className="v3-btn-primary" onClick={openInstallGuide}>
+              <Download size={13} strokeWidth={2} />
+              {t("claude.onboarding_install")}
+            </button>
+            <button
+              type="button"
+              className="v3-link"
+              onClick={() => setRefreshNonce((n) => n + 1)}
+              disabled={loading}
+            >
+              <RefreshCw size={12} strokeWidth={2.4} />
+              {t("claude.onboarding_retry")}
+            </button>
+          </div>
+        </article>
+      )}
 
+      {installed && (
+        <>
       {/* Suggested skills from skills.sh, ranked by the user's stack. */}
       <SkillDiscovery />
 
@@ -365,18 +430,25 @@ export function ClaudeView() {
         )}
       </article>
 
-      {/* Stats strip — clickable tiles deep-link into matching sections.
-          Skills + MCPs scroll within this page; Hooks + Plugins are
-          informational counts (no in-page anchor yet). */}
+      {/* Stats strip — Skills + MCPs are buttons that scroll to their section;
+          Hooks + Plugins are informational counts (no in-page section yet). */}
       <section className="v3-gai-stats-strip">
-        <div className="v3-gai-stat-tile">
+        <button
+          type="button"
+          className="v3-gai-stat-tile is-link"
+          onClick={() => scrollToId("v3-gai-skills")}
+        >
           <div className="v3-gai-stat-value">{status?.skills_total ?? 0}</div>
           <div className="v3-gai-stat-label">{t("claude.stat_skills")}</div>
-        </div>
-        <div className="v3-gai-stat-tile">
+        </button>
+        <button
+          type="button"
+          className="v3-gai-stat-tile is-link"
+          onClick={() => scrollToId("v3-gai-mcp")}
+        >
           <div className="v3-gai-stat-value">{status?.mcp_servers_total ?? 0}</div>
           <div className="v3-gai-stat-label">{t("claude.stat_mcps")}</div>
-        </div>
+        </button>
         <div className="v3-gai-stat-tile">
           <div className="v3-gai-stat-value">{status?.hooks_total ?? 0}</div>
           <div className="v3-gai-stat-label">{t("claude.stat_hooks")}</div>
@@ -387,7 +459,7 @@ export function ClaudeView() {
         </div>
       </section>
 
-      <article className="v3-card">
+      <article className="v3-card" id="v3-gai-mcp">
         <header className="v3-card-head">
           <h2 className="v3-card-title">{t("claude.mcp_title")}</h2>
           <span className="v3-row-dim">
@@ -440,7 +512,7 @@ export function ClaudeView() {
         )}
       </article>
 
-      <article className="v3-card">
+      <article className="v3-card" id="v3-gai-skills">
         <header className="v3-card-head">
           <h2 className="v3-card-title">{t("claude.skills_title")}</h2>
           <span className="v3-row-dim">
@@ -533,6 +605,8 @@ export function ClaudeView() {
           </>
         )}
       </article>
+        </>
+      )}
 
       <article className="v3-card v3-fix-card">
         <header className="v3-card-head">

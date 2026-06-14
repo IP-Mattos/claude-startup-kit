@@ -868,6 +868,74 @@ body[data-theme-v3^="modern"] .v3-empty::before {
 .v3-gai-sync-result {
   margin-top: 10px;
 }
+
+/* Health at a glance — "N/M components" + a thin install-coverage bar. */
+.v3-gai-health {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+.v3-gai-health-count {
+  font-size: 12px;
+  color: var(--v3-text-3);
+}
+.v3-gai-health-count strong {
+  color: var(--v3-text);
+  font-variant-numeric: tabular-nums;
+}
+.v3-gai-health-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--v3-surface-2);
+  overflow: hidden;
+}
+.v3-gai-health-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--v3-accent);
+  transition: width 280ms ease;
+}
+
+/* Not-installed onboarding — what gentle-ai is + how to install. */
+.v3-gai-onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 32px 24px;
+}
+.v3-gai-onboarding-glyph {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border);
+  color: var(--v3-accent);
+}
+.v3-gai-onboarding-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--v3-text);
+}
+.v3-gai-onboarding-desc {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--v3-text-3);
+}
+.v3-gai-onboarding-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+}
+
 /* Components grid — 8 small cards, mono name + status pill. */
 .v3-gai-components-grid {
   display: grid;
@@ -982,6 +1050,20 @@ body[data-theme-v3^="modern"] .v3-empty::before {
 }
 .v3-gai-stat-tile:last-child {
   border-right: 0;
+}
+/* Skills + MCP tiles are buttons that scroll to their section. */
+.v3-gai-stat-tile.is-link {
+  text-align: left;
+  background: transparent;
+  border-top: 0;
+  border-bottom: 0;
+  border-left: 0;
+  font: inherit;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.v3-gai-stat-tile.is-link:hover {
+  background: var(--v3-surface-2);
 }
 .v3-gai-stat-value {
   font-family: var(--v3-mono, "SF Mono", ui-monospace, monospace);
