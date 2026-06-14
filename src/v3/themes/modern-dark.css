@@ -1,0 +1,138 @@
+/* =============================================================
+   V3 Theme: MODERN DARK
+   Identity: premium minimal SaaS (2026). Fully monochrome — pure neutral
+   grayscale (R=G=B) on near-black, near-white accent (Linear/Notion style),
+   with a single green kept only for positive status. No coloured ambient.
+   Translated from the `modern` design mockup (test/modern).
+   ============================================================= */
+
+/* ── Body background — pure neutral near-black, faint white top glow only
+   (no coloured ambient, to keep it monochromatic) ─────────── */
+body.v3-layout[data-theme-v3="modern-dark"] {
+  background: #0a0a0a;
+}
+body.v3-layout[data-theme-v3="modern-dark"] .appv3 {
+  background: radial-gradient(70% 45% at 50% -4%, rgba(255, 255, 255, 0.022), transparent 70%);
+}
+
+/* ── Token block ──────────────────────────────────────────── */
+body[data-theme-v3="modern-dark"] .appv3 {
+  /* pure neutral grayscale (R=G=B) — no blue/slate tint, fully monochrome.
+     Cards (surface) sit a clear step of dark gray above the near-black bg. */
+  --v3-bg:           #0A0A0A;
+  --v3-surface:      #161616;
+  --v3-surface-2:    #1E1E1E;
+  --v3-hover:        #262626;
+  --v3-border:       #272727;
+  --v3-border-strong: #3A3A3A;
+
+  /* generous rounding — the modern mockup uses 20px cards / 11px controls */
+  --v3-radius:    16px;
+  --v3-radius-sm: 10px;
+
+  --v3-text:   #F4F4F4;
+  --v3-text-2: #C9C9C9;
+  --v3-text-3: #8C8C8C;
+  --v3-text-4: #585858;
+
+  /* monochrome accent — high-contrast white/near-black, not a brand hue */
+  --v3-accent:       #F4F4F4;
+  --v3-accent-hover: #DADADA;
+  --v3-accent-tint:  rgba(244, 244, 244, 0.11);
+  --v3-accent-soft:  rgba(244, 244, 244, 0.15);
+  --v3-accent-ink:   #0A0A0A; /* text/icon on the accent (white) */
+
+  --v3-success:      #85F2A8;
+  --v3-success-tint: rgba(133, 242, 168, 0.14);
+  --v3-warn:         #F4C152;
+  --v3-warn-tint:    rgba(244, 193, 82, 0.16);
+  --v3-info:         #8BD3FF;
+  --v3-info-tint:    rgba(139, 211, 255, 0.16);
+  --v3-crit:         #F87171;
+  --v3-crit-tint:    rgba(248, 113, 113, 0.15);
+
+  --v3-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.40);
+  --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.50), 0 1px 2px rgba(0, 0, 0, 0.30);
+  --v3-shadow-3: 0 14px 40px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.30);
+}
+
+/* ── Mono on telemetry / numerics ─────────────────────────── */
+body[data-theme-v3="modern-dark"] .appv3 .v3-stat-value,
+body[data-theme-v3="modern-dark"] .appv3 .v3-stat-meta,
+body[data-theme-v3="modern-dark"] .appv3 .v3-row-meta,
+body[data-theme-v3="modern-dark"] .appv3 .v3-row-path,
+body[data-theme-v3="modern-dark"] .appv3 .v3-statusbar,
+body[data-theme-v3="modern-dark"] .appv3 .v3-version,
+body[data-theme-v3="modern-dark"] .appv3 .v3-git-hash,
+body[data-theme-v3="modern-dark"] .appv3 .v3-pill,
+body[data-theme-v3="modern-dark"] .appv3 [class*="-meta"],
+body[data-theme-v3="modern-dark"] .appv3 [class*="-time"],
+body[data-theme-v3="modern-dark"] .appv3 [class*="-count"],
+body[data-theme-v3="modern-dark"] .appv3 [class*="-version"],
+body[data-theme-v3="modern-dark"] .appv3 code {
+  font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* ── Cards: soft premium lift (the modern signature) ──────── */
+body[data-theme-v3="modern-dark"] .v3-card,
+body[data-theme-v3="modern-dark"] .v3-stat-card,
+body[data-theme-v3="modern-dark"] .v3-update-row {
+  background: var(--v3-surface);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.02), 0 14px 40px rgba(0, 0, 0, 0.40);
+}
+
+body[data-theme-v3="modern-dark"] .v3-topbar {
+  box-shadow: none;
+}
+
+/* ── Sidebar (distinct from the main bg) ──────────────────── */
+body[data-theme-v3="modern-dark"] .v3-sidebar {
+  background: #0C0C0C;
+}
+body[data-theme-v3="modern-dark"] .v3-side-link.active {
+  color: var(--v3-text);
+}
+
+/* ── Row hover ────────────────────────────────────────────── */
+body[data-theme-v3="modern-dark"] .v3-row:hover {
+  background: var(--v3-surface-2);
+  box-shadow: inset 2px 0 0 var(--v3-accent);
+}
+
+/* ── Pills ────────────────────────────────────────────────── */
+body[data-theme-v3="modern-dark"] .v3-pill,
+body[data-theme-v3="modern-dark"] .v3-pill-soft {
+  background: var(--v3-surface-2);
+}
+
+/* ── Primary button (white accent → dark ink) ─────────────── */
+body[data-theme-v3="modern-dark"] .v3-btn-primary,
+body[data-theme-v3="modern-dark"] .v3-update-banner-primary,
+body[data-theme-v3="modern-dark"] .v3-update-row-action {
+  background: var(--v3-accent);
+  color: var(--v3-accent-ink);
+}
+
+/* ── Ghost button ─────────────────────────────────────────── */
+body[data-theme-v3="modern-dark"] .v3-btn-ghost {
+  background: var(--v3-surface-2);
+  color: var(--v3-text-2);
+}
+body[data-theme-v3="modern-dark"] .v3-btn-ghost:hover {
+  border-color: var(--v3-text-4);
+  color: var(--v3-text);
+}
+
+/* ── Inputs ──────────────────────────────────────────────── */
+body[data-theme-v3="modern-dark"] .v3-input,
+body[data-theme-v3="modern-dark"] .v3-search input,
+body[data-theme-v3="modern-dark"] .v3-select {
+  background: var(--v3-surface);
+  color: var(--v3-text);
+}
+
+/* ── Statusbar ────────────────────────────────────────────── */
+body[data-theme-v3="modern-dark"] .v3-statusbar {
+  background: var(--v3-surface);
+  color: var(--v3-text-3);
+}

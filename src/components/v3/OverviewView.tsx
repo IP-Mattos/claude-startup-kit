@@ -25,7 +25,9 @@ import { useT, type StringKey } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
 import { useUpdates } from "../../lib/useUpdates";
 import { useStackUpdates } from "../../lib/useStackUpdates";
+import { useV3Theme } from "../../lib/themes";
 import { Sparkline } from "./Sparkline";
+import { ModernHero } from "./modern/ModernHero";
 
 // Only nag about reclaimable space once it's worth a click.
 const CLEANUP_REMINDER_THRESHOLD = 50 * 1024 * 1024; // 50 MB
@@ -394,6 +396,7 @@ export function OverviewView({
   onOpenProject,
   onJump,
   onCycleTheme,
+  onOpenPalette,
 }: {
   greeting: string;
   projects: Project[];
@@ -403,8 +406,13 @@ export function OverviewView({
   onOpenProject: (path: string) => void;
   onJump: (tab: V3Tab) => void;
   onCycleTheme: () => void;
+  onOpenPalette?: () => void;
 }) {
   const { t } = useT();
+  // Modern themes get the bespoke orb hero in place of the plain header; the
+  // real sections (signal feed / projects / tokens / gentle-ai) stay.
+  const theme = useV3Theme();
+  const isModern = theme === "modern-light" || theme === "modern-dark";
   const recentProjects = projects.slice(0, 3);
 
   // Reclaimable space (cleanup reminder). Sum the cleanup plan's bytes for
@@ -454,30 +462,40 @@ export function OverviewView({
 
   return (
     <div className="v3-view v3-view-overview">
-      <header className="v3-view-head">
-        <div>
-          <h1 className="v3-greeting">{greeting}</h1>
-          <p className="v3-subtitle">{t("overview.subtitle")}</p>
-        </div>
-        <div className="v3-view-tools">
-          <button
-            className="v3-icon-btn"
-            onClick={onCycleTheme}
-            aria-label={t("common.cycle_theme")}
-            title={t("common.cycle_theme_title")}
-          >
-            <Palette size={16} strokeWidth={1.8} />
-          </button>
-          <button
-            className="v3-icon-btn"
-            onClick={() => onJump("settings")}
-            aria-label={t("common.open_settings")}
-            title={t("common.settings_title")}
-          >
-            <Cog size={16} strokeWidth={1.8} />
-          </button>
-        </div>
-      </header>
+      {isModern ? (
+        <ModernHero
+          greeting={greeting}
+          stats={stats}
+          projectsCount={projects.length}
+          onJump={onJump}
+          onOpenPalette={onOpenPalette ?? (() => {})}
+        />
+      ) : (
+        <header className="v3-view-head">
+          <div>
+            <h1 className="v3-greeting">{greeting}</h1>
+            <p className="v3-subtitle">{t("overview.subtitle")}</p>
+          </div>
+          <div className="v3-view-tools">
+            <button
+              className="v3-icon-btn"
+              onClick={onCycleTheme}
+              aria-label={t("common.cycle_theme")}
+              title={t("common.cycle_theme_title")}
+            >
+              <Palette size={16} strokeWidth={1.8} />
+            </button>
+            <button
+              className="v3-icon-btn"
+              onClick={() => onJump("settings")}
+              aria-label={t("common.open_settings")}
+              title={t("common.settings_title")}
+            >
+              <Cog size={16} strokeWidth={1.8} />
+            </button>
+          </div>
+        </header>
+      )}
 
       {!onboardingDismissed && (
         <article className="v3-onboarding-card" role="region" aria-label={t("onboarding.aria")}>

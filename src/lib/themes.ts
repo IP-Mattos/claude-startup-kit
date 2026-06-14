@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 export const V3_THEME_ORDER = [
   "light",
   "dark",
+  "modern-light",
+  "modern-dark",
   "unix-90",
   "ps2-glow",
   "data-dense",
@@ -25,11 +27,22 @@ export interface V3ThemeOption {
 export const V3_THEME_OPTIONS: V3ThemeOption[] = [
   { id: "light",      label: "Light",      swatch: ["#F8F9FB", "#FFFFFF", "#ED7B26"] },
   { id: "dark",       label: "Dark",       swatch: ["#0F172A", "#1E293B", "#ED7B26"] },
+  { id: "modern-light", label: "Modern Light", swatch: ["#F3F4F5", "#FFFFFF", "#2FAE5D"] },
+  { id: "modern-dark",  label: "Modern Dark",  swatch: ["#07090D", "#12161E", "#85F2A8"] },
   { id: "unix-90",    label: "Unix '90",   swatch: ["#B8BEC4", "#C4CACF", "#1F6F87"] },
   { id: "ps2-glow",   label: "PS2 Glow",   swatch: ["#050B1A", "#0E1F38", "#5CC8FF"] },
   { id: "data-dense", label: "Data Dense", swatch: ["#0E1014", "#13161C", "#5DD39E"] },
   { id: "manga",      label: "Manga",      swatch: ["#E8E3D7", "#F2EEE3", "#C73E3E"] },
 ];
+
+// Per-theme companion portrait ("the guardian"). A theme that ships its own
+// character overrides the user's avatar while that theme is active (served as
+// a static asset from /public/companions). Themes without an entry keep the
+// user's chosen image.
+export const THEME_COMPANIONS: Partial<Record<V3Theme, string>> = {
+  "modern-light": "/companions/modern-light.png",
+  "modern-dark": "/companions/modern-dark.png",
+};
 
 // One-shot apply: load CSS + persist + set body attribute. Both the cycle
 // shortcut (AppV3) and the picker (views) call this. Returns the resolved

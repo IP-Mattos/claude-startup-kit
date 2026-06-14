@@ -413,6 +413,7 @@ export default function AppV3() {
               onOpenProject={handleOpenProject}
               onJump={setTab}
               onCycleTheme={handleCycleTheme}
+              onOpenPalette={() => setPaletteOpen(true)}
             />
           )}
           {tab === "projects" && (

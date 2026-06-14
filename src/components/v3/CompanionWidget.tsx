@@ -1,5 +1,6 @@
 import React from "react";
 import { useT } from "../../lib/i18n";
+import { THEME_COMPANIONS, useV3Theme } from "../../lib/themes";
 import type { V3Tab } from "../../v3/v3types";
 
 // Soft right-panel nudge — single line that names the next thing worth
@@ -67,7 +68,10 @@ export function CompanionWidget({
           onClick: () => onJump("projects"),
         };
 
-  const avatarSrc = companionImage ?? "/Sia2.webp";
+  // A theme that ships its own character ("guardian") takes over the avatar
+  // while it's active; otherwise the user's chosen image (or the default).
+  const theme = useV3Theme();
+  const avatarSrc = THEME_COMPANIONS[theme] ?? companionImage ?? "/Sia2.webp";
 
   return (
     <section className="v3-companion-widget">

@@ -1046,6 +1046,34 @@ const STRINGS = {
   "trello.team": { en: "Team", es: "Equipo" },
   "trello.role_supervisor": { en: "supervisor", es: "supervisor" },
 
+  // Modern theme — the orb hero header (ModernHero) rendered above the real
+  // Overview sections when a modern theme is active.
+  "modern.eyebrow": { en: "Dashboard", es: "Dashboard" },
+  "modern.subtitle": {
+    en: "Here's what's happening across your workspace.",
+    es: "Esto es lo que está pasando en tu workspace.",
+  },
+  "modern.search_placeholder": {
+    en: "Search the workspace…",
+    es: "Buscar en el workspace…",
+  },
+  "modern.search": { en: "Search", es: "Buscar" },
+  "modern.new_project": { en: "New project", es: "Nuevo proyecto" },
+  "modern.gentle_online": { en: "Gentle-AI online", es: "Gentle-AI online" },
+  "modern.hero_stable": { en: "Your workspace is stable.", es: "Tu workspace está estable." },
+  "modern.hero_crit": {
+    en: "{n} critical findings need attention.",
+    es: "{n} hallazgos críticos necesitan atención.",
+  },
+  "modern.hero_warn": {
+    en: "{n} warnings to review.",
+    es: "{n} advertencias para revisar.",
+  },
+  "modern.hero_sub": {
+    en: "{findings} findings · {projects} active projects.",
+    es: "{findings} hallazgos · {projects} proyectos activos.",
+  },
+
   // Token usage view — aggregates ~/.claude/projects/*.jsonl assistant
   // message usage fields into per-day buckets. Window-aware totals + a
   // sparkline + a 7-day recent table.

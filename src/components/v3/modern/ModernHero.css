@@ -1,0 +1,218 @@
+/* =============================================================
+   Modern Hero — the orb dashboard header for the modern theme.
+   Translated from test/modern (style.css). Rendered above the real
+   Overview sections (signal feed / projects / tokens / gentle-ai),
+   which keep their own classes and pick up the modern card styling
+   from the theme tokens. Colours run on --v3-* so light + dark work;
+   the orb carries its own gloss with per-theme ring/shadow/moon.
+   ============================================================= */
+
+.mov-hero {
+  display: flex;
+  flex-direction: column;
+}
+
+/* centered search */
+.mov-topbar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.mov-search {
+  width: min(440px, 100%);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius);
+  box-shadow: var(--v3-shadow-1);
+  color: var(--v3-text-3);
+  cursor: pointer;
+  font: inherit;
+}
+.mov-search span {
+  flex: 1;
+  text-align: left;
+  font-size: 13.5px;
+}
+.mov-search kbd {
+  font-family: ui-monospace, "JetBrains Mono", monospace;
+  color: var(--v3-text-4);
+  font-size: 11px;
+  border: 1px solid var(--v3-border);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+/* hero head */
+.mov-hero-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+.mov-eyebrow {
+  margin: 0 0 10px;
+  color: var(--v3-text-3);
+  font-size: 12px;
+  font-weight: 500;
+}
+.mov-hero-head h2 {
+  margin: 0;
+  font-size: 46px;
+  font-weight: 800;
+  line-height: 0.94;
+  letter-spacing: -2px;
+  color: var(--v3-text);
+}
+.mov-hero-head > div > span {
+  display: block;
+  margin-top: 12px;
+  color: var(--v3-text-3);
+  font-size: 15px;
+}
+.mov-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 6px;
+  flex-shrink: 0;
+}
+
+.mov-btn-ghost {
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-sm);
+  background: var(--v3-surface);
+  color: var(--v3-text);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--v3-shadow-1);
+  cursor: pointer;
+}
+.mov-btn-dark {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--v3-radius-sm);
+  background: var(--v3-accent);
+  color: var(--v3-accent-ink, #fff);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--v3-shadow-1);
+  cursor: pointer;
+}
+.mov-btn-dark .mov-plus {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* hero card */
+.mov-hero-card {
+  position: relative;
+  padding: 22px 30px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  overflow: hidden;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius);
+  box-shadow: var(--v3-shadow-1);
+}
+.mov-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 16px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--v3-surface-2);
+  border: 1px solid var(--v3-border);
+  color: var(--v3-text-2);
+  font-size: 12px;
+}
+.mov-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--v3-success);
+  display: inline-block;
+}
+.mov-hero-card h3 {
+  margin: 0 0 10px;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  color: var(--v3-text);
+}
+.mov-hero-card p {
+  margin: 0;
+  max-width: 460px;
+  color: var(--v3-text-3);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ── the orb ──────────────────────────────────────────────── */
+.mov-orb {
+  position: relative;
+  width: 260px;
+  height: 180px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+}
+.mov-orb-svg {
+  overflow: visible;
+}
+.mov-orb-body {
+  filter: drop-shadow(0 20px 28px rgba(15, 20, 30, 0.18));
+}
+.mov-orb-shadow {
+  fill: rgba(15, 20, 30, 0.13);
+}
+.mov-orb-ring {
+  fill: none;
+  stroke: rgba(15, 20, 30, 0.5);
+  stroke-width: 1.3;
+}
+.mov-orb-ring.back {
+  stroke: rgba(15, 20, 30, 0.26);
+}
+.mov-orb-moon {
+  filter: drop-shadow(0 3px 6px rgba(15, 20, 30, 0.3));
+}
+body[data-theme-v3="modern-dark"] .mov-orb-shadow {
+  fill: rgba(0, 0, 0, 0.5);
+}
+body[data-theme-v3="modern-dark"] .mov-orb-body {
+  filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.6));
+}
+body[data-theme-v3="modern-dark"] .mov-orb-ring {
+  stroke: rgba(214, 221, 230, 0.6);
+}
+body[data-theme-v3="modern-dark"] .mov-orb-ring.back {
+  stroke: rgba(214, 221, 230, 0.32);
+}
+body[data-theme-v3="modern-dark"] .mov-orb-moon {
+  fill: #f4f6f8;
+  filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.55));
+}
+
+/* On narrow widths the orb would crowd the copy — drop it. */
+@media (max-width: 1180px) {
+  .mov-orb {
+    display: none;
+  }
+}
