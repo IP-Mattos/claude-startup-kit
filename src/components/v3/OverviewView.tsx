@@ -317,6 +317,23 @@ function formatTokens(n: number): string {
   return out.join(" ");
 }
 
+// Abbreviated token total: 2 410 000 → { value: "2.41", unit: "M" }. K / M /
+// B / T, ~3 significant figures. The exact count stays available on the
+// num's title (hover).
+function formatTokensShort(n: number): { value: string; unit: string } {
+  if (!Number.isFinite(n) || n <= 0) return { value: "0", unit: "" };
+  if (n < 1000) return { value: String(Math.trunc(n)), unit: "" };
+  const units = ["K", "M", "B", "T"];
+  let v = n;
+  let u = -1;
+  while (v >= 1000 && u < units.length - 1) {
+    v /= 1000;
+    u += 1;
+  }
+  const value = v >= 100 ? String(Math.round(v)) : v.toFixed(v >= 10 ? 1 : 2);
+  return { value, unit: units[u] };
+}
+
 // Calm monochrome bar chart for the modern theme (replaces the sparkline).
 // Heights are proportional to the window max; the most recent bar is hi-lit.
 function TokenBars({ data }: { data: number[] }) {
@@ -390,7 +407,15 @@ function TokensPanel({ t }: { t: T }) {
       ) : (
         <div className="v3-tokens-panel-body">
           <div className="v3-tokens-panel-kpi">
-            <span className="v3-tokens-panel-num">{formatTokens(stats.total_all)}</span>
+            <span
+              className="v3-tokens-panel-num"
+              title={`${formatTokens(stats.total_all)} tokens`}
+            >
+              {formatTokensShort(stats.total_all).value}
+              <span className="v3-tokens-panel-unit">
+                {formatTokensShort(stats.total_all).unit}
+              </span>
+            </span>
             <span className="v3-tokens-panel-sub">
               {t("overview.tokens_sub", { n: stats.sessions })}
             </span>

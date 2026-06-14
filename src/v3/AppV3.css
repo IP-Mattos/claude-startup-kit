@@ -4715,6 +4715,12 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+.v3-tokens-panel-unit {
+  font-size: 0.62em;
+  font-weight: 500;
+  color: var(--v3-text-3);
+  margin-left: 2px;
+}
 .v3-tokens-panel-sub {
   font-size: 12px;
   opacity: 0.6;
