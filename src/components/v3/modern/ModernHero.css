@@ -121,14 +121,19 @@
   padding: 22px 30px;
   margin-bottom: 8px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 24px 18px;
   overflow: hidden;
   background: var(--v3-surface);
   border: 1px solid var(--v3-border);
   border-radius: var(--v3-radius);
   box-shadow: var(--v3-shadow-1);
+}
+.mov-hero-body {
+  flex: 1 1 300px;
+  min-width: 0;
 }
 .mov-status-pill {
   display: inline-flex;
@@ -210,8 +215,23 @@ body[data-theme-v3="modern-dark"] .mov-orb-moon {
   filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.55));
 }
 
-/* On narrow widths the orb would crowd the copy — drop it. */
+/* Keep the orb visible across window sizes (incl. Windows display scaling,
+   which shrinks the effective CSS width): shrink it as space tightens
+   instead of dropping it, and only hide on genuinely tiny widths. The card
+   wraps so a cramped orb falls below the copy rather than overflowing. */
 @media (max-width: 1180px) {
+  .mov-orb {
+    width: 180px;
+    height: 125px;
+  }
+}
+@media (max-width: 920px) {
+  .mov-orb {
+    width: 140px;
+    height: 100px;
+  }
+}
+@media (max-width: 680px) {
   .mov-orb {
     display: none;
   }
