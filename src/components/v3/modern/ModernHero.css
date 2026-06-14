@@ -117,16 +117,17 @@
   font-weight: 500;
 }
 
-/* hero card */
+/* hero card — text + orb ALWAYS on one row (orb never wraps below). The orb
+   keeps a fixed (responsive) width and the copy column flexes/shrinks. */
 .mov-hero-card {
   position: relative;
   padding: 22px 30px;
   margin-bottom: 8px;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
-  gap: 24px 18px;
+  gap: 22px;
   overflow: hidden;
   background: var(--v3-surface);
   border: 1px solid var(--v3-border);
@@ -134,7 +135,7 @@
   box-shadow: var(--v3-shadow-1);
 }
 .mov-hero-body {
-  flex: 1 1 300px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 .mov-status-pill {
@@ -218,24 +219,24 @@ body[data-theme-v3="modern-dark"] .mov-orb-moon {
   filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.55));
 }
 
-/* Keep the orb visible across window sizes (incl. Windows display scaling,
-   which shrinks the effective CSS width): shrink it as space tightens
-   instead of dropping it, and only hide on genuinely tiny widths. The card
-   wraps so a cramped orb falls below the copy rather than overflowing. */
+/* The orb stays side-by-side with the copy at every width (never wraps below,
+   never hidden) — it just shrinks as space tightens so it always fits on the
+   row, including under Windows display scaling that lowers the CSS width. */
 @media (max-width: 1180px) {
   .mov-orb {
-    width: 232px;
-    height: 160px;
+    width: 215px;
+    height: 149px;
   }
 }
 @media (max-width: 920px) {
   .mov-orb {
-    width: 180px;
-    height: 125px;
+    width: 165px;
+    height: 114px;
   }
 }
 @media (max-width: 680px) {
   .mov-orb {
-    display: none;
+    width: 125px;
+    height: 87px;
   }
 }
