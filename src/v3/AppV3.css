@@ -2712,6 +2712,10 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   transition: border-color 120ms ease, box-shadow 120ms ease;
   min-width: 0;
 }
+.v3-input:hover:not(:focus),
+.v3-select:hover:not(:focus) {
+  border-color: var(--v3-border-strong, var(--v3-text-4));
+}
 .v3-input:focus,
 .v3-select:focus {
   border-color: var(--v3-accent);
@@ -5493,6 +5497,53 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
 }
 .v3-btn-ghost-danger:hover {
   background: color-mix(in srgb, var(--v3-crit, #d9534f) 12%, transparent);
+}
+
+/* Range slider (task progress) — themed, monochrome, with a filled track.
+   The fill width comes from an inline --v3-range-fill set to the value %, so
+   the accent shows how far along the task is. Adapts to every theme via tokens
+   (no more browser-default blue on monochrome themes like modern-dark). */
+.v3-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  margin: 8px 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--v3-accent) var(--v3-range-fill, 0%),
+    var(--v3-surface-2, var(--v3-hover)) var(--v3-range-fill, 0%)
+  );
+  cursor: pointer;
+}
+.v3-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--v3-accent);
+  border: 2px solid var(--v3-surface);
+  box-shadow: 0 0 0 1px var(--v3-border);
+  cursor: pointer;
+  transition: transform 110ms ease;
+}
+.v3-range::-webkit-slider-thumb:hover {
+  transform: scale(1.18);
+}
+.v3-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--v3-accent);
+  border: 2px solid var(--v3-surface);
+  box-shadow: 0 0 0 1px var(--v3-border);
+  cursor: pointer;
+}
+.v3-range:focus-visible {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: 3px;
 }
 
 /* Config screen */

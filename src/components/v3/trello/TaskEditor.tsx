@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Trash2, X } from "lucide-react";
 import { useT } from "../../../lib/i18n";
 import type {
@@ -62,6 +62,11 @@ export function TaskEditor({
   // Set when a save is attempted but the live task changed since open; the
   // user must confirm the overwrite (one click acknowledges).
   const [conflict, setConflict] = useState(false);
+  // Backdrop-close guard: only close when a click BOTH started and ended on
+  // the overlay itself. Without this, selecting text inside a field and
+  // releasing the mouse outside the modal fires a click on the overlay and
+  // closes the editor, silently losing the edit.
+  const overlayMouseDown = useRef(false);
 
   // Esc closes.
   useEffect(() => {
@@ -117,7 +122,12 @@ export function TaskEditor({
     <div
       className="v3-modal-overlay"
       role="presentation"
-      onClick={onClose}
+      onMouseDown={(e) => {
+        overlayMouseDown.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (overlayMouseDown.current && e.target === e.currentTarget) onClose();
+      }}
     >
       <div
         className="v3-modal v3-task-editor"
@@ -209,11 +219,13 @@ export function TaskEditor({
             </span>
             <input
               type="range"
+              className="v3-range"
               min={0}
               max={100}
               step={5}
               value={progress}
               onChange={(e) => setProgress(Number(e.target.value))}
+              style={{ "--v3-range-fill": `${progress}%` } as CSSProperties}
             />
           </label>
         </div>
