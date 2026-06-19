@@ -31,7 +31,8 @@ pub struct TrelloConfig {
 }
 
 fn default_poll_interval() -> u64 {
-    5
+    // Snappy near-real-time. The subscriber floors this at MIN_POLL_INTERVAL_SECS.
+    2
 }
 
 /// Resolve `$HOME` (or `$USERPROFILE` on Windows).

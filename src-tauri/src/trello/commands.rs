@@ -68,7 +68,7 @@ pub async fn trello_configure(
             .as_ref()
             .map(|c| c.watched_project_ids.clone())
             .unwrap_or_default(),
-        poll_interval_secs: prev.map(|c| c.poll_interval_secs).unwrap_or(5),
+        poll_interval_secs: prev.map(|c| c.poll_interval_secs).unwrap_or(2),
     };
     storage::save(&cfg).map_err(map_err)?;
 
@@ -264,7 +264,9 @@ pub async fn trello_start_subscriber(
     let handle = subscriber::start(
         app.clone(),
         project_ids,
-        cfg.poll_interval_secs,
+        // Clamp older saved configs (which defaulted to 5s) down to the snappy
+        // 2s so near-real-time applies without needing a reconnect.
+        cfg.poll_interval_secs.min(2),
         initial_cursor,
     );
 
