@@ -79,7 +79,10 @@ export function useStackUpdates(): StackUpdatesState {
     setError(null);
     try {
       const next = await invoke<StackToolStatus[]>("check_stack_update");
-      setTools(next);
+      // This app is a Claude Code companion, but gentle-ai also manages
+      // OpenCode editor plugins (opencode-*). Those are noise here — the user
+      // doesn't use OpenCode — so they're hidden from the stack list.
+      setTools(next.filter((tool) => !tool.name.startsWith("opencode-")));
       writeNumber(LS_LAST_CHECKED, Date.now());
     } catch (e) {
       setError(String(e));
