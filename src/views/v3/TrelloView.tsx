@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, RefreshCw } from "lucide-react";
+import { Download, LogOut, RefreshCw } from "lucide-react";
 import { useT } from "../../lib/i18n";
 import { useTrelloBoard } from "../../lib/trello/useTrelloBoard";
 import type { LiveStatus } from "../../lib/trello/useTrelloBoard";
@@ -7,6 +7,7 @@ import type { Task } from "../../lib/trello/types";
 import { TrelloConfig } from "../../components/v3/trello/TrelloConfig";
 import { TrelloWorkList } from "../../components/v3/trello/TrelloWorkList";
 import { TaskEditor } from "../../components/v3/trello/TaskEditor";
+import { TaskExportModal } from "../../components/v3/trello/TaskExportModal";
 
 interface EditorState {
   task: Task | null; // null → create mode
@@ -30,6 +31,7 @@ export function TrelloView() {
   const { t } = useT();
   const board = useTrelloBoard();
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   if (board.boot === "loading") {
     return (
@@ -87,6 +89,17 @@ export function TrelloView() {
             <span className="v3-trello-live-dot" aria-hidden="true" />
             {liveLabel(t, board.live)}
           </span>
+
+          <button
+            type="button"
+            className="v3-icon-btn"
+            onClick={() => setExporting(true)}
+            title={t("trello.export")}
+            aria-label={t("trello.export")}
+            disabled={board.tasks.length === 0}
+          >
+            <Download size={14} strokeWidth={2} aria-hidden="true" />
+          </button>
 
           <button
             type="button"
@@ -176,6 +189,17 @@ export function TrelloView() {
           }
           onSave={(taskId, patch) => void board.patchTask(taskId, patch)}
           onDelete={(taskId) => void board.deleteTask(taskId)}
+        />
+      )}
+
+      {exporting && (
+        <TaskExportModal
+          tasks={board.tasks}
+          columns={board.columns}
+          projectName={
+            board.projects.find((p) => p.id === board.activeProjectId)?.name ?? null
+          }
+          onClose={() => setExporting(false)}
         />
       )}
     </div>
