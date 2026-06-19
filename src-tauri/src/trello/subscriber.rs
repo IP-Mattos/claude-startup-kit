@@ -31,7 +31,8 @@ pub struct SubscriberHandle {
 }
 
 /// Floor for the poll interval, so a misconfigured config can't DoS the API.
-const MIN_POLL_INTERVAL_SECS: u64 = 2;
+/// The upstream API now tolerates 1s polling, so that's the snappy floor.
+const MIN_POLL_INTERVAL_SECS: u64 = 1;
 /// Cap for exponential backoff after errors.
 const MAX_BACKOFF_SECS: u64 = 60;
 /// Page size when draining `/changes`.

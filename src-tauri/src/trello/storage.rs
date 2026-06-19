@@ -32,7 +32,7 @@ pub struct TrelloConfig {
 
 fn default_poll_interval() -> u64 {
     // Snappy near-real-time. The subscriber floors this at MIN_POLL_INTERVAL_SECS.
-    2
+    1
 }
 
 /// Resolve `$HOME` (or `$USERPROFILE` on Windows).
@@ -134,7 +134,7 @@ pub fn clear() -> Result<(), TrelloError> {
 }
 
 /// Persist a new cursor without touching the rest of the config. Reads, merges,
-/// writes. No debounce yet — the subscriber loop runs at >=2s, so disk pressure
+/// writes. No debounce yet — the subscriber loop runs at >=1s, so disk pressure
 /// is bounded; we can add a debouncer later if it shows up in profiles.
 pub fn update_cursor(cursor: &str) -> Result<(), TrelloError> {
     let Some(mut cfg) = load()? else {
