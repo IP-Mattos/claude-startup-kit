@@ -426,6 +426,8 @@ export function useTrelloBoard(): UseTrelloBoard {
         created_by: profile?.id ?? "",
         assignee_ids: extra?.assignee_ids ?? [],
         supervisor_ids: extra?.supervisor_ids ?? [],
+        assignees: [],
+        supervisors: [],
         comment_count: 0,
         completed_at: null,
         created_at: new Date().toISOString(),

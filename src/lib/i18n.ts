@@ -1036,6 +1036,10 @@ const STRINGS = {
   "trello.export_all": { en: "Select all", es: "Seleccionar todas" },
   "trello.export_clear": { en: "Clear", es: "Limpiar" },
   "trello.export_download": { en: "Download JSON", es: "Descargar JSON" },
+  "trello.export_failed": {
+    en: "Could not save the file. Check the location and try again.",
+    es: "No se pudo guardar el archivo. Revisá la ubicación e intentá de nuevo.",
+  },
   "trello.field_title": { en: "Title", es: "Título" },
   "trello.field_details": { en: "Details", es: "Detalles" },
   "trello.field_flow": { en: "Flow / notes", es: "Flujo / notas" },
@@ -1074,6 +1078,11 @@ const STRINGS = {
   "trello.done": { en: "Done", es: "Listo" },
   "trello.team": { en: "Team", es: "Equipo" },
   "trello.role_supervisor": { en: "supervisor", es: "supervisor" },
+  "trello.field_assigned": { en: "Assigned", es: "Asignados" },
+  "trello.field_supervisors": { en: "Supervisors", es: "Supervisores" },
+  "trello.picker_add_person": { en: "Add person…", es: "Agregar persona…" },
+  "trello.picker_no_members": { en: "No members in this project.", es: "Sin miembros en este proyecto." },
+  "trello.picker_all_added": { en: "Everyone has been added.", es: "Todos ya están agregados." },
 
   // Modern theme — the orb hero header (ModernHero) rendered above the real
   // Overview sections when a modern theme is active.

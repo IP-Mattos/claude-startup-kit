@@ -57,10 +57,17 @@ export function TaskRow({
   // Resolve assignee ids to people; unknown ids (not in the roster) still show
   // as a "?" face so the count stays honest.
   const assignees: Member[] = task.assignee_ids.map(
-    (id) => memberById.get(id) ?? { id, name: null, avatar_url: null, role: "" },
+    (id) => memberById.get(id) ?? { id, name: null, email: null, avatar_url: null, role: "" },
   );
   const faces = assignees.slice(0, MAX_FACES);
   const overflow = assignees.length - faces.length;
+
+  // Supervisor faces — shown as a separate cluster after assignees.
+  const supervisors: Member[] = task.supervisor_ids.map(
+    (id) => memberById.get(id) ?? { id, name: null, email: null, avatar_url: null, role: "supervisor" },
+  );
+  const supFaces = supervisors.slice(0, MAX_FACES);
+  const supOverflow = supervisors.length - supFaces.length;
 
   const onRowKeyDown = (e: KeyboardEvent) => {
     if (e.target !== e.currentTarget) return; // child buttons handle their own keys
@@ -178,6 +185,21 @@ export function TaskRow({
               <MemberAvatar key={m.id + i} member={m} size={22} />
             ))}
             {overflow > 0 && <span className="v3-avatar v3-avatar-more">+{overflow}</span>}
+          </span>
+        )}
+        {supervisors.length > 0 && (
+          <span
+            className="v3-wl-avatars v3-wl-avatars-sup"
+            title={t("trello.field_supervisors")}
+          >
+            {supFaces.map((m, i) => (
+              <MemberAvatar key={m.id + i} member={m} size={18} />
+            ))}
+            {supOverflow > 0 && (
+              <span className="v3-avatar v3-avatar-more" style={{ width: 18, height: 18, fontSize: 8 }}>
+                +{supOverflow}
+              </span>
+            )}
           </span>
         )}
 

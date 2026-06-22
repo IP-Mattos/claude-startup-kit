@@ -183,6 +183,7 @@ export function TrelloView() {
           busy={editor.task ? board.busyTaskIds.has(editor.task.id) : false}
           columnId={editor.columnId}
           columns={board.columns}
+          members={board.members}
           onClose={() => setEditor(null)}
           onCreate={(columnId, title, extra) =>
             void board.createTask(columnId, title, extra)

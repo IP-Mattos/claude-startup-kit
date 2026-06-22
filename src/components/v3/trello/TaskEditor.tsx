@@ -1,9 +1,18 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { Trash2, X } from "lucide-react";
 import { useT } from "../../../lib/i18n";
+import { MemberAvatar } from "./MemberAvatar";
 import type {
   Column,
   CreateTaskPayload,
+  Member,
   PatchTaskPayload,
   Task,
 } from "../../../lib/trello/types";
@@ -24,6 +33,8 @@ interface Props {
   busy: boolean;
   columnId: string; // create: target column; edit: ignored (task.column_id wins)
   columns: Column[];
+  // Project members for the assignee / supervisor pickers.
+  members: Member[];
   onClose: () => void;
   onCreate: (columnId: string, title: string, extra: Partial<CreateTaskPayload>) => void;
   onSave: (taskId: string, patch: PatchTaskPayload) => void;
@@ -37,12 +48,235 @@ function orNull(s: string): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+// Two-letter initials from a name or email, used as chip fallback.
+function chipInitials(name: string | null, email: string | null): string {
+  if (name) {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    const first = parts[0]?.[0] ?? "";
+    const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
+    return (first + last).toUpperCase();
+  }
+  return (email ?? "").slice(0, 2).toUpperCase();
+}
+
+// ─── Multi-select people picker ──────────────────────────────────────────────
+
+interface PeoplePickerProps {
+  label: string;
+  members: Member[];
+  selected: string[];
+  onChange: (ids: string[]) => void;
+  emptyLabel: string;
+  allAddedLabel: string;
+  addLabel: string;
+}
+
+function PeoplePicker({
+  label,
+  members,
+  selected,
+  onChange,
+  emptyLabel,
+  allAddedLabel,
+  addLabel,
+}: PeoplePickerProps) {
+  const [open, setOpen] = useState(false);
+  // Highlighted option id for keyboard navigation (roving via
+  // aria-activedescendant — the trigger keeps DOM focus, options never do).
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const listboxId = useId();
+  const optionDomId = (memberId: string) => `${listboxId}-opt-${memberId}`;
+
+  // Close dropdown on outside click.
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const available = members.filter((m) => !selected.includes(m.id));
+
+  // When the dropdown opens, highlight the first option so arrow keys and
+  // Enter have an anchor. Reset when it closes.
+  useEffect(() => {
+    if (open) setActiveId(available[0]?.id ?? null);
+    else setActiveId(null);
+    // available is derived from members/selected; recompute on open toggle only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const remove = (id: string) => onChange(selected.filter((s) => s !== id));
+  const add = (id: string) => {
+    onChange([...selected, id]);
+    setOpen(false);
+    // Return focus to the trigger so the user keeps a keyboard anchor.
+    triggerRef.current?.focus();
+  };
+
+  // Move the highlight by one step, wrapping at both ends.
+  const moveActive = (delta: 1 | -1) => {
+    if (available.length === 0) return;
+    const idx = available.findIndex((m) => m.id === activeId);
+    const base = idx === -1 ? (delta === 1 ? -1 : 0) : idx;
+    const nextIdx = (base + delta + available.length) % available.length;
+    setActiveId(available[nextIdx].id);
+  };
+
+  // Keyboard handling lives on the trigger (which holds focus). When the
+  // dropdown is OPEN, Escape closes ONLY the dropdown and stops propagation so
+  // it never reaches the editor's window-level Escape listener (which would
+  // close the whole modal). When closed, keys fall through to default behavior.
+  const onTriggerKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    if (!open) {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        setOpen(true);
+      }
+      return;
+    }
+    switch (e.key) {
+      case "Escape":
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        moveActive(1);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        moveActive(-1);
+        break;
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        if (activeId) add(activeId);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const memberById = new Map(members.map((m) => [m.id, m]));
+
+  return (
+    <div className="v3-field">
+      <span className="v3-field-label">{label}</span>
+      <div className="v3-task-editor-people">
+        {/* Selected chips */}
+        {selected.map((id) => {
+          const m = memberById.get(id);
+          if (!m) return null;
+          const showImg = !!m.avatar_url;
+          return (
+            <span key={id} className="v3-task-editor-chip">
+              {showImg ? (
+                <MemberAvatar member={m} size={18} />
+              ) : (
+                <span className="v3-task-editor-chip-initials" aria-hidden="true">
+                  {chipInitials(m.name, m.email)}
+                </span>
+              )}
+              <span className="v3-task-editor-chip-name">{m.name ?? m.email ?? m.id}</span>
+              <button
+                type="button"
+                className="v3-task-editor-chip-remove"
+                aria-label={`Remove ${m.name ?? m.email ?? m.id}`}
+                onClick={() => remove(id)}
+              >
+                <X size={10} strokeWidth={2.5} aria-hidden="true" />
+              </button>
+            </span>
+          );
+        })}
+
+        {/* Add-person button + dropdown */}
+        {members.length === 0 ? (
+          <span className="v3-field-hint">{emptyLabel}</span>
+        ) : available.length === 0 && selected.length > 0 ? null : (
+          <div className="v3-task-editor-picker-wrap" ref={dropRef}>
+            <button
+              ref={triggerRef}
+              type="button"
+              className="v3-task-editor-chip v3-task-editor-chip-add"
+              onClick={() => setOpen((v) => !v)}
+              onKeyDown={onTriggerKeyDown}
+              aria-expanded={open}
+              aria-haspopup="listbox"
+              aria-controls={open ? listboxId : undefined}
+              aria-activedescendant={
+                open && activeId ? optionDomId(activeId) : undefined
+              }
+            >
+              <span aria-hidden="true">+</span>
+              <span>{addLabel}</span>
+            </button>
+            {open && (
+              <ul
+                id={listboxId}
+                className="v3-task-editor-picker-drop"
+                role="listbox"
+                aria-label={label}
+              >
+                {available.length === 0 ? (
+                  <li className="v3-task-editor-picker-empty">{allAddedLabel}</li>
+                ) : (
+                  available.map((m) => {
+                    const isActive = m.id === activeId;
+                    return (
+                      <li
+                        key={m.id}
+                        id={optionDomId(m.id)}
+                        role="option"
+                        aria-selected={isActive}
+                        className={
+                          "v3-task-editor-picker-option" +
+                          (isActive ? " is-active" : "")
+                        }
+                        onMouseDown={(e) => {
+                          // Prevent blur on the trigger button before add() fires.
+                          e.preventDefault();
+                          add(m.id);
+                        }}
+                        onMouseEnter={() => setActiveId(m.id)}
+                      >
+                        <MemberAvatar member={m} size={20} />
+                        <span className="v3-task-editor-picker-name">
+                          {m.name ?? m.email ?? m.id}
+                        </span>
+                        {m.role === "supervisor" && (
+                          <span className="v3-task-editor-picker-role">{m.role}</span>
+                        )}
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main editor ─────────────────────────────────────────────────────────────
+
 export function TaskEditor({
   task,
   liveTask,
   busy,
   columnId,
   columns,
+  members,
   onClose,
   onCreate,
   onSave,
@@ -57,6 +291,8 @@ export function TaskEditor({
   const [taskDate, setTaskDate] = useState(task?.task_date ?? "");
   const [progress, setProgress] = useState(task?.progress ?? 0);
   const [targetColumn, setTargetColumn] = useState(task?.column_id ?? columnId);
+  const [assigneeIds, setAssigneeIds] = useState<string[]>(task?.assignee_ids ?? []);
+  const [supervisorIds, setSupervisorIds] = useState<string[]>(task?.supervisor_ids ?? []);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   // Set when a save is attempted but the live task changed since open; the
@@ -100,6 +336,8 @@ export function TaskEditor({
         flow: orNull(flow) ?? undefined,
         task_date: orNull(taskDate) ?? undefined,
         progress,
+        assignee_ids: assigneeIds.length > 0 ? assigneeIds : undefined,
+        supervisor_ids: supervisorIds.length > 0 ? supervisorIds : undefined,
       });
       onClose();
       return;
@@ -113,6 +351,15 @@ export function TaskEditor({
     if (orNull(taskDate) !== task.task_date) patch.task_date = orNull(taskDate);
     if (progress !== task.progress) patch.progress = progress;
     if (targetColumn !== task.column_id) patch.column_id = targetColumn;
+
+    // People pickers: compare as sorted JSON to avoid order-sensitive diffs.
+    const sortedOrig = [...(task.assignee_ids ?? [])].sort().join(",");
+    const sortedNew = [...assigneeIds].sort().join(",");
+    if (sortedNew !== sortedOrig) patch.assignee_ids = assigneeIds;
+
+    const sortedOrigSup = [...(task.supervisor_ids ?? [])].sort().join(",");
+    const sortedNewSup = [...supervisorIds].sort().join(",");
+    if (sortedNewSup !== sortedOrigSup) patch.supervisor_ids = supervisorIds;
 
     if (Object.keys(patch).length > 0) onSave(task.id, patch);
     onClose();
@@ -228,6 +475,26 @@ export function TaskEditor({
               style={{ "--v3-range-fill": `${progress}%` } as CSSProperties}
             />
           </label>
+
+          <PeoplePicker
+            label={t("trello.field_assigned")}
+            members={members}
+            selected={assigneeIds}
+            onChange={setAssigneeIds}
+            emptyLabel={t("trello.picker_no_members")}
+            allAddedLabel={t("trello.picker_all_added")}
+            addLabel={t("trello.picker_add_person")}
+          />
+
+          <PeoplePicker
+            label={t("trello.field_supervisors")}
+            members={members}
+            selected={supervisorIds}
+            onChange={setSupervisorIds}
+            emptyLabel={t("trello.picker_no_members")}
+            allAddedLabel={t("trello.picker_all_added")}
+            addLabel={t("trello.picker_add_person")}
+          />
         </div>
 
         <footer className="v3-modal-foot">

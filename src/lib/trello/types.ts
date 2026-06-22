@@ -40,8 +40,18 @@ export interface Column {
 export interface Member {
   id: string;
   name: string | null;
+  email: string | null;
   avatar_url: string | null;
   role: string;
+}
+
+// Expanded profile embedded inside a task's assignees / supervisors arrays.
+// Mirrors the TaskProfile Rust struct. email may be absent on older responses.
+export interface TaskProfile {
+  id: string;
+  name: string | null;
+  email: string | null;
+  avatar_url: string | null;
 }
 
 export interface Task {
@@ -57,6 +67,9 @@ export interface Task {
   created_by: string;
   assignee_ids: string[];
   supervisor_ids: string[];
+  // Expanded profiles. Absent on older API responses — default to empty array.
+  assignees: TaskProfile[];
+  supervisors: TaskProfile[];
   comment_count: number;
   completed_at: string | null;
   created_at: string;

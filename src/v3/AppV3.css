@@ -5425,6 +5425,157 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   display: flex;
   flex-direction: column;
 }
+
+/* ── People picker (assignees / supervisors inside TaskEditor) ──────────── */
+.v3-task-editor-people {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+}
+
+/* A selected person chip */
+.v3-task-editor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 4px;
+  background: var(--v3-surface-2, var(--v3-hover));
+  border: 1px solid var(--v3-border);
+  border-radius: calc(var(--v3-radius) * 0.7);
+  font-size: 12px;
+  color: var(--v3-text);
+  cursor: default;
+}
+
+.v3-task-editor-chip-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--v3-border-strong, var(--v3-border));
+  color: var(--v3-text-2);
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.v3-task-editor-chip-name {
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.v3-task-editor-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: var(--v3-text-3, var(--v3-text-2));
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0;
+  flex-shrink: 0;
+}
+.v3-task-editor-chip-remove:hover {
+  background: var(--v3-hover);
+  color: var(--v3-text);
+}
+
+/* The "+ Add person…" trigger chip */
+.v3-task-editor-chip-add {
+  background: transparent;
+  border-style: dashed;
+  color: var(--v3-text-3, var(--v3-text-2));
+  cursor: pointer;
+}
+.v3-task-editor-chip-add:hover {
+  background: var(--v3-hover);
+  color: var(--v3-text);
+}
+
+/* Picker dropdown wrapper (position anchor) */
+.v3-task-editor-picker-wrap {
+  position: relative;
+}
+
+/* Dropdown list */
+.v3-task-editor-picker-drop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 200;
+  min-width: 200px;
+  max-width: 280px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--v3-surface);
+  border: 1px solid var(--v3-border-strong, var(--v3-border));
+  border-radius: var(--v3-radius);
+  padding: 4px 0;
+  list-style: none;
+  margin: 0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.v3-task-editor-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: var(--v3-text);
+  cursor: pointer;
+}
+.v3-task-editor-picker-option:hover,
+.v3-task-editor-picker-option.is-active {
+  background: var(--v3-hover);
+}
+/* Keyboard highlight (aria-activedescendant): the option never holds DOM focus,
+   so mirror the global focus-visible ring with existing tokens — no new color. */
+.v3-task-editor-picker-option.is-active {
+  outline: 2px solid var(--v3-accent);
+  outline-offset: -2px;
+}
+
+.v3-task-editor-picker-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.v3-task-editor-picker-role {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--v3-text-4, var(--v3-text-3));
+  flex-shrink: 0;
+}
+
+.v3-task-editor-picker-empty {
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: var(--v3-text-3, var(--v3-text-2));
+}
+
+/* Supervisor avatar cluster on the task card — slightly smaller faces,
+   visually separated from the assignees cluster with a gap. */
+.v3-wl-avatars-sup {
+  opacity: 0.72;
+}
+.v3-wl-avatars-sup > * + * {
+  margin-left: -4px;
+}
+
 .v3-modal-head {
   display: flex;
   align-items: center;

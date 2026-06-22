@@ -46,8 +46,19 @@ pub struct Column {
 pub struct Member {
     pub id: String,
     pub name: Option<String>,
+    pub email: Option<String>,
     pub avatar_url: Option<String>,
     pub role: String,
+}
+
+/// Expanded profile embedded inside a task's `assignees` / `supervisors`
+/// arrays (`GET /tasks`, `POST /tasks`, `PATCH /tasks/{id}`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskProfile {
+    pub id: String,
+    pub name: Option<String>,
+    pub email: Option<String>,
+    pub avatar_url: Option<String>,
 }
 
 /// A task in a column. Mirrors the API shape exactly.
@@ -65,6 +76,12 @@ pub struct Task {
     pub created_by: String,
     pub assignee_ids: Vec<String>,
     pub supervisor_ids: Vec<String>,
+    /// Expanded assignee profiles. Older API responses may omit this field.
+    #[serde(default)]
+    pub assignees: Vec<TaskProfile>,
+    /// Expanded supervisor profiles. Older API responses may omit this field.
+    #[serde(default)]
+    pub supervisors: Vec<TaskProfile>,
     pub comment_count: i64,
     pub completed_at: Option<String>,
     pub created_at: String,
