@@ -16,8 +16,8 @@ use super::error::TrelloError;
 use super::storage::{self, TrelloConfig};
 use super::subscriber;
 use super::types::{
-    ChangesPage, Column, CompleteOutcome, CompleteTaskBody, CreateTaskPayload, Member, MoveTaskBody,
-    Page, PatchTaskPayload, Profile, Project, ProjectsFilter, Task, TasksFilter,
+    ChangesPage, Column, CompleteOutcome, CompleteTaskBody, CreateTaskPayload, ImportResult, Member,
+    MoveTaskBody, Page, PatchTaskPayload, Profile, Project, ProjectsFilter, Task, TasksFilter,
 };
 use super::{CLIENT, DEFAULT_BASE_URL, SUBSCRIBER};
 
@@ -229,6 +229,19 @@ pub async fn trello_changes(
     c.changes(&since, project_id.as_deref(), limit)
         .await
         .map_err(map_err)
+}
+
+/// Bulk-import a `{ columns: [...] }` body into a project. The frontend builds
+/// and validates the body (regrouping the flat CSK export); we pass it through
+/// opaque. No idempotency key — the endpoint is NOT idempotent, so re-running
+/// duplicates tasks (the UI warns the user).
+#[tauri::command]
+pub async fn trello_import_tasks(
+    project_id: String,
+    body: serde_json::Value,
+) -> Result<ImportResult, String> {
+    let c = get_client()?;
+    c.import_tasks(&project_id, body).await.map_err(map_err)
 }
 
 // ----------------------- Subscriber lifecycle -----------------------

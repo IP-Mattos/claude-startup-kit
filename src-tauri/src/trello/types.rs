@@ -247,6 +247,27 @@ pub struct CompleteOutcome {
     pub requires_supervisor_approval: bool,
 }
 
+/// Per-column tally inside an `ImportResult`. `name` is the target column the
+/// tasks were matched to (case-insensitive, trimmed) on the server side.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportByColumn {
+    pub name: String,
+    pub imported: u32,
+    pub skipped: u32,
+}
+
+/// Result of `POST /projects/{id}/import`. Counts are server-authoritative.
+/// `unmatched_columns` lists file column names with no target column match.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportResult {
+    pub imported: u32,
+    pub skipped_no_column: u32,
+    pub skipped_invalid: u32,
+    pub total_in_file: u32,
+    pub by_column: Vec<ImportByColumn>,
+    pub unmatched_columns: Vec<String>,
+}
+
 /// Response metadata collected from outgoing requests (idempotency replay flag,
 /// partial-complete flag). Not currently surfaced to the frontend except via
 /// `CompleteOutcome`.

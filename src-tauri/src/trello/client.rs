@@ -12,9 +12,9 @@ use url::Url;
 
 use super::error::TrelloError;
 use super::types::{
-    ChangesPage, Column, CompleteOutcome, CompleteTaskBody, CreateTaskPayload, ListEnvelope,
-    Member, MoveTaskBody, Page, PatchTaskPayload, Profile, Project, ProjectsFilter, ResponseMeta,
-    Task, TasksFilter,
+    ChangesPage, Column, CompleteOutcome, CompleteTaskBody, CreateTaskPayload, ImportResult,
+    ListEnvelope, Member, MoveTaskBody, Page, PatchTaskPayload, Profile, Project, ProjectsFilter,
+    ResponseMeta, Task, TasksFilter,
 };
 
 const REPLAY_HEADER: &str = "x-idempotent-replay";
@@ -272,6 +272,23 @@ impl TrelloClient {
         }
         let (page, _) = self.send::<ChangesPage>(req, None).await?;
         Ok(page)
+    }
+
+    /// Bulk-import columns + tasks into a project (`POST /projects/{id}/import`).
+    /// The body is built and validated on the frontend (it regroups the flat
+    /// CSK export into `{ columns: [...] }`), so we pass it through opaque as a
+    /// `serde_json::Value`. NOT idempotent — re-sending duplicates tasks — so we
+    /// deliberately send NO idempotency key.
+    pub async fn import_tasks(
+        &self,
+        project_id: &str,
+        body: serde_json::Value,
+    ) -> Result<ImportResult, TrelloError> {
+        let req = self
+            .request(Method::POST, &format!("projects/{project_id}/import"))?
+            .json(&body);
+        let (result, _) = self.send::<ImportResult>(req, None).await?;
+        Ok(result)
     }
 }
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, LogOut, RefreshCw } from "lucide-react";
+import { Download, LogOut, RefreshCw, Upload } from "lucide-react";
 import { useT } from "../../lib/i18n";
 import { useTrelloBoard } from "../../lib/trello/useTrelloBoard";
 import type { LiveStatus } from "../../lib/trello/useTrelloBoard";
@@ -8,6 +8,7 @@ import { TrelloConfig } from "../../components/v3/trello/TrelloConfig";
 import { TrelloWorkList } from "../../components/v3/trello/TrelloWorkList";
 import { TaskEditor } from "../../components/v3/trello/TaskEditor";
 import { TaskExportModal } from "../../components/v3/trello/TaskExportModal";
+import { TaskImportModal } from "../../components/v3/trello/TaskImportModal";
 
 interface EditorState {
   task: Task | null; // null → create mode
@@ -32,6 +33,7 @@ export function TrelloView() {
   const board = useTrelloBoard();
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   if (board.boot === "loading") {
     return (
@@ -99,6 +101,17 @@ export function TrelloView() {
             disabled={board.tasks.length === 0}
           >
             <Download size={14} strokeWidth={2} aria-hidden="true" />
+          </button>
+
+          <button
+            type="button"
+            className="v3-icon-btn"
+            onClick={() => setImporting(true)}
+            title={t("trello.import")}
+            aria-label={t("trello.import")}
+            disabled={!board.activeProjectId}
+          >
+            <Upload size={14} strokeWidth={2} aria-hidden="true" />
           </button>
 
           <button
@@ -201,6 +214,17 @@ export function TrelloView() {
             board.projects.find((p) => p.id === board.activeProjectId)?.name ?? null
           }
           onClose={() => setExporting(false)}
+        />
+      )}
+
+      {importing && board.activeProjectId && (
+        <TaskImportModal
+          projectId={board.activeProjectId}
+          projectName={
+            board.projects.find((p) => p.id === board.activeProjectId)?.name ?? null
+          }
+          onImported={board.refreshBoard}
+          onClose={() => setImporting(false)}
         />
       )}
     </div>

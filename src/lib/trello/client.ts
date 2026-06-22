@@ -15,6 +15,7 @@ import type {
   CompleteOutcome,
   CompleteTaskBody,
   CreateTaskPayload,
+  ImportResult,
   Member,
   Page,
   PatchTaskPayload,
@@ -155,6 +156,17 @@ export function trelloChanges(
   limit?: number,
 ): Promise<ChangesPage> {
   return invoke<ChangesPage>("trello_changes", { since, projectId, limit });
+}
+
+// Bulk-import a `{ columns: [...] }` body into a project. NOT idempotent —
+// re-sending duplicates tasks (the import modal warns the user). `body` is an
+// already-validated import payload (see importTasks.ts); the Rust side treats
+// it opaquely as a serde_json::Value.
+export function trelloImportTasks(
+  projectId: string,
+  body: unknown,
+): Promise<ImportResult> {
+  return invoke<ImportResult>("trello_import_tasks", { projectId, body });
 }
 
 // ----------------------- Subscriber lifecycle -----------------------

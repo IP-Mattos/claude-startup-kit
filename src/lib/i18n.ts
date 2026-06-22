@@ -1040,6 +1040,54 @@ const STRINGS = {
     en: "Could not save the file. Check the location and try again.",
     es: "No se pudo guardar el archivo. Revisá la ubicación e intentá de nuevo.",
   },
+  "trello.import": { en: "Import JSON", es: "Importar JSON" },
+  "trello.import_title": { en: "Import tasks from JSON", es: "Importar tareas desde JSON" },
+  "trello.import_intro": {
+    en: "Import tasks into {project}. Columns are matched by name.",
+    es: "Importá tareas a {project}. Las columnas se emparejan por nombre.",
+  },
+  "trello.import_warn_lossy": {
+    en: "Only the title, details, flow and date are imported — progress, assignees and supervisors are NOT.",
+    es: "Solo se importan el título, los detalles, el flujo y la fecha — el progreso, los asignados y los supervisores NO.",
+  },
+  "trello.import_warn_duplicate": {
+    en: "Importing the same file again duplicates its tasks. There's no undo.",
+    es: "Importar el mismo archivo de nuevo duplica sus tareas. No hay deshacer.",
+  },
+  "trello.import_choose": { en: "Choose JSON file", es: "Elegir archivo JSON" },
+  "trello.import_importing": { en: "Importing…", es: "Importando…" },
+  "trello.import_result_title": { en: "Import complete", es: "Importación completa" },
+  "trello.import_imported": { en: "Imported", es: "Importadas" },
+  "trello.import_skipped_no_column": {
+    en: "Skipped (no matching column)",
+    es: "Omitidas (sin columna coincidente)",
+  },
+  "trello.import_skipped_invalid": {
+    en: "Skipped (invalid)",
+    es: "Omitidas (inválidas)",
+  },
+  "trello.import_skipped_local": {
+    en: "{count} dropped locally (no column or title)",
+    es: "{count} descartadas localmente (sin columna ni título)",
+  },
+  "trello.import_empty": {
+    en: "No importable tasks in this file.",
+    es: "No hay tareas importables en este archivo.",
+  },
+  "trello.import_total": { en: "Total in file", es: "Total en el archivo" },
+  "trello.import_by_column": { en: "Per column", es: "Por columna" },
+  "trello.import_unmatched": {
+    en: "Unmatched columns",
+    es: "Columnas sin coincidencia",
+  },
+  "trello.import_col_tally": {
+    en: "{imported} imported, {skipped} skipped",
+    es: "{imported} importadas, {skipped} omitidas",
+  },
+  "trello.import_failed": {
+    en: "Could not import the file. Check the format and your permissions, then try again.",
+    es: "No se pudo importar el archivo. Revisá el formato y tus permisos, e intentá de nuevo.",
+  },
   "trello.field_title": { en: "Title", es: "Título" },
   "trello.field_details": { en: "Details", es: "Detalles" },
   "trello.field_flow": { en: "Flow / notes", es: "Flujo / notas" },

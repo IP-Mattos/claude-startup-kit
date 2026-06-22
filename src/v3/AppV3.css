@@ -5762,6 +5762,109 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   flex-shrink: 0;
 }
 
+/* Import modal — intro warnings + post-import result summary. Monochrome:
+   every colour comes from a neutral --v3-* token (no new hue). The modal
+   chrome (overlay / head / body / foot / buttons) is reused from the export
+   modal; these rules only cover the import-specific content. */
+.v3-import-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--v3-text-2);
+}
+.v3-import-intro p {
+  margin: 0;
+}
+.v3-import-warn {
+  color: var(--v3-text-3);
+  font-size: 12px;
+}
+.v3-import-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.v3-import-result-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--v3-text);
+}
+.v3-import-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+}
+.v3-import-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--v3-border);
+  border-radius: var(--v3-radius-sm);
+  background: var(--v3-surface-2);
+}
+.v3-import-stat dt {
+  margin: 0;
+  font-size: 11px;
+  color: var(--v3-text-3);
+}
+.v3-import-stat dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--v3-text);
+  font-variant-numeric: tabular-nums;
+}
+.v3-import-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.v3-import-section-name {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--v3-text-3);
+}
+.v3-import-col-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 9px;
+  border-radius: var(--v3-radius-sm);
+}
+.v3-import-col-row:hover {
+  background: var(--v3-hover);
+}
+.v3-import-col-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--v3-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.v3-import-col-tally {
+  font-size: 11px;
+  color: var(--v3-text-4);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.v3-import-unmatched {
+  margin: 0;
+  font-size: 12px;
+  color: var(--v3-text-3);
+  word-break: break-word;
+}
+
 /* Config screen */
 /* Connect screen — center the card in the content area instead of stranding
    it to the left (the board view is empty until the key is configured). */

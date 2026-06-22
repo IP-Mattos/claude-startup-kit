@@ -172,6 +172,25 @@ export interface CompleteOutcome {
   requires_supervisor_approval: boolean;
 }
 
+// Per-column tally inside an ImportResult (mirror of the Rust ImportByColumn).
+export interface ImportByColumn {
+  name: string;
+  imported: number;
+  skipped: number;
+}
+
+// Result of POST /projects/{id}/import (mirror of the Rust ImportResult). All
+// counts are server-authoritative. `unmatched_columns` lists file column names
+// the server could not match to a target column.
+export interface ImportResult {
+  imported: number;
+  skipped_no_column: number;
+  skipped_invalid: number;
+  total_in_file: number;
+  by_column: ImportByColumn[];
+  unmatched_columns: string[];
+}
+
 // ----------------------- Errors -----------------------
 
 // `kind` values exactly as the Rust custom Serialize impl emits them: lowercase

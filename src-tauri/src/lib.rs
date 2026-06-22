@@ -2732,6 +2732,24 @@ async fn write_text_file(path: String, contents: String) -> Result<(), String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+/// Read UTF-8 text from a user-chosen path. The symmetric counterpart to
+/// `write_text_file`, used by the Trello JSON import flow. Unlike the write
+/// path (whose target does not exist yet), an import file the user just picked
+/// in the native open dialog DOES exist — so we route it through
+/// `validate_open_path()`, which rejects flag-like / UNC / protocol / missing
+/// paths and canonicalizes the result. The read itself is wrapped in
+/// `spawn_blocking` so it never blocks the async runtime.
+#[tauri::command]
+async fn read_text_file(path: String) -> Result<String, String> {
+    let canonical = validate_open_path(&path)?;
+    tokio::task::spawn_blocking(move || -> Result<String, String> {
+        fs::read_to_string(&canonical)
+            .map_err(|e| format!("read {}: {e}", canonical.display()))
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 /// Set the main window's icon at runtime from raw RGBA pixels. The frontend
 /// draws the brand shield in the active theme's accent colour onto a canvas
 /// and ships the pixels here, so the TASKBAR icon follows the in-app theme.
@@ -7067,6 +7085,7 @@ pub fn run() {
             open_in_vscode,
             open_path_in_explorer,
             write_text_file,
+            read_text_file,
             set_window_icon,
             open_url,
             check_app_update,
@@ -7121,6 +7140,7 @@ pub fn run() {
             trello::commands::trello_changes,
             trello::commands::trello_start_subscriber,
             trello::commands::trello_stop_subscriber,
+            trello::commands::trello_import_tasks,
         ])
         .setup(|app| {
             let show_i = MenuItem::with_id(app, "show", "Mostrar ventana", true, None::<&str>)?;
