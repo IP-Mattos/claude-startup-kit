@@ -19,6 +19,9 @@ export function TaskExportModal({ tasks, columns, projectName, onClose }: Props)
   const [selected, setSelected] = useState<ReadonlySet<string>>(
     () => new Set(tasks.map((task) => task.id)),
   );
+  // Set when write_text_file rejects (permission denied, disk full, locked
+  // path). We keep the modal open and surface it inline so the user can retry.
+  const [error, setError] = useState(false);
 
   // Same backdrop-close guard as the task editor: only close when a click both
   // starts and ends on the overlay, so a stray drag-release doesn't close it.
@@ -55,11 +58,18 @@ export function TaskExportModal({ tasks, columns, projectName, onClose }: Props)
   const toggleAll = () =>
     setSelected(allSelected ? new Set() : new Set(tasks.map((task) => task.id)));
 
-  const download = () => {
+  const download = async () => {
     const chosen = tasks.filter((task) => selected.has(task.id));
     if (chosen.length === 0) return;
-    downloadTasksJson(chosen, columns, projectName);
-    onClose();
+    // Clear any prior failure before a fresh attempt.
+    setError(false);
+    try {
+      const saved = await downloadTasksJson(chosen, columns, projectName);
+      if (saved) onClose();
+    } catch (err) {
+      console.error("task export failed", err);
+      setError(true);
+    }
   };
 
   return (
@@ -132,6 +142,11 @@ export function TaskExportModal({ tasks, columns, projectName, onClose }: Props)
         </div>
 
         <footer className="v3-modal-foot">
+          {error && (
+            <p className="v3-form-error" role="alert" aria-live="polite">
+              {t("trello.export_failed")}
+            </p>
+          )}
           <div className="v3-modal-foot-right">
             <button type="button" className="v3-btn-ghost" onClick={onClose}>
               {t("common.cancel")}

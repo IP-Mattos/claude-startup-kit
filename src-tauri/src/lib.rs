@@ -2702,6 +2702,36 @@ async fn open_path_in_explorer(path: String) -> Result<(), String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+/// Write UTF-8 text to a user-chosen path. This can technically write to any
+/// path whose parent directory exists — the safety does NOT come from path
+/// confinement. It rests on two things: the renderer is trusted first-party
+/// code (CSP `script-src 'self'`, no remote or inline scripts), and the `path`
+/// originates from a native OS save dialog the user just operated (see
+/// `exportTasks.ts`). We deliberately do NOT route this through
+/// `validate_open_path()` — that gate rejects non-existent paths, and a save
+/// target does not exist yet. We still refuse an empty path and a missing
+/// parent directory.
+#[tauri::command]
+async fn write_text_file(path: String, contents: String) -> Result<(), String> {
+    let trimmed = path.trim().to_string();
+    if trimmed.is_empty() {
+        return Err("empty path".to_string());
+    }
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let target = std::path::PathBuf::from(&trimmed);
+        if let Some(parent) = target.parent() {
+            if !parent.as_os_str().is_empty() && !parent.exists() {
+                return Err(format!("directory does not exist: {}", parent.display()));
+            }
+        }
+        fs::write(&target, contents)
+            .map_err(|e| format!("write {}: {e}", target.display()))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 /// Set the main window's icon at runtime from raw RGBA pixels. The frontend
 /// draws the brand shield in the active theme's accent colour onto a canvas
 /// and ships the pixels here, so the TASKBAR icon follows the in-app theme.
@@ -7036,6 +7066,7 @@ pub fn run() {
             open_skill_registry,
             open_in_vscode,
             open_path_in_explorer,
+            write_text_file,
             set_window_icon,
             open_url,
             check_app_update,
