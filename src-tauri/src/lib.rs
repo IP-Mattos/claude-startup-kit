@@ -2700,20 +2700,57 @@ async fn open_in_vscode(path: String) -> Result<(), String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+/// Copy the bundled claudewatch resources (CI-built exe + launcher scripts/icon)
+/// into `~/claudewatch`. Shared by the Settings "Install" action and the
+/// auto-install path in `open_in_tui`. Idempotent (overwrites = reinstall).
+fn install_claudewatch_resources(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+    let home = dirs_home().ok_or_else(|| "no se pudo resolver el home".to_string())?;
+    let dest = home.join("claudewatch");
+    std::fs::create_dir_all(&dest).map_err(|e| format!("crear {}: {e}", dest.display()))?;
+    let resdir = app
+        .path()
+        .resolve("resources/claudewatch", tauri::path::BaseDirectory::Resource)
+        .map_err(|e| format!("resolver recursos: {e}"))?;
+    for f in [
+        "claudewatch.exe",
+        "claude-dash.ps1",
+        "claude-dash.cmd",
+        "claudewatch.ico",
+    ] {
+        let src = resdir.join(f);
+        if !src.exists() {
+            if f == "claudewatch.exe" {
+                return Err(
+                    "falta claudewatch.exe en el bundle (¿se compiló el TUI en el build?)."
+                        .to_string(),
+                );
+            }
+            continue;
+        }
+        std::fs::copy(&src, dest.join(f)).map_err(|e| format!("copiar {f}: {e}"))?;
+    }
+    Ok(dest)
+}
+
 #[tauri::command]
-async fn open_in_tui(path: String) -> Result<(), String> {
+async fn open_in_tui(app: tauri::AppHandle, path: String) -> Result<(), String> {
     let canonical = validate_open_path(&path)?;
     tokio::task::spawn_blocking(move || -> Result<(), String> {
         // Launch the claudewatch dashboard (Windows Terminal split: Claude +
-        // claudewatch) scoped to this project. The launcher is a PowerShell
-        // script under ~/claudewatch; we run it via `powershell -File` with
-        // `-NoProfile -ExecutionPolicy Bypass` so it works regardless of the
-        // user's profile/execution-policy. `validate_open_path` already
-        // rejected leading-`-`/`/` paths, so passing `-Path <canonical>` is
-        // safe from flag injection.
-        let launcher = resolve_claudewatch_launcher().ok_or_else(|| {
-            "claudewatch TUI no encontrado. Instalalo: carpeta ~/claudewatch con claude-dash.ps1.".to_string()
-        })?;
+        // claudewatch) scoped to this project. If claudewatch isn't installed
+        // yet, install it from the app's OWN bundled resources first — so a
+        // single click "just works" with no separate Settings step. Runs the
+        // launcher via `powershell -File` with `-NoProfile -ExecutionPolicy
+        // Bypass`. `validate_open_path` already rejected leading-`-`/`/` paths,
+        // so passing `-Path <canonical>` is safe from flag injection.
+        let launcher = match resolve_claudewatch_launcher() {
+            Some(l) => l,
+            None => {
+                install_claudewatch_resources(&app)?;
+                resolve_claudewatch_launcher()
+                    .ok_or_else(|| "no se pudo instalar claudewatch automáticamente.".to_string())?
+            }
+        };
         silent_command("powershell")
             .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
             .arg(&launcher)
@@ -2757,33 +2794,8 @@ fn claudewatch_status() -> ClaudewatchStatus {
 /// destination files, which doubles as the "Reinstall" action in Settings.
 #[tauri::command]
 async fn install_claudewatch_tui(app: tauri::AppHandle) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || -> Result<String, String> {
-        let home = dirs_home().ok_or_else(|| "no se pudo resolver el home".to_string())?;
-        let dest = home.join("claudewatch");
-        std::fs::create_dir_all(&dest).map_err(|e| format!("crear {}: {e}", dest.display()))?;
-        let resdir = app
-            .path()
-            .resolve("resources/claudewatch", tauri::path::BaseDirectory::Resource)
-            .map_err(|e| format!("resolver recursos: {e}"))?;
-        for f in [
-            "claudewatch.exe",
-            "claude-dash.ps1",
-            "claude-dash.cmd",
-            "claudewatch.ico",
-        ] {
-            let src = resdir.join(f);
-            if !src.exists() {
-                if f == "claudewatch.exe" {
-                    return Err(
-                        "falta claudewatch.exe en el bundle (¿se compiló el TUI en el build?)."
-                            .to_string(),
-                    );
-                }
-                continue;
-            }
-            std::fs::copy(&src, dest.join(f)).map_err(|e| format!("copiar {f}: {e}"))?;
-        }
-        Ok(dest.to_string_lossy().into_owned())
+    tokio::task::spawn_blocking(move || {
+        install_claudewatch_resources(&app).map(|d| d.to_string_lossy().into_owned())
     })
     .await
     .map_err(|e| format!("task join: {e}"))?
