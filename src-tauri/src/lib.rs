@@ -2350,6 +2350,18 @@ fn resolve_vscode_exe() -> Option<String> {
         .map(|p| p.to_string_lossy().into_owned())
 }
 
+/// Locate the claudewatch TUI launcher script — `~/claudewatch/claude-dash.ps1`.
+/// Returns the absolute path only when the file exists, so callers can emit a
+/// localized "not installed" hint instead of failing with a raw spawn error.
+fn resolve_claudewatch_launcher() -> Option<String> {
+    let p = dirs_home()?.join("claudewatch").join("claude-dash.ps1");
+    if p.is_file() {
+        Some(p.to_string_lossy().into_owned())
+    } else {
+        None
+    }
+}
+
 /// Audit-Resolver-only delete helper for files outside `cleanup_apply`'s
 /// confinement (`~/.claude/{logs,backups,projects}`).
 ///
@@ -2682,6 +2694,33 @@ async fn open_in_vscode(path: String) -> Result<(), String> {
             .arg(&canonical)
             .spawn()
             .map_err(|e| format_spawn_error("VS Code (Code.exe)", &e))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn open_in_tui(path: String) -> Result<(), String> {
+    let canonical = validate_open_path(&path)?;
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        // Launch the claudewatch dashboard (Windows Terminal split: Claude +
+        // claudewatch) scoped to this project. The launcher is a PowerShell
+        // script under ~/claudewatch; we run it via `powershell -File` with
+        // `-NoProfile -ExecutionPolicy Bypass` so it works regardless of the
+        // user's profile/execution-policy. `validate_open_path` already
+        // rejected leading-`-`/`/` paths, so passing `-Path <canonical>` is
+        // safe from flag injection.
+        let launcher = resolve_claudewatch_launcher().ok_or_else(|| {
+            "claudewatch TUI no encontrado. Instalalo: carpeta ~/claudewatch con claude-dash.ps1.".to_string()
+        })?;
+        silent_command("powershell")
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
+            .arg(&launcher)
+            .arg("-Path")
+            .arg(&canonical)
+            .spawn()
+            .map_err(|e| format_spawn_error("claudewatch (PowerShell)", &e))?;
         Ok(())
     })
     .await
@@ -7083,6 +7122,7 @@ pub fn run() {
             engram_search_to_file,
             open_skill_registry,
             open_in_vscode,
+            open_in_tui,
             open_path_in_explorer,
             write_text_file,
             read_text_file,

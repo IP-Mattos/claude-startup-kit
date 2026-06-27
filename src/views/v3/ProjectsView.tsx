@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { FolderOpen, GitBranch, Info, Search, Sparkles } from "lucide-react";
+import {
+  FolderOpen,
+  GitBranch,
+  Info,
+  Search,
+  Sparkles,
+  SquareTerminal,
+} from "lucide-react";
 import type { GitInfo, Project, ProjectEnrichment } from "../../types";
 import {
   activityLabelT,
@@ -68,6 +75,8 @@ export function ProjectsView({
 
   const open = (path: string) =>
     invoke("open_in_vscode", { path }).catch((e) => setError(friendlyErrorEn(e)));
+  const openTui = (path: string) =>
+    invoke("open_in_tui", { path }).catch((e) => setError(friendlyErrorEn(e)));
   const openExplorer = (path: string) =>
     invoke("open_path_in_explorer", { path }).catch((e) =>
       setError(friendlyErrorEn(e))
@@ -207,6 +216,7 @@ export function ProjectsView({
                 goal={goal}
                 git={git}
                 onOpen={() => open(p.path)}
+                onOpenTui={() => openTui(p.path)}
                 onOpenExplorer={() => openExplorer(p.path)}
                 onOpenSkills={() => openSkillRegistry(p.path)}
               />
@@ -304,6 +314,7 @@ function ProjectListRow({
   goal,
   git,
   onOpen,
+  onOpenTui,
   onOpenExplorer,
   onOpenSkills,
 }: {
@@ -311,6 +322,7 @@ function ProjectListRow({
   goal: string | null;
   git: GitInfo | null;
   onOpen: () => void;
+  onOpenTui: () => void;
   onOpenExplorer: () => void;
   onOpenSkills: () => void;
 }) {
@@ -364,6 +376,14 @@ function ProjectListRow({
             aria-label={t("projects.open_in_explorer")}
           >
             <FolderOpen size={13} strokeWidth={2} />
+          </button>
+          <button
+            className="v3-btn-ghost v3-btn-sm v3-btn-icon"
+            onClick={onOpenTui}
+            title={t("projects.open_in_tui")}
+            aria-label={t("projects.open_in_tui")}
+          >
+            <SquareTerminal size={13} strokeWidth={2} />
           </button>
         </div>
       </div>
