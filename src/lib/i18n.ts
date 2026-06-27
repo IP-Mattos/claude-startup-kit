@@ -407,6 +407,19 @@ const STRINGS = {
     es: "Abre el wizard interactivo de instalación de gentle-ai",
   },
 
+  // claudewatch TUI (csk settings section)
+  "claudewatch.title": { en: "claudewatch TUI", es: "claudewatch TUI" },
+  "claudewatch.desc": {
+    en: "Terminal usage dashboard (today's spend, burn rate, by-model). Installs to ~/claudewatch.",
+    es: "Dashboard de uso en terminal (gasto de hoy, burn rate, por modelo). Se instala en ~/claudewatch.",
+  },
+  "claudewatch.installed": { en: "Installed", es: "Instalado" },
+  "claudewatch.not_installed": { en: "Not installed", es: "No instalado" },
+  "claudewatch.install": { en: "Install", es: "Instalar" },
+  "claudewatch.reinstall": { en: "Reinstall", es: "Reinstalar" },
+  "claudewatch.installing": { en: "Installing…", es: "Instalando…" },
+  "claudewatch.install_ok": { en: "Installed to {path}", es: "Instalado en {path}" },
+
   // Banners (top of content area)
   "banner.app_available": {
     en: "Claude Startup Kit v{latest}",

@@ -1,0 +1,4 @@
+# claudewatch.exe is built from ../../../tools/claudewatch by the release CI
+# (see .github/workflows/release.yml) and bundled as a Tauri resource.
+# Never commit the binary; only the launcher scripts + icon live here.
+claudewatch.exe

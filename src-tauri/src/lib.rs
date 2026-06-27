@@ -2727,6 +2727,68 @@ async fn open_in_tui(path: String) -> Result<(), String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+/// Whether the claudewatch TUI is installed under `~/claudewatch`. We treat it
+/// as installed only when BOTH the launcher script and the built binary exist —
+/// the scripts are vendored/copyable but `claudewatch.exe` is produced by CI and
+/// bundled as a resource, so its presence is the real "ready to run" signal.
+#[derive(serde::Serialize)]
+struct ClaudewatchStatus {
+    installed: bool,
+    path: String,
+}
+
+#[tauri::command]
+fn claudewatch_status() -> ClaudewatchStatus {
+    let dir = dirs_home().map(|h| h.join("claudewatch"));
+    let installed = dir.as_ref().map_or(false, |d| {
+        d.join("claude-dash.ps1").is_file() && d.join("claudewatch.exe").is_file()
+    });
+    ClaudewatchStatus {
+        installed,
+        path: dir
+            .map(|d| d.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+    }
+}
+
+/// Install the claudewatch TUI into `~/claudewatch` by copying the bundled
+/// resources (the CI-built `claudewatch.exe` plus the launcher scripts/icon)
+/// out of the app's resource directory. Idempotent: re-running overwrites the
+/// destination files, which doubles as the "Reinstall" action in Settings.
+#[tauri::command]
+async fn install_claudewatch_tui(app: tauri::AppHandle) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || -> Result<String, String> {
+        let home = dirs_home().ok_or_else(|| "no se pudo resolver el home".to_string())?;
+        let dest = home.join("claudewatch");
+        std::fs::create_dir_all(&dest).map_err(|e| format!("crear {}: {e}", dest.display()))?;
+        let resdir = app
+            .path()
+            .resolve("resources/claudewatch", tauri::path::BaseDirectory::Resource)
+            .map_err(|e| format!("resolver recursos: {e}"))?;
+        for f in [
+            "claudewatch.exe",
+            "claude-dash.ps1",
+            "claude-dash.cmd",
+            "claudewatch.ico",
+        ] {
+            let src = resdir.join(f);
+            if !src.exists() {
+                if f == "claudewatch.exe" {
+                    return Err(
+                        "falta claudewatch.exe en el bundle (¿se compiló el TUI en el build?)."
+                            .to_string(),
+                    );
+                }
+                continue;
+            }
+            std::fs::copy(&src, dest.join(f)).map_err(|e| format!("copiar {f}: {e}"))?;
+        }
+        Ok(dest.to_string_lossy().into_owned())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 #[tauri::command]
 async fn open_path_in_explorer(path: String) -> Result<(), String> {
     let canonical = validate_open_path(&path)?;
@@ -7123,6 +7185,8 @@ pub fn run() {
             open_skill_registry,
             open_in_vscode,
             open_in_tui,
+            claudewatch_status,
+            install_claudewatch_tui,
             open_path_in_explorer,
             write_text_file,
             read_text_file,

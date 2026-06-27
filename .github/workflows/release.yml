@@ -58,6 +58,18 @@ jobs:
       - name: Install frontend deps
         run: pnpm install --frozen-lockfile
 
+      # Build the claudewatch TUI binary so tauri-action can bundle it as a
+      # resource (tauri.conf.json -> bundle.resources). The .exe is gitignored
+      # under src-tauri/resources/claudewatch/, so it must be produced here at
+      # release time. Go version must satisfy tools/claudewatch/go.mod's `go`
+      # directive (1.26.1 at time of writing); 'stable' tracks the latest.
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      - name: Build claudewatch TUI
+        run: go build -ldflags "-s -w" -o src-tauri/resources/claudewatch/claudewatch.exe ./tools/claudewatch
+
       - name: Build, sign, and publish
         uses: tauri-apps/tauri-action@v0
         env:

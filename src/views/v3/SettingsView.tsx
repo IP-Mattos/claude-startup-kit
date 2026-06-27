@@ -145,6 +145,52 @@ export function SettingsView({
     { kind: "push" | "pull" | "status"; text: string; error: boolean } | null
   >(null);
 
+  // claudewatch TUI — detect whether it's installed at ~/claudewatch and, if
+  // not, copy the bundled exe + launcher scripts there. Mirrors the fix-vscode
+  // busy/error pattern: status fetched on mount, then re-fetched after install
+  // so the button flips between Install / Reinstall.
+  const [cwStatus, setCwStatus] = useState<
+    { installed: boolean; path: string } | null
+  >(null);
+  const [cwBusy, setCwBusy] = useState(false);
+  const [cwMessage, setCwMessage] = useState<{ text: string; error: boolean } | null>(
+    null,
+  );
+
+  const fetchClaudewatchStatus = async () => {
+    if (!IS_TAURI) {
+      setCwStatus({ installed: false, path: "" });
+      return;
+    }
+    try {
+      const s = await invoke<{ installed: boolean; path: string }>(
+        "claudewatch_status",
+      );
+      setCwStatus(s);
+    } catch {
+      setCwStatus({ installed: false, path: "" });
+    }
+  };
+
+  useEffect(() => {
+    void fetchClaudewatchStatus();
+  }, []);
+
+  const installClaudewatch = async () => {
+    if (!IS_TAURI) return;
+    setCwBusy(true);
+    setCwMessage(null);
+    try {
+      const path = await invoke<string>("install_claudewatch_tui");
+      setCwMessage({ text: t("claudewatch.install_ok", { path }), error: false });
+      await fetchClaudewatchStatus();
+    } catch (e) {
+      setCwMessage({ text: friendlyErrorEn(e), error: true });
+    } finally {
+      setCwBusy(false);
+    }
+  };
+
   const pickSyncDir = async () => {
     if (!IS_TAURI) return;
     try {
@@ -550,6 +596,51 @@ export function SettingsView({
                 </div>
               )}
               <p className="v3-row-meta">{t("settings.updates_auto_hint")}</p>
+            </div>
+          </article>
+          <div className="v3-settings-group-sep" aria-hidden="true" />
+          <article className="v3-card">
+            <header className="v3-card-head">
+              <h2 className="v3-card-title">{t("claudewatch.title")}</h2>
+              {cwStatus &&
+                (cwStatus.installed ? (
+                  <span className="v3-update-row-status v3-update-row-status-ok">
+                    <Check size={12} strokeWidth={3} /> {t("claudewatch.installed")}
+                  </span>
+                ) : (
+                  <span className="v3-update-row-status v3-update-row-status-dim">
+                    {t("claudewatch.not_installed")}
+                  </span>
+                ))}
+            </header>
+            <div className="v3-form">
+              <p className="v3-row-meta">{t("claudewatch.desc")}</p>
+              {cwStatus?.installed && cwStatus.path && (
+                <p className="v3-row-dim">{cwStatus.path}</p>
+              )}
+              <button
+                type="button"
+                className="v3-btn-primary"
+                onClick={() => {
+                  void installClaudewatch();
+                }}
+                disabled={cwBusy || !IS_TAURI}
+              >
+                {cwBusy
+                  ? t("claudewatch.installing")
+                  : cwStatus?.installed
+                    ? t("claudewatch.reinstall")
+                    : t("claudewatch.install")}
+              </button>
+              {cwMessage && (
+                <div
+                  className={cwMessage.error ? "v3-error" : "v3-row-meta"}
+                  role={cwMessage.error ? "alert" : undefined}
+                  aria-live={cwMessage.error ? "assertive" : "polite"}
+                >
+                  {cwMessage.text}
+                </div>
+              )}
             </div>
           </article>
           <div className="v3-settings-group-sep" aria-hidden="true" />
