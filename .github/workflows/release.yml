@@ -68,7 +68,10 @@ jobs:
         with:
           go-version: 'stable'
       - name: Build claudewatch TUI
-        run: go build -ldflags "-s -w" -o src-tauri/resources/claudewatch/claudewatch.exe ./tools/claudewatch
+        # `-C` enters the module dir (tools/claudewatch has its own go.mod); the
+        # repo root is NOT a Go module, so building from there fails with
+        # "cannot find main module". The -o path is relative to that dir.
+        run: go -C tools/claudewatch build -ldflags "-s -w" -o ../../src-tauri/resources/claudewatch/claudewatch.exe .
 
       - name: Build, sign, and publish
         uses: tauri-apps/tauri-action@v0
