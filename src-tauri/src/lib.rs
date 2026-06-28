@@ -2711,23 +2711,27 @@ fn install_claudewatch_resources(app: &tauri::AppHandle) -> Result<std::path::Pa
         .path()
         .resolve("resources/claudewatch", tauri::path::BaseDirectory::Resource)
         .map_err(|e| format!("resolver recursos: {e}"))?;
-    for f in [
-        "claudewatch.exe",
-        "claude-dash.ps1",
-        "claude-dash.cmd",
-        "claudewatch.ico",
-    ] {
-        let src = resdir.join(f);
+    // The binary: copy only when absent. Overwriting a running claudewatch.exe
+    // fails on Windows (the file is locked), so we never re-copy it.
+    let exe = dest.join("claudewatch.exe");
+    if !exe.is_file() {
+        let src = resdir.join("claudewatch.exe");
         if !src.exists() {
-            if f == "claudewatch.exe" {
-                return Err(
-                    "falta claudewatch.exe en el bundle (¿se compiló el TUI en el build?)."
-                        .to_string(),
-                );
-            }
-            continue;
+            return Err(
+                "falta claudewatch.exe en el bundle (¿se compiló el TUI en el build?)."
+                    .to_string(),
+            );
         }
-        std::fs::copy(&src, dest.join(f)).map_err(|e| format!("copiar {f}: {e}"))?;
+        std::fs::copy(&src, &exe).map_err(|e| format!("copiar claudewatch.exe: {e}"))?;
+    }
+
+    // Scripts + icon: always refresh so the launcher logic stays current with the
+    // installed app version (e.g. the no-Windows-Terminal fallback). Not locked.
+    for f in ["claude-dash.ps1", "claude-dash.cmd", "claudewatch.ico"] {
+        let src = resdir.join(f);
+        if src.exists() {
+            std::fs::copy(&src, dest.join(f)).map_err(|e| format!("copiar {f}: {e}"))?;
+        }
     }
     Ok(dest)
 }
@@ -2736,21 +2740,15 @@ fn install_claudewatch_resources(app: &tauri::AppHandle) -> Result<std::path::Pa
 async fn open_in_tui(app: tauri::AppHandle, path: String) -> Result<(), String> {
     let canonical = validate_open_path(&path)?;
     tokio::task::spawn_blocking(move || -> Result<(), String> {
-        // Launch the claudewatch dashboard (Windows Terminal split: Claude +
-        // claudewatch) scoped to this project. If claudewatch isn't installed
-        // yet, install it from the app's OWN bundled resources first — so a
-        // single click "just works" with no separate Settings step. Runs the
-        // launcher via `powershell -File` with `-NoProfile -ExecutionPolicy
-        // Bypass`. `validate_open_path` already rejected leading-`-`/`/` paths,
-        // so passing `-Path <canonical>` is safe from flag injection.
-        let launcher = match resolve_claudewatch_launcher() {
-            Some(l) => l,
-            None => {
-                install_claudewatch_resources(&app)?;
-                resolve_claudewatch_launcher()
-                    .ok_or_else(|| "no se pudo instalar claudewatch automáticamente.".to_string())?
-            }
-        };
+        // Always (re)sync claudewatch from the app's bundled resources: installs
+        // it if missing AND refreshes the launcher scripts so the latest logic
+        // (e.g. the no-Windows-Terminal fallback) takes effect even on a machine
+        // that installed an older version. Then run the launcher, which opens the
+        // WT split or falls back to two plain windows. `validate_open_path`
+        // already rejected leading-`-`/`/` paths, so `-Path <canonical>` is safe.
+        install_claudewatch_resources(&app)?;
+        let launcher = resolve_claudewatch_launcher()
+            .ok_or_else(|| "claudewatch no quedó instalado correctamente.".to_string())?;
         silent_command("powershell")
             .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-File"])
             .arg(&launcher)
