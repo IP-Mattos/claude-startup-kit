@@ -94,6 +94,7 @@ type fileAgg struct {
 	branch                             string
 	last                               time.Time
 	msgs                               int
+	lastCtx                            int // input-side tokens of the newest assistant msg = context occupancy
 	events                             []event
 	isSession                          bool // a top-level session file (not a subagent)
 }
@@ -146,6 +147,8 @@ func parseFile(path string, info fs.FileInfo) fileAgg {
 			float64(cw1)*p.cacheWrite1h/1e6 +
 			float64(u.CacheReadInputTokens)*p.cacheRead/1e6
 		toks := u.InputTokens + u.OutputTokens + u.CacheCreationInputTokens + u.CacheReadInputTokens
+		// Context occupancy = input side of the newest assistant message (last wins).
+		fa.lastCtx = u.InputTokens + u.CacheReadInputTokens + u.CacheCreationInputTokens
 
 		fa.cost += cost
 		fa.tokens += toks
@@ -178,6 +181,22 @@ type modelRow struct {
 	tokens int
 }
 
+type projectRow struct {
+	project string
+	cost    float64
+	tokens  int
+}
+
+// contextWindow returns the model's context size in tokens (1M for the [1m]
+// long-context variants, 200K otherwise), used to turn the active session's
+// token occupancy into a percentage.
+func contextWindow(model string) int {
+	if strings.Contains(strings.ToLower(model), "1m") {
+		return 1_000_000
+	}
+	return 200_000
+}
+
 type sessionRow struct {
 	project string
 	model   string
@@ -204,6 +223,17 @@ type stats struct {
 	hourly                               [24]float64 // cost per hour, last 24h
 	byModel                              []modelRow
 	recent                               []sessionRow
+
+	// The most recently active session (what claudewatch sits next to).
+	actModel   string
+	actCtx     int
+	actWindow  int
+	actCtxPct  float64
+	actCost    float64
+	actTokens  int
+	actProject string
+	actLast    time.Time
+	byProject  []projectRow // top projects by spend
 }
 
 type scanner struct {
@@ -235,6 +265,8 @@ func (s *scanner) scan() stats {
 
 	var st stats
 	var events []event
+	var actFa fileAgg
+	bp := map[string]*projectRow{}
 	for _, fa := range newCache {
 		st.totalCost += fa.cost
 		st.totalTokens += fa.tokens
@@ -252,6 +284,18 @@ func (s *scanner) scan() stats {
 				project: fa.project, model: fa.model, tokens: fa.tokens,
 				cost: fa.cost, last: fa.last, branch: fa.branch,
 			})
+			if fa.last.After(actFa.last) {
+				actFa = fa // the active session = most recently written
+			}
+			if fa.project != "" {
+				pr := bp[fa.project]
+				if pr == nil {
+					pr = &projectRow{project: fa.project}
+					bp[fa.project] = pr
+				}
+				pr.cost += fa.cost
+				pr.tokens += fa.tokens
+			}
 		}
 	}
 
@@ -298,6 +342,26 @@ func (s *scanner) scan() stats {
 	if len(st.recent) > 8 {
 		st.recent = st.recent[:8]
 	}
+
+	// Active session snapshot + top projects by spend.
+	st.actModel = actFa.model
+	st.actCtx = actFa.lastCtx
+	st.actWindow = contextWindow(actFa.model)
+	if st.actWindow > 0 {
+		st.actCtxPct = 100.0 * float64(st.actCtx) / float64(st.actWindow)
+	}
+	st.actCost = actFa.cost
+	st.actTokens = actFa.tokens
+	st.actProject = actFa.project
+	st.actLast = actFa.last
+	for _, pr := range bp {
+		st.byProject = append(st.byProject, *pr)
+	}
+	sort.Slice(st.byProject, func(i, j int) bool { return st.byProject[i].cost > st.byProject[j].cost })
+	if len(st.byProject) > 3 {
+		st.byProject = st.byProject[:3]
+	}
+
 	st.tokPerMin = float64(st.burnTok) / 60.0
 	return st
 }
@@ -616,115 +680,58 @@ func (m model) View() string {
 			dim(fmt.Sprintf("%d sess · %d msgs · %s", st.sessions, st.msgs, now.Format("15:04:05"))))
 	}
 
-	// ---- Stat cards (responsive grid: 4→2→1 per row) ----
-	perRow := clampi(inner/18, 1, 4)
-	cardW := (inner - (perRow - 1)) / perRow
-	cards := arrange([]string{
-		card("TOTAL SPEND", fmtMoney(st.totalCost), cGreen, cardW),
-		card("TOTAL TOKENS", fmtTokens(st.totalTokens), cCyan, cardW),
-		card("TODAY", fmtMoney(st.todayCost), cYellow, cardW),
-		card("BURN / HR", fmtMoney(st.burnHr), cMag, cardW),
-	}, perRow)
-
-	// ---- Panel sizing: side by side only when there's room ----
-	sideBySide := inner >= 84
-	actW, modelW := inner, inner
-	if sideBySide {
-		actW = (inner - 1) / 2
-		modelW = inner - actW - 1
+	// ---- CURRENT SESSION (model · context · usage) — the thing you're in ----
+	curModel := shortModel(st.actModel)
+	if curModel == "" || curModel == "unknown" {
+		curModel = "—"
 	}
-
-	// ---- Activity (sparkline shrinks to last 12h when cramped) ----
-	peak := 0.0
-	for _, v := range st.hourly {
-		if v > peak {
-			peak = v
-		}
+	ctxBarW := clampi(inner-4-18, 6, 28)
+	ctxCol := cGreen
+	if st.actCtxPct >= 80 {
+		ctxCol = cYellow
 	}
-	hours := st.hourly[:]
-	if actW-4 < 28 {
-		hours = st.hourly[12:]
-	}
-	spark := lipgloss.NewStyle().Foreground(cGreen).Render(sparkline(hours))
-	activity := lipgloss.JoinVertical(lipgloss.Left,
-		fmt.Sprintf("%s %s", dim(fmt.Sprintf("%dh", len(hours))), spark),
-		dim("peak "+fmtMoney(peak)+"/hr"),
-		fmt.Sprintf("%s %s · %s", dim("5h"), txt(fmtMoney(st.h5Cost)), txt(fmtTokens(st.h5Tokens))),
-		dim(fmt.Sprintf("rate ~%.0f tok/min", st.tokPerMin)),
+	ctxBar := lipgloss.NewStyle().Foreground(ctxCol).Render(barChart(st.actCtxPct/100, ctxBarW))
+	cur := lipgloss.JoinVertical(lipgloss.Left,
+		dim(padRight("model", 8))+" "+lipgloss.NewStyle().Foreground(cCyan).Bold(true).Render(curModel),
+		dim(padRight("context", 8))+" "+ctxBar+" "+lipgloss.NewStyle().Foreground(ctxCol).Render(fmt.Sprintf("%.0f%%", st.actCtxPct)),
+		dim(padRight("usage", 8))+" "+txt(fmtTokens(st.actTokens)+" tok")+dim(" · ")+lipgloss.NewStyle().Foreground(cGreen).Render(fmtMoney(st.actCost)),
 	)
+	current := panel("◇ CURRENT SESSION", cur, cYellow, inner)
 
-	// ---- By model (bar width adapts; bar dropped if no room) ----
-	modelInner := clampi(modelW-4, 12, 999)
-	nameW := clampi(modelInner/3, 8, 16)
-	moneyW, pctW := 10, 4
-	barW := modelInner - nameW - moneyW - pctW - 3
-	var mb strings.Builder
-	for _, r := range st.byModel {
-		frac := 0.0
-		if st.totalCost > 0 {
-			frac = r.cost / st.totalCost
-		}
-		name := lipgloss.NewStyle().Foreground(cCyan).Render(padRight(r.model, nameW))
-		pct := dim(fmt.Sprintf("%3.0f%%", frac*100))
-		money := txt(padRight(fmtMoney(r.cost), moneyW))
-		if barW >= 4 {
-			bar := lipgloss.NewStyle().Foreground(cMag).Render(barChart(frac, barW))
-			mb.WriteString(fmt.Sprintf("%s %s %s %s\n", name, bar, money, pct))
-		} else {
-			mb.WriteString(fmt.Sprintf("%s %s %s\n", name, money, pct))
+	// ---- SPEND ----
+	mw := 13 // wide enough that a 6-figure total still leaves a gap before the next label
+	spend := lipgloss.JoinVertical(lipgloss.Left,
+		dim(padRight("today", 6))+lipgloss.NewStyle().Foreground(cYellow).Render(padRight(fmtMoney(st.todayCost), mw))+
+			dim(padRight("burn", 6))+lipgloss.NewStyle().Foreground(cMag).Render(fmtMoney(st.burnHr)+"/hr"),
+		dim(padRight("total", 6))+txt(padRight(fmtMoney(st.totalCost), mw))+
+			dim(padRight("5h", 6))+txt(fmtMoney(st.h5Cost)),
+	)
+	spendP := panel("◇ SPEND", spend, cGreen, inner)
+
+	// ---- TOP PROJECTS (minimal: where the spend goes) ----
+	var pb strings.Builder
+	maxP := 0.0
+	for _, pr := range st.byProject {
+		if pr.cost > maxP {
+			maxP = pr.cost
 		}
 	}
-	if mb.Len() == 0 {
-		mb.WriteString(dim("no data"))
-	}
-
-	// ---- Recent sessions (drops MODEL/TOKENS columns when narrow) ----
-	// Keep the trailing "\n" OUTSIDE dim()/txt(): a newline inside a styled
-	// string makes lipgloss pad an empty 2nd line that bleeds into the next
-	// row and wraps it.
-	var rb strings.Builder
-	if inner-4 >= 58 {
-		rb.WriteString(dim(fmt.Sprintf("%s %s %s %s %s",
-			padRight("PROJECT", 18), padRight("MODEL", 14),
-			padRight("TOKENS", 9), padRight("COST", 11), "WHEN")) + "\n")
-		for _, s := range st.recent {
-			rb.WriteString(txt(fmt.Sprintf("%s %s %s %s %s",
-				padRight(s.project, 18), padRight(shortModel(s.model), 14),
-				padRight(fmtTokens(s.tokens), 9), padRight(fmtMoney(s.cost), 11), ago(s.last))) + "\n")
+	pBarW := clampi(inner-4-30, 0, 16)
+	for _, pr := range st.byProject {
+		line := lipgloss.NewStyle().Foreground(cCyan).Render(padRight(pr.project, 16)) + " " + txt(padRight(fmtMoney(pr.cost), 11))
+		if pBarW >= 4 && maxP > 0 {
+			line += " " + lipgloss.NewStyle().Foreground(cMag).Render(barChart(pr.cost/maxP, pBarW))
 		}
-	} else {
-		projW := clampi(inner-4-24, 8, 22)
-		rb.WriteString(dim(fmt.Sprintf("%s %s %s",
-			padRight("PROJECT", projW), padRight("COST", 10), "WHEN")) + "\n")
-		for _, s := range st.recent {
-			rb.WriteString(txt(fmt.Sprintf("%s %s %s",
-				padRight(s.project, projW), padRight(fmtMoney(s.cost), 10), ago(s.last))) + "\n")
-		}
+		pb.WriteString(line + "\n")
 	}
-
-	// ---- Assemble ----
-	var row2 string
-	if sideBySide {
-		row2 = lipgloss.JoinHorizontal(lipgloss.Top,
-			panel("◇ ACTIVITY", activity, cYellow, actW),
-			" ",
-			panel("◇ BY MODEL", strings.TrimRight(mb.String(), "\n"), cMag, modelW))
-	} else {
-		row2 = lipgloss.JoinVertical(lipgloss.Left,
-			panel("◇ ACTIVITY", activity, cYellow, inner),
-			"",
-			panel("◇ BY MODEL", strings.TrimRight(mb.String(), "\n"), cMag, inner))
+	if pb.Len() == 0 {
+		pb.WriteString(dim("no projects yet"))
 	}
-	recent := panel("◇ RECENT SESSIONS", strings.TrimRight(rb.String(), "\n"), cCyan, inner)
+	projects := panel("◇ TOP PROJECTS", strings.TrimRight(pb.String(), "\n"), cCyan, inner)
 
-	full := fmt.Sprintf("[r] refresh  [q] quit  [t] theme: %s      cost = API-equivalent estimate (not your bill)",
-		themes[activeTheme].name)
-	footer := dim(fmt.Sprintf("[t] %s  [q] quit", themes[activeTheme].name))
-	if lipgloss.Width(full) <= inner {
-		footer = dim(full)
-	}
+	footer := dim(fmt.Sprintf("[r] refresh  [t] %s  [q] quit", themes[activeTheme].name))
 
-	return lipgloss.JoinVertical(lipgloss.Left, "", header, "", cards, "", row2, "", recent, "", footer)
+	return lipgloss.JoinVertical(lipgloss.Left, "", header, "", current, "", spendP, "", projects, "", footer)
 }
 
 // ---------------------------------------------------------------------------

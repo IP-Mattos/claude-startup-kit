@@ -27,6 +27,18 @@ func sampleStats() stats {
 	for i := range st.hourly {
 		st.hourly[i] = float64((i*7)%13) + 1
 	}
+	st.actModel = "claude-opus-4-8[1m]"
+	st.actCtx = 152000
+	st.actWindow = 1000000
+	st.actCtxPct = 15.2
+	st.actCost = 22.23
+	st.actTokens = 3290000
+	st.actProject = "claudewatch"
+	st.byProject = []projectRow{
+		{"polymarket-bot", 1204.50, 0},
+		{"DemonTwo", 890.10, 0},
+		{"Polymarket", 612.30, 0},
+	}
 	return st
 }
 
