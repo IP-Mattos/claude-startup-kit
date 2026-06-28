@@ -91,6 +91,7 @@ type fileAgg struct {
 	webSearch, webFetch                int
 	model                              string // last model seen
 	project                            string // basename of last cwd
+	cwd                                string // full cwd (for --focus-cwd matching)
 	branch                             string
 	last                               time.Time
 	msgs                               int
@@ -121,6 +122,7 @@ func parseFile(path string, info fs.FileInfo) fileAgg {
 		}
 		if r.Cwd != "" {
 			fa.project = filepath.Base(r.Cwd)
+			fa.cwd = r.Cwd
 		}
 		if r.GitBranch != "" {
 			fa.branch = r.GitBranch
@@ -236,9 +238,31 @@ type stats struct {
 	byProject  []projectRow // top projects by spend
 }
 
+// sameProject reports whether a session cwd belongs to the focused project,
+// matching on the normalized full path or, failing that, the basename.
+func sameProject(cwd, filter string) bool {
+	if filter == "" {
+		return false
+	}
+	nc, nf := normPath(cwd), normPath(filter)
+	return nc == nf || baseName(nc) == baseName(nf)
+}
+
+func normPath(p string) string {
+	return strings.TrimRight(strings.ToLower(filepath.ToSlash(p)), "/")
+}
+
+func baseName(p string) string {
+	if i := strings.LastIndex(p, "/"); i >= 0 {
+		return p[i+1:]
+	}
+	return p
+}
+
 type scanner struct {
-	root  string
-	cache map[string]fileAgg
+	root          string
+	cache         map[string]fileAgg
+	projectFilter string // when set (--focus-cwd), prefer the active session of this cwd
 }
 
 func (s *scanner) scan() stats {
@@ -265,7 +289,8 @@ func (s *scanner) scan() stats {
 
 	var st stats
 	var events []event
-	var actFa fileAgg
+	var actFa, actMatch fileAgg
+	haveMatch := false
 	bp := map[string]*projectRow{}
 	for _, fa := range newCache {
 		st.totalCost += fa.cost
@@ -285,7 +310,12 @@ func (s *scanner) scan() stats {
 				cost: fa.cost, last: fa.last, branch: fa.branch,
 			})
 			if fa.last.After(actFa.last) {
-				actFa = fa // the active session = most recently written
+				actFa = fa // newest session overall (fallback)
+			}
+			if s.projectFilter != "" && sameProject(fa.cwd, s.projectFilter) &&
+				(!haveMatch || fa.last.After(actMatch.last)) {
+				actMatch = fa // newest session in the focused project
+				haveMatch = true
 			}
 			if fa.project != "" {
 				pr := bp[fa.project]
@@ -343,17 +373,30 @@ func (s *scanner) scan() stats {
 		st.recent = st.recent[:8]
 	}
 
-	// Active session snapshot + top projects by spend.
-	st.actModel = actFa.model
-	st.actCtx = actFa.lastCtx
-	st.actWindow = contextWindow(actFa.model)
+	// Active session snapshot + top projects by spend. With --focus-cwd we lock
+	// onto the focused project's session; otherwise the newest session overall.
+	chosen := actFa
+	if haveMatch {
+		chosen = actMatch
+	}
+	st.actModel = chosen.model
+	st.actCtx = chosen.lastCtx
+	st.actWindow = contextWindow(chosen.model)
+	// If the recorded context already exceeds the detected window, the model is
+	// really a 1M-context variant whose per-message record dropped the [1m] tag.
+	if st.actCtx > st.actWindow {
+		st.actWindow = 1_000_000
+	}
 	if st.actWindow > 0 {
 		st.actCtxPct = 100.0 * float64(st.actCtx) / float64(st.actWindow)
 	}
-	st.actCost = actFa.cost
-	st.actTokens = actFa.tokens
-	st.actProject = actFa.project
-	st.actLast = actFa.last
+	if st.actCtxPct > 100 {
+		st.actCtxPct = 100 // never report an impossible >100% context
+	}
+	st.actCost = chosen.cost
+	st.actTokens = chosen.tokens
+	st.actProject = chosen.project
+	st.actLast = chosen.last
 	for _, pr := range bp {
 		st.byProject = append(st.byProject, *pr)
 	}
@@ -691,7 +734,12 @@ func (m model) View() string {
 		ctxCol = cYellow
 	}
 	ctxBar := lipgloss.NewStyle().Foreground(ctxCol).Render(barChart(st.actCtxPct/100, ctxBarW))
+	curProj := st.actProject
+	if curProj == "" {
+		curProj = "—"
+	}
 	cur := lipgloss.JoinVertical(lipgloss.Left,
+		dim(padRight("project", 8))+" "+lipgloss.NewStyle().Foreground(cMag).Render(curProj),
 		dim(padRight("model", 8))+" "+lipgloss.NewStyle().Foreground(cCyan).Bold(true).Render(curModel),
 		dim(padRight("context", 8))+" "+ctxBar+" "+lipgloss.NewStyle().Foreground(ctxCol).Render(fmt.Sprintf("%.0f%%", st.actCtxPct)),
 		dim(padRight("usage", 8))+" "+txt(fmtTokens(st.actTokens)+" tok")+dim(" · ")+lipgloss.NewStyle().Foreground(cGreen).Render(fmtMoney(st.actCost)),
@@ -796,6 +844,8 @@ func main() {
 	rootFlag := flag.String("root", "", "Claude projects dir (default ~/.claude/projects)")
 	themeFlag := flag.String("theme", "", "color theme: "+themeNames())
 	statuslineFlag := flag.Bool("statusline", false, "write the statusline cache (~/.claudewatch-statusline.json) as JSON and exit")
+	focusCwd := flag.Bool("focus-cwd", false, "focus the dashboard on the session of the current working directory")
+	projectFlag := flag.String("project", "", "focus the dashboard on the session of this project path")
 	flag.Parse()
 
 	// Remembered theme first, then let an explicit --theme override and persist it.
@@ -821,6 +871,13 @@ func main() {
 	}
 
 	sc := &scanner{root: root, cache: map[string]fileAgg{}}
+	if *projectFlag != "" {
+		sc.projectFilter = *projectFlag
+	} else if *focusCwd {
+		if wd, err := os.Getwd(); err == nil {
+			sc.projectFilter = wd
+		}
+	}
 
 	if *statsFlag {
 		printStatsText(sc.scan())

@@ -30,7 +30,9 @@ if ($wt) {
     $wtArgs += @('cmd', '/k', 'claude')
     $wtArgs += ';'
     $wtArgs += @('split-pane', '--vertical', '--size', '0.26', '--colorScheme', $Scheme, '--title', 'claudewatch')
+    if ($Path) { $wtArgs += @('--startingDirectory', $Path) }
     $wtArgs += @('cmd', '/k', $dash)
+    if ($Path) { $wtArgs += '--focus-cwd' }   # lock the dashboard to this project's session
     $wtArgs += ';'
     $wtArgs += @('move-focus', 'left')   # focus the Claude pane so you can type
     & $wt @wtArgs
@@ -43,5 +45,10 @@ else {
     else {
         Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', 'claude' | Out-Null
     }
-    Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', "`"$dash`"" | Out-Null
+    if ($Path) {
+        Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', "`"$dash`" --focus-cwd" -WorkingDirectory $Path | Out-Null
+    }
+    else {
+        Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', "`"$dash`"" | Out-Null
+    }
 }
