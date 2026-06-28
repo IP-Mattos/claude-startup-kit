@@ -34,6 +34,14 @@ const SETTINGS_SECTIONS: { id: SettingsSection; key: StringKey }[] = [
   { id: "csk", key: "settings.section_csk" },
 ];
 
+// Mirror of the Rust `ClaudeCodeStatus` struct returned by `claude_code_status`.
+type ClaudeCodeStatus = {
+  native_installed: boolean;
+  native_version: string;
+  native_path: string;
+  path_version: string;
+};
+
 interface SettingsViewProps {
   companionName: string;
   companionImage: string | null;
@@ -85,6 +93,45 @@ export function SettingsView({
       setFixError(friendlyErrorEn(e));
     } finally {
       setFixRunning(false);
+    }
+  };
+
+  // Claude Code version + update. Detects the native (~/.local/bin/claude.exe)
+  // and PATH installs, surfaces a stale/mismatch case, and runs `claude update`
+  // (preferring the native install). `ccDone` carries the success message.
+  const [ccStatus, setCcStatus] = useState<ClaudeCodeStatus | null>(null);
+  const [ccUpdating, setCcUpdating] = useState(false);
+  const [ccError, setCcError] = useState<string | null>(null);
+  const [ccDone, setCcDone] = useState<string | null>(null);
+
+  const refreshClaudeCode = async () => {
+    if (!IS_TAURI) return;
+    try {
+      const s = await invoke<ClaudeCodeStatus>("claude_code_status");
+      setCcStatus(s);
+    } catch (e) {
+      setCcError(friendlyErrorEn(e));
+    }
+  };
+
+  useEffect(() => {
+    void refreshClaudeCode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const runUpdateClaudeCode = async () => {
+    if (!IS_TAURI) return;
+    setCcUpdating(true);
+    setCcError(null);
+    setCcDone(null);
+    try {
+      const version = await invoke<string>("update_claude_code");
+      await refreshClaudeCode();
+      setCcDone(t("claude.update_done", { version }));
+    } catch (e) {
+      setCcError(friendlyErrorEn(e));
+    } finally {
+      setCcUpdating(false);
     }
   };
 
@@ -375,6 +422,7 @@ export function SettingsView({
 
       {/* ── Claude Code: VS Code extension fix ── */}
       {section === "claude_code" && (
+        <>
         <article className="v3-card v3-fix-card">
           <header className="v3-card-head">
             <h2 className="v3-card-title">{t("claude.fix_title")}</h2>
@@ -407,6 +455,63 @@ export function SettingsView({
             </pre>
           )}
         </article>
+
+        <article className="v3-card">
+          <header className="v3-card-head">
+            <h2 className="v3-card-title">{t("claude.cc_title")}</h2>
+          </header>
+          <p className="v3-subtitle v3-fix-lead">{t("claude.cc_desc")}</p>
+          <div className="v3-form">
+            <div className="v3-update-row">
+              <div className="v3-update-row-label">
+                <code className="v3-git-hash">
+                  Claude Code:{" "}
+                  {ccStatus ? ccStatus.path_version || "—" : t("common.loading")}
+                </code>
+                {ccStatus?.native_installed && (
+                  <div className="v3-row-meta">
+                    {ccStatus.native_path}: {ccStatus.native_version || "—"}
+                  </div>
+                )}
+              </div>
+            </div>
+            {ccStatus &&
+              ccStatus.native_installed &&
+              !!ccStatus.native_version &&
+              !!ccStatus.path_version &&
+              ccStatus.native_version !== ccStatus.path_version && (
+                <div className="v3-update-row-status-warn">
+                  {t("claude.cc_mismatch")}
+                </div>
+              )}
+          </div>
+          <div className="v3-fix-actions">
+            <button
+              type="button"
+              className="v3-btn-primary v3-fix-button"
+              onClick={runUpdateClaudeCode}
+              disabled={ccUpdating}
+            >
+              <Wrench size={13} strokeWidth={2} />
+              {ccUpdating ? t("claude.updating") : t("claude.update_button")}
+            </button>
+          </div>
+          {ccError && (
+            <div className="v3-error" role="alert" aria-live="assertive">
+              {ccError}
+            </div>
+          )}
+          {ccDone && (
+            <div
+              className="v3-update-banner-result"
+              role="status"
+              aria-live="polite"
+            >
+              {ccDone}
+            </div>
+          )}
+        </article>
+        </>
       )}
 
       {/* ── Gentle AI: stack updates, persona, engram sync ── */}

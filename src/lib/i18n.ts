@@ -873,6 +873,21 @@ const STRINGS = {
     en: "Script ran but produced no output.",
     es: "El script corrió sin generar salida.",
   },
+  "claude.cc_title": { en: "Claude Code version", es: "Versión de Claude Code" },
+  "claude.cc_desc": {
+    en: "Keep Claude Code up to date so the newest models (e.g. Opus 4.8) appear in /model.",
+    es: "Mantené Claude Code actualizado para que los modelos nuevos (ej. Opus 4.8) aparezcan en /model.",
+  },
+  "claude.update_button": { en: "Update Claude Code", es: "Actualizar Claude Code" },
+  "claude.updating": { en: "Updating…", es: "Actualizando…" },
+  "claude.update_done": {
+    en: "Updated to {version} — reopen Claude Code to apply.",
+    es: "Actualizado a {version} — reabrí Claude Code para aplicar.",
+  },
+  "claude.cc_mismatch": {
+    en: "Two installs on different versions — update to unify.",
+    es: "Dos instalaciones en versiones distintas — actualizá para unificar.",
+  },
   "claude.mcp_title": { en: "MCP servers", es: "Servidores MCP" },
   "claude.mcp_active": { en: "{active} active of {total}", es: "{active} activos de {total}" },
   "claude.mcp_loading": { en: "Loading MCP servers…", es: "Cargando servidores MCP…" },

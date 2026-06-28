@@ -2711,18 +2711,32 @@ fn install_claudewatch_resources(app: &tauri::AppHandle) -> Result<std::path::Pa
         .path()
         .resolve("resources/claudewatch", tauri::path::BaseDirectory::Resource)
         .map_err(|e| format!("resolver recursos: {e}"))?;
-    // The binary: copy only when absent. Overwriting a running claudewatch.exe
-    // fails on Windows (the file is locked), so we never re-copy it.
+    // The binary: install if missing, and UPDATE it when the bundled build
+    // differs (size mismatch) so the launcher and binary never skew — an old
+    // binary crashes on a new launcher flag like --focus-cwd. A running .exe is
+    // locked, but Windows lets us RENAME it aside (even while running) and drop
+    // the fresh one in; the running process keeps the renamed file, new launches
+    // get the new one.
     let exe = dest.join("claudewatch.exe");
-    if !exe.is_file() {
-        let src = resdir.join("claudewatch.exe");
-        if !src.exists() {
-            return Err(
-                "falta claudewatch.exe en el bundle (¿se compiló el TUI en el build?)."
-                    .to_string(),
-            );
+    let src = resdir.join("claudewatch.exe");
+    if src.exists() {
+        let differs = match (std::fs::metadata(&exe), std::fs::metadata(&src)) {
+            (Ok(d), Ok(s)) => d.len() != s.len(),
+            (Err(_), _) => true, // not installed yet
+            _ => false,
+        };
+        if differs {
+            if exe.is_file() {
+                let old = dest.join("claudewatch.exe.old");
+                let _ = std::fs::remove_file(&old);
+                let _ = std::fs::rename(&exe, &old);
+            }
+            std::fs::copy(&src, &exe).map_err(|e| format!("copiar claudewatch.exe: {e}"))?;
         }
-        std::fs::copy(&src, &exe).map_err(|e| format!("copiar claudewatch.exe: {e}"))?;
+    } else if !exe.is_file() {
+        return Err(
+            "falta claudewatch.exe en el bundle (¿se compiló el TUI en el build?).".to_string(),
+        );
     }
 
     // Scripts + icon: always refresh so the launcher logic stays current with the
@@ -2794,6 +2808,86 @@ fn claudewatch_status() -> ClaudewatchStatus {
 async fn install_claudewatch_tui(app: tauri::AppHandle) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         install_claudewatch_resources(&app).map(|d| d.to_string_lossy().into_owned())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+/// Return the `X.Y.Z` version string of a claude executable by running
+/// `<program> --version` and taking the first whitespace token. Empty string
+/// on any failure (spawn error, non-zero exit, unparseable output) — callers
+/// treat "" as "unknown".
+fn claude_version(program: &str) -> String {
+    let Ok(out) = silent_command(program).arg("--version").output() else {
+        return String::new();
+    };
+    if !out.status.success() {
+        return String::new();
+    }
+    // Output looks like "2.1.195 (Claude Code)" — take the first whitespace token.
+    String::from_utf8_lossy(&out.stdout)
+        .split_whitespace()
+        .next()
+        .unwrap_or("")
+        .to_string()
+}
+
+/// Snapshot of the installed Claude Code CLI(s). On Windows a NATIVE install
+/// lives at `~/.local/bin/claude.exe` and can go stale independently of the
+/// `claude` resolved on PATH — when the two versions differ, the native one is
+/// usually the outdated one gating which models `/model` offers.
+#[derive(serde::Serialize)]
+struct ClaudeCodeStatus {
+    native_installed: bool,
+    native_version: String, // version of ~/.local/bin/claude.exe, "" if absent/unknown
+    native_path: String,
+    path_version: String, // version of the `claude` resolved on PATH
+}
+
+#[tauri::command]
+fn claude_code_status() -> ClaudeCodeStatus {
+    let native = dirs_home().map(|h| h.join(".local").join("bin").join("claude.exe"));
+    let native_installed = native.as_ref().map_or(false, |p| p.is_file());
+    let native_version = match &native {
+        Some(p) if native_installed => claude_version(&p.to_string_lossy()),
+        _ => String::new(),
+    };
+    ClaudeCodeStatus {
+        native_installed,
+        native_version,
+        native_path: native
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+        path_version: claude_version("claude"),
+    }
+}
+
+/// Update Claude Code, preferring the NATIVE install (`~/.local/bin/claude.exe`)
+/// because it goes stale and is NOT caught by a PATH `claude update` when PATH
+/// resolves to a different binary. Falls back to the PATH `claude`. Returns the
+/// resulting version string so the UI can confirm the bump.
+#[tauri::command]
+async fn update_claude_code() -> Result<String, String> {
+    tokio::task::spawn_blocking(|| -> Result<String, String> {
+        let native = dirs_home().map(|h| h.join(".local").join("bin").join("claude.exe"));
+        let program: String = match &native {
+            Some(p) if p.is_file() => p.to_string_lossy().into_owned(),
+            _ => "claude".to_string(),
+        };
+        let out = silent_command(&program)
+            .arg("update")
+            .output()
+            .map_err(|e| format_spawn_error("claude update", &e))?;
+        if !out.status.success() {
+            let err = String::from_utf8_lossy(&out.stderr);
+            let msg = if err.trim().is_empty() {
+                String::from_utf8_lossy(&out.stdout).to_string()
+            } else {
+                err.to_string()
+            };
+            return Err(format!("la actualización falló: {}", msg.trim()));
+        }
+        Ok(claude_version(&program)) // resulting version
     })
     .await
     .map_err(|e| format!("task join: {e}"))?
@@ -7197,6 +7291,8 @@ pub fn run() {
             open_in_tui,
             claudewatch_status,
             install_claudewatch_tui,
+            claude_code_status,
+            update_claude_code,
             open_path_in_explorer,
             write_text_file,
             read_text_file,
