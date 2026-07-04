@@ -30,6 +30,7 @@ body[data-theme-v3="dark"] .appv3 {
   --v3-accent-hover: #D86A1F;
   --v3-accent-tint:  rgba(237, 123, 38, 0.14);
   --v3-accent-soft:  rgba(237, 123, 38, 0.18);
+  --v3-accent-ink:   #0F172A; /* on accent fill: 6.34:1 */
 
   --v3-success:      #10B981;
   --v3-success-tint: rgba(16, 185, 129, 0.15);
@@ -39,6 +40,15 @@ body[data-theme-v3="dark"] .appv3 {
   --v3-info-tint:    rgba(96, 165, 250, 0.16);
   --v3-crit:         #F87171;
   --v3-crit-tint:    rgba(248, 113, 113, 0.15);
+
+  /* Accessible inks (see AppV3.css token contract); tint ratios are
+     computed on the tint alpha-blended over surface/bg. */
+  --v3-crit-ink: #FCA5A5;      /* on crit tint: 6.20:1 (surface) / 7.62:1 (bg) */
+  --v3-success-ink: #34D399;   /* on success tint: 5.91:1 / 7.37:1 */
+  --v3-warn-ink: #FBBF24;      /* on warn tint: 6.18:1 / 7.67:1 */
+  --v3-info-ink: #0F172A;      /* on info fill: 7.02:1 */
+  --v3-warn-fill-ink: #0F172A; /* on warn fill: 10.69:1 */
+  --v3-crit-fill-ink: #0F172A; /* on crit fill: 6.45:1 */
 
   --v3-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.30);
   --v3-shadow-2: 0 2px 8px rgba(0, 0, 0, 0.40), 0 1px 2px rgba(0, 0, 0, 0.25);
@@ -103,7 +113,7 @@ body[data-theme-v3="dark"] .v3-btn-primary,
 body[data-theme-v3="dark"] .v3-update-banner-primary,
 body[data-theme-v3="dark"] .v3-update-row-action {
   background: var(--v3-accent);
-  color: #0F172A;
+  color: var(--v3-accent-ink);
 }
 
 /* ── Ghost button ─────────────────────────────────────────── */

@@ -46,6 +46,10 @@ body[data-theme-v3="manga"] .appv3 {
   --v3-accent-hover: #D74F4F;
   --v3-accent-tint:  rgba(199, 62, 62, 0.10);
   --v3-accent-soft:  rgba(199, 62, 62, 0.18);
+  /* The red accent as text is 3.92:1 on cream; the deeper crit red
+     carries text duty. Focus keeps the accent (>= 3:1 UI). */
+  --v3-accent-text:  #A81E1E; /* 6.31:1 on surface, 5.72:1 on bg */
+  --v3-accent-ink:   #FFF9EE; /* warm paper white on accent fill: 4.79:1 */
 
   /* ── Semantic — newsprint palette ─────────────────────────── */
   --v3-success:      #4A7B3E;
@@ -56,6 +60,15 @@ body[data-theme-v3="manga"] .appv3 {
   --v3-info-tint:    rgba(62, 112, 163, 0.10);
   --v3-crit:         #A81E1E;         /* deeper manga red */
   --v3-crit-tint:    rgba(168, 30, 30, 0.12);
+
+  /* ── Accessible inks (see AppV3.css token contract); tint ratios are
+     computed on the tint alpha-blended over surface/bg. ──── */
+  --v3-crit-ink: #A81E1E;      /* on crit tint: 5.17:1 (surface) / 4.70:1 (bg) */
+  --v3-success-ink: #3C6532;   /* on success tint: 5.06:1 / 4.63:1 */
+  --v3-warn-ink: #7E4C0E;      /* on warn tint: 5.55:1 / 5.05:1 */
+  --v3-info-ink: #FFF9EE;      /* on info fill: 4.95:1 */
+  --v3-warn-fill-ink: #0F0E0A; /* on warn fill: 5.91:1 */
+  --v3-crit-fill-ink: #F2EEE3; /* on crit fill: 6.31:1 */
 
   /* ── Shadows — flat ink hairlines, no depth ──────────────── */
   --v3-shadow-1: 0 0 0 1px #2C2820;
@@ -131,7 +144,7 @@ body[data-theme-v3="manga"] .v3-btn-primary,
 body[data-theme-v3="manga"] .v3-update-banner-primary,
 body[data-theme-v3="manga"] .v3-update-row-action {
   background: var(--v3-accent);
-  color: #F2EEE3;                     /* cream-on-red, like print ink */
+  color: var(--v3-accent-ink);        /* paper-white-on-red, like print ink */
 }
 
 /* ── Ghost button ─────────────────────────────────────────── */

@@ -69,6 +69,18 @@ body.v3-layout #root {
   --v3-radius: 10px;
   --v3-radius-lg: 14px;
 
+  /* Accessible-ink token contract (defined per theme, consumed below with
+     var() fallbacks equal to the previous hardcoded values):
+     --v3-accent-text    accent used AS text/links on bg/surface (>= 4.5:1)
+     --v3-focus-ring     focus outline color vs bg/surface (>= 3:1)
+     --v3-accent-ink     ink ON the solid accent fill (>= 4.5:1)
+     --v3-crit-ink       crit-toned text on the crit tint background
+     --v3-success-ink    success-toned text on the success tint background
+     --v3-warn-ink       warn-toned text on the warn tint background
+     --v3-info-ink       ink ON the solid info fill
+     --v3-warn-fill-ink  ink ON the solid warn fill
+     --v3-crit-fill-ink  ink ON the solid crit fill */
+
   --v3-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.04);
   --v3-shadow-2: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --v3-shadow-3: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -148,7 +160,7 @@ body.v3-layout #root {
   background: var(--v3-hover);
 }
 .v3-topbar-tab.active {
-  color: var(--v3-accent);
+  color: var(--v3-accent-text, var(--v3-accent));
 }
 .v3-topbar-tab.active::after {
   /* Sits at the very bottom of the tab — same y as the topbar's hairline.
@@ -161,7 +173,7 @@ body.v3-layout #root {
   right: 8px;
   bottom: 0;
   height: 2px;
-  background: var(--v3-accent);
+  background: var(--v3-accent-text, var(--v3-accent));
   border-radius: 1px 1px 0 0;
 }
 
@@ -242,7 +254,7 @@ body.v3-layout #root {
 }
 .v3-wc-close:hover {
   background: var(--v3-crit);
-  color: #FFFFFF;
+  color: var(--v3-crit-fill-ink, #FFFFFF);
 }
 
 /* ========== Body layout ========== */
@@ -830,7 +842,7 @@ body[data-theme-v3^="modern"] .v3-empty::before {
 }
 .v3-usage-badge-top {
   background: var(--v3-accent);
-  color: #FFFFFF;
+  color: var(--v3-accent-ink, #FFFFFF);
 }
 .v3-usage-badge-some {
   background: var(--v3-surface-2);
@@ -1122,7 +1134,7 @@ body[data-theme-v3^="modern"] .v3-empty::before {
 }
 .v3-gai-subtab.active {
   background: var(--v3-accent);
-  color: var(--v3-accent-ink, #0a0a0a);
+  color: var(--v3-accent-ink, var(--v3-bg));
   font-weight: 700;
 }
 .v3-gai-subtab-count {
@@ -1485,7 +1497,7 @@ body[data-theme-v3^="modern"] .v3-empty::before {
   flex-shrink: 0;
   align-self: center;
   background: var(--v3-accent);
-  color: #FFFFFF;
+  color: var(--v3-accent-ink, #FFFFFF);
   border: 1px solid var(--v3-accent);
   border-radius: var(--v3-radius-sm);
   padding: 5px 12px;
@@ -1602,7 +1614,7 @@ body[data-theme-v3^="modern"] .v3-empty::before {
 }
 .v3-modal-confirm {
   background: var(--v3-accent);
-  color: #FFFFFF;
+  color: var(--v3-accent-ink, #FFFFFF);
   border-color: var(--v3-accent);
 }
 .v3-modal-confirm:hover {
@@ -1648,7 +1660,7 @@ body[data-theme-v3^="modern"] .v3-empty::before {
 }
 .v3-update-banner-primary {
   background: var(--v3-accent);
-  color: #FFFFFF;
+  color: var(--v3-accent-ink, #FFFFFF);
   border: 1px solid var(--v3-accent);
   /* Layout density baseline (promoted from data-dense): tight 3-4px button radius */
   border-radius: 4px;
@@ -1891,7 +1903,7 @@ body[data-theme-v3^="modern"] .v3-empty::before {
   border: 0;
   /* Themes can override --v3-link; default is the brand accent so the link
      is always visible regardless of background. */
-  color: var(--v3-link, var(--v3-accent));
+  color: var(--v3-link, var(--v3-accent-text, var(--v3-accent)));
   font-size: 13px;
   font-weight: 500;
   /* Used as a primary action ("Ver todos", "Buscar ahora") so the click target
@@ -1979,11 +1991,11 @@ body[data-theme-v3^="modern"] .v3-empty::before {
 }
 .v3-pct-green {
   background: var(--v3-success-tint);
-  color: #047857;
+  color: var(--v3-success-ink, #047857);
 }
 .v3-pct-amber {
   background: var(--v3-warn-tint);
-  color: #B45309;
+  color: var(--v3-warn-ink, #B45309);
 }
 
 /* ── Modern theme: Recent Projects as hover "folders" ─────────
@@ -2138,7 +2150,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
 }
 .v3-pr-pill-open {
   background: var(--v3-success-tint);
-  color: #047857;
+  color: var(--v3-success-ink, #047857);
 }
 .v3-pr-pill-review {
   background: #F3E8FF;
@@ -2415,7 +2427,8 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
 }
 .v3-companion-scan {
   font-size: 11px;
-  color: var(--v3-text-4);
+  /* --v3-text-4 is decorative-only; it fails AA as real text in every theme. */
+  color: var(--v3-text-3);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -2536,7 +2549,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
 }
 .v3-btn-primary {
   background: var(--v3-accent);
-  color: #FFFFFF;
+  color: var(--v3-accent-ink, #FFFFFF);
   border-color: var(--v3-accent);
 }
 .v3-btn-primary:hover {
@@ -2648,7 +2661,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   background: var(--v3-crit-tint);
   border: 1px solid #FCA5A5;
   border-radius: var(--v3-radius-sm);
-  color: #991B1B;
+  color: var(--v3-crit-ink, #991B1B);
   font-size: 13px;
 }
 .v3-success {
@@ -2659,7 +2672,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   background: var(--v3-success-tint);
   border: 1px solid #6EE7B7;
   border-radius: var(--v3-radius-sm);
-  color: #047857;
+  color: var(--v3-success-ink, #047857);
   font-size: 13px;
 }
 .v3-success svg {
@@ -2695,7 +2708,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   font-size: 13.5px;
 }
 .v3-search > input::placeholder {
-  color: var(--v3-text-4);
+  color: var(--v3-text-3);
 }
 
 /* ========== Form inputs (select / text) ========== */
@@ -2861,7 +2874,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
 .v3-row-dot {
   color: var(--v3-text-4);
 }
-.v3-row-dim { color: var(--v3-text-4); }
+.v3-row-dim { color: var(--v3-text-3); }
 .v3-row-goal {
   display: flex;
   align-items: center;
@@ -2979,13 +2992,13 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   border-color: var(--v3-text);
   color: var(--v3-surface);
 }
-.v3-chip-crit.active { background: var(--v3-crit); border-color: var(--v3-crit); }
-.v3-chip-warn.active { background: var(--v3-warn); border-color: var(--v3-warn); color: #1C1917; }
+.v3-chip-crit.active { background: var(--v3-crit); border-color: var(--v3-crit); color: var(--v3-crit-fill-ink, var(--v3-surface)); }
+.v3-chip-warn.active { background: var(--v3-warn); border-color: var(--v3-warn); color: var(--v3-warn-fill-ink, #1C1917); }
 /* INFO chip used to share the WARN amber palette which made the active state
    indistinguishable when toggling between filters. Use the calm-blue --v3-info
    token (already defined per-theme) so the three severities stay visually
    distinct, matching the row tints in `.v3-finding-info` below. */
-.v3-chip-info.active { background: var(--v3-info); border-color: var(--v3-info); color: #FFFFFF; }
+.v3-chip-info.active { background: var(--v3-info); border-color: var(--v3-info); color: var(--v3-info-ink, #FFFFFF); }
 
 /* ========== Audit groups + findings ========== */
 .v3-audit-groups {
@@ -3134,7 +3147,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
 }
 .v3-audit-btn-ignore {
   background: var(--v3-surface);
-  color: var(--v3-text-4);
+  color: var(--v3-text-3);
 }
 .v3-audit-btn-ignore:hover:not([disabled]) {
   color: var(--v3-text-2);
@@ -3154,7 +3167,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   font-size: 12px;
   font-weight: 500;
   background: transparent;
-  color: var(--v3-text-4);
+  color: var(--v3-text-3);
   border: 1px solid var(--v3-border);
   cursor: pointer;
   transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
@@ -3212,7 +3225,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   letter-spacing: 0.04em;
   flex-shrink: 0;
 }
-.v3-level-crit { background: var(--v3-crit); color: #FFFFFF; }
+.v3-level-crit { background: var(--v3-crit); color: var(--v3-crit-fill-ink, #FFFFFF); }
 .v3-level-warn { background: #B45309; color: #FFFFFF; }
 .v3-level-info { background: #1D4ED8; color: #FFFFFF; }
 .v3-level-ok   { background: #047857; color: #FFFFFF; }
@@ -3374,7 +3387,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   height: 18px;
   border-radius: 50%;
   background: var(--v3-accent);
-  color: #FFFFFF;
+  color: var(--v3-accent-ink, #FFFFFF);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3417,7 +3430,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
 .appv3 a:focus-visible,
 .appv3 input:focus-visible,
 .appv3 select:focus-visible {
-  outline: 2px solid var(--v3-accent);
+  outline: 2px solid var(--v3-focus-ring, var(--v3-accent));
   outline-offset: 2px;
 }
 .appv3 .v3-wc-close:focus-visible {
@@ -4009,7 +4022,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   box-shadow: 0 0 0 3px var(--v3-accent-soft);
 }
 .v3-todos-input::placeholder {
-  color: var(--v3-text-4);
+  color: var(--v3-text-3);
 }
 .v3-todos-input:disabled {
   background: var(--v3-surface-2);
@@ -4616,7 +4629,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
   padding: 1px 6px;
   border-radius: 999px;
   background: var(--v3-accent);
-  color: var(--v3-bg);
+  color: var(--v3-accent-ink, var(--v3-bg));
 }
 .v3-discovery-audit-error {
   margin: 0 12px 10px;
@@ -4765,7 +4778,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
 }
 .v3-segmented-btn.active {
   background: var(--v3-accent);
-  color: var(--v3-bg);
+  color: var(--v3-accent-ink, var(--v3-bg));
   opacity: 1;
 }
 
@@ -4870,7 +4883,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
 }
 .v3-tokens-range-btn.active {
   background: var(--v3-accent);
-  color: var(--v3-bg);
+  color: var(--v3-accent-ink, var(--v3-bg));
   opacity: 1;
 }
 .v3-tokens-panel-body {
@@ -4947,7 +4960,7 @@ body[data-theme-v3^="modern"] .v3-recent-project-desc::after {
 }
 .v3-settings-subnav-btn.active {
   background: var(--v3-accent);
-  color: var(--v3-bg);
+  color: var(--v3-accent-ink, var(--v3-bg));
   opacity: 1;
 }
 

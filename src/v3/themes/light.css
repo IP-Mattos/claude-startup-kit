@@ -34,6 +34,11 @@ body.v3-layout:not([data-theme-v3]) .appv3 {
   --v3-accent-hover: #D86A1F;
   --v3-accent-tint: #FFF4EC;
   --v3-accent-soft: rgba(237, 123, 38, 0.10);
+  /* #ED7B26 stays the FILL; as text/focus it only reaches 2.81:1 on white,
+     so a darkened orange carries text and focus duty. */
+  --v3-accent-text: #B05509;  /* 5.06:1 on surface, 4.80:1 on bg */
+  --v3-focus-ring: #B05509;   /* 4.80:1 vs bg (UI minimum 3:1) */
+  --v3-accent-ink: #111827;   /* on accent fill: 6.30:1 (5.07:1 on hover) */
 
   --v3-success: #10B981;
   --v3-success-tint: #D1FAE5;
@@ -43,6 +48,14 @@ body.v3-layout:not([data-theme-v3]) .appv3 {
   --v3-info-tint: #DBEAFE;
   --v3-crit: #DC2626;
   --v3-crit-tint: #FEE2E2;
+
+  /* Accessible inks (see AppV3.css token contract) */
+  --v3-crit-ink: #991B1B;      /* on crit tint: 6.80:1 */
+  --v3-success-ink: #047857;   /* on success tint: 4.84:1 */
+  --v3-warn-ink: #B45309;      /* on warn tint: 4.51:1 */
+  --v3-info-ink: #041827;      /* on info fill: 4.90:1 */
+  --v3-warn-fill-ink: #1C1917; /* on warn fill: 8.14:1 */
+  --v3-crit-fill-ink: #FFFFFF; /* on crit fill: 4.83:1 */
 
   --v3-shadow-1: 0 1px 2px rgba(30, 20, 10, 0.04);
   --v3-shadow-2: 0 1px 4px rgba(30, 20, 10, 0.06), 0 1px 2px rgba(30, 20, 10, 0.04);
@@ -133,7 +146,8 @@ body.v3-layout:not([data-theme-v3]) .v3-btn-primary,
 body.v3-layout:not([data-theme-v3]) .v3-update-banner-primary,
 body.v3-layout:not([data-theme-v3]) .v3-update-row-action {
   background: var(--v3-accent);
-  color: #FFFFFF;
+  /* Dark ink: white on the orange accent is only 2.81:1. */
+  color: var(--v3-accent-ink);
 }
 
 /* ── Ghost button ─────────────────────────────────────────── */

@@ -42,6 +42,7 @@ body[data-theme-v3="data-dense"] .appv3 {
   --v3-accent-hover: #7CDFB1;
   --v3-accent-tint:  rgba(93, 211, 158, 0.10);
   --v3-accent-soft:  rgba(93, 211, 158, 0.16);
+  --v3-accent-ink:   #0A0C10; /* on accent fill: 10.51:1 */
 
   /* ── Semantic: terminal-typical, not panicky ───────────── */
   --v3-success:      #5DD39E;
@@ -52,6 +53,15 @@ body[data-theme-v3="data-dense"] .appv3 {
   --v3-info-tint:    rgba(92, 193, 255, 0.10);
   --v3-crit:         #FF5D6C;
   --v3-crit-tint:    rgba(255, 93, 108, 0.10);
+
+  /* ── Accessible inks (see AppV3.css token contract); tint ratios are
+     computed on the tint alpha-blended over surface/bg. ──── */
+  --v3-crit-ink: #FF5D6C;      /* on crit tint: 5.39:1 (surface) / 5.72:1 (bg) */
+  --v3-success-ink: #5DD39E;   /* on success tint: 7.72:1 / 8.33:1 */
+  --v3-warn-ink: #FFB454;      /* on warn tint: 8.49:1 / 9.13:1 */
+  --v3-info-ink: #0A0C10;      /* on info fill: 9.81:1 (white was 1.99:1) */
+  --v3-warn-fill-ink: #0A0C10; /* on warn fill: 11.10:1 */
+  --v3-crit-fill-ink: #0A0C10; /* on crit fill: 6.56:1 */
 
   /* ── Shadows: imperceptible. Density relies on hairlines. ─ */
   --v3-shadow-1: 0 1px 0 0 rgba(0, 0, 0, 0.40);
@@ -124,7 +134,7 @@ body[data-theme-v3="data-dense"] .v3-btn-primary,
 body[data-theme-v3="data-dense"] .v3-update-banner-primary,
 body[data-theme-v3="data-dense"] .v3-update-row-action {
   background: var(--v3-accent);
-  color: #0A0C10;
+  color: var(--v3-accent-ink);
 }
 
 body[data-theme-v3="data-dense"] .v3-btn-ghost {

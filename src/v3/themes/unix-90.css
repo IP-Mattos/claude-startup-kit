@@ -32,6 +32,10 @@ body[data-theme-v3="unix-90"] .appv3 {
   --v3-accent-hover:  #2A8AA5;
   --v3-accent-tint:   #BDD3DA;
   --v3-accent-soft:   rgba(31, 111, 135, 0.16);
+  /* Teal accent as text only reaches 3.45:1 on the steel surface; a
+     deeper teal carries text duty. Focus keeps the accent (>= 3:1 UI). */
+  --v3-accent-text:   #114B5D; /* 5.80:1 on surface, 5.12:1 on bg */
+  --v3-accent-ink:    #FFFFFF; /* on accent fill: 5.70:1 */
 
   --v3-success:       #1F7A3A;
   --v3-success-tint:  #C6DDC9;
@@ -41,6 +45,14 @@ body[data-theme-v3="unix-90"] .appv3 {
   --v3-info-tint:     #C2CDDB;
   --v3-crit:          #8C1F1F;
   --v3-crit-tint:     #E2C5C5;
+
+  /* Accessible inks (see AppV3.css token contract) */
+  --v3-crit-ink: #8C1F1F;      /* on crit tint: 5.59:1 */
+  --v3-success-ink: #155A29;   /* on success tint: 5.77:1 */
+  --v3-warn-ink: #6B520A;      /* on warn tint: 5.14:1 */
+  --v3-info-ink: #FFFFFF;      /* on info fill: 6.73:1 */
+  --v3-warn-fill-ink: #FFFFFF; /* on warn fill: 5.06:1 (#1C1917 was 3.45:1) */
+  --v3-crit-fill-ink: #FFFFFF; /* on crit fill: 9.01:1 */
 
   --v3-shadow-1: 0 0 0 1px #5C6770;
   --v3-shadow-2: 0 0 0 1px #2A323A;
@@ -105,7 +117,7 @@ body[data-theme-v3="unix-90"] .v3-btn-primary,
 body[data-theme-v3="unix-90"] .v3-update-banner-primary,
 body[data-theme-v3="unix-90"] .v3-update-row-action {
   background: var(--v3-accent);
-  color: #FFFFFF;
+  color: var(--v3-accent-ink);
 }
 
 /* ── Ghost button ─────────────────────────────────────────── */

@@ -34,6 +34,7 @@ body[data-theme-v3="ps2-glow"] .appv3 {
   --v3-accent-hover:  #7DD6FF;
   --v3-accent-tint:   rgba(92, 200, 255, 0.12);
   --v3-accent-soft:   rgba(92, 200, 255, 0.22);
+  --v3-accent-ink:    #051A2E; /* on accent fill: 9.35:1 */
 
   --v3-success:       #4ADE80;
   --v3-success-tint:  rgba(74, 222, 128, 0.14);
@@ -43,6 +44,15 @@ body[data-theme-v3="ps2-glow"] .appv3 {
   --v3-info-tint:     rgba(96, 165, 250, 0.14);
   --v3-crit:          #F87171;
   --v3-crit-tint:     rgba(248, 113, 113, 0.14);
+
+  /* Accessible inks (see AppV3.css token contract); tint ratios are
+     computed on the tint alpha-blended over surface/bg. */
+  --v3-crit-ink: #FCA5A5;      /* on crit tint: 7.25:1 (surface) / 8.83:1 (bg) */
+  --v3-success-ink: #4ADE80;   /* on success tint: 7.01:1 / 8.81:1 */
+  --v3-warn-ink: #FBBF24;      /* on warn tint: 7.48:1 / 9.29:1 */
+  --v3-info-ink: #051A2E;      /* on info fill: 6.92:1 (white was 2.54:1) */
+  --v3-warn-fill-ink: #051A2E; /* on warn fill: 10.54:1 */
+  --v3-crit-fill-ink: #051A2E; /* on crit fill: 6.36:1 */
 
   --v3-shadow-1: 0 1px 3px rgba(0, 0, 0, 0.40),
                  0 0 12px rgba(92, 200, 255, 0.04);
@@ -110,7 +120,7 @@ body[data-theme-v3="ps2-glow"] .v3-btn-primary,
 body[data-theme-v3="ps2-glow"] .v3-update-banner-primary,
 body[data-theme-v3="ps2-glow"] .v3-update-row-action {
   background: var(--v3-accent);
-  color: #051A2E;
+  color: var(--v3-accent-ink);
 }
 
 /* ── Ghost button ─────────────────────────────────────────── */
