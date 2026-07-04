@@ -41,6 +41,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
@@ -50,6 +52,39 @@ jobs:
       - name: cargo check
         working-directory: src-tauri
         run: cargo check --locked
+
+      - name: cargo test
+        working-directory: src-tauri
+        run: cargo test --locked
+
+      - name: cargo clippy
+        working-directory: src-tauri
+        run: cargo clippy --locked --all-targets -- -D warnings
+
+  go:
+    name: Go build & test (claudewatch)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Mirror release.yml: 'stable' tracks the latest Go release, which must
+      # satisfy tools/claudewatch/go.mod's `go` directive (1.26.1 at time of
+      # writing). The module lives in tools/claudewatch (the repo root is NOT
+      # a Go module), so caching keys off that go.sum.
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache-dependency-path: tools/claudewatch/go.sum
+
+      - name: go build
+        working-directory: tools/claudewatch
+        run: go build ./...
+
+      - name: go test
+        working-directory: tools/claudewatch
+        run: go test ./...
 
   legacy-validate:
     name: Legacy PowerShell syntax

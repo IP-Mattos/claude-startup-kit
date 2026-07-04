@@ -1,0 +1,31 @@
+# Dependabot configuration.
+# Ecosystems map to the three module roots in this repo plus the CI actions:
+#   npm     -> /                   (React/Vite frontend, pnpm)
+#   cargo   -> /src-tauri          (Tauri 2 backend)
+#   gomod   -> /tools/claudewatch  (claudewatch TUI)
+#   actions -> .github/workflows
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: gomod
+    directory: /tools/claudewatch
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
