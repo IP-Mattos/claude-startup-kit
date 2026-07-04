@@ -6,17 +6,17 @@
 //!
 //! ## Architecture
 //!
-//! - `types`  — DTOs serializable with serde. Match API snake_case verbatim.
-//! - `error`  — `TrelloError` enum with structured `Serialize` so the
-//!              frontend receives JSON-shaped errors inside the `Result<T, String>`
-//!              that Tauri commands return.
+//! - `types` — DTOs serializable with serde. Match API snake_case verbatim.
+//! - `error` — `TrelloError` enum with structured `Serialize` so the frontend
+//!   receives JSON-shaped errors inside the `Result<T, String>` that Tauri
+//!   commands return.
 //! - `client` — `TrelloClient` struct wrapping `reqwest::Client`. One instance
-//!              is shared via `CLIENT` (Lazy<Mutex<Option<...>>>) following the
-//!              existing CSK convention.
-//! - `storage` — Persists `TrelloConfig` to `~/.claude/trello.json`. Follows the
-//!               CSK convention (same place as settings.json).
+//!   is shared via `CLIENT` (Lazy<Mutex<Option<...>>>) following the existing
+//!   CSK convention.
+//! - `storage` — Persists `TrelloConfig` to `~/.claude/trello.json`. Follows
+//!   the CSK convention (same place as settings.json).
 //! - `subscriber` — Background polling task over `/changes`, emits Tauri events.
-//! - `commands`   — `#[tauri::command]` glue layer.
+//! - `commands` — `#[tauri::command]` glue layer.
 //!
 //! ## State management
 //!
@@ -38,9 +38,7 @@ pub mod subscriber;
 pub mod types;
 
 pub use client::TrelloClient;
-pub use error::TrelloError;
 pub use subscriber::SubscriberHandle;
-pub use types::*;
 
 /// Shared `TrelloClient` instance. `None` until `trello_configure` runs.
 pub static CLIENT: Lazy<Mutex<Option<TrelloClient>>> = Lazy::new(|| Mutex::new(None));

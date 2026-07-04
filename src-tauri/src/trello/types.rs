@@ -273,6 +273,9 @@ pub struct ImportResult {
 /// `CompleteOutcome`.
 #[derive(Debug, Default, Clone)]
 pub struct ResponseMeta {
+    // Populated from the API's replay header; kept to mirror the upstream
+    // response contract even though nothing reads it yet.
+    #[allow(dead_code)]
     pub idempotent_replay: bool,
     pub partial_complete: Option<String>,
 }
@@ -293,6 +296,8 @@ pub struct ApiErrorBody {
 
 /// Known error codes as `&'static str` constants. We keep `code` as `String`
 /// in `TrelloError::Http` so unknown codes don't crash the deserializer.
+// Unreferenced today; kept as the canonical list of upstream error codes.
+#[allow(dead_code)]
 pub mod api_error_code {
     pub const INVALID_KEY: &str = "invalid_key";
     pub const INVALID_QUERY: &str = "invalid_query";

@@ -230,7 +230,7 @@ pub fn derive_keywords(project_dirs: &[String], installed_skill_names: &[String]
         "the", "and", "for", "with",
     ];
     for name in installed_skill_names {
-        for tok in name.split(|c: char| c == '-' || c == '_' || c == ' ') {
+        for tok in name.split(['-', '_', ' ']) {
             let t = tok.trim().to_lowercase();
             if t.len() >= 4 && !FILLER.contains(&t.as_str()) {
                 kws.insert(t);
