@@ -1,123 +1,110 @@
-# Audit Report — Pass 3 (5 parallel agents)
+# Audit Report — Pass 4 (4 parallel agents)
 
-Date: 2026-05-02
-Branch: feat/tauri-rewrite → promoted to `desktopapp`
-Scope: `app/` (Tauri 2 + React 19 + Vite). Shell kit moved to `legacy/` in this same restructure.
+Date: 2026-07-03
+Branch: `desktopapp` (v0.1.117)
+Scope: repository root (Tauri 2 + React 19 + Vite) plus `tools/claudewatch/` (Go TUI) and `src-tauri/src/trello/`.
 
-This report consolidates findings from five focused agents (security, performance, a11y/UX, themes/CSS, code/architecture). Items already fixed in Pass 1/Pass 2 are NOT relisted here; this is the next backlog.
+This report consolidates findings from four focused agents (security, performance, a11y/UX, code/architecture). Line numbers were verified on 2026-07-03; concurrent fixes on `desktopapp` may shift them slightly.
+
+## Pass-3 status
+
+The pass-3 backlog (2026-05-02) is essentially cleared:
+
+- Theme `@import` chain replaced with lazy `import.meta.glob` loading + per-theme `manualChunks` ([src/lib/themes.ts](src/lib/themes.ts), `vite.config.ts`).
+- `AppV3.tsx` split from 1055 to ~474 lines — views promoted to `src/views/v3/`, shared components to `src/components/v3/`.
+- `AuditFinding` boundary validator added ([src/lib/audit.ts](src/lib/audit.ts)).
+- Fetch errors surfaced via retry banner; `role="alert"` on error surfaces.
+- V1 layout (`src/App.tsx`), `src/v3/views.tsx`, and the `cskLayout` backdoor deleted.
+- Theme catalog cut down to the 8 curated themes that remain under `src/v3/themes/`.
+
+## Fixed in the batch landing with this report (2026-07-03)
+
+- Update-cooldown state loss on remount ([src/lib/useUpdates.ts](src/lib/useUpdates.ts), [src/lib/useStackUpdates.ts](src/lib/useStackUpdates.ts)) — last check results cached in `localStorage`, hydrated within the 24h cooldown.
+- Base-CSS contrast tokens (`--v3-crit-ink`, `--v3-accent-ink`, `--v3-focus-ring`, etc.) so themes stop inheriting failing ink colors.
+- CI: `cargo test`, `cargo clippy -D warnings`, Go build/test for claudewatch, plus Dependabot (`.github/workflows/ci.yml`, `.github/dependabot.yml`).
+- `toggle_mcp_server` name validation (`validate_mcp_name` in `src-tauri/src/lib.rs`).
+- `write_text_file` export-path confinement (`validate_export_path`: extension allowlist, canonicalized parent, autostart-dir rejection).
+- Absolute CLI resolution (`resolve_cli`) to close PATH-shadowing on shelled binaries.
+- Release `tag_name` validation before the gentle-ai `irm | iex` installer runs.
+- `claude_code_status` made async (`spawn_blocking` around the subprocess probes).
+- Mutex-poisoning hardening (`KNOWN_PROJECTS_CACHE` and friends now recover via `unwrap_or_else(into_inner)`).
+- CSP: `base-uri` / `form-action` / `frame-ancestors` added; localhost origins moved to `devCsp` (`src-tauri/tauri.conf.json`).
+- CleanupView "…and N more" replaced with a per-category Show all / Show less expandable list.
+- Unused `@fontsource/jacquard-12` + `@fontsource/bitter` imports removed from `src/main.tsx` (the packages themselves still sit in `package.json` — drop them with a lockfile update in a follow-up).
+- StatusBar shows the real app version (`src/components/v3/StatusBar.tsx`).
+- AuditView i18n headers + stable finding keys.
 
 ---
 
 ## Security
 
 ### CRIT
-- **`src-tauri/src/lib.rs:759` — `git_last_commit` `-C` flag injection**: `git -C path` accepts user-controlled path without validation. If `path` starts with `-` it becomes a flag; UNC paths not rejected. Fix: call `validate_open_path(path)?` or use `Command::current_dir(path)` instead of `-C`.
-- **`src-tauri/src/lib.rs:690–701` — `engram_project_goal` no path validation**: `path` flows into `Path::new(path).file_name()` without canonicalization. Malicious project name could inject CLI args. Fix: `validate_open_path` + leaf allowlist (alphanumeric / `-` / `_`).
-- **`src-tauri/src/lib.rs:526–536` — `run_audit` script integrity**: hardcoded path `~/.claude/scripts/claude-audit.ps1`; if `.claude/scripts/` is world-writable, the script can be replaced. Exit codes not checked against known values. Fix: SHA256 hash check at runtime + accept only specific exit codes.
+- **`src-tauri/src/trello/storage.rs:8` — Trello bearer token stored in plaintext on Windows**: `~/.claude/trello.json` gets `0600` on Unix, but Windows ACLs are not tightened — the module's own TODO says "migrate secrets to tauri-plugin-stronghold or platform keyring". Fix: DPAPI (`CryptProtectData`) or a keyring crate; plaintext fallback only with explicit user consent.
 
 ### WARN
-- **`src-tauri/src/lib.rs:419–431` — `github_review_queue` unbounded `limit`**: clamp to `min(500).max(1)`.
-- **`src-tauri/src/lib.rs:601, 690` — `Command::new("git"/"engram")` PATH shadowing**: on Windows, attacker-controlled directory in `PATH` can shadow these binaries. Use absolute paths or signature check.
-- **`src-tauri/src/lib.rs:684–707` — `resolve_engram_project` case-insensitive collision**: two projects differing only in case can match the wrong one. Prefer exact-case primary, fuzzy fallback only if no exact match. Allowlist project-name chars.
-- **`src-tauri/src/lib.rs:668–681` — `first_cwd_in_jsonls` no validation of `cwd`**: malicious JSONL writes inject arbitrary paths. Validate `cwd` is absolute and canonicalizable before returning.
-- **`src-tauri/tauri.conf.json:27` — CSP missing directives**: add `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`.
+- **`src-tauri/capabilities/default.json:19` — `opener:default` capability**: grants the renderer generic open-URL/open-path ability, bypassing the curated `open_url` command (rundll32 + validation). Remove or scope it; route all opens through the audited Rust commands.
+- **`src-tauri/src/lib.rs:2896` — `open_path_in_explorer` launches executables**: `validate_open_path` accepts any existing path; `explorer.exe <path>` on an `.exe` runs it. Require `canonical.is_dir()` (or open the parent + select for files).
+- **`src-tauri/src/lib.rs:2999` — `fix_claude_vscode_extension` predictable temp script name**: writes `csk-fix-claude-vscode-{unix_seconds}.ps1` to the shared temp dir and executes it — name is guessable within the second (symlink/pre-creation squat on multi-user machines). Use `tempfile` with a random suffix + exclusive create.
 
 ### SUG
-- **`src-tauri/src/lib.rs:829–858` — `validate_open_path` symlink TOCTOU**: small race between canonicalize and spawn.
-- **`src-tauri/capabilities/default.json` — no scoped FS permissions**: explicitly scope future `fs:*` permissions to `~/.claude/**`.
+- **`src-tauri/src/lib.rs:2723` — claudewatch binary sync compares size, not hash**: `install_claudewatch_resources` treats equal file length as "same build"; two different builds of identical size skew the launcher/binary pair. Compare a SHA-256 (or embed a version resource).
 
 ---
 
 ## Performance
 
-### CRIT
-- **`src/v3/AppV3.css:8–36` — 28 themes eagerly loaded via `@import`**: ~40 KB of dead CSS shipped on every boot. Vite cannot tree-shake `@import`. Fix: drop the `@import` chain, dynamic-import only the active theme on theme-change. Configure `manualChunks` in `vite.config.ts` so each theme becomes a separate lazy chunk.
-
 ### WARN
-- **`src/v3/views.tsx:420–426` — triple filter pass for audit counts**: 4× walks per render. Replace with a single `findings.reduce(...)`.
-- **`src/v3/AppV3.tsx:663–676` — inline `onOpen` arrow in `recentProjects.map`**: new closure each render forces `RecentProjectCard` remount. Wrap card in `React.memo`, pass stable handler via `useCallback`.
-- **`src/v3/views.tsx:665–696` — Cleanup `catBytes` recomputed inline on every render**: move into `useMemo` keyed on `items`.
+- **Zero `React.memo` app-wide**: the Topbar wall clock ticks every 1s ([src/components/v3/Topbar.tsx](src/components/v3/Topbar.tsx)) and AppV3's 30s "X ago" tick re-render their subtrees; nothing memoizes below them. Start with `Sidebar`, `CompanionWidget`, and the view roots.
+- **Three independent `useUpdates()` instances** — `src/v3/AppV3.tsx:109`, `src/components/v3/OverviewView.tsx:413`, `src/views/v3/SettingsView.tsx:60`: three state copies, three cooldown reads, potential duplicate checks. Unify into a single store/context provided once from AppV3.
+- **Tab-switch unmounts re-fire IPC**: Conversations / Trello / Claude / Cleanup fetch on mount, and ProjectsView mounts `GhReposCard`, which shells `gh` (`gh_list_repos`) plus a disk git-repo scan on every Projects visit. Add a session-scoped cache or lift results, mirroring the Rust-side 5-min engram cache.
 
 ### SUG
-- **`src/v3/views.tsx:677` — `list.slice(0, 10)` in render body**: memoize the truncated list.
+- **Version bump is manual across 4 files** (`package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, lockfile). `tauri.conf.json` can inherit `"version": "../package.json"`; a bump script closes the rest.
 
 ---
 
 ## Accessibility & UX
 
 ### CRIT
-- **`src/v3/themes/y2k.css:217–226` — chip contrast failures**: `chip-info.active` 2.5:1, `chip-warn.active` 4.3:1 — both fail WCAG AA.
-- **`src/v3/views.tsx:506–531` — FilterChip no async feedback**: re-filter happens silently; users may double-click. Disable chip while computing.
-- **`src/v3/AppV3.tsx:474–482` — "Open Command Center" button has no handler**: dead button — implement or remove.
+- **Zero `aria-pressed` / `aria-current` app-wide**: active tab (Sidebar/Topbar), filter chips, and toggle buttons expose no state to assistive tech — `rg aria-pressed|aria-current src` returns nothing.
 
 ### WARN
-- **`src/v3/views.tsx:477, 657, 322, 161` — `.v3-error` divs need `role="alert"` / `aria-live`**.
-- **`src/v3/views.tsx:756–806` — companion form file input lacks proper `<label htmlFor>` association**.
-- **`src/v3/views.tsx:645–655` — `.v3-success` lacks `aria-live="polite"`**.
-- **`src/v3/AppV3.tsx:597–612` — Palette + Settings icon-only buttons**: only have `title` attr, no visible tooltip on focus.
-- **`src/v3/AppV3.css:1271` — chip-warn.active light theme contrast 4.6:1**: AA pass with no buffer; bump to AAA.
+- **Trello modals lack a focus trap**: `TaskEditor`, `TaskImportModal`, `TaskExportModal` let Tab escape to background controls while `aria-modal` claims otherwise. [src/components/v3/ConfirmModal.tsx:72](src/components/v3/ConfirmModal.tsx) already implements the correct trap — extract it into a shared hook.
+- **`src/components/v3/CommandPalette.tsx:149` — engram search fails silently**: `engram_search_to_file` failure only hits `console.warn`; the user sees nothing happen. Also the palette list lacks `role="listbox"` / `role="option"` + `aria-activedescendant` semantics.
+- **`src/components/v3/GhReposCard.tsx:142` — target-dir input not programmatically labeled**: the `.v3-form-label` is a bare `<span>` next to the `<input>` — no `htmlFor`/`id`, no `aria-label`.
+- **No `:disabled` styling** for `v3-btn-ghost`, `v3-link`, icon buttons, or chips — disabled controls look enabled and read as broken when clicked.
 
 ### SUG
-- **`src/v3/AppV3.tsx:811–821` — Ctrl+1..7 may collide** with browser tab shortcuts; consider Alt+1..7.
-- **`src/v3/AppV3.css:1652–1659` — `prefers-reduced-motion`** could also force `scroll-behavior: auto`.
-- Loading states use static text — consider skeleton loaders + `aria-busy` for >1s waits.
-- File input validation error not announced (`role="alert"`).
-- No `:disabled` button styling defined.
-- "…and N more" in cleanup is a dead end — add expand/paginate.
-- QuickActions icon-only buttons need keyboard-visible tooltips.
+- **`--v3-text-4` used as a text color** (~40 uses in `AppV3.css`): the faintest tier fails WCAG AA as foreground text on several themes. Reserve it for decorative elements or bump per-theme values.
 
 ---
 
-## Themes / CSS
-
-### CRIT
-- **5 themes missing scrollbar-thumb override** (dracula, kawaii, moon-zine, pulse, y2k): inherit light grey on dark UI.
-- **`.v3-link` hardcoded to `#2563EB`** in base + 13 themes that never override → invisible links on dark themes (akira, crimson-arch, dark, grid, kill-switch, light, lilac-os, nord, petrick, pixel-kit, solarized-dark). Fix: `.v3-link { color: var(--v3-link, #2563EB) }` + per-theme override.
-- **lilac-os, nord — `.v3-side-link.active` missing left accent bar**: `inset 2px 0 0 <accent>` for consistency with dark/dracula/gruvbox/gameboy.
+## Code Quality
 
 ### WARN
-- Focus-visible orange outline on dark themes (nord, petrick, retro-os) is hard to see — themes need their own focus-visible override.
-- Scrollbar `border-radius: 4px` redeclared in nearly every theme — extract to `--v3-scrollbar-radius` token.
-- `tokyo.css` `.v3-row:hover` restricted to `[role="button"]` — should apply to all rows.
-
-### SUG
-- `.v3-pr-pill-review` has no theme-neutral fallback in base; pills disappear if a theme forgets to override.
-- One magic number left: `.v3-pct-pill { padding: 2px 8px }`.
+- **Hardcoded Spanish strings in Rust** (`src-tauri/src/lib.rs:2734`, `:2738`, and the `MIRROR_LAG` message in `apply_app_update`, among others): error messages surface verbatim in an EN/ES-i18n'd frontend. Return stable error codes and translate in `src/lib/i18n.ts`, or default Rust messages to English.
+- **3 unused JS dependencies** — `@tauri-apps/plugin-updater`, `@tauri-apps/plugin-process`, `@tauri-apps/plugin-opener` (`package.json:19–21`): no imports under `src/`; the updater/opener run entirely Rust-side. Drop them from the frontend bundle.
 
 ---
 
-## Code Quality & Architecture
-
-### CRIT
-- **`src/v3/AppV3.tsx:872–880` — silent error swallowing**: every `invoke().catch(() => [])` hides backend failures behind empty states. Surface errors with retry UI.
-- **`src/types.ts:16` ↔ `src-tauri/src/lib.rs:513–514` — `AuditFinding.level` type drift**: TS expects `OK | INFO | WARN | CRIT` but Rust returns raw `String`. Validate at deserialize boundary; use exhaustive switch.
+## Infra
 
 ### WARN
-- **`src/v3/AppV3.tsx` is 1055 lines** mixing data fetch, keyboard, theme, window control, companion persistence + 16 inline subcomponents. Split into hooks (`useAppData`, `useKeyboardShortcuts`, `useThemeManager`, `useCompanion`) + `components/` files.
-- Views (`OverviewView`, `TopbarV3`, `SidebarV3`, `StatusBarV3`) defined inline — promote to dedicated files.
-- Prop drilling through OverviewView (10 props); missing `React.memo` on view components.
-- Per-project enrichment failures swallowed silently (`enrichProjects.ts:34–43`) — show partial-load warning.
-- Rust `dir_size` recursive without memoization; consider `walkdir` + skip-list (`.git`, `node_modules`).
-- `V3_THEME_ORDER` (AppV3.tsx) and `V3_THEMES` (views.tsx) are duplicated arrays — extract to `lib/themes.ts`.
+- Release notes body in `.github/workflows/release.yml` pointed at a `CHANGELOG.md` that stopped at 0.1.52 — fixed alongside this report (now points at auto-generated GitHub release notes / commit history).
 
 ### SUG
-- Rust errors are all `Result<T, String>` — define a `RustError` enum for structured codes.
-- AuditView/CleanupView render entire lists — virtualize at 1000+ items.
-- Stabilize `handleCycleTheme` with `useCallback`.
-- `tsconfig.json` missing `noImplicitThis`, `exactOptionalPropertyTypes`, `forceConsistentCasingInFileNames`.
-- No lint/format pipeline (`eslint`, `prettier`); no precommit hooks; no tests.
-- Companion state persistence inline in AppV3 — extract to `useCompanion`.
+- Residual i18n polish: AuditView headers (in the current batch) and the Rust-side messages above are the last hardcoded-copy holdouts.
 
 ---
 
 ## Recommended next slice (high-value, low-risk)
 
-1. Theme `@import` chain → dynamic import (perf CRIT).
-2. AuditFinding level discriminated union + boundary validator (type CRIT).
-3. Surface fetch errors with retry banner (UX CRIT).
-4. Add `role="alert"` / `aria-live` to error and success divs.
-5. Fix the 13 themes' missing `.v3-link` color + 5 missing scrollbar-thumb overrides.
-6. Implement or remove "Open Command Center" button.
-7. Extract `useAppData` and `useKeyboardShortcuts` hooks from AppV3.
+1. Trello token → DPAPI/keyring (security CRIT, isolated in `trello/storage.rs`).
+2. Remove/scope `opener:default` from `capabilities/default.json`.
+3. Extract ConfirmModal's focus trap into a hook; apply to the three Trello modals.
+4. `aria-pressed` / `aria-current` pass over Sidebar, Topbar, and filter chips.
+5. Unify `useUpdates()` into a single store; fixes duplicate checks and simplifies the cooldown-state work already in flight.
+6. `open_path_in_explorer`: require `is_dir`.
+7. Hash-based claudewatch binary sync + version single-sourcing (`tauri.conf.json` ← `package.json`).
 
-The backlog beyond that is real but compounding — split AppV3 first, then attack security + tests.
+Everything else compounds on these — do the security items first, they're small and self-contained.

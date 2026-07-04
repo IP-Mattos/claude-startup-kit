@@ -84,7 +84,8 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: ${{ github.ref_name }}
           releaseBody: |
-            See `CHANGELOG.md` in the repo for the full notes for this release.
+            Full changes for this release are in the commit history for this tag:
+            https://github.com/IP-Mattos/claude-startup-kit/commits/${{ github.ref_name }}
           releaseDraft: false
           prerelease: false
           # Generates `latest.json` (the manifest the in-app updater reads) and

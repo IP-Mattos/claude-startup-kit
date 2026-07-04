@@ -1,5 +1,7 @@
 # Changelog
 
+> **Note:** this file is maintained through **0.1.52**. Later releases (0.1.53+) are documented via [GitHub Releases](https://github.com/IP-Mattos/claude-startup-kit/releases) — each tag carries auto-generated notes and the commit history for that version.
+
 ## 0.1.52 — 2026-05-08
 
 Two small additive features off the data-dense mockup punch list.
