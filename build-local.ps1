@@ -3,12 +3,12 @@
 # Mirrors `dev.ps1`'s vcvars64 bootstrap (so cargo finds link.exe), then
 # runs `pnpm tauri build` to produce a Windows .msi + .exe under
 # `src-tauri/target/release/bundle/`. Skips the auto-updater signing step
-# because the signing key lives in GH Actions secrets, not on disk —
+# because the signing key lives in GH Actions secrets, not on disk --
 # `createUpdaterArtifacts` will warn but the regular installer bundle
 # still produces and is install-clickable.
 #
 # Why this script exists: GH Actions billing got paused mid-session.
-# This is the manual escape hatch — build locally, install the .msi by
+# This is the manual escape hatch -- build locally, install the .msi by
 # hand, get the new themes (or whatever feature) without going through
 # the release pipeline.
 
@@ -43,7 +43,7 @@ Start-Sleep -Milliseconds 500
 # Make sure `pnpm` is callable from any subprocess Tauri spawns
 # (especially `beforeBuildCommand: pnpm build` in tauri.conf.json).
 # corepack's shim dir is the canonical location. We don't enable
-# globally — just inject for this build's lifetime.
+# globally -- just inject for this build's lifetime.
 if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
     if (-not (Get-Command corepack -ErrorAction SilentlyContinue)) {
         Write-Host "Neither pnpm nor corepack found in PATH. Install Node.js (>=16)." -ForegroundColor Red
@@ -69,7 +69,7 @@ if (-not (Get-Command pnpm -ErrorAction SilentlyContinue)) {
 }
 
 # Strip ONLY the GNU coreutils dirs that ship with Git for Windows
-# (`Git\usr\bin` is the worst offender — it has its own `link.exe`
+# (`Git\usr\bin` is the worst offender -- it has its own `link.exe`
 # that conflicts with MSVC's). DO NOT strip generic `Git\bin` because
 # vcvars64's MSVC paths can sometimes be confused with it on substring
 # match. Surgical removal only.
@@ -101,12 +101,12 @@ $exit = $LASTEXITCODE
 $env:PATH = $pathBefore  # restore
 
 if ($exit -eq 0) {
-    Write-Host "`n✓ Build OK. Bundle output:`n" -ForegroundColor Green
+    Write-Host "`nBuild OK. Bundle output:`n" -ForegroundColor Green
     Get-ChildItem -Recurse -Path "src-tauri\target\release\bundle" -Include *.msi,*.exe -ErrorAction SilentlyContinue |
         ForEach-Object { Write-Host "  $($_.FullName)" }
-    Write-Host "`nDouble-click the .msi to install. The unsigned bundle won't trigger auto-update — install once by hand and future signed releases will resume normal upgrades." -ForegroundColor Yellow
+    Write-Host "`nDouble-click the .msi to install. The unsigned bundle won't trigger auto-update -- install once by hand and future signed releases will resume normal upgrades." -ForegroundColor Yellow
 } else {
-    Write-Host "`n✗ Build failed with exit code $exit" -ForegroundColor Red
+    Write-Host "`nBuild FAILED with exit code $exit" -ForegroundColor Red
 }
 
 exit $exit
