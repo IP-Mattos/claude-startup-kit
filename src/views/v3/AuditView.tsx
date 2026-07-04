@@ -498,11 +498,11 @@ export function AuditView({
                 <span className="v3-pill v3-pill-soft">{items.length}</span>
               </header>
               <div className="v3-finding-list">
-                {items.map((f, i) => {
+                {items.map((f) => {
                   const key = findingKey(f);
                   return (
                     <FindingRow
-                      key={`${category}-${i}`}
+                      key={key}
                       finding={f}
                       pending={pendingActionId === key}
                       done={recentlyDoneId === key}
@@ -729,8 +729,8 @@ function FindingsTable({
         <tr>
           <th className="v3-audit-th-sev">SEV</th>
           <th className="v3-audit-th-cat">CAT</th>
-          <th>HALLAZGO</th>
-          <th className="v3-audit-th-act">ACCIÓN</th>
+          <th>{t("audit.th_finding")}</th>
+          <th className="v3-audit-th-act">{t("audit.th_action")}</th>
         </tr>
       </thead>
       <tbody>
@@ -743,15 +743,18 @@ function FindingsTable({
               </td>
             </tr>,
           ];
-          for (let i = 0; i < items.length; i++) {
-            const f = items[i];
+          for (const f of items) {
             const key = findingKey(f);
             const lvl = f.level.toLowerCase();
             const pending = pendingActionId === key;
             const done = recentlyDoneId === key;
             rows.push(
+              // findingKey (title::category) is stable across resolves, so
+              // row identity doesn't shift when a finding above disappears —
+              // an index-based key would remap in-flight spinner/done state
+              // to the wrong row.
               <tr
-                key={`${category}-${i}`}
+                key={key}
                 className={`v3-audit-row v3-audit-row-${lvl}`}
               >
                 <td className={`v3-audit-sev v3-audit-sev-${lvl}`}>{f.level}</td>

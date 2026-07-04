@@ -7,6 +7,12 @@ import { useT } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
 import { ConfirmModal } from "../../components/v3/ConfirmModal";
 
+// How many files a category shows before collapsing behind the
+// "Show all" toggle. Cleanup deletes EVERY planned path, so the full
+// list must stay reachable — the toggle expands it, never hides paths
+// from the confirm flow.
+const COLLAPSED_LIMIT = 10;
+
 export function CleanupView() {
   const { t } = useT();
   const [items, setItems] = useState<CleanupItem[]>([]);
@@ -16,6 +22,17 @@ export function CleanupView() {
   const [result, setResult] = useState<CleanupResult | null>(null);
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [confirmingClean, setConfirmingClean] = useState(false);
+  // Categories the user expanded to inspect the full file list. Keyed by
+  // category name; stale entries after a re-scan are harmless.
+  const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
+
+  const toggleCategory = (category: string) =>
+    setExpandedCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
 
   useEffect(() => {
     if (!IS_TAURI) {
@@ -125,6 +142,8 @@ export function CleanupView() {
         <div className="v3-list">
           {grouped.map(([category, list]) => {
             const catBytes = list.reduce((s, i) => s + i.bytes, 0);
+            const isExpanded = expandedCats.has(category);
+            const visible = isExpanded ? list : list.slice(0, COLLAPSED_LIMIT);
             return (
               <article key={category} className="v3-card">
                 <header className="v3-card-head">
@@ -136,8 +155,16 @@ export function CleanupView() {
                     )}
                   </span>
                 </header>
-                <ul className="v3-cleanup-files">
-                  {list.slice(0, 10).map((it) => (
+                <ul
+                  className="v3-cleanup-files"
+                  // Inline because AppV3.css has no generic max-height scroll
+                  // utility — expanded lists cap their height and scroll so a
+                  // huge category can't push the rest of the view offscreen.
+                  style={
+                    isExpanded ? { maxHeight: 280, overflowY: "auto" } : undefined
+                  }
+                >
+                  {visible.map((it) => (
                     <li key={it.path}>
                       <span className="v3-cleanup-path" title={it.path}>
                         {it.path}
@@ -148,12 +175,19 @@ export function CleanupView() {
                       </span>
                     </li>
                   ))}
-                  {list.length > 10 && (
-                    <li className="v3-row-dim">
-                      {t("cleanup.and_more", { n: list.length - 10 })}
-                    </li>
-                  )}
                 </ul>
+                {list.length > COLLAPSED_LIMIT && (
+                  <button
+                    type="button"
+                    className="v3-btn-ghost v3-btn-sm"
+                    aria-expanded={isExpanded}
+                    onClick={() => toggleCategory(category)}
+                  >
+                    {isExpanded
+                      ? t("cleanup.show_less")
+                      : t("cleanup.show_all", { n: list.length })}
+                  </button>
+                )}
               </article>
             );
           })}

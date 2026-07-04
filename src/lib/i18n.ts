@@ -658,6 +658,9 @@ const STRINGS = {
   "audit.clean": { en: "Audit clean. Nothing to report.", es: "Auditoría limpia. Nada para reportar." },
   "audit.no_match": { en: "No findings match the current filter.", es: "Ningún hallazgo coincide con el filtro." },
   "audit.resolve": { en: "Fix", es: "Resolver" },
+  // Dense table column headers (uppercased by CSS)
+  "audit.th_finding": { en: "Finding", es: "Hallazgo" },
+  "audit.th_action": { en: "Action", es: "Acción" },
   // Per-action labels — the row button picks one based on `finding.action.kind`
   // so the verb matches what the click actually does. The generic "Fix /
   // Resolver" stayed misleading for non-destructive actions like
@@ -725,7 +728,8 @@ const STRINGS = {
   "cleanup.nothing": { en: "Nothing to clean.", es: "Nada para limpiar." },
   "cleanup.items_one": { en: "{n} item · {bytes}", es: "{n} ítem · {bytes}" },
   "cleanup.items_other": { en: "{n} items · {bytes}", es: "{n} ítems · {bytes}" },
-  "cleanup.and_more": { en: "… and {n} more", es: "… y {n} más" },
+  "cleanup.show_all": { en: "Show all ({n})", es: "Ver todos ({n})" },
+  "cleanup.show_less": { en: "Show less", es: "Ver menos" },
 
   // Gentle-AI view (file is named ClaudeView but the tab is the
   // Gentle-AI workspace verifier — installed components, skills, MCPs).
