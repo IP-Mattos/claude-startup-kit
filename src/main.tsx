@@ -3,12 +3,7 @@ import ReactDOM from "react-dom/client";
 import AppV3 from "./v3/AppV3";
 import { isV3Theme, loadV3Theme } from "./lib/themes";
 
-// Distinctive type pairing — pixel blackletter display + warm slab body + pixel mono
-import "@fontsource/jacquard-12/400.css";
-import "@fontsource/bitter/400.css";
-import "@fontsource/bitter/500.css";
-import "@fontsource/bitter/600.css";
-import "@fontsource/bitter/700.css";
+// Pixel mono — used by the manga theme (src/v3/themes/manga.css)
 import "@fontsource/vt323/400.css";
 // V3 SaaS dashboard font
 import "@fontsource/inter/400.css";
