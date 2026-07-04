@@ -35,14 +35,113 @@ fn format_spawn_error(program: &str, err: &std::io::Error) -> String {
     }
 }
 
+/// Cache for `resolve_cli` lookups — each of the five known CLIs is resolved
+/// at most once per process. Uses `unwrap_or_else(into_inner)` on lock so a
+/// panic while holding the lock can't permanently poison CLI resolution.
+static CLI_RESOLUTION_CACHE: Lazy<Mutex<std::collections::HashMap<String, String>>> =
+    Lazy::new(|| Mutex::new(std::collections::HashMap::new()));
+
+/// Resolve a well-known CLI bare name to an absolute path at its canonical
+/// install location. Mitigates PATH shadowing: a writable directory earlier
+/// in `PATH` (or a `PATH` poisoned by another process) could otherwise plant
+/// a lookalike `git.exe` / `powershell.exe` that every shell-out in this app
+/// would happily execute.
+///
+/// Falls back to the bare name when no well-known location has the binary,
+/// so custom installs keep working through normal `PATH` resolution. Names
+/// other than the five known CLIs (including absolute paths callers already
+/// resolved) pass through untouched. Follows the same well-known-dirs
+/// approach as `resolve_gentle_ai` / `resolve_managed_tool`.
+fn resolve_cli(name: &str) -> String {
+    match name {
+        "powershell" | "git" | "gh" | "engram" | "claude" => {}
+        _ => return name.to_string(),
+    }
+    {
+        let cache = CLI_RESOLUTION_CACHE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if let Some(hit) = cache.get(name) {
+            return hit.clone();
+        }
+    }
+    let resolved = resolve_cli_uncached(name);
+    let mut cache = CLI_RESOLUTION_CACHE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    cache.insert(name.to_string(), resolved.clone());
+    resolved
+}
+
+fn resolve_cli_uncached(name: &str) -> String {
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    match name {
+        "powershell" => {
+            // Windows PowerShell 5.1 has exactly one canonical home.
+            if let Some(sysroot) =
+                std::env::var_os("SYSTEMROOT").or_else(|| std::env::var_os("WINDIR"))
+            {
+                candidates.push(
+                    PathBuf::from(sysroot)
+                        .join("System32\\WindowsPowerShell\\v1.0\\powershell.exe"),
+                );
+            }
+        }
+        "git" => {
+            if let Some(pf) = std::env::var_os("PROGRAMFILES") {
+                candidates.push(PathBuf::from(pf).join("Git\\cmd\\git.exe"));
+            }
+            if let Some(pfx86) = std::env::var_os("PROGRAMFILES(X86)") {
+                candidates.push(PathBuf::from(pfx86).join("Git\\cmd\\git.exe"));
+            }
+            if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+                candidates.push(PathBuf::from(local).join("Programs\\Git\\cmd\\git.exe"));
+            }
+        }
+        "gh" => {
+            if let Some(pf) = std::env::var_os("PROGRAMFILES") {
+                candidates.push(PathBuf::from(pf).join("GitHub CLI\\gh.exe"));
+            }
+            if let Some(pfx86) = std::env::var_os("PROGRAMFILES(X86)") {
+                candidates.push(PathBuf::from(pfx86).join("GitHub CLI\\gh.exe"));
+            }
+        }
+        "engram" | "claude" => {
+            // Same user-scoped bin dirs `augment_path_with_user_bin_dirs`
+            // prepends — the locations the upstream installers write to.
+            let exe = format!("{name}.exe");
+            if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+                candidates.push(PathBuf::from(&local).join(name).join("bin").join(&exe));
+            }
+            if let Some(home) = dirs_home() {
+                candidates.push(home.join(".local").join("bin").join(&exe));
+                candidates.push(home.join("go").join("bin").join(&exe));
+                candidates.push(home.join("bin").join(&exe));
+            }
+            if let Some(appdata) = std::env::var_os("APPDATA") {
+                candidates.push(PathBuf::from(appdata).join("npm").join(&exe));
+            }
+        }
+        _ => {}
+    }
+    candidates
+        .into_iter()
+        .find(|p| p.is_file())
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|| name.to_string())
+}
+
 /// Build a `Command` that does NOT flash a console window on Windows.
 ///
 /// Tauri is a GUI app, but every CLI subprocess (`gh`, `git`, `engram`, ...) it spawns
 /// gets a `conhost.exe` window by default — visible as a brief flicker every time the
 /// user navigates a tab. `CREATE_NO_WINDOW` (0x0800_0000) suppresses that.
 /// On non-Windows targets this is a transparent no-op.
+///
+/// The program name is routed through `resolve_cli` so well-known CLIs run
+/// from their canonical install path instead of trusting `PATH` order.
 fn silent_command(program: &str) -> Command {
-    let cmd = std::process::Command::new(program);
+    let cmd = std::process::Command::new(resolve_cli(program));
     #[cfg(target_os = "windows")]
     let mut cmd = cmd;
     #[cfg(target_os = "windows")]
@@ -423,7 +522,7 @@ fn disk_scan_walk(
             // is handled above before recursion.
             continue;
         }
-        if DISK_SCAN_PRUNE.iter().any(|p| *p == name) {
+        if DISK_SCAN_PRUNE.contains(&name) {
             continue;
         }
         disk_scan_walk(&path, depth + 1, max_depth, out);
@@ -586,7 +685,7 @@ async fn vscode_workspace_folders() -> Result<Vec<String>, String> {
                 out.push(path);
             }
         }
-        out.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+        out.sort_by_key(|a| a.to_lowercase());
         out
     })
     .await
@@ -763,6 +862,14 @@ async fn cleanup_apply(paths: Vec<String>) -> CleanupResult {
         })
 }
 
+/// Pure confinement check for `cleanup_apply`: an already-canonicalized
+/// candidate may only be deleted when it lives under one of the (also
+/// canonicalized) allowed roots. `Path::starts_with` compares whole
+/// components, so `C:\x\rootEvil` does NOT match root `C:\x\root`.
+fn is_within_allowed_roots(candidate: &Path, allowed_roots: &[PathBuf]) -> bool {
+    allowed_roots.iter().any(|root| candidate.starts_with(root))
+}
+
 fn cleanup_apply_blocking(paths: Vec<String>) -> CleanupResult {
     let mut deleted = 0u32;
     let mut failed = 0u32;
@@ -805,10 +912,7 @@ fn cleanup_apply_blocking(paths: Vec<String>) -> CleanupResult {
                 continue;
             }
         };
-        let within = allowed_roots
-            .iter()
-            .any(|root| canonical.starts_with(root));
-        if !within {
+        if !is_within_allowed_roots(&canonical, &allowed_roots) {
             failed += 1;
             errors.push(format!("refused (outside ~/.claude/): {s}"));
             continue;
@@ -1568,29 +1672,6 @@ fn read_last_n_lines(path: &Path, n: usize) -> std::io::Result<Vec<String>> {
     Ok(lines[start..].to_vec())
 }
 
-/// Recursively sum file sizes under `path`. Returns 0 on missing/error.
-fn dir_size_bytes(path: &Path) -> u64 {
-    if !path.exists() {
-        return 0;
-    }
-    let mut stack = vec![path.to_path_buf()];
-    let mut total: u64 = 0;
-    while let Some(p) = stack.pop() {
-        let Ok(entries) = fs::read_dir(&p) else { continue };
-        for entry in entries.flatten() {
-            let Ok(ft) = entry.file_type() else { continue };
-            if ft.is_dir() {
-                stack.push(entry.path());
-            } else if ft.is_file() {
-                if let Ok(meta) = entry.metadata() {
-                    total = total.saturating_add(meta.len());
-                }
-            }
-        }
-    }
-    total
-}
-
 /// Walk a directory tree yielding file paths matching a predicate.
 fn walk_files(root: &Path, mut on_file: impl FnMut(&Path, u64)) {
     let mut stack = vec![root.to_path_buf()];
@@ -2042,7 +2123,14 @@ fn fetch_known_projects_uncached() -> Vec<String> {
 
 fn known_projects_cached() -> Vec<String> {
     {
-        let guard = KNOWN_PROJECTS_CACHE.lock().unwrap();
+        // `unwrap_or_else(into_inner)` on every cache lock: a panic while a
+        // thread held the lock poisons the Mutex, and a plain unwrap would
+        // then panic on EVERY subsequent call — permanently bricking the
+        // feature. The cached value is plain replaceable data, so recovering
+        // the guard is safe.
+        let guard = KNOWN_PROJECTS_CACHE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         if let Some(entry) = guard.as_ref() {
             if entry.fetched_at.elapsed() < KNOWN_PROJECTS_TTL {
                 return entry.value.clone();
@@ -2050,7 +2138,9 @@ fn known_projects_cached() -> Vec<String> {
         }
     }
     let fresh = fetch_known_projects_uncached();
-    let mut guard = KNOWN_PROJECTS_CACHE.lock().unwrap();
+    let mut guard = KNOWN_PROJECTS_CACHE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     *guard = Some(KnownProjectsCache {
         value: fresh.clone(),
         fetched_at: Instant::now(),
@@ -2789,7 +2879,7 @@ struct ClaudewatchStatus {
 #[tauri::command]
 fn claudewatch_status() -> ClaudewatchStatus {
     let dir = dirs_home().map(|h| h.join("claudewatch"));
-    let installed = dir.as_ref().map_or(false, |d| {
+    let installed = dir.as_ref().is_some_and(|d| {
         d.join("claude-dash.ps1").is_file() && d.join("claudewatch.exe").is_file()
     });
     ClaudewatchStatus {
@@ -2844,22 +2934,65 @@ struct ClaudeCodeStatus {
     path_version: String, // version of the `claude` resolved on PATH
 }
 
+/// First `<name>.exe` reachable through the current `PATH` — the binary a
+/// bare-name `Command::new` would launch. `claude_code_status` needs this
+/// explicit probe because `silent_command("claude")` now routes through
+/// `resolve_cli`, which pins bare `claude` to the native install — that
+/// would make the native-vs-PATH version comparison always agree.
+fn find_exe_in_path(name: &str) -> Option<PathBuf> {
+    let path_var = std::env::var_os("PATH")?;
+    let exe = format!("{name}.exe");
+    std::env::split_paths(&path_var)
+        .map(|dir| dir.join(&exe))
+        .find(|candidate| candidate.is_file())
+}
+
 #[tauri::command]
-fn claude_code_status() -> ClaudeCodeStatus {
-    let native = dirs_home().map(|h| h.join(".local").join("bin").join("claude.exe"));
-    let native_installed = native.as_ref().map_or(false, |p| p.is_file());
-    let native_version = match &native {
-        Some(p) if native_installed => claude_version(&p.to_string_lossy()),
-        _ => String::new(),
-    };
-    ClaudeCodeStatus {
-        native_installed,
-        native_version,
-        native_path: native
-            .map(|p| p.to_string_lossy().into_owned())
-            .unwrap_or_default(),
-        path_version: claude_version("claude"),
-    }
+async fn claude_code_status() -> ClaudeCodeStatus {
+    // `claude --version` takes hundreds of ms — keep it off the async runtime.
+    tokio::task::spawn_blocking(|| {
+        let native = dirs_home().map(|h| h.join(".local").join("bin").join("claude.exe"));
+        let native_installed = native.as_ref().is_some_and(|p| p.is_file());
+        let native_version = match &native {
+            Some(p) if native_installed => claude_version(&p.to_string_lossy()),
+            _ => String::new(),
+        };
+        // When PATH resolves to the very same file as the native install,
+        // reuse the version already probed instead of spawning a second
+        // `claude --version`.
+        let path_version = match find_exe_in_path("claude") {
+            Some(p) => {
+                let same_as_native = native_installed
+                    && native.as_ref().is_some_and(|n| {
+                        matches!(
+                            (fs::canonicalize(n), fs::canonicalize(&p)),
+                            (Ok(a), Ok(b)) if a == b
+                        )
+                    });
+                if same_as_native {
+                    native_version.clone()
+                } else {
+                    claude_version(&p.to_string_lossy())
+                }
+            }
+            None => String::new(),
+        };
+        ClaudeCodeStatus {
+            native_installed,
+            native_version,
+            native_path: native
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+            path_version,
+        }
+    })
+    .await
+    .unwrap_or_else(|_| ClaudeCodeStatus {
+        native_installed: false,
+        native_version: String::new(),
+        native_path: String::new(),
+        path_version: String::new(),
+    })
 }
 
 /// Update Claude Code, preferring the NATIVE install (`~/.local/bin/claude.exe`)
@@ -2907,28 +3040,100 @@ async fn open_path_in_explorer(path: String) -> Result<(), String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
-/// Write UTF-8 text to a user-chosen path. This can technically write to any
-/// path whose parent directory exists — the safety does NOT come from path
-/// confinement. It rests on two things: the renderer is trusted first-party
-/// code (CSP `script-src 'self'`, no remote or inline scripts), and the `path`
-/// originates from a native OS save dialog the user just operated (see
-/// `exportTasks.ts`). We deliberately do NOT route this through
-/// `validate_open_path()` — that gate rejects non-existent paths, and a save
-/// target does not exist yet. We still refuse an empty path and a missing
-/// parent directory.
-#[tauri::command]
-async fn write_text_file(path: String, contents: String) -> Result<(), String> {
-    let trimmed = path.trim().to_string();
+/// File extensions `write_text_file` may create. The command backs text
+/// exports (Trello JSON export today) — never binaries or scripts.
+const EXPORT_EXTENSIONS: &[&str] = &["json", "txt", "md", "csv"];
+
+/// Validate a renderer-supplied save target for `write_text_file`.
+///
+/// The path normally originates from a native OS save dialog (see
+/// `exportTasks.ts`), but a compromised renderer (XSS in a dep) could invoke
+/// the IPC directly with an arbitrary path. We cannot route this through
+/// `validate_open_path()` — that gate rejects non-existent paths and a save
+/// target does not exist yet — so this is its sibling for write targets:
+///   - rejects flag-like, UNC, and protocol/shell-namespace paths
+///   - requires an allowlisted text extension (no `.ps1`/`.bat`/`.exe` drops)
+///   - requires the parent directory to exist and canonicalize (resolves
+///     `..` traversal before the confinement checks below)
+///   - rejects autostart persistence targets: any `Startup` segment under
+///     `AppData`, and the `%ProgramData%` Start Menu autostart tree
+///
+/// Returns the canonicalized parent joined with the file name — callers must
+/// write to THAT path, not the raw input.
+fn validate_export_path(path: &str) -> Result<PathBuf, String> {
+    let trimmed = path.trim();
     if trimmed.is_empty() {
         return Err("empty path".to_string());
     }
-    tokio::task::spawn_blocking(move || -> Result<(), String> {
-        let target = std::path::PathBuf::from(&trimmed);
-        if let Some(parent) = target.parent() {
-            if !parent.as_os_str().is_empty() && !parent.exists() {
-                return Err(format!("directory does not exist: {}", parent.display()));
-            }
+    if trimmed.starts_with('-') {
+        return Err(format!("refused (looks like a flag/option): {trimmed}"));
+    }
+    let lower = trimmed.to_lowercase();
+    for bad in ["shell:", "::{", "file://", "ms-windows-store:"] {
+        if lower.starts_with(bad) {
+            return Err(format!("refused (protocol/shell path): {trimmed}"));
         }
+    }
+    if trimmed.starts_with("\\\\") || trimmed.starts_with("//") {
+        return Err(format!("refused (UNC path): {trimmed}"));
+    }
+    let target = Path::new(trimmed);
+    let Some(file_name) = target.file_name() else {
+        return Err(format!("refused (no file name): {trimmed}"));
+    };
+    let ext_ok = target
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| EXPORT_EXTENSIONS.contains(&e.to_ascii_lowercase().as_str()))
+        .unwrap_or(false);
+    if !ext_ok {
+        return Err(format!(
+            "refused (extension must be one of .json/.txt/.md/.csv): {trimmed}"
+        ));
+    }
+    let parent = match target.parent() {
+        Some(p) if !p.as_os_str().is_empty() => p,
+        _ => return Err(format!("refused (no parent directory): {trimmed}")),
+    };
+    let canonical_parent = parent
+        .canonicalize()
+        .map_err(|e| format!("directory does not exist: {}: {e}", parent.display()))?;
+    let canonical_parent = strip_unc_prefix(canonical_parent);
+    // Autostart confinement: a text file cannot execute by itself, but a
+    // `.json`/`.txt` in a Startup folder is still an unexpected persistence
+    // write we have no business performing.
+    let components: Vec<String> = canonical_parent
+        .components()
+        .filter_map(|c| match c {
+            std::path::Component::Normal(s) => Some(s.to_string_lossy().to_ascii_lowercase()),
+            _ => None,
+        })
+        .collect();
+    if components.iter().any(|c| c == "startup") {
+        let under_appdata = components.iter().any(|c| c == "appdata");
+        let under_programdata = std::env::var_os("PROGRAMDATA")
+            .map(|pd| canonical_parent.starts_with(PathBuf::from(pd)))
+            .unwrap_or(false)
+            || components.first().map(|c| c == "programdata").unwrap_or(false);
+        if under_appdata || under_programdata {
+            return Err(format!("refused (autostart directory): {trimmed}"));
+        }
+    }
+    Ok(canonical_parent.join(file_name))
+}
+
+/// Write UTF-8 text to a user-chosen path. The `path` normally comes from a
+/// native OS save dialog the user just operated (see `exportTasks.ts`), but
+/// the IPC surface itself is reachable by any renderer code — so the target
+/// is gated by `validate_export_path()` (extension allowlist, canonicalized
+/// parent, autostart-dir confinement) and the write goes to the validated
+/// canonical path.
+#[tauri::command]
+async fn write_text_file(path: String, contents: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        // Validation canonicalizes the parent dir (blocking IO) — keep it on
+        // the blocking pool together with the write.
+        let target = validate_export_path(&path)?;
         fs::write(&target, contents)
             .map_err(|e| format!("write {}: {e}", target.display()))?;
         Ok(())
@@ -3008,7 +3213,7 @@ async fn fix_claude_vscode_extension() -> Result<String, String> {
         fs::write(&tmp, FIX_VSCODE_SCRIPT)
             .map_err(|e| format!("write temp script: {e}"))?;
 
-        let out = Command::new("powershell")
+        let out = Command::new(resolve_cli("powershell"))
             .args([
                 "-NoProfile",
                 "-NonInteractive",
@@ -3166,7 +3371,8 @@ fn count_skill_usage_cached(skill_names: &[String]) -> std::collections::HashMap
     let mut key = skill_names.to_vec();
     key.sort();
     {
-        let guard = SKILL_USAGE_CACHE.lock().unwrap();
+        // Poison-tolerant lock — see known_projects_cached for rationale.
+        let guard = SKILL_USAGE_CACHE.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(entry) = guard.as_ref() {
             if entry.key == key && entry.fetched_at.elapsed() < SKILL_USAGE_TTL {
                 return entry.value.clone();
@@ -3174,7 +3380,7 @@ fn count_skill_usage_cached(skill_names: &[String]) -> std::collections::HashMap
         }
     }
     let fresh = count_skill_usage(skill_names);
-    let mut guard = SKILL_USAGE_CACHE.lock().unwrap();
+    let mut guard = SKILL_USAGE_CACHE.lock().unwrap_or_else(|e| e.into_inner());
     *guard = Some(SkillUsageCache {
         key,
         value: fresh.clone(),
@@ -3526,7 +3732,7 @@ fn is_safe_rel_path(p: &str) -> bool {
         && !p.starts_with('/')
         && !std::path::Path::new(p).is_absolute()
         // Windows drive letter "C:".
-        && !(p.len() >= 2 && p.as_bytes()[1] == b':')
+        && (p.len() < 2 || p.as_bytes()[1] != b':')
         && p.chars().all(|c| !c.is_control())
 }
 
@@ -4001,10 +4207,8 @@ fn copy_tree_confined(
             if fs::create_dir_all(&dst).is_ok() {
                 copy_tree_confined(install_root, &p, &dst, count)?;
             }
-        } else if ft.is_file() {
-            if fs::copy(&p, &dst).is_ok() {
-                *count += 1;
-            }
+        } else if ft.is_file() && fs::copy(&p, &dst).is_ok() {
+            *count += 1;
         }
     }
     Ok(())
@@ -4167,11 +4371,37 @@ async fn list_mcp_servers() -> Result<Vec<McpServer>, String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+/// Reject renderer-supplied MCP server names that could escape the MCP config
+/// directory once interpolated into `mcp_dir.join(format!("{name}.json"))` —
+/// e.g. `name = "../../settings"` would rename files OUTSIDE the MCP dir.
+/// Mirrors the guard `clone_project` applies to repo names: only plain
+/// basename characters survive.
+fn validate_mcp_name(name: &str) -> Result<(), String> {
+    if name.trim().is_empty()
+        || name.contains('/')
+        || name.contains('\\')
+        || name.contains("..")
+        || name.contains(':')
+        || name.chars().any(|c| c.is_control())
+        || name.starts_with('-')
+        || name.starts_with('.')
+    {
+        return Err(format!(
+            "rejected unsafe MCP server name '{name}' — must be a plain file name"
+        ));
+    }
+    Ok(())
+}
+
 #[tauri::command]
 async fn toggle_mcp_server(name: String, source: String, enabled: bool) -> Result<(), String> {
     tokio::task::spawn_blocking(move || -> Result<(), String> {
         match source.as_str() {
             "config" => {
+                // The name becomes a file name below — validate BEFORE any
+                // FS op. (Plugin names never touch the filesystem; they are
+                // JSON keys in settings.json and may legally contain `/`.)
+                validate_mcp_name(&name)?;
                 let mcp_dir = claude_mcp_dir().ok_or("home dir unavailable")?;
                 let active = mcp_dir.join(format!("{name}.json"));
                 let disabled = mcp_dir.join(format!("{name}.json.disabled"));
@@ -4246,6 +4476,26 @@ fn gentle_ai_installer_url(tag: &str) -> String {
     format!(
         "https://raw.githubusercontent.com/Gentleman-Programming/gentle-ai/{tag}/scripts/install.ps1"
     )
+}
+
+/// Upstream GitHub `tag_name` values flow into a PowerShell command line
+/// (`irm <url> | iex`). A compromised or spoofed release could smuggle
+/// whitespace, quotes, `;`, `|`, `$`, or backticks into that line — so
+/// enforce `^v?[0-9A-Za-z][0-9A-Za-z.\-]*$` before building ANY command.
+fn validate_release_tag(tag: &str) -> Result<(), String> {
+    let rest = tag.strip_prefix('v').unwrap_or(tag);
+    let mut chars = rest.chars();
+    let valid = match chars.next() {
+        Some(c) if c.is_ascii_alphanumeric() => {
+            chars.all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')
+        }
+        _ => false,
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(format!("rejected unsafe release tag '{tag}'"))
+    }
 }
 
 #[derive(Serialize, Clone)]
@@ -4627,9 +4877,12 @@ const WORKSPACE_SUMMARY_TTL: Duration = Duration::from_secs(5 * 60);
 /// settings restore). Without this the right-panel widget can show stale
 /// counts/versions for up to 5 minutes after the user takes action.
 fn invalidate_workspace_summary_cache() {
-    if let Ok(mut guard) = WORKSPACE_SUMMARY_CACHE.lock() {
-        *guard = None;
-    }
+    // Poison-tolerant: an `if let Ok` here would silently stop invalidating
+    // after a poisoning panic, pinning a stale summary forever.
+    let mut guard = WORKSPACE_SUMMARY_CACHE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    *guard = None;
 }
 
 // `engram stats` prints lines like:
@@ -4658,7 +4911,10 @@ fn read_engram_stats() -> (Option<u32>, Option<u32>) {
 #[tauri::command]
 async fn workspace_summary() -> Result<WorkspaceSummary, String> {
     {
-        let guard = WORKSPACE_SUMMARY_CACHE.lock().unwrap();
+        // Poison-tolerant lock — see known_projects_cached for rationale.
+        let guard = WORKSPACE_SUMMARY_CACHE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         if let Some(entry) = guard.as_ref() {
             if entry.fetched_at.elapsed() < WORKSPACE_SUMMARY_TTL {
                 return Ok(entry.value.clone());
@@ -4717,7 +4973,9 @@ async fn workspace_summary() -> Result<WorkspaceSummary, String> {
     })
     .await
     .map_err(|e| format!("task join: {e}"))??;
-    let mut guard = WORKSPACE_SUMMARY_CACHE.lock().unwrap();
+    let mut guard = WORKSPACE_SUMMARY_CACHE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
     *guard = Some(WorkspaceSummaryCache {
         value: summary.clone(),
         fetched_at: Instant::now(),
@@ -4732,6 +4990,7 @@ async fn apply_gentle_ai_update() -> Result<String, String> {
     // a useful tail if something goes wrong. The URL is pinned to the release
     // tag resolved here; if resolution fails we fail closed (no install).
     let rel = fetch_latest_release(GENTLE_AI_RELEASES_REPO).await?;
+    validate_release_tag(&rel.tag_name)?;
     let cmd = format!("irm {} | iex", gentle_ai_installer_url(&rel.tag_name));
     let out = tokio::task::spawn_blocking(move || -> Result<std::process::Output, String> {
         silent_command("powershell")
@@ -5468,6 +5727,9 @@ async fn apply_stack_update() -> Result<String, String> {
                 );
                 return Ok(log);
             };
+            // A tag that fails validation means the upstream release data is
+            // tampered or malformed — refuse to build the command line.
+            validate_release_tag(&tag)?;
             let installer_cmd = format!("irm {} | iex", gentle_ai_installer_url(&tag));
             let installer_out = silent_command("powershell")
                 .args(["-NoProfile", "-NonInteractive", "-Command", &installer_cmd])
@@ -6387,7 +6649,7 @@ fn augment_path_with_user_bin_dirs() {
 
     let combined: Vec<PathBuf> = prepend
         .into_iter()
-        .chain(existing.into_iter())
+        .chain(existing)
         .collect();
     if let Ok(joined) = std::env::join_paths(combined) {
         std::env::set_var("PATH", joined);
@@ -7040,7 +7302,7 @@ fn token_usage_blocking(window_days: u32) -> TokenStats {
 
     // Clamp the window: at least 1 day, hard-capped at 365 to avoid runaway
     // scans on machines with years of JSONL history.
-    let window_days = window_days.max(1).min(365);
+    let window_days = window_days.clamp(1, 365);
 
     let today: NaiveDate = Utc::now().date_naive();
     // window_days inclusive of today — e.g. 30 days = today + 29 prior days.
@@ -7390,4 +7652,271 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Fresh, unique temp dir per test so parallel test threads never
+    /// collide. Callers clean up best-effort; leftovers land in the OS
+    /// temp dir and are harmless.
+    fn make_temp_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "csk-test-{name}-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        fs::create_dir_all(&dir).expect("create temp dir");
+        dir
+    }
+
+    // ── validate_open_path ──────────────────────────────────────────────
+
+    #[test]
+    fn open_path_rejects_empty() {
+        assert!(validate_open_path("").is_err());
+        assert!(validate_open_path("   ").is_err());
+    }
+
+    #[test]
+    fn open_path_rejects_flag_like() {
+        assert!(validate_open_path("-flag").is_err());
+        assert!(validate_open_path("--install-extension evil.ext").is_err());
+    }
+
+    #[test]
+    fn open_path_rejects_unix_style_leading_slash() {
+        assert!(validate_open_path("/unix/style").is_err());
+    }
+
+    #[test]
+    fn open_path_rejects_protocol_prefixes() {
+        assert!(validate_open_path("shell:x").is_err());
+        assert!(validate_open_path("shell:::{CLSID}").is_err());
+        assert!(validate_open_path("file://x").is_err());
+        assert!(validate_open_path("ms-windows-store:x").is_err());
+        assert!(validate_open_path("::{20D04FE0-3AEA-1069-A2D8-08002B30309D}").is_err());
+    }
+
+    #[test]
+    fn open_path_rejects_unc() {
+        assert!(validate_open_path("\\\\server\\share").is_err());
+        assert!(validate_open_path("//server/share").is_err());
+    }
+
+    #[test]
+    fn open_path_rejects_nonexistent() {
+        let ghost = std::env::temp_dir().join("csk-test-definitely-not-there-9f2a");
+        assert!(validate_open_path(&ghost.to_string_lossy()).is_err());
+    }
+
+    #[test]
+    fn open_path_accepts_real_temp_subpath() {
+        let dir = make_temp_dir("open-path-ok");
+        let file = dir.join("real.txt");
+        fs::write(&file, "x").unwrap();
+        let ok = validate_open_path(&file.to_string_lossy()).expect("real path accepted");
+        assert!(ok.exists());
+        // Canonicalized result must have the \\?\ prefix stripped.
+        assert!(!ok.to_string_lossy().starts_with(r"\\?\"));
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    // ── validate_mcp_name ───────────────────────────────────────────────
+
+    #[test]
+    fn mcp_name_accepts_plain_names() {
+        for name in ["engram", "my-server", "server_1", "Server2", "name.v2"] {
+            assert!(validate_mcp_name(name).is_ok(), "should accept {name:?}");
+        }
+    }
+
+    #[test]
+    fn mcp_name_rejects_unsafe_names() {
+        for name in [
+            "",
+            "   ",
+            "../../settings",
+            "..\\..\\settings",
+            "a/b",
+            "a\\b",
+            "a:b",
+            "C:evil",
+            "-leading-dash",
+            ".hidden",
+            "..",
+            "nul\u{0}byte",
+            "line\nbreak",
+        ] {
+            assert!(validate_mcp_name(name).is_err(), "should reject {name:?}");
+        }
+    }
+
+    // ── validate_export_path ────────────────────────────────────────────
+
+    #[test]
+    fn export_path_accepts_allowlisted_extensions() {
+        let dir = make_temp_dir("export-ok");
+        for file in ["a.json", "b.txt", "c.md", "d.csv", "UPPER.JSON"] {
+            let target = dir.join(file);
+            let ok = validate_export_path(&target.to_string_lossy())
+                .unwrap_or_else(|e| panic!("should accept {file:?}: {e}"));
+            // Returned path is canonical-parent + file name, prefix-free.
+            assert_eq!(ok.file_name(), target.file_name());
+            assert!(!ok.to_string_lossy().starts_with(r"\\?\"));
+        }
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn export_path_rejects_bad_inputs() {
+        assert!(validate_export_path("").is_err());
+        assert!(validate_export_path("   ").is_err());
+        assert!(validate_export_path("-flag.json").is_err());
+        assert!(validate_export_path("\\\\server\\share\\x.json").is_err());
+        assert!(validate_export_path("//server/share/x.json").is_err());
+        assert!(validate_export_path("shell:startup\\x.json").is_err());
+        assert!(validate_export_path("file://x.json").is_err());
+        assert!(validate_export_path("ms-windows-store:x.json").is_err());
+        assert!(validate_export_path("::{guid}\\x.json").is_err());
+    }
+
+    #[test]
+    fn export_path_rejects_disallowed_extension() {
+        let dir = make_temp_dir("export-ext");
+        for file in ["evil.exe", "evil.ps1", "evil.bat", "evil.json.lnk", "noext"] {
+            let target = dir.join(file);
+            assert!(
+                validate_export_path(&target.to_string_lossy()).is_err(),
+                "should reject {file:?}"
+            );
+        }
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn export_path_rejects_missing_parent() {
+        let target = std::env::temp_dir()
+            .join("csk-test-no-such-dir-3c1b")
+            .join("out.json");
+        assert!(validate_export_path(&target.to_string_lossy()).is_err());
+    }
+
+    #[test]
+    fn export_path_rejects_appdata_startup_dir() {
+        // Simulate the roaming autostart tree under a temp root: the check
+        // keys on the canonical path CONTAINING both an `AppData` and a
+        // `Startup` segment, so a fabricated tree exercises it.
+        let dir = make_temp_dir("export-startup");
+        let startup = dir
+            .join("AppData")
+            .join("Roaming")
+            .join("Microsoft")
+            .join("Windows")
+            .join("Start Menu")
+            .join("Programs")
+            .join("Startup");
+        fs::create_dir_all(&startup).unwrap();
+        let target = startup.join("payload.json");
+        assert!(validate_export_path(&target.to_string_lossy()).is_err());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn export_path_traversal_resolves_to_canonical_parent() {
+        // `..` segments are canonicalized away BEFORE the confinement
+        // checks — a traversal spelling of a sensitive dir cannot dodge it.
+        let dir = make_temp_dir("export-canon");
+        let nested = dir.join("nested");
+        fs::create_dir_all(&nested).unwrap();
+        let sneaky = nested.join("..").join("out.json");
+        let ok =
+            validate_export_path(&sneaky.to_string_lossy()).expect("traversal canonicalizes");
+        assert_eq!(
+            ok.parent().map(|p| p.to_path_buf()),
+            fs::canonicalize(&dir).map(strip_unc_prefix).ok()
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    // ── validate_release_tag ────────────────────────────────────────────
+
+    #[test]
+    fn release_tag_accepts_semver_shapes() {
+        for tag in [
+            "v1.2.3",
+            "1.2.3",
+            "v0.1.117",
+            "2.0.0-rc.1",
+            "v1.2.3-beta.1",
+            "v2",
+        ] {
+            assert!(validate_release_tag(tag).is_ok(), "should accept {tag:?}");
+        }
+    }
+
+    #[test]
+    fn release_tag_rejects_shell_metacharacters() {
+        for tag in [
+            "",
+            "v",
+            "-1.2.3",
+            "1.2.3; Remove-Item -Recurse ~",
+            "1.2.3|iex",
+            "1.2.3 `whoami`",
+            "$(calc)",
+            "v1.2.3'",
+            "v1.2.3\"",
+            "tag with space",
+            "1.2.3\n",
+            "1.2.3$env:x",
+        ] {
+            assert!(validate_release_tag(tag).is_err(), "should reject {tag:?}");
+        }
+    }
+
+    // ── is_within_allowed_roots ─────────────────────────────────────────
+    //
+    // Symlink-escape coverage is intentionally omitted: creating symlinks
+    // on Windows requires admin rights or Developer Mode, so such tests
+    // would be flaky on CI. The runtime path is still protected — callers
+    // canonicalize BOTH the candidate and the roots before this check, and
+    // cleanup_apply additionally refuses symlinks via symlink_metadata.
+
+    #[test]
+    fn within_roots_accepts_inside_and_rejects_outside() {
+        let base = make_temp_dir("roots");
+        let root = base.join("root");
+        let outside = base.join("outside");
+        fs::create_dir_all(root.join("sub")).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        fs::write(root.join("sub").join("f.txt"), "x").unwrap();
+        fs::write(outside.join("f.txt"), "x").unwrap();
+
+        let roots = vec![fs::canonicalize(&root).unwrap()];
+        let inside = fs::canonicalize(root.join("sub").join("f.txt")).unwrap();
+        let outside_file = fs::canonicalize(outside.join("f.txt")).unwrap();
+
+        assert!(is_within_allowed_roots(&inside, &roots));
+        assert!(!is_within_allowed_roots(&outside_file, &roots));
+        assert!(!is_within_allowed_roots(&inside, &[]));
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn within_roots_is_component_wise_not_string_prefix() {
+        let base = make_temp_dir("roots-prefix");
+        let root = base.join("root");
+        let evil = base.join("rootEvil");
+        fs::create_dir_all(&root).unwrap();
+        fs::create_dir_all(&evil).unwrap();
+        fs::write(evil.join("f.txt"), "x").unwrap();
+
+        let roots = vec![fs::canonicalize(&root).unwrap()];
+        let candidate = fs::canonicalize(evil.join("f.txt")).unwrap();
+        // "rootEvil" starts with the STRING "root" but is a different dir.
+        assert!(!is_within_allowed_roots(&candidate, &roots));
+        let _ = fs::remove_dir_all(&base);
+    }
 }
