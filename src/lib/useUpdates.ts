@@ -6,7 +6,9 @@
 //     Gentleman-Programming/gentle-ai. We can also re-run its installer.
 //
 // Both checks share a 24h cooldown stored in localStorage. The cooldown is
-// per-channel so a manual "Check now" can refresh just one. Dismissed
+// per-channel so a manual "Check now" can refresh just one. The last
+// successful result is cached (per-channel) so a fresh mount within the
+// cooldown still hydrates state instead of showing "Loading…". Dismissed
 // versions are remembered (per-channel) so a user who clicks "Later" doesn't
 // see the same banner forever.
 //
@@ -22,6 +24,12 @@ const LS_LAST_APP = "csk-update-app-last-checked";
 const LS_LAST_GA = "csk-update-gentle-ai-last-checked";
 const LS_DISMISS_APP = "csk-update-app-dismissed-version";
 const LS_DISMISS_GA = "csk-update-gentle-ai-dismissed-version";
+// Last successful check RESULTS, cached alongside the timestamps. Without
+// these a fresh mount within the cooldown would skip the check AND leave
+// state null — Settings stuck on "Loading…" and the update banner gone
+// until the cooldown expired.
+const LS_STATUS_APP = "csk-update-app-last-status";
+const LS_STATUS_GA = "csk-update-gentle-ai-last-status";
 
 export interface UpdateStatus {
   available: boolean;
@@ -92,6 +100,40 @@ function writeString(key: string, value: string): void {
   }
 }
 
+// Read a cached UpdateStatus payload. Returns null on missing, corrupt, or
+// shape-mismatched data so the caller falls back to a real check instead of
+// rendering garbage.
+function readStatus(key: string): UpdateStatus | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as Partial<UpdateStatus> | null;
+    if (
+      typeof v !== "object" ||
+      v === null ||
+      typeof v.available !== "boolean" ||
+      typeof v.current !== "string" ||
+      typeof v.latest !== "string" ||
+      typeof v.release_url !== "string" ||
+      typeof v.notes !== "string" ||
+      typeof v.configured !== "boolean"
+    ) {
+      return null;
+    }
+    return v as UpdateStatus;
+  } catch {
+    return null;
+  }
+}
+
+function writeStatus(key: string, value: UpdateStatus): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* ignore */
+  }
+}
+
 // Hide an UpdateStatus that the user already dismissed at the same version.
 // We never hide the underlying truth — just the `available` flag — so the
 // Settings page can still show "v1.2.3 → v1.2.4 (dismissed)" if we want
@@ -141,25 +183,49 @@ export function useUpdates(): UpdatesState {
 
     const tasks: Promise<void>[] = [];
 
-    if (force || now - readNumber(LS_LAST_APP) > COOLDOWN_MS) {
+    // Per channel: within cooldown, hydrate state from the cached last
+    // result instead of leaving it null. The cache stores the RAW status;
+    // dismissal is applied at read time, same as the live path. A missing
+    // or corrupt cache falls back to a real check.
+    let checkApp = force || now - readNumber(LS_LAST_APP) > COOLDOWN_MS;
+    if (!checkApp) {
+      const cached = readStatus(LS_STATUS_APP);
+      if (cached) {
+        setApp(applyDismissal(cached, dismissApp));
+      } else {
+        checkApp = true;
+      }
+    }
+    if (checkApp) {
       setAppError(null);
       tasks.push(
         invoke<UpdateStatus>("check_app_update")
           .then((s) => {
             setApp(applyDismissal(s, dismissApp));
             writeNumber(LS_LAST_APP, Date.now());
+            writeStatus(LS_STATUS_APP, s);
           })
           .catch((e) => setAppError(String(e)))
       );
     }
 
-    if (force || now - readNumber(LS_LAST_GA) > COOLDOWN_MS) {
+    let checkGa = force || now - readNumber(LS_LAST_GA) > COOLDOWN_MS;
+    if (!checkGa) {
+      const cached = readStatus(LS_STATUS_GA);
+      if (cached) {
+        setGentleAi(applyDismissal(cached, dismissGa));
+      } else {
+        checkGa = true;
+      }
+    }
+    if (checkGa) {
       setGentleAiError(null);
       tasks.push(
         invoke<UpdateStatus>("check_gentle_ai_update")
           .then((s) => {
             setGentleAi(applyDismissal(s, dismissGa));
             writeNumber(LS_LAST_GA, Date.now());
+            writeStatus(LS_STATUS_GA, s);
           })
           .catch((e) => setGentleAiError(String(e)))
       );

@@ -7,7 +7,9 @@
 // here automatically without code changes when upstream adds new ones.
 //
 // Same 24h cooldown pattern as the other channels, persisted in
-// localStorage. Manual "Check now" forces a refresh ignoring the cooldown.
+// localStorage, plus a cached copy of the last successful result so a fresh
+// mount within the cooldown still shows data. Manual "Check now" forces a
+// refresh ignoring the cooldown.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
@@ -15,6 +17,10 @@ import { IS_TAURI } from "./env";
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24h
 const LS_LAST_CHECKED = "csk-update-stack-last-checked";
+// Last successful check RESULT, cached alongside the timestamp. Without it a
+// fresh mount within the cooldown would skip the check with `tools` still []
+// and the stack table would sit empty until the cooldown expired.
+const LS_LAST_TOOLS = "csk-update-stack-last-tools";
 
 export interface StackToolStatus {
   name: string;
@@ -57,6 +63,37 @@ function writeNumber(key: string, value: number): void {
   }
 }
 
+// Read the cached tools payload. Returns null on missing, corrupt, or
+// shape-mismatched data so the caller falls back to a real check.
+function readTools(key: string): StackToolStatus[] | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as unknown;
+    if (!Array.isArray(v)) return null;
+    const ok = v.every(
+      (t: Partial<StackToolStatus> | null) =>
+        typeof t === "object" &&
+        t !== null &&
+        typeof t.name === "string" &&
+        (t.installed === null || typeof t.installed === "string") &&
+        typeof t.latest === "string" &&
+        typeof t.state === "string"
+    );
+    return ok ? (v as StackToolStatus[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeTools(key: string, value: StackToolStatus[]): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function useStackUpdates(): StackUpdatesState {
   const [tools, setTools] = useState<StackToolStatus[]>([]);
   const [loading, setLoading] = useState(false);
@@ -71,9 +108,16 @@ export function useStackUpdates(): StackUpdatesState {
     }
     const now = Date.now();
     if (!force && now - readNumber(LS_LAST_CHECKED) <= COOLDOWN_MS) {
-      // Within cooldown — keep whatever's already in state. Don't fight the
-      // cooldown by re-fetching; the user can hit "Check now" if they want.
-      return;
+      const cached = readTools(LS_LAST_TOOLS);
+      if (cached) {
+        // Within cooldown — hydrate from the cached last result so a fresh
+        // mount doesn't sit on an empty table. The cache stores the RAW
+        // payload; the opencode-* filter applies at read time, same as the
+        // live path below. The user can hit "Check now" for a real refresh.
+        setTools(cached.filter((tool) => !tool.name.startsWith("opencode-")));
+        return;
+      }
+      // Cache missing or corrupt — fall through to a real check.
     }
     setLoading(true);
     setError(null);
@@ -84,6 +128,7 @@ export function useStackUpdates(): StackUpdatesState {
       // doesn't use OpenCode — so they're hidden from the stack list.
       setTools(next.filter((tool) => !tool.name.startsWith("opencode-")));
       writeNumber(LS_LAST_CHECKED, Date.now());
+      writeTools(LS_LAST_TOOLS, next);
     } catch (e) {
       setError(String(e));
     } finally {
