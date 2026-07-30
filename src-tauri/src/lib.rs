@@ -187,7 +187,7 @@ fn newest_jsonl_mtime(dir: &Path) -> Option<(SystemTime, Vec<PathBuf>)> {
     if jsonls.is_empty() {
         return None;
     }
-    jsonls.sort_by(|a, b| b.0.cmp(&a.0));
+    jsonls.sort_by_key(|j| std::cmp::Reverse(j.0));
     let newest = jsonls[0].0;
     let paths = jsonls.into_iter().map(|(_, p)| p).collect();
     Some((newest, paths))
@@ -423,7 +423,7 @@ fn scan_projects_blocking(window_days: u64) -> Vec<Project> {
             last_date,
         });
     }
-    out.sort_by(|a, b| b.mtime.cmp(&a.mtime));
+    out.sort_by_key(|p| std::cmp::Reverse(p.mtime));
     out
 }
 
@@ -554,7 +554,7 @@ fn disk_scan_git_repos_blocking(
         disk_scan_walk(&canonical, 0, max_depth, &mut out);
     }
     // Sort by name for stable rendering.
-    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    out.sort_by_key(|x| x.name.to_lowercase());
     out
 }
 
@@ -831,7 +831,7 @@ fn cleanup_plan_blocking(older_than_days: u64) -> Vec<CleanupItem> {
         }
     }
 
-    plan.sort_by(|a, b| a.mtime.cmp(&b.mtime));
+    plan.sort_by_key(|e| e.mtime);
     plan
 }
 
@@ -2031,7 +2031,7 @@ async fn restore_settings_backup() -> Result<String, String> {
         if candidates.is_empty() {
             return Err("no startup-kit-* backup with settings.json found".to_string());
         }
-        candidates.sort_by(|a, b| b.0.cmp(&a.0));
+        candidates.sort_by_key(|c| std::cmp::Reverse(c.0));
         let (_, chosen) = &candidates[0];
         let src = chosen.join("settings.json");
         let dest = home.join(".claude").join("settings.json");
@@ -6140,7 +6140,7 @@ fn list_local_projects_with_remote() -> Vec<SyncedProject> {
             remote_url: remote,
         });
     }
-    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    out.sort_by_key(|x| x.name.to_lowercase());
     out
 }
 
