@@ -360,6 +360,13 @@ export default function AppV3() {
                 {gentleAiResult && (
                   <span className="v3-update-banner-result"> · {gentleAiResult}</span>
                 )}
+                {/* Actionable failure detail from the backend (e.g. the
+                    stale-copy diagnosis with the resolved path). Without
+                    this the rich Err from apply_gentle_ai_update dies in
+                    state and the user only sees the generic failure text. */}
+                {updates.gentleAiError && (
+                  <span className="v3-update-banner-result"> · {updates.gentleAiError}</span>
+                )}
               </div>
               <div className="v3-update-banner-actions">
                 <button

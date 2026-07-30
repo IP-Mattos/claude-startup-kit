@@ -4635,43 +4635,228 @@ async fn apply_app_update(app: tauri::AppHandle) -> Result<(), String> {
     app.restart()
 }
 
-// Locate the gentle-ai binary. Why this isn't just `silent_command("gentle-ai")`:
-// after a Tauri auto-update, the new app instance can inherit a PATH that
-// excludes user-scoped install dirs (`%LOCALAPPDATA%\gentle-ai\bin\` etc.),
-// so `gentle-ai` resolves nowhere even though the binary is installed.
-// We check the PATH ourselves first, then fall back to well-known install
-// locations the upstream installer drops the binary into. Returns the program
-// argument to pass to `silent_command` — either the bare name (when PATH
-// resolves it) or an absolute path.
-fn resolve_gentle_ai() -> Option<String> {
-    // 1. Check PATH manually so we don't depend on the inherited PATH being
-    //    fully expanded. If `where gentle-ai` would find it, return the bare
-    //    name — Command::new will resolve it the same way.
-    if let Some(path_var) = std::env::var_os("PATH") {
-        for dir in std::env::split_paths(&path_var) {
-            for candidate in ["gentle-ai.exe", "gentle-ai"] {
-                if dir.join(candidate).is_file() {
-                    return Some("gentle-ai".to_string());
+// ─── gentle-ai resolution (version-aware) ────────────────────────────────
+//
+// Why this isn't just `silent_command("gentle-ai")`: after a Tauri
+// auto-update the new app instance can inherit a PATH that excludes
+// user-scoped install dirs, so the bare name resolves nowhere even though
+// the binary is installed.
+//
+// Why it isn't first-hit-wins either: gentle-ai's installer changed targets
+// upstream. Up to v2.1.11 it dropped a binary into `%LOCALAPPDATA%\
+// gentle-ai\bin`; from v2.2.x it is `go install`-only, targeting Go's bin
+// dir (`go env GOBIN`, default `~\go\bin`). Machines that installed pre-2.2
+// keep a stale binary in LOCALAPPDATA that shadows the fresh one — a
+// first-hit resolver kept picking the old copy, so the app reported the old
+// version forever and every "upgrade" claimed success while changing
+// nothing. We now collect ALL candidates and pick the newest by version.
+
+/// Directory `go install` drops binaries into: `go env GOBIN`, else
+/// `go env GOPATH` + `bin`, else the conventional `~/go/bin`. Queried once
+/// per process (`OnceLock`) because the answer can't change mid-session and
+/// `go env` costs a subprocess spawn. Go not being installed is fine — we
+/// still return the conventional default so a binary left behind by an
+/// earlier toolchain stays discoverable.
+static GO_BIN_DIR: std::sync::OnceLock<Option<PathBuf>> = std::sync::OnceLock::new();
+
+fn go_bin_dir() -> Option<PathBuf> {
+    GO_BIN_DIR
+        .get_or_init(|| {
+            let query = |var: &str| -> Option<PathBuf> {
+                let out = silent_command("go").args(["env", var]).output().ok()?;
+                if !out.status.success() {
+                    return None;
                 }
+                let text = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if text.is_empty() {
+                    None
+                } else {
+                    Some(PathBuf::from(text))
+                }
+            };
+            query("GOBIN")
+                .or_else(|| query("GOPATH").map(|p| p.join("bin")))
+                .or_else(|| dirs_home().map(|h| h.join("go").join("bin")))
+        })
+        .clone()
+}
+
+/// A gentle-ai binary discovered on disk during resolution.
+#[derive(Debug, Clone, PartialEq)]
+struct GentleAiCandidate {
+    /// Absolute path to the executable.
+    path: String,
+    /// Version reported by `<exe> version`, when readable.
+    version: Option<String>,
+    /// True when the binary lives in Go's bin dir — the current upstream
+    /// install target (gentle-ai ≥2.2 is `go install`-only).
+    in_go_bin: bool,
+}
+
+/// Pick which discovered binary to use. Newest readable version wins; a
+/// readable version beats an unreadable one; ties (equal versions or both
+/// unreadable) prefer the Go bin candidate, then earlier discovery order
+/// (PATH order). Pure so it's unit-testable without spawning processes.
+fn select_gentle_ai_candidate(candidates: &[GentleAiCandidate]) -> Option<&GentleAiCandidate> {
+    let mut best: Option<&GentleAiCandidate> = None;
+    for cand in candidates {
+        let Some(current) = best else {
+            best = Some(cand);
+            continue;
+        };
+        let wins = match (&cand.version, &current.version) {
+            (Some(new), Some(old)) => {
+                if version_is_newer(new, old) {
+                    true
+                } else if version_is_newer(old, new) {
+                    false
+                } else {
+                    cand.in_go_bin && !current.in_go_bin
+                }
+            }
+            (Some(_), None) => true,
+            (None, Some(_)) => false,
+            (None, None) => cand.in_go_bin && !current.in_go_bin,
+        };
+        if wins {
+            best = Some(cand);
+        }
+    }
+    best
+}
+
+/// Collect every on-disk gentle-ai binary: each PATH dir, the well-known
+/// installer fallback dirs, and Go's bin dir. Deduplicated by canonical
+/// path so a dir that's both on PATH and in the fallback list yields one
+/// candidate. Returns `(exe_path, in_go_bin)` in discovery order.
+fn collect_gentle_ai_candidate_paths() -> Vec<(PathBuf, bool)> {
+    let go_bin = go_bin_dir();
+    let go_bin_canon = go_bin
+        .as_ref()
+        .map(|d| fs::canonicalize(d).unwrap_or_else(|_| d.clone()));
+
+    let mut dirs: Vec<PathBuf> = Vec::new();
+    if let Some(path_var) = std::env::var_os("PATH") {
+        dirs.extend(std::env::split_paths(&path_var));
+    }
+    // Well-known install dirs: the pre-2.2 `irm | iex` PowerShell installer
+    // target (LOCALAPPDATA) and USERPROFILE-scoped alternatives.
+    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+        dirs.push(PathBuf::from(&local).join("gentle-ai").join("bin"));
+    }
+    if let Some(home) = dirs_home() {
+        dirs.push(home.join(".local").join("bin"));
+        dirs.push(home.join("go").join("bin"));
+        dirs.push(
+            home.join("AppData")
+                .join("Local")
+                .join("gentle-ai")
+                .join("bin"),
+        );
+    }
+    if let Some(gb) = go_bin {
+        dirs.push(gb);
+    }
+
+    let mut seen: Vec<PathBuf> = Vec::new();
+    let mut found: Vec<(PathBuf, bool)> = Vec::new();
+    for dir in dirs {
+        for name in ["gentle-ai.exe", "gentle-ai"] {
+            let exe = dir.join(name);
+            if !exe.is_file() {
+                continue;
+            }
+            let canon = fs::canonicalize(&exe).unwrap_or_else(|_| exe.clone());
+            if seen.contains(&canon) {
+                continue;
+            }
+            seen.push(canon);
+            let dir_canon = fs::canonicalize(&dir).unwrap_or_else(|_| dir.clone());
+            let in_go_bin = go_bin_canon.as_deref() == Some(dir_canon.as_path());
+            found.push((exe, in_go_bin));
+        }
+    }
+    found
+}
+
+/// Best-effort `<exe> version` probe, parsed with `extract_semver`.
+fn probe_gentle_ai_version(program: &str) -> Option<String> {
+    let out = silent_command(program).arg("version").output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    extract_semver(&String::from_utf8_lossy(&out.stdout))
+}
+
+fn resolve_gentle_ai_uncached() -> Option<String> {
+    let candidates = collect_gentle_ai_candidate_paths();
+    match candidates.len() {
+        0 => None,
+        // Single install on the machine — no need to spawn version probes.
+        1 => Some(candidates[0].0.to_string_lossy().into_owned()),
+        _ => {
+            let probed: Vec<GentleAiCandidate> = candidates
+                .into_iter()
+                .map(|(path, in_go_bin)| {
+                    let path = path.to_string_lossy().into_owned();
+                    let version = probe_gentle_ai_version(&path);
+                    GentleAiCandidate {
+                        path,
+                        version,
+                        in_go_bin,
+                    }
+                })
+                .collect();
+            select_gentle_ai_candidate(&probed).map(|c| c.path.clone())
+        }
+    }
+}
+
+/// Session cache for the resolved gentle-ai path. Resolution spawns one
+/// `version` probe per candidate when multiple installs coexist, and
+/// `resolve_gentle_ai()` is called from many IPCs — without caching, every
+/// command would pay that probe cost. Only successful resolutions are
+/// cached (a `None` is re-scanned each call, which is cheap FS checks) so
+/// an install that appears mid-session is still picked up.
+static GENTLE_AI_RESOLUTION_CACHE: Lazy<Mutex<Option<String>>> = Lazy::new(|| Mutex::new(None));
+
+/// Bust the gentle-ai resolution cache. Call after any operation that can
+/// add, replace, or upgrade a gentle-ai install (installer runs, stack
+/// upgrades, the install wizard) — the newest binary may now live in a
+/// different dir than the cached one.
+fn invalidate_gentle_ai_resolution() {
+    // Poison-tolerant — see invalidate_workspace_summary_cache.
+    let mut guard = GENTLE_AI_RESOLUTION_CACHE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    *guard = None;
+}
+
+/// Locate the gentle-ai binary. Returns the ABSOLUTE path of the newest
+/// installed copy (see module comment above for why version-aware), to pass
+/// as the program argument to `silent_command`.
+fn resolve_gentle_ai() -> Option<String> {
+    {
+        let guard = GENTLE_AI_RESOLUTION_CACHE
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        if let Some(hit) = guard.as_ref() {
+            // Revalidate the hit before trusting it: the user may have
+            // deleted the cached binary (our own stale-copy error message
+            // tells them to) or an install elsewhere may have replaced it.
+            // Without this, every command would spawn a nonexistent path
+            // until app restart. One is_file() stat is cheap.
+            if Path::new(hit).is_file() {
+                return Some(hit.clone());
             }
         }
     }
-    // 2. Fall back to known install dirs the gentle-ai installer writes to.
-    //    These are the locations the upstream `irm | iex` PowerShell installer
-    //    targets (LOCALAPPDATA primary, USERPROFILE-scoped alternatives).
-    let mut candidates: Vec<PathBuf> = Vec::new();
-    if let Some(local) = std::env::var_os("LOCALAPPDATA") {
-        candidates.push(PathBuf::from(&local).join("gentle-ai\\bin\\gentle-ai.exe"));
-    }
-    if let Some(home) = dirs_home() {
-        candidates.push(home.join(".local").join("bin").join("gentle-ai.exe"));
-        candidates.push(home.join("go").join("bin").join("gentle-ai.exe"));
-        candidates.push(home.join("AppData").join("Local").join("gentle-ai").join("bin").join("gentle-ai.exe"));
-    }
-    candidates
-        .into_iter()
-        .find(|p| p.is_file())
-        .map(|p| p.to_string_lossy().into_owned())
+    let resolved = resolve_gentle_ai_uncached()?;
+    let mut guard = GENTLE_AI_RESOLUTION_CACHE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    *guard = Some(resolved.clone());
+    Some(resolved)
 }
 
 fn read_gentle_ai_version() -> String {
@@ -4680,12 +4865,7 @@ fn read_gentle_ai_version() -> String {
     let Some(program) = resolve_gentle_ai() else {
         return String::new();
     };
-    let out = silent_command(&program).arg("version").output();
-    let bytes = match out {
-        Ok(o) if o.status.success() => o.stdout,
-        _ => return String::new(),
-    };
-    extract_semver(&String::from_utf8_lossy(&bytes)).unwrap_or_default()
+    probe_gentle_ai_version(&program).unwrap_or_default()
 }
 
 /// First semver-shaped triplet (M.m.p) in the input wins. Used to scrape
@@ -4989,6 +5169,9 @@ async fn apply_gentle_ai_update() -> Result<String, String> {
     // PowerShell. We capture combined stdout+stderr so the renderer can show
     // a useful tail if something goes wrong. The URL is pinned to the release
     // tag resolved here; if resolution fails we fail closed (no install).
+    let before = tokio::task::spawn_blocking(read_gentle_ai_version)
+        .await
+        .map_err(|e| format!("task join: {e}"))?;
     let rel = fetch_latest_release(GENTLE_AI_RELEASES_REPO).await?;
     validate_release_tag(&rel.tag_name)?;
     let cmd = format!("irm {} | iex", gentle_ai_installer_url(&rel.tag_name));
@@ -5008,14 +5191,48 @@ async fn apply_gentle_ai_update() -> Result<String, String> {
             out.status
         ));
     }
-    // Re-read installed version so the UI can confirm the upgrade.
-    let after = tokio::task::spawn_blocking(read_gentle_ai_version)
-        .await
-        .map_err(|e| format!("task join: {e}"))?;
+    // Re-resolve from scratch and re-read the installed version so the UI
+    // can confirm the upgrade. The installer may have dropped the new
+    // binary into a different dir than the cached resolution (go\bin since
+    // gentle-ai 2.2), so the cache MUST be busted before re-reading.
+    let (after, resolved) = tokio::task::spawn_blocking(|| {
+        invalidate_gentle_ai_resolution();
+        let resolved = resolve_gentle_ai().unwrap_or_default();
+        (read_gentle_ai_version(), resolved)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?;
     // The WorkspaceCard surfaces gentle-ai version via workspace_summary;
     // without this bust it would keep showing the pre-upgrade version for
     // up to 5 minutes.
     invalidate_workspace_summary_cache();
+    // Verify the upgrade actually took effect. The installer exiting 0 is
+    // NOT proof: a stale binary elsewhere on the machine can still shadow
+    // the fresh install, in which case reporting `after` as a success would
+    // show "upgraded to v<old>" and leave the update banner in a loop.
+    if !version_is_newer(&after, &before) {
+        let shown_after = if after.is_empty() {
+            "unreadable".to_string()
+        } else {
+            format!("v{after}")
+        };
+        let shown_before = if before.is_empty() {
+            "none".to_string()
+        } else {
+            format!("v{before}")
+        };
+        let shown_resolved = if resolved.is_empty() {
+            "not found".to_string()
+        } else {
+            resolved
+        };
+        return Err(format!(
+            "installer finished, but the resolved gentle-ai binary still reports {shown_after} \
+             (before the upgrade: {shown_before}; resolved path: {shown_resolved}). \
+             A stale copy is likely shadowing the new install — remove the old binary \
+             (typically %LOCALAPPDATA%\\gentle-ai\\bin\\gentle-ai.exe) and retry."
+        ));
+    }
     Ok(after)
 }
 
@@ -5730,6 +5947,7 @@ async fn apply_stack_update() -> Result<String, String> {
             // A tag that fails validation means the upstream release data is
             // tampered or malformed — refuse to build the command line.
             validate_release_tag(&tag)?;
+            let before = read_gentle_ai_version();
             let installer_cmd = format!("irm {} | iex", gentle_ai_installer_url(&tag));
             let installer_out = silent_command("powershell")
                 .args(["-NoProfile", "-NonInteractive", "-Command", &installer_cmd])
@@ -5747,6 +5965,34 @@ async fn apply_stack_update() -> Result<String, String> {
                     installer_out.status
                 ));
             }
+            // Verify the self-upgrade actually took effect. The installer
+            // exiting 0 doesn't prove the newest binary is the one we
+            // resolve — a stale copy elsewhere can shadow it (pre-2.2
+            // installs in %LOCALAPPDATA%\gentle-ai\bin). Re-resolve from
+            // scratch and be honest in the log when nothing advanced.
+            invalidate_gentle_ai_resolution();
+            let resolved = resolve_gentle_ai().unwrap_or_else(|| "not found".to_string());
+            let after = read_gentle_ai_version();
+            if version_is_newer(&after, &before) {
+                log.push_str(&format!("\n--- gentle-ai upgraded to v{after} ---\n"));
+            } else {
+                let shown_after = if after.is_empty() {
+                    "unreadable".to_string()
+                } else {
+                    format!("v{after}")
+                };
+                let shown_before = if before.is_empty() {
+                    "none".to_string()
+                } else {
+                    format!("v{before}")
+                };
+                log.push_str(&format!(
+                    "\n--- WARNING: gentle-ai version did not advance after the installer ran \
+                     (before: {shown_before}, after: {shown_after}, resolved path: {resolved}). \
+                     A stale copy may be shadowing the new install — remove the old binary \
+                     (typically %LOCALAPPDATA%\\gentle-ai\\bin\\gentle-ai.exe) and retry. ---\n"
+                ));
+            }
         }
 
         Ok(log)
@@ -5756,8 +6002,10 @@ async fn apply_stack_update() -> Result<String, String> {
     .and_then(|res| {
         // Stack upgrade can change every managed-tool version, including
         // gentle-ai itself which is surfaced in workspace_summary. Bust the
-        // cache so the next render fetches fresh.
+        // caches so the next render fetches fresh and the next shell-out
+        // re-resolves the newest gentle-ai binary.
         invalidate_workspace_summary_cache();
+        invalidate_gentle_ai_resolution();
         res
     })
 }
@@ -5793,6 +6041,11 @@ fn open_stack_install_wizard() -> Result<(), String> {
     }
     cmd.spawn()
         .map_err(|e| format!("spawn install wizard: {e}"))?;
+    // The wizard runs detached and can install or upgrade managed tools,
+    // including a fresh gentle-ai copy. Bust the resolution cache eagerly —
+    // the wizard finishes after this returns, and the next resolve re-scans
+    // (cheap when only one install exists).
+    invalidate_gentle_ai_resolution();
     Ok(())
 }
 
@@ -6592,6 +6845,20 @@ async fn sync_disconnect() -> Result<(), String> {
 fn augment_path_with_user_bin_dirs() {
     let mut to_add: Vec<PathBuf> = Vec::new();
 
+    // Go's bin dir FIRST — since gentle-ai 2.2.x the upstream installer is
+    // `go install`-only (GOBIN / GOPATH\bin / ~\go\bin), so the freshest
+    // gentle-ai lives here. Prepending it ahead of %LOCALAPPDATA%\
+    // gentle-ai\bin keeps a stale pre-2.2 binary there from shadowing the
+    // new install for bare-name shell-outs. Derived from env vars only (no
+    // `go env` spawn) — this runs on startup and must stay cheap.
+    if let Some(gobin) = std::env::var_os("GOBIN").filter(|v| !v.is_empty()) {
+        to_add.push(PathBuf::from(gobin));
+    } else if let Some(gopath) = std::env::var_os("GOPATH").filter(|v| !v.is_empty()) {
+        to_add.push(PathBuf::from(gopath).join("bin"));
+    }
+    if let Some(home) = dirs_home() {
+        to_add.push(home.join("go").join("bin"));
+    }
     if let Some(local) = std::env::var_os("LOCALAPPDATA") {
         let local = PathBuf::from(local);
         // Per-tool installer destinations (gentle-ai, engram, …).
@@ -6605,7 +6872,6 @@ fn augment_path_with_user_bin_dirs() {
         to_add.push(PathBuf::from(appdata).join("npm"));
     }
     if let Some(home) = dirs_home() {
-        to_add.push(home.join("go").join("bin"));
         to_add.push(home.join("bin"));
         to_add.push(home.join(".local").join("bin"));
     }
@@ -6634,6 +6900,18 @@ fn augment_path_with_user_bin_dirs() {
         to_add.push(windir.join("System32"));
         to_add.push(windir.join("System32\\WindowsPowerShell\\v1.0"));
     }
+
+    // Dedup preserving order — a custom GOBIN equal to the conventional
+    // ~\go\bin would otherwise be prepended twice.
+    let mut seen: Vec<PathBuf> = Vec::new();
+    to_add.retain(|p| {
+        if seen.contains(p) {
+            false
+        } else {
+            seen.push(p.clone());
+            true
+        }
+    });
 
     let current_path = std::env::var_os("PATH").unwrap_or_default();
     let existing: Vec<PathBuf> = std::env::split_paths(&current_path).collect();
@@ -7918,5 +8196,145 @@ mod tests {
         // "rootEvil" starts with the STRING "root" but is a different dir.
         assert!(!is_within_allowed_roots(&candidate, &roots));
         let _ = fs::remove_dir_all(&base);
+    }
+
+    // ── version_is_newer ────────────────────────────────────────────────
+
+    #[test]
+    fn version_newer_basic_and_v_prefix() {
+        assert!(version_is_newer("2.2.0", "2.1.11"));
+        assert!(!version_is_newer("2.1.11", "2.2.0"));
+        assert!(version_is_newer("v2.2.0", "2.1.11"));
+        assert!(!version_is_newer("v2.1.11", "2.1.11"));
+        assert!(!version_is_newer("2.1.11", "2.1.11"));
+    }
+
+    #[test]
+    fn version_newer_length_mismatch_and_empty() {
+        // Missing components compare as zero.
+        assert!(version_is_newer("1.0.1", "1.0"));
+        assert!(!version_is_newer("1.0", "1.0.0"));
+        // Empty (unreadable) never beats anything; anything beats empty.
+        assert!(!version_is_newer("", "1.0.0"));
+        assert!(version_is_newer("1.0.0", ""));
+        assert!(!version_is_newer("", ""));
+    }
+
+    #[test]
+    fn version_newer_double_digit_components_compare_numerically() {
+        // Lexicographic comparison would get these wrong.
+        assert!(version_is_newer("2.10.0", "2.9.9"));
+        assert!(version_is_newer("2.1.11", "2.1.9"));
+    }
+
+    // ── select_gentle_ai_candidate ──────────────────────────────────────
+
+    fn cand(path: &str, version: Option<&str>, in_go_bin: bool) -> GentleAiCandidate {
+        GentleAiCandidate {
+            path: path.to_string(),
+            version: version.map(|v| v.to_string()),
+            in_go_bin,
+        }
+    }
+
+    #[test]
+    fn select_empty_returns_none() {
+        assert!(select_gentle_ai_candidate(&[]).is_none());
+    }
+
+    #[test]
+    fn select_single_candidate_wins() {
+        let c = [cand("C:\\only\\gentle-ai.exe", Some("2.1.11"), false)];
+        assert_eq!(select_gentle_ai_candidate(&c).unwrap().path, c[0].path);
+    }
+
+    #[test]
+    fn select_prefers_newest_version_regardless_of_order() {
+        // The stale-shadow scenario: old 2.1.11 in LOCALAPPDATA (found first
+        // via PATH), fresh 2.2.5 in go\bin. Newest must win in both orders.
+        let stale = cand("C:\\lad\\gentle-ai\\bin\\gentle-ai.exe", Some("2.1.11"), false);
+        let fresh = cand("C:\\home\\go\\bin\\gentle-ai.exe", Some("2.2.5"), true);
+        let stale_first = [stale.clone(), fresh.clone()];
+        assert_eq!(
+            select_gentle_ai_candidate(&stale_first).unwrap().path,
+            fresh.path
+        );
+        let fresh_first = [fresh.clone(), stale];
+        assert_eq!(
+            select_gentle_ai_candidate(&fresh_first).unwrap().path,
+            fresh.path
+        );
+    }
+
+    #[test]
+    fn select_newer_version_beats_go_bin_preference() {
+        // Version wins over location: a newer copy OUTSIDE go\bin beats an
+        // older one inside it.
+        let older_go = cand("C:\\home\\go\\bin\\gentle-ai.exe", Some("2.2.0"), true);
+        let newer_other = cand("C:\\elsewhere\\gentle-ai.exe", Some("2.3.0"), false);
+        let candidates = [older_go, newer_other.clone()];
+        assert_eq!(
+            select_gentle_ai_candidate(&candidates).unwrap().path,
+            newer_other.path
+        );
+    }
+
+    #[test]
+    fn select_tie_prefers_go_bin() {
+        let a = cand("C:\\lad\\gentle-ai\\bin\\gentle-ai.exe", Some("2.2.5"), false);
+        let b = cand("C:\\home\\go\\bin\\gentle-ai.exe", Some("2.2.5"), true);
+        let candidates = [a, b.clone()];
+        assert_eq!(
+            select_gentle_ai_candidate(&candidates).unwrap().path,
+            b.path
+        );
+    }
+
+    #[test]
+    fn select_tie_without_go_bin_keeps_discovery_order() {
+        let first = cand("C:\\first\\gentle-ai.exe", Some("2.2.5"), false);
+        let second = cand("C:\\second\\gentle-ai.exe", Some("2.2.5"), false);
+        let candidates = [first.clone(), second];
+        assert_eq!(
+            select_gentle_ai_candidate(&candidates).unwrap().path,
+            first.path
+        );
+    }
+
+    #[test]
+    fn select_readable_version_beats_unreadable() {
+        let unreadable = cand("C:\\home\\go\\bin\\gentle-ai.exe", None, true);
+        let readable = cand("C:\\lad\\gentle-ai\\bin\\gentle-ai.exe", Some("2.1.11"), false);
+        // Even when the unreadable one sits in go\bin: a version we can
+        // actually read is more trustworthy than a binary that won't run.
+        let candidates = [unreadable, readable.clone()];
+        assert_eq!(
+            select_gentle_ai_candidate(&candidates).unwrap().path,
+            readable.path
+        );
+    }
+
+    #[test]
+    fn select_both_unreadable_prefers_go_bin() {
+        let a = cand("C:\\lad\\gentle-ai\\bin\\gentle-ai.exe", None, false);
+        let b = cand("C:\\home\\go\\bin\\gentle-ai.exe", None, true);
+        let candidates = [a, b.clone()];
+        assert_eq!(
+            select_gentle_ai_candidate(&candidates).unwrap().path,
+            b.path
+        );
+    }
+
+    // ── extract_semver ──────────────────────────────────────────────────
+
+    #[test]
+    fn extract_semver_finds_first_triplet() {
+        assert_eq!(
+            extract_semver("gentle-ai version 2.1.11 (windows/amd64)"),
+            Some("2.1.11".to_string())
+        );
+        assert_eq!(extract_semver("v2.2.5"), Some("2.2.5".to_string()));
+        assert_eq!(extract_semver("no version here"), None);
+        assert_eq!(extract_semver("1.2"), None);
     }
 }
