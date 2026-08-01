@@ -5514,7 +5514,7 @@ async fn gentle_ai_status() -> Result<GentleAiStatus, String> {
 }
 
 #[tauri::command]
-async fn gentle_ai_sync(include_theme: bool) -> Result<String, String> {
+async fn gentle_ai_sync(include_theme: bool, strict_tdd: bool) -> Result<String, String> {
     tokio::task::spawn_blocking(move || -> Result<String, String> {
         let program = resolve_gentle_ai()
             .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
@@ -5522,6 +5522,9 @@ async fn gentle_ai_sync(include_theme: bool) -> Result<String, String> {
         cmd.arg("sync");
         if include_theme {
             cmd.arg("--include-theme");
+        }
+        if strict_tdd {
+            cmd.arg("--strict-tdd");
         }
         let out = cmd
             .output()
@@ -5577,6 +5580,216 @@ async fn gentle_ai_uninstall_component(component: String) -> Result<String, Stri
         }
         invalidate_workspace_summary_cache();
         Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+// ─── Receipt Driven Development (RDD) review mode ────────────────────────
+//
+// gentle-ai ≥2.2 exposes a machine-level kill switch for receipt-driven
+// development: `gentle-ai review mode status | enable | disable` with
+// `--scope global`. The CLI resolves review-mode repository identity via
+// `git rev-parse --show-toplevel` even for `--scope global`, so the command
+// must run with its cwd inside SOME git repository or it exits 1. CSK owns
+// a scratch repo under ~/.claude/csk-review-mode-repo for exactly that.
+
+#[derive(serde::Serialize, Debug, PartialEq)]
+struct ReviewModeStatus {
+    /// Effective headline state — `true` when RDD is on for this machine.
+    enabled: bool,
+    /// `"on" | "off" | "unset"` — "" when gentle-ai omitted the line.
+    global_setting: String,
+    /// `"on" | "off" | "unset"` — "" when gentle-ai omitted the line.
+    clone_local: String,
+    /// Scope that decided the headline state — `"global" | "clone_local"`,
+    /// "" when gentle-ai omitted the decider.
+    decided_by: String,
+}
+
+/// JSON envelope of `gentle-ai review mode status --json`
+/// (`schema: gentle-ai.review-mode/v1`, verified live on gentle-ai 2.2.4).
+/// The nested status object carries its own schema field
+/// (`gentle-ai.rdd-mode-status/v1`), ignored here by serde's default
+/// unknown-field tolerance.
+#[derive(serde::Deserialize)]
+struct ReviewModeJsonEnvelope {
+    schema: String,
+    status: ReviewModeJsonStatus,
+}
+
+#[derive(serde::Deserialize)]
+struct ReviewModeJsonStatus {
+    #[serde(default)]
+    global: String,
+    #[serde(default)]
+    clone_local: String,
+    effective: String,
+    #[serde(default)]
+    source: String,
+}
+
+/// Parse the versioned `--json` output of `gentle-ai review mode status`.
+/// Errs when stdout is not the `gentle-ai.review-mode/v1` envelope (e.g. a
+/// pre-`--json` CLI printed the human text) so the caller can fall back to
+/// `parse_review_mode_status`. Empty `global`/`clone_local`/`source` fields
+/// pass through as "" — the same "omitted" semantics as the text parser.
+fn parse_review_mode_status_json(output: &str) -> Result<ReviewModeStatus, String> {
+    let envelope: ReviewModeJsonEnvelope = serde_json::from_str(output)
+        .map_err(|e| format!("not gentle-ai.review-mode/v1 JSON: {e}"))?;
+    if envelope.schema != "gentle-ai.review-mode/v1" {
+        return Err(format!(
+            "unexpected review-mode schema `{}`",
+            envelope.schema
+        ));
+    }
+    let enabled = match envelope.status.effective.as_str() {
+        "on" => true,
+        "off" => false,
+        other => return Err(format!("unrecognized effective state `{other}`")),
+    };
+    Ok(ReviewModeStatus {
+        enabled,
+        global_setting: envelope.status.global,
+        clone_local: envelope.status.clone_local,
+        decided_by: envelope.status.source,
+    })
+}
+
+/// Fallback parser for the human text of `gentle-ai review mode status`
+/// (pre-`--json` CLIs):
+///
+/// ```text
+/// receipt-driven development: on (decided by global)
+///   global:      on
+///   clone-local: unset
+/// ```
+///
+/// The headline is the only hard requirement; scope lines and the decider
+/// default to empty when absent so a leaner future format still parses.
+/// No `regex` crate (no extra dep) — the format is line-prefix regular.
+fn parse_review_mode_status(output: &str) -> Result<ReviewModeStatus, String> {
+    let mut enabled: Option<bool> = None;
+    let mut global_setting = String::new();
+    let mut clone_local = String::new();
+    let mut decided_by = String::new();
+
+    for line in output.lines() {
+        let line = line.trim();
+        if let Some(rest) = line.strip_prefix("receipt-driven development:") {
+            let rest = rest.trim();
+            enabled = match rest.split_whitespace().next() {
+                Some("on") => Some(true),
+                Some("off") => Some(false),
+                _ => None,
+            };
+            if let Some(idx) = rest.find("(decided by ") {
+                decided_by = rest[idx + "(decided by ".len()..]
+                    .trim_end_matches(')')
+                    .trim()
+                    .to_string();
+            }
+        } else if let Some(rest) = line.strip_prefix("global:") {
+            global_setting = rest.trim().to_string();
+        } else if let Some(rest) = line.strip_prefix("clone-local:") {
+            clone_local = rest.trim().to_string();
+        }
+    }
+
+    match enabled {
+        Some(enabled) => Ok(ReviewModeStatus {
+            enabled,
+            global_setting,
+            clone_local,
+            decided_by,
+        }),
+        None => Err(format!(
+            "unrecognized `gentle-ai review mode status` output:\n{output}"
+        )),
+    }
+}
+
+/// Ensure the CSK-owned scratch git repository the review-mode commands run
+/// from. Stable per-user location following the `csk-` scratch-dir naming
+/// convention (see the skill-audit cache dir). Idempotent: creates the dir
+/// and runs `git init` only when `<dir>/.git` is missing.
+fn ensure_review_mode_scratch_repo() -> Result<PathBuf, String> {
+    let dir = dirs_home()
+        .ok_or_else(|| "could not resolve the user home directory".to_string())?
+        .join(".claude")
+        .join("csk-review-mode-repo");
+    if !dir.join(".git").exists() {
+        fs::create_dir_all(&dir).map_err(|e| format!("create {}: {e}", dir.display()))?;
+        git_in(&dir, &["init"])?;
+    }
+    Ok(dir)
+}
+
+/// Blocking read of the current review-mode status. Shared by the status
+/// command and the tail of `gentle_ai_review_mode_set` (which re-reads so
+/// the UI can update from the returned value without a separate refetch).
+fn read_review_mode_status_blocking() -> Result<ReviewModeStatus, String> {
+    let program = resolve_gentle_ai()
+        .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
+    let repo = ensure_review_mode_scratch_repo()?;
+    let out = silent_command(&program)
+        .current_dir(&repo)
+        .args(["review", "mode", "status", "--json"])
+        .output()
+        .map_err(|e| format_spawn_error("gentle-ai", &e))?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        return Err(format!(
+            "gentle-ai review mode status exited {}:\n{stderr}\n{stdout}",
+            out.status
+        ));
+    }
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    // Versioned JSON first; fall back to the human text for pre-`--json` CLIs.
+    parse_review_mode_status_json(&stdout).or_else(|_| parse_review_mode_status(&stdout))
+}
+
+#[tauri::command]
+async fn gentle_ai_review_mode_status() -> Result<ReviewModeStatus, String> {
+    tokio::task::spawn_blocking(read_review_mode_status_blocking)
+        .await
+        .map_err(|e| format!("task join: {e}"))?
+}
+
+#[tauri::command]
+async fn gentle_ai_review_mode_set(enable: bool) -> Result<ReviewModeStatus, String> {
+    tokio::task::spawn_blocking(move || -> Result<ReviewModeStatus, String> {
+        let program = resolve_gentle_ai()
+            .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
+        let repo = ensure_review_mode_scratch_repo()?;
+        let action = if enable { "enable" } else { "disable" };
+        let out = silent_command(&program)
+            .current_dir(&repo)
+            .args(["review", "mode", action, "--scope", "global"])
+            .output()
+            .map_err(|e| format_spawn_error("gentle-ai", &e))?;
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            return Err(format!(
+                "gentle-ai review mode {action} exited {}:\n{stderr}\n{stdout}",
+                out.status
+            ));
+        }
+        // The global write above already succeeded (exit status checked), so
+        // a failed confirmation read must not surface as a failed toggle:
+        // the UI would keep rendering the pre-toggle state while the machine
+        // state actually changed. Fall back to the state implied by the
+        // write itself; the next status fetch reconciles the full picture.
+        read_review_mode_status_blocking().or_else(|_| {
+            Ok(ReviewModeStatus {
+                enabled: enable,
+                global_setting: if enable { "on" } else { "off" }.to_string(),
+                clone_local: "unset".to_string(),
+                decided_by: "global".to_string(),
+            })
+        })
     })
     .await
     .map_err(|e| format!("task join: {e}"))?
@@ -7845,6 +8058,8 @@ pub fn run() {
             gentle_ai_status,
             gentle_ai_sync,
             gentle_ai_uninstall_component,
+            gentle_ai_review_mode_status,
+            gentle_ai_review_mode_set,
             check_stack_update,
             apply_stack_update,
             open_stack_install_wizard,
@@ -8336,5 +8551,126 @@ mod tests {
         assert_eq!(extract_semver("v2.2.5"), Some("2.2.5".to_string()));
         assert_eq!(extract_semver("no version here"), None);
         assert_eq!(extract_semver("1.2"), None);
+    }
+
+    // ── parse_review_mode_status_json ───────────────────────────────────
+
+    #[test]
+    fn review_mode_json_parses_live_v1_envelope() {
+        // Verbatim `gentle-ai review mode status --json` output, verified
+        // live on gentle-ai 2.2.4.
+        let out = r#"{"schema":"gentle-ai.review-mode/v1","status":{"schema":"gentle-ai.rdd-mode-status/v1","global":"on","clone_local":"","effective":"on","source":"global"}}"#;
+        let status = parse_review_mode_status_json(out).expect("v1 envelope parses");
+        assert_eq!(
+            status,
+            ReviewModeStatus {
+                enabled: true,
+                global_setting: "on".to_string(),
+                clone_local: "".to_string(),
+                decided_by: "global".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn review_mode_json_parses_off_decided_by_clone_local() {
+        let out = r#"{"schema":"gentle-ai.review-mode/v1","status":{"global":"on","clone_local":"off","effective":"off","source":"clone_local"}}"#;
+        let status = parse_review_mode_status_json(out).expect("v1 envelope parses");
+        assert_eq!(
+            status,
+            ReviewModeStatus {
+                enabled: false,
+                global_setting: "on".to_string(),
+                clone_local: "off".to_string(),
+                decided_by: "clone_local".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn review_mode_json_rejects_non_v1_or_non_json() {
+        // Human text (pre-`--json` CLI) must Err so the caller falls back
+        // to parse_review_mode_status.
+        assert!(
+            parse_review_mode_status_json("receipt-driven development: on (decided by global)\n")
+                .is_err()
+        );
+        // A different envelope schema must not be guessed at.
+        assert!(parse_review_mode_status_json(
+            r#"{"schema":"gentle-ai.review-mode/v2","status":{"effective":"on"}}"#
+        )
+        .is_err());
+        // An effective state that is neither on nor off must not be guessed.
+        assert!(parse_review_mode_status_json(
+            r#"{"schema":"gentle-ai.review-mode/v1","status":{"effective":"maybe"}}"#
+        )
+        .is_err());
+    }
+
+    // ── parse_review_mode_status (text fallback for pre-`--json` CLIs) ──
+
+    #[test]
+    fn review_mode_parses_on_decided_by_global() {
+        let out = "receipt-driven development: on (decided by global)\n\
+                   \x20 global:      on\n\
+                   \x20 clone-local: unset\n";
+        let status = parse_review_mode_status(out).expect("valid output parses");
+        assert_eq!(
+            status,
+            ReviewModeStatus {
+                enabled: true,
+                global_setting: "on".to_string(),
+                clone_local: "unset".to_string(),
+                decided_by: "global".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn review_mode_parses_off_decided_by_clone_local() {
+        let out = "receipt-driven development: off (decided by clone_local)\n\
+                   \x20 global:      on\n\
+                   \x20 clone-local: off\n";
+        let status = parse_review_mode_status(out).expect("valid output parses");
+        assert_eq!(
+            status,
+            ReviewModeStatus {
+                enabled: false,
+                global_setting: "on".to_string(),
+                clone_local: "off".to_string(),
+                decided_by: "clone_local".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn review_mode_parses_both_scopes_unset() {
+        let out = "receipt-driven development: off (decided by global)\n\
+                   \x20 global:      unset\n\
+                   \x20 clone-local: unset\n";
+        let status = parse_review_mode_status(out).expect("valid output parses");
+        assert!(!status.enabled);
+        assert_eq!(status.global_setting, "unset");
+        assert_eq!(status.clone_local, "unset");
+    }
+
+    #[test]
+    fn review_mode_tolerates_headline_without_decider_or_scopes() {
+        // Defensive: a future gentle-ai may print the headline alone. The
+        // headline is the only hard requirement; missing details stay empty.
+        let status =
+            parse_review_mode_status("receipt-driven development: on\n").expect("headline parses");
+        assert!(status.enabled);
+        assert_eq!(status.global_setting, "");
+        assert_eq!(status.clone_local, "");
+        assert_eq!(status.decided_by, "");
+    }
+
+    #[test]
+    fn review_mode_rejects_unrecognized_output() {
+        assert!(parse_review_mode_status("").is_err());
+        assert!(parse_review_mode_status("some unrelated banner\n").is_err());
+        // A headline whose state is neither on nor off must not guess.
+        assert!(parse_review_mode_status("receipt-driven development: maybe\n").is_err());
     }
 }

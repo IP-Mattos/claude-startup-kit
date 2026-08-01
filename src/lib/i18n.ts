@@ -420,6 +420,26 @@ const STRINGS = {
   "claudewatch.installing": { en: "Installing…", es: "Instalando…" },
   "claudewatch.install_ok": { en: "Installed to {path}", es: "Instalado en {path}" },
 
+  // Receipt Driven Development (gentle-ai review mode, settings section)
+  "rdd.title": {
+    en: "Receipt Driven Development (RDD)",
+    es: "Receipt Driven Development (RDD)",
+  },
+  "rdd.desc": {
+    en: "Machine-level switch for gentle-ai's receipt-driven review mode. Applies to every clone on this machine (global scope).",
+    es: "Interruptor a nivel de máquina para el modo de revisión receipt-driven de gentle-ai. Se aplica a todos los clones de esta máquina (alcance global).",
+  },
+  "rdd.state_on": { en: "On", es: "Activado" },
+  "rdd.state_off": { en: "Off", es: "Desactivado" },
+  "rdd.scope_line": {
+    en: "Decided by: {decided} · global: {global} · clone-local: {local}",
+    es: "Decidido por: {decided} · global: {global} · clone-local: {local}",
+  },
+  "rdd.enable": { en: "Enable RDD", es: "Activar RDD" },
+  "rdd.disable": { en: "Disable RDD", es: "Desactivar RDD" },
+  "rdd.applying": { en: "Applying…", es: "Aplicando…" },
+  "rdd.value_unset": { en: "unset", es: "sin definir" },
+
   // Banners (top of content area)
   "banner.app_available": {
     en: "Claude Startup Kit v{latest}",
@@ -750,6 +770,11 @@ const STRINGS = {
   "claude.sync_all_with_theme": { en: "Sync with theme", es: "Sincronizar con tema" },
   "claude.syncing": { en: "Syncing…", es: "Sincronizando…" },
   "claude.sync_done": { en: "Sync complete", es: "Sync completo" },
+  "claude.sync_strict_tdd": { en: "Strict TDD", es: "TDD estricto" },
+  "claude.sync_strict_tdd_hint": {
+    en: "Adds --strict-tdd to the gentle-ai sync run",
+    es: "Agrega --strict-tdd a la ejecución de gentle-ai sync",
+  },
   "claude.uninstall": { en: "Uninstall", es: "Desinstalar" },
   "claude.uninstalling": { en: "Uninstalling…", es: "Desinstalando…" },
   "claude.uninstall_hint": {

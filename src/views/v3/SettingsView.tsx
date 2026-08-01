@@ -42,6 +42,15 @@ type ClaudeCodeStatus = {
   path_version: string;
 };
 
+// Mirror of the Rust `ReviewModeStatus` struct returned by
+// `gentle_ai_review_mode_status` / `gentle_ai_review_mode_set`.
+type ReviewModeStatus = {
+  enabled: boolean;
+  global_setting: string;
+  clone_local: string;
+  decided_by: string;
+};
+
 interface SettingsViewProps {
   companionName: string;
   companionImage: string | null;
@@ -235,6 +244,52 @@ export function SettingsView({
       setCwMessage({ text: friendlyErrorEn(e), error: true });
     } finally {
       setCwBusy(false);
+    }
+  };
+
+  // Receipt Driven Development (RDD) — gentle-ai's machine-level review-mode
+  // kill switch. Status fetched on mount; enable/disable returns the fresh
+  // status so no separate refetch is needed. Backend failures surface in
+  // `rddError` — they must not masquerade as an "off" state.
+  const [rddStatus, setRddStatus] = useState<ReviewModeStatus | null>(null);
+  const [rddLoading, setRddLoading] = useState(true);
+  const [rddBusy, setRddBusy] = useState(false);
+  const [rddError, setRddError] = useState<string | null>(null);
+
+  const loadRddStatus = async () => {
+    if (!IS_TAURI) {
+      setRddLoading(false);
+      return;
+    }
+    setRddLoading(true);
+    setRddError(null);
+    try {
+      const s = await invoke<ReviewModeStatus>("gentle_ai_review_mode_status");
+      setRddStatus(s);
+    } catch (e) {
+      setRddError(friendlyErrorEn(e));
+    } finally {
+      setRddLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadRddStatus();
+  }, []);
+
+  const toggleRdd = async () => {
+    if (!IS_TAURI || rddBusy || !rddStatus) return;
+    setRddBusy(true);
+    setRddError(null);
+    try {
+      const s = await invoke<ReviewModeStatus>("gentle_ai_review_mode_set", {
+        enable: !rddStatus.enabled,
+      });
+      setRddStatus(s);
+    } catch (e) {
+      setRddError(friendlyErrorEn(e));
+    } finally {
+      setRddBusy(false);
     }
   };
 
@@ -514,7 +569,7 @@ export function SettingsView({
         </>
       )}
 
-      {/* ── Gentle AI: stack updates, persona, engram sync ── */}
+      {/* ── Gentle AI: stack updates, persona, engram sync, RDD ── */}
       {section === "gentle_ai" && (
         <>
           <article className="v3-card">
@@ -663,6 +718,67 @@ export function SettingsView({
                     ) : (
                       <pre className="v3-engsync-output">{syncOutput.text}</pre>
                     ))}
+                </>
+              )}
+            </div>
+          </article>
+
+          {/* Receipt Driven Development — gentle-ai review-mode kill switch. */}
+          <article className="v3-card">
+            <header className="v3-card-head">
+              <h2 className="v3-card-title">{t("rdd.title")}</h2>
+              {rddStatus &&
+                (rddStatus.enabled ? (
+                  <span className="v3-update-row-status v3-update-row-status-ok">
+                    <Check size={12} strokeWidth={3} /> {t("rdd.state_on")}
+                  </span>
+                ) : (
+                  <span className="v3-update-row-status v3-update-row-status-dim">
+                    {t("rdd.state_off")}
+                  </span>
+                ))}
+            </header>
+            <div className="v3-form">
+              <p className="v3-row-meta">{t("rdd.desc")}</p>
+              {rddLoading && <div className="v3-empty">{t("common.loading")}</div>}
+              {rddStatus && (
+                <p className="v3-row-dim">
+                  {t("rdd.scope_line", {
+                    decided: rddStatus.decided_by || "—",
+                    global: rddStatus.global_setting || t("rdd.value_unset"),
+                    local: rddStatus.clone_local || t("rdd.value_unset"),
+                  })}
+                </p>
+              )}
+              <button
+                type="button"
+                className="v3-btn-primary"
+                onClick={() => {
+                  void toggleRdd();
+                }}
+                disabled={rddBusy || rddLoading || !rddStatus || !IS_TAURI}
+              >
+                {rddBusy
+                  ? t("rdd.applying")
+                  : rddStatus?.enabled
+                    ? t("rdd.disable")
+                    : t("rdd.enable")}
+              </button>
+              {rddError && (
+                <>
+                  <div className="v3-error" role="alert" aria-live="assertive">
+                    {rddError}
+                  </div>
+                  <button
+                    type="button"
+                    className="v3-link"
+                    onClick={() => {
+                      void loadRddStatus();
+                    }}
+                    disabled={rddLoading}
+                  >
+                    {t("banner.retry")}
+                  </button>
                 </>
               )}
             </div>

@@ -37,5 +37,8 @@ dist/
 **/target/
 *.local
 
+# claudewatch TUI binary (CI builds it from source — never commit)
+tools/claudewatch/claudewatch.exe
+
 # Tauri auto-generated
 src-tauri/gen/

@@ -53,6 +53,10 @@ interface GentleAiStatus {
 // English; labels resolve via t() at render.
 type GaiSubTab = "overview" | "components" | "skills" | "mcps" | "discover";
 
+// localStorage "1" flag so the strict-TDD sync choice sticks across
+// sessions — same csk- prefixed key convention as the other persisted prefs.
+const STRICT_TDD_KEY = "csk-sync-strict-tdd";
+
 export function ClaudeView() {
   const { t } = useT();
   const [subTab, setSubTab] = useState<GaiSubTab>("overview");
@@ -75,13 +79,34 @@ export function ClaudeView() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
 
+  // Strict TDD flag forwarded to `gentle-ai sync` as `--strict-tdd`.
+  // Persisted so the checkbox choice survives reloads.
+  const [strictTdd, setStrictTdd] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(STRICT_TDD_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleStrictTdd = () => {
+    setStrictTdd((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(STRICT_TDD_KEY, next ? "1" : "0");
+      } catch {
+        /* localStorage unavailable */
+      }
+      return next;
+    });
+  };
+
   const runSync = async (includeTheme: boolean) => {
     if (!IS_TAURI || syncing) return;
     setSyncing(true);
     setSyncResult(null);
     setError(null);
     try {
-      await invoke<string>("gentle_ai_sync", { includeTheme });
+      await invoke<string>("gentle_ai_sync", { includeTheme, strictTdd });
       setSyncResult(t("claude.sync_done"));
       // Bumping the nonce re-fetches status / skills / mcps so the
       // grid reflects whatever sync just installed.
@@ -397,6 +422,18 @@ export function ClaudeView() {
                 {t("claude.sync_all_with_theme")}
               </button>
             </div>
+            <label className="v3-toggle-row">
+              <input
+                type="checkbox"
+                checked={strictTdd}
+                disabled={syncing}
+                onChange={toggleStrictTdd}
+              />
+              <div className="v3-toggle-body">
+                <div className="v3-toggle-label">{t("claude.sync_strict_tdd")}</div>
+                <div className="v3-row-meta">{t("claude.sync_strict_tdd_hint")}</div>
+              </div>
+            </label>
             {syncResult && (
               <div className="v3-success v3-gai-sync-result" role="status" aria-live="polite">
                 <CheckCircle2 size={14} strokeWidth={2} />
