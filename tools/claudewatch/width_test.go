@@ -39,6 +39,20 @@ func sampleStats() stats {
 		{"DemonTwo", 890.10, 0},
 		{"Polymarket", 612.30, 0},
 	}
+	st.delegation7d = delegation{
+		mainCost: 2163.09, mainTokens: 492380000,
+		subCost: 830.10, subTokens: 224200000,
+		totalRuns: 23, unroutedRuns: 16,
+		rows: []delegationRow{
+			// Long agentType/model combos on purpose — stresses the panel's
+			// dynamic truncation at narrow widths.
+			{agentType: "general-purpose", model: "fable-5-1", runs: 14, cost: 792.69, tokens: 164280000},
+			{agentType: "general-purpose", model: "sonnet-5", runs: 4, cost: 23.94, tokens: 50320000},
+			{agentType: "claude-code-guide", model: "sonnet-5", runs: 2, cost: 3.65, tokens: 4310000},
+			{agentType: "Explore", model: "opus-5", runs: 1, cost: 7.96, tokens: 1840000},
+			{agentType: "Explore", model: "sonnet-5", runs: 1, cost: 1.04, tokens: 981500},
+		},
+	}
 	return st
 }
 

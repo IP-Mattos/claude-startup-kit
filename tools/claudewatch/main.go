@@ -98,6 +98,14 @@ type fileAgg struct {
 	lastCtx                            int // input-side tokens of the newest assistant msg = context occupancy
 	events                             []event
 	isSession                          bool // a top-level session file (not a subagent)
+
+	// Sub-agent attribution, filled from the sidecar meta.json for
+	// !isSession files. agentType is "unknown" when the sidecar is missing
+	// or malformed; requestedModel is empty when the orchestrator passed no
+	// model (an "unrouted" run).
+	agentType      string
+	requestedModel string
+	spawnDepth     int
 }
 
 func parseFile(path string, info fs.FileInfo) fileAgg {
@@ -106,6 +114,16 @@ func parseFile(path string, info fs.FileInfo) fileAgg {
 		mtime:     info.ModTime(),
 		size:      info.Size(),
 		isSession: !strings.Contains(slash, "/subagents/"),
+	}
+	if !fa.isSession {
+		fa.agentType = "unknown"
+		if meta, ok := readAgentMeta(path); ok {
+			if meta.AgentType != "" {
+				fa.agentType = meta.AgentType
+			}
+			fa.requestedModel = meta.Model
+			fa.spawnDepth = meta.SpawnDepth
+		}
 	}
 	f, err := os.Open(path)
 	if err != nil {
@@ -236,6 +254,8 @@ type stats struct {
 	actProject string
 	actLast    time.Time
 	byProject  []projectRow // top projects by spend
+
+	delegation7d delegation // main-thread vs sub-agent split, last 7 days
 }
 
 // sameProject reports whether a session cwd belongs to the focused project,
@@ -406,7 +426,20 @@ func (s *scanner) scan() stats {
 	}
 
 	st.tokPerMin = float64(st.burnTok) / 60.0
+	st.delegation7d = delegationStats(s.aggsSlice(), now.Add(-7*24*time.Hour))
 	return st
+}
+
+// aggsSlice returns the scanner's cached fileAggs as a slice of pointers, for
+// delegationStats (which needs []*fileAgg rather than the path-keyed cache
+// map). Call after scan() has populated s.cache.
+func (s *scanner) aggsSlice() []*fileAgg {
+	aggs := make([]*fileAgg, 0, len(s.cache))
+	for path := range s.cache {
+		fa := s.cache[path]
+		aggs = append(aggs, &fa)
+	}
+	return aggs
 }
 
 // ---------------------------------------------------------------------------
@@ -756,6 +789,36 @@ func (m model) View() string {
 	)
 	spendP := panel("◇ SPEND", spend, cGreen, inner)
 
+	// ---- DELEGATION (7d): main thread vs sub-agents, top roles by spend ----
+	d7 := st.delegation7d
+	total7 := d7.mainCost + d7.subCost
+	mainPct7, subPct7 := 0.0, 0.0
+	if total7 > 0 {
+		mainPct7 = 100 * d7.mainCost / total7
+		subPct7 = 100 * d7.subCost / total7
+	}
+	rows7 := d7.rows
+	if len(rows7) > 5 {
+		rows7 = rows7[:5]
+	}
+	nameW := clampi(inner-4-20, 6, 20)
+	var rb strings.Builder
+	for _, r := range rows7 {
+		label := r.agentType + "/" + r.model
+		rb.WriteString(lipgloss.NewStyle().Foreground(cCyan).Render(padRight(label, nameW)) + " " +
+			txt(padRight(fmtMoney(r.cost), 10)) + dim(fmt.Sprintf("%dx", r.runs)) + "\n")
+	}
+	if len(rows7) == 0 {
+		rb.WriteString(dim("no delegated runs yet"))
+	}
+	delegBody := lipgloss.JoinVertical(lipgloss.Left,
+		dim(padRight("main", 6))+txt(fmtMoney(d7.mainCost))+dim(fmt.Sprintf(" (%.0f%%)", mainPct7)),
+		dim(padRight("sub", 6))+txt(fmtMoney(d7.subCost))+dim(fmt.Sprintf(" (%.0f%%)", subPct7)),
+		dim(fmt.Sprintf("unrouted runs: %d / %d", d7.unroutedRuns, d7.totalRuns)),
+		strings.TrimRight(rb.String(), "\n"),
+	)
+	delegationP := panel("◇ DELEGATION (7d)", delegBody, cMag, inner)
+
 	// ---- TOP PROJECTS (minimal: where the spend goes) ----
 	var pb strings.Builder
 	maxP := 0.0
@@ -779,7 +842,7 @@ func (m model) View() string {
 
 	footer := dim(fmt.Sprintf("[r] refresh  [t] %s  [q] quit", themes[activeTheme].name))
 
-	return lipgloss.JoinVertical(lipgloss.Left, "", header, "", current, "", spendP, "", projects, "", footer)
+	return lipgloss.JoinVertical(lipgloss.Left, "", header, "", current, "", spendP, "", delegationP, "", projects, "", footer)
 }
 
 // ---------------------------------------------------------------------------
@@ -804,6 +867,12 @@ func printStatsText(st stats) {
 		fmt.Printf("  %-18s %-12s %8s  %-10s %s\n",
 			s.project, shortModel(s.model), fmtTokens(s.tokens), fmtMoney(s.cost), ago(s.last))
 	}
+	fmt.Println()
+	top := st.delegation7d
+	if len(top.rows) > 5 {
+		top.rows = top.rows[:5]
+	}
+	fmt.Println(renderDelegationReport(top, 7))
 }
 
 // statuslinePayload is the compact JSON the statusline script reads. The
@@ -846,7 +915,15 @@ func main() {
 	statuslineFlag := flag.Bool("statusline", false, "write the statusline cache (~/.claudewatch-statusline.json) as JSON and exit")
 	focusCwd := flag.Bool("focus-cwd", false, "focus the dashboard on the session of the current working directory")
 	projectFlag := flag.String("project", "", "focus the dashboard on the session of this project path")
+	reportFlag := flag.Int("report", 7, "print a delegation report (main vs sub-agent spend) for the last N days and exit")
 	flag.Parse()
+
+	reportRequested := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "report" {
+			reportRequested = true
+		}
+	})
 
 	// Remembered theme first, then let an explicit --theme override and persist it.
 	loadThemePref()
@@ -886,6 +963,17 @@ func main() {
 
 	if *statuslineFlag {
 		writeStatuslineCache(sc.scan())
+		return
+	}
+
+	if reportRequested {
+		days := *reportFlag
+		if days <= 0 {
+			days = 7
+		}
+		sc.scan()
+		since := time.Now().Add(-time.Duration(days) * 24 * time.Hour)
+		fmt.Println(renderDelegationReport(delegationStats(sc.aggsSlice(), since), days))
 		return
 	}
 
