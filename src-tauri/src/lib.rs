@@ -5163,8 +5163,18 @@ async fn workspace_summary() -> Result<WorkspaceSummary, String> {
     Ok(summary)
 }
 
+/// Result of `apply_gentle_ai_update`. The binary update and the follow-up
+/// config sync are reported separately: a sync failure after a successful
+/// install must never read as a failed update (the binary DID move), so it
+/// travels as `sync_error` and the drift banner offers the retry.
+#[derive(Debug, Serialize, Clone)]
+pub struct GentleAiUpdateOutcome {
+    pub version: String,
+    pub sync_error: Option<String>,
+}
+
 #[tauri::command]
-async fn apply_gentle_ai_update() -> Result<String, String> {
+async fn apply_gentle_ai_update() -> Result<GentleAiUpdateOutcome, String> {
     // Mirrors the legacy SessionStart hook: irm <installer> | iex via
     // PowerShell. We capture combined stdout+stderr so the renderer can show
     // a useful tail if something goes wrong. The URL is pinned to the release
@@ -5233,7 +5243,20 @@ async fn apply_gentle_ai_update() -> Result<String, String> {
              (typically %LOCALAPPDATA%\\gentle-ai\\bin\\gentle-ai.exe) and retry."
         ));
     }
-    Ok(after)
+    // Second half of the same action: bring the managed config in ~/.claude
+    // up to the new binary. The installer never syncs (on Windows it is a
+    // `go install` wrapper), so without this the binary moves forward while
+    // the config stays at the last manual sync. gentle-ai backs up before
+    // every sync, so this is recoverable. Resolution was already busted
+    // above, so the sync runs the freshly installed binary.
+    let sync_error = tokio::task::spawn_blocking(run_managed_sync)
+        .await
+        .map_err(|e| format!("task join: {e}"))?
+        .err();
+    Ok(GentleAiUpdateOutcome {
+        version: after,
+        sync_error,
+    })
 }
 
 // ─── Gentle-AI verifier (components inventory + sync trigger) ────────────
@@ -5513,34 +5536,191 @@ async fn gentle_ai_status() -> Result<GentleAiStatus, String> {
     .map_err(|e| format!("task join: {e}"))?
 }
 
+// ─── Gentle-AI sync helpers (auto-sync after update + drift banner) ───────
+//
+// gentle-ai does not persist the `--strict-tdd` / `--include-theme` choices,
+// so every sync CSK triggers must forward them explicitly. Drift between the
+// binary and the managed config is detected the way gentle-ai doctor does
+// it: `~/.gentle-ai/state.json` records the binary version that produced the
+// installed assets, and `gentle-ai sync` rewrites it to the running version.
+
+/// Argument vector for `gentle-ai sync`. Order matches the historical
+/// command line (sync, --include-theme, --strict-tdd) so logs stay
+/// comparable across the manual and automatic paths.
+fn gentle_ai_sync_args(strict_tdd: bool, include_theme: bool) -> Vec<&'static str> {
+    let mut args = vec!["sync"];
+    if include_theme {
+        args.push("--include-theme");
+    }
+    if strict_tdd {
+        args.push("--strict-tdd");
+    }
+    args
+}
+
+/// True when the installed assets were produced by a different binary
+/// version than the one running. Either side empty means "unknown" and is
+/// reported as current, mirroring gentle-ai doctor which skips the check
+/// in that case. Exact string inequality, not ordering; callers pass
+/// semver-normalized values (see `read_installed_assets_version`).
+fn assets_out_of_date(installed_assets: &str, running: &str) -> bool {
+    if installed_assets.is_empty() || running.is_empty() {
+        return false;
+    }
+    installed_assets != running
+}
+
+/// `installed_binary_version` from `~/.gentle-ai/state.json`, trimmed.
+/// None on invalid JSON, a missing or non-string field, or an empty value.
+fn parse_installed_assets_version(json: &str) -> Option<String> {
+    let value: serde_json::Value = serde_json::from_str(json).ok()?;
+    let version = value.get("installed_binary_version")?.as_str()?.trim();
+    if version.is_empty() {
+        None
+    } else {
+        Some(version.to_string())
+    }
+}
+
+/// Version that produced the installed assets, from
+/// `~/.gentle-ai/state.json`, normalized to `M.m.p`. None when the file is
+/// missing, unreadable, or carries no semver; the drift check treats that
+/// as "unknown", not as drift.
+fn read_installed_assets_version() -> Option<String> {
+    let path = dirs_home()?.join(".gentle-ai").join("state.json");
+    let raw = fs::read_to_string(path).ok()?;
+    // Same scraper the binary probe uses, so a suffixed value (2.7.0-rc.1)
+    // compares equal to what `gentle-ai version` reports instead of
+    // creating permanent drift.
+    parse_installed_assets_version(&raw).and_then(|v| extract_semver(&v))
+}
+
+/// Whether the gentle-ai theme component is currently on disk. Reuses the
+/// components-grid probe so an automatic sync keeps the theme exactly when
+/// the verifier would show it as installed.
+fn theme_installed() -> bool {
+    let Some(home) = dirs_home() else {
+        return false;
+    };
+    detect_component("theme", &home.join(".claude"), None)
+}
+
+/// gentle-ai records the Strict TDD choice as a managed block in
+/// `~/.claude/CLAUDE.md` (written by its sdd component when `sync
+/// --strict-tdd` runs, removed on uninstall): an opening
+/// `<!-- gentle-ai:strict-tdd-mode -->` comment, the line
+/// `Strict TDD Mode: enabled`, and the matching closing comment. True only
+/// when that block exists and carries the exact enabled line. Line-based,
+/// so CRLF and stray indentation do not matter.
+fn parse_strict_tdd_marker(claude_md: &str) -> bool {
+    let mut in_block = false;
+    for line in claude_md.lines() {
+        match line.trim() {
+            "<!-- gentle-ai:strict-tdd-mode -->" => in_block = true,
+            "<!-- /gentle-ai:strict-tdd-mode -->" => in_block = false,
+            "Strict TDD Mode: enabled" if in_block => return true,
+            _ => {}
+        }
+    }
+    false
+}
+
+/// Whether Strict TDD is currently installed, read from disk the same way
+/// `theme_installed` reads the theme. False when CLAUDE.md is unreadable.
+fn strict_tdd_installed() -> bool {
+    let Some(home) = dirs_home() else {
+        return false;
+    };
+    fs::read_to_string(home.join(".claude").join("CLAUDE.md"))
+        .map(|md| parse_strict_tdd_marker(&md))
+        .unwrap_or(false)
+}
+
+/// Single place that spawns `gentle-ai sync`: formats failures the same
+/// way for every caller, busts the workspace summary cache on success
+/// (sync can install a brand-new CLI as a side effect) and returns stdout.
+fn run_gentle_ai_sync(
+    program: &str,
+    strict_tdd: bool,
+    include_theme: bool,
+) -> Result<String, String> {
+    let out = silent_command(program)
+        .args(gentle_ai_sync_args(strict_tdd, include_theme))
+        .output()
+        .map_err(|e| format_spawn_error("gentle-ai", &e))?;
+    if !out.status.success() {
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        return Err(format!(
+            "gentle-ai sync exited {}:\n{stderr}\n{stdout}",
+            out.status
+        ));
+    }
+    invalidate_workspace_summary_cache();
+    Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
+/// The one owner of the preserve rule for every sync CSK triggers on its
+/// own (post-update, "Update all", the drift banner): resolve the binary,
+/// read the Strict TDD and theme choices from disk, and run the sync with
+/// both forwarded. The manual `gentle_ai_sync` command stays explicit
+/// because there the user picks the flags.
+fn run_managed_sync() -> Result<String, String> {
+    let program = resolve_gentle_ai()
+        .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
+    run_gentle_ai_sync(&program, strict_tdd_installed(), theme_installed())
+}
+
 #[tauri::command]
 async fn gentle_ai_sync(include_theme: bool, strict_tdd: bool) -> Result<String, String> {
     tokio::task::spawn_blocking(move || -> Result<String, String> {
         let program = resolve_gentle_ai()
             .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
-        let mut cmd = silent_command(&program);
-        cmd.arg("sync");
-        if include_theme {
-            cmd.arg("--include-theme");
+        run_gentle_ai_sync(&program, strict_tdd, include_theme)
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
+/// Drift between the running gentle-ai binary and the managed config it
+/// last installed. Feeds the "config out of date" banner. Versions are
+/// semver-normalized; an empty `assets_version` means unknown.
+#[derive(Debug, Serialize, Clone)]
+pub struct GentleAiSyncStatus {
+    pub binary_version: String,
+    pub assets_version: String,
+    pub sync_needed: bool,
+}
+
+#[tauri::command]
+async fn gentle_ai_sync_status() -> Result<GentleAiSyncStatus, String> {
+    tokio::task::spawn_blocking(|| {
+        // Re-resolve from scratch: a `go install` done outside CSK may have
+        // dropped a newer binary into a directory the cached resolution
+        // never looked at, and that is exactly the drift this probe exists
+        // to catch.
+        invalidate_gentle_ai_resolution();
+        let binary_version = read_gentle_ai_version();
+        let assets_version = read_installed_assets_version().unwrap_or_default();
+        let sync_needed = assets_out_of_date(&assets_version, &binary_version);
+        GentleAiSyncStatus {
+            binary_version,
+            assets_version,
+            sync_needed,
         }
-        if strict_tdd {
-            cmd.arg("--strict-tdd");
-        }
-        let out = cmd
-            .output()
-            .map_err(|e| format_spawn_error("gentle-ai", &e))?;
-        if !out.status.success() {
-            let stderr = String::from_utf8_lossy(&out.stderr);
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            return Err(format!(
-                "gentle-ai sync exited {}:\n{stderr}\n{stdout}",
-                out.status
-            ));
-        }
-        // Cache bust — workspace_summary surfaces gentle-ai version and
-        // sync can install a brand-new CLI as a side effect.
-        invalidate_workspace_summary_cache();
-        Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))
+}
+
+/// One-click resync from the drift banner. Thin wrapper over
+/// `run_managed_sync`; resolution is busted first so the sync runs the
+/// newest binary, never a stale cached path.
+#[tauri::command]
+async fn gentle_ai_resync() -> Result<String, String> {
+    tokio::task::spawn_blocking(|| {
+        invalidate_gentle_ai_resolution();
+        run_managed_sync()
     })
     .await
     .map_err(|e| format!("task join: {e}"))?
@@ -6017,6 +6197,49 @@ fn discover_stack_tool_names(program: &str) -> Vec<String> {
         .collect()
 }
 
+/// Result of `apply_stack_update`. Like `GentleAiUpdateOutcome`, the
+/// upgrade log and the follow-up config sync are reported separately so a
+/// sync failure never masquerades as a failed upgrade.
+#[derive(Debug, Serialize, Clone)]
+pub struct StackUpdateOutcome {
+    pub log: String,
+    pub sync_error: Option<String>,
+}
+
+/// Post-step for `apply_stack_update`, run once after the upgrade task
+/// succeeds: when the gentle-ai binary advanced, or the managed config
+/// already lagged the binary, run the managed sync and append its output
+/// to the log. Resolution is busted first so the version probe and the
+/// sync both use the new binary rather than the cached pre-upgrade path.
+/// A sync failure travels as `sync_error` (short, without the log) and the
+/// drift banner offers the retry.
+fn sync_after_stack_upgrade(mut log: String, binary_changed: bool) -> StackUpdateOutcome {
+    invalidate_gentle_ai_resolution();
+    let binary = read_gentle_ai_version();
+    let assets = read_installed_assets_version().unwrap_or_default();
+    if !binary_changed && !assets_out_of_date(&assets, &binary) {
+        return StackUpdateOutcome {
+            log,
+            sync_error: None,
+        };
+    }
+    let shown_assets = if assets.is_empty() {
+        "unknown".to_string()
+    } else {
+        format!("v{assets}")
+    };
+    let sync_error = match run_managed_sync() {
+        Ok(stdout) => {
+            log.push_str(&format!(
+                "\n--- gentle-ai sync (assets {shown_assets} -> v{binary}) ---\n{stdout}"
+            ));
+            None
+        }
+        Err(e) => Some(e),
+    };
+    StackUpdateOutcome { log, sync_error }
+}
+
 /// Run `gentle-ai upgrade` (applies updates to ALL managed tools in one call).
 ///
 /// Pre-step: kill known managed tool processes so Windows doesn't block the
@@ -6029,12 +6252,17 @@ fn discover_stack_tool_names(program: &str) -> Vec<String> {
 /// "1 skipped". Without this branch, "Update all" silently does nothing
 /// when the only thing pending IS gentle-ai itself.
 ///
-/// Returns the upgrade output as a string so the renderer can display the
-/// post-run summary. `gentle-ai upgrade` is idempotent — running it when
-/// everything's already current is a no-op.
+/// Returns the upgrade output as a log so the renderer can display the
+/// post-run summary, plus the outcome of the follow-up config sync (see
+/// `sync_after_stack_upgrade`). `gentle-ai upgrade` is idempotent — running
+/// it when everything's already current is a no-op.
 #[tauri::command]
-async fn apply_stack_update() -> Result<String, String> {
-    tokio::task::spawn_blocking(|| -> Result<String, String> {
+async fn apply_stack_update() -> Result<StackUpdateOutcome, String> {
+    // The upgrade proper (Phase 1 + 2) is one blocking task with a single
+    // success exit that also reports whether gentle-ai itself advanced; the
+    // sync post-step runs once on that result below, so no early return in
+    // here can skip it.
+    let upgrade = tokio::task::spawn_blocking(|| -> Result<(String, bool), String> {
         // Resolve gentle-ai first so we can both discover the runtime
         // process-name list AND run the upgrade with the same binary.
         let program = resolve_gentle_ai()
@@ -6134,6 +6362,10 @@ async fn apply_stack_update() -> Result<String, String> {
         // not a regression).
         let needs_self_upgrade = log.contains("manual update required")
             && log.contains("gentle-ai");
+        // Whether gentle-ai itself advanced. The post-step syncs on it even
+        // when state.json cannot be read, since a new binary always needs
+        // its config brought up.
+        let mut binary_changed = false;
         if needs_self_upgrade {
             // Resolve the release tag synchronously (we're already on the
             // blocking pool) so the installer URL is pinned. If resolution
@@ -6151,64 +6383,65 @@ async fn apply_stack_update() -> Result<String, String> {
             } else {
                 None
             };
-            let Some(tag) = tag else {
+            if let Some(tag) = tag {
+                // A tag that fails validation means the upstream release data is
+                // tampered or malformed — refuse to build the command line.
+                validate_release_tag(&tag)?;
+                let before = read_gentle_ai_version();
+                let installer_cmd = format!("irm {} | iex", gentle_ai_installer_url(&tag));
+                let installer_out = silent_command("powershell")
+                    .args(["-NoProfile", "-NonInteractive", "-Command", &installer_cmd])
+                    .output()
+                    .map_err(|e| format_spawn_error("powershell", &e))?;
+                let installer_stdout = String::from_utf8_lossy(&installer_out.stdout);
+                let installer_stderr = String::from_utf8_lossy(&installer_out.stderr);
+                log.push_str("\n--- gentle-ai self-upgrade via installer ---\n");
+                log.push_str(&installer_stdout);
+                if !installer_out.status.success() {
+                    log.push_str("\n[stderr]\n");
+                    log.push_str(&installer_stderr);
+                    return Err(format!(
+                        "gentle-ai installer exited {}: see log\n{log}",
+                        installer_out.status
+                    ));
+                }
+                // Verify the self-upgrade actually took effect. The installer
+                // exiting 0 doesn't prove the newest binary is the one we
+                // resolve — a stale copy elsewhere can shadow it (pre-2.2
+                // installs in %LOCALAPPDATA%\gentle-ai\bin). Re-resolve from
+                // scratch and be honest in the log when nothing advanced.
+                invalidate_gentle_ai_resolution();
+                let resolved = resolve_gentle_ai().unwrap_or_else(|| "not found".to_string());
+                let after = read_gentle_ai_version();
+                if version_is_newer(&after, &before) {
+                    binary_changed = true;
+                    log.push_str(&format!("\n--- gentle-ai upgraded to v{after} ---\n"));
+                } else {
+                    let shown_after = if after.is_empty() {
+                        "unreadable".to_string()
+                    } else {
+                        format!("v{after}")
+                    };
+                    let shown_before = if before.is_empty() {
+                        "none".to_string()
+                    } else {
+                        format!("v{before}")
+                    };
+                    log.push_str(&format!(
+                        "\n--- WARNING: gentle-ai version did not advance after the installer ran \
+                         (before: {shown_before}, after: {shown_after}, resolved path: {resolved}). \
+                         A stale copy may be shadowing the new install — remove the old binary \
+                         (typically %LOCALAPPDATA%\\gentle-ai\\bin\\gentle-ai.exe) and retry. ---\n"
+                    ));
+                }
+            } else {
                 log.push_str(
                     "\n--- gentle-ai self-upgrade skipped: could not resolve release tag (fail-closed, no main fallback) ---\n",
                 );
-                return Ok(log);
-            };
-            // A tag that fails validation means the upstream release data is
-            // tampered or malformed — refuse to build the command line.
-            validate_release_tag(&tag)?;
-            let before = read_gentle_ai_version();
-            let installer_cmd = format!("irm {} | iex", gentle_ai_installer_url(&tag));
-            let installer_out = silent_command("powershell")
-                .args(["-NoProfile", "-NonInteractive", "-Command", &installer_cmd])
-                .output()
-                .map_err(|e| format_spawn_error("powershell", &e))?;
-            let installer_stdout = String::from_utf8_lossy(&installer_out.stdout);
-            let installer_stderr = String::from_utf8_lossy(&installer_out.stderr);
-            log.push_str("\n--- gentle-ai self-upgrade via installer ---\n");
-            log.push_str(&installer_stdout);
-            if !installer_out.status.success() {
-                log.push_str("\n[stderr]\n");
-                log.push_str(&installer_stderr);
-                return Err(format!(
-                    "gentle-ai installer exited {}: see log\n{log}",
-                    installer_out.status
-                ));
-            }
-            // Verify the self-upgrade actually took effect. The installer
-            // exiting 0 doesn't prove the newest binary is the one we
-            // resolve — a stale copy elsewhere can shadow it (pre-2.2
-            // installs in %LOCALAPPDATA%\gentle-ai\bin). Re-resolve from
-            // scratch and be honest in the log when nothing advanced.
-            invalidate_gentle_ai_resolution();
-            let resolved = resolve_gentle_ai().unwrap_or_else(|| "not found".to_string());
-            let after = read_gentle_ai_version();
-            if version_is_newer(&after, &before) {
-                log.push_str(&format!("\n--- gentle-ai upgraded to v{after} ---\n"));
-            } else {
-                let shown_after = if after.is_empty() {
-                    "unreadable".to_string()
-                } else {
-                    format!("v{after}")
-                };
-                let shown_before = if before.is_empty() {
-                    "none".to_string()
-                } else {
-                    format!("v{before}")
-                };
-                log.push_str(&format!(
-                    "\n--- WARNING: gentle-ai version did not advance after the installer ran \
-                     (before: {shown_before}, after: {shown_after}, resolved path: {resolved}). \
-                     A stale copy may be shadowing the new install — remove the old binary \
-                     (typically %LOCALAPPDATA%\\gentle-ai\\bin\\gentle-ai.exe) and retry. ---\n"
-                ));
             }
         }
 
-        Ok(log)
+        Ok((log, binary_changed))
     })
     .await
     .map_err(|e| format!("task join: {e}"))
@@ -6220,7 +6453,11 @@ async fn apply_stack_update() -> Result<String, String> {
         invalidate_workspace_summary_cache();
         invalidate_gentle_ai_resolution();
         res
-    })
+    });
+    let (log, binary_changed) = upgrade?;
+    tokio::task::spawn_blocking(move || sync_after_stack_upgrade(log, binary_changed))
+        .await
+        .map_err(|e| format!("task join: {e}"))
 }
 
 /// Open gentle-ai's interactive install wizard in a NEW visible console
@@ -8057,6 +8294,8 @@ pub fn run() {
             apply_gentle_ai_update,
             gentle_ai_status,
             gentle_ai_sync,
+            gentle_ai_sync_status,
+            gentle_ai_resync,
             gentle_ai_uninstall_component,
             gentle_ai_review_mode_status,
             gentle_ai_review_mode_set,
@@ -8672,5 +8911,167 @@ mod tests {
         assert!(parse_review_mode_status("some unrelated banner\n").is_err());
         // A headline whose state is neither on nor off must not guess.
         assert!(parse_review_mode_status("receipt-driven development: maybe\n").is_err());
+    }
+
+    // ── gentle_ai_sync_args ─────────────────────────────────────────────
+
+    #[test]
+    fn gentle_ai_sync_args_plain() {
+        assert_eq!(gentle_ai_sync_args(false, false), vec!["sync"]);
+    }
+
+    #[test]
+    fn gentle_ai_sync_args_theme_only() {
+        assert_eq!(
+            gentle_ai_sync_args(false, true),
+            vec!["sync", "--include-theme"]
+        );
+    }
+
+    #[test]
+    fn gentle_ai_sync_args_strict_tdd_only() {
+        assert_eq!(gentle_ai_sync_args(true, false), vec!["sync", "--strict-tdd"]);
+    }
+
+    #[test]
+    fn gentle_ai_sync_args_both_flags_keep_command_order() {
+        // Order mirrors the historical `gentle_ai_sync` command line:
+        // sync, then --include-theme, then --strict-tdd.
+        assert_eq!(
+            gentle_ai_sync_args(true, true),
+            vec!["sync", "--include-theme", "--strict-tdd"]
+        );
+    }
+
+    // ── assets_out_of_date ──────────────────────────────────────────────
+
+    #[test]
+    fn assets_out_of_date_skips_when_either_side_empty() {
+        // Mirrors gentle-ai doctor, which skips the check when a side is
+        // unknown — an unreadable binary or a missing state.json is not drift.
+        assert!(!assets_out_of_date("", "2.2.5"));
+        assert!(!assets_out_of_date("2.2.4", ""));
+        assert!(!assets_out_of_date("", ""));
+    }
+
+    #[test]
+    fn assets_out_of_date_equal_versions_are_current() {
+        assert!(!assets_out_of_date("2.2.5", "2.2.5"));
+    }
+
+    #[test]
+    fn assets_out_of_date_different_versions_drift() {
+        assert!(assets_out_of_date("2.2.4", "2.2.5"));
+        // Exact inequality, not ordering: newer assets than binary is drift too.
+        assert!(assets_out_of_date("2.2.6", "2.2.5"));
+    }
+
+    // ── parse_installed_assets_version ──────────────────────────────────
+
+    #[test]
+    fn parse_installed_assets_version_reads_field() {
+        let json = r#"{"installed_binary_version":"2.2.4","installed_agents":["claude"]}"#;
+        assert_eq!(
+            parse_installed_assets_version(json),
+            Some("2.2.4".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_installed_assets_version_trims_whitespace() {
+        assert_eq!(
+            parse_installed_assets_version(r#"{"installed_binary_version":" 2.2.4\n"}"#),
+            Some("2.2.4".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_installed_assets_version_none_when_field_missing() {
+        assert_eq!(
+            parse_installed_assets_version(r#"{"installed_agents":["claude"]}"#),
+            None
+        );
+        assert_eq!(parse_installed_assets_version("{}"), None);
+    }
+
+    #[test]
+    fn parse_installed_assets_version_none_when_field_empty() {
+        assert_eq!(
+            parse_installed_assets_version(r#"{"installed_binary_version":""}"#),
+            None
+        );
+        assert_eq!(
+            parse_installed_assets_version(r#"{"installed_binary_version":"   "}"#),
+            None
+        );
+    }
+
+    #[test]
+    fn parse_installed_assets_version_none_when_field_not_string() {
+        assert_eq!(
+            parse_installed_assets_version(r#"{"installed_binary_version":225}"#),
+            None
+        );
+        assert_eq!(
+            parse_installed_assets_version(r#"{"installed_binary_version":null}"#),
+            None
+        );
+        assert_eq!(
+            parse_installed_assets_version(r#"{"installed_binary_version":["2.2.4"]}"#),
+            None
+        );
+    }
+
+    #[test]
+    fn parse_installed_assets_version_none_on_invalid_json() {
+        assert_eq!(parse_installed_assets_version("not json"), None);
+        assert_eq!(parse_installed_assets_version(""), None);
+        assert_eq!(parse_installed_assets_version("[]"), None);
+        assert_eq!(
+            parse_installed_assets_version(r#"{"installed_binary_version":"2.2.4""#),
+            None
+        );
+    }
+
+    // ── parse_strict_tdd_marker ─────────────────────────────────────────
+
+    #[test]
+    fn parse_strict_tdd_marker_enabled_block() {
+        // Verbatim shape of the managed block gentle-ai injects into
+        // ~/.claude/CLAUDE.md when `sync --strict-tdd` runs.
+        let md = "# CLAUDE.md\n\n<!-- gentle-ai:strict-tdd-mode -->\n\
+                  Strict TDD Mode: enabled\n\
+                  <!-- /gentle-ai:strict-tdd-mode -->\n";
+        assert!(parse_strict_tdd_marker(md));
+        // CRLF and surrounding whitespace on the lines are tolerated.
+        let crlf = "<!-- gentle-ai:strict-tdd-mode -->\r\n  Strict TDD Mode: enabled  \r\n<!-- /gentle-ai:strict-tdd-mode -->\r\n";
+        assert!(parse_strict_tdd_marker(crlf));
+    }
+
+    #[test]
+    fn parse_strict_tdd_marker_missing_block() {
+        assert!(!parse_strict_tdd_marker("# CLAUDE.md\n\nSome persona text.\n"));
+        // The line alone, outside the managed block, is not the marker.
+        assert!(!parse_strict_tdd_marker("Strict TDD Mode: enabled\n"));
+    }
+
+    #[test]
+    fn parse_strict_tdd_marker_block_with_other_text() {
+        let disabled = "<!-- gentle-ai:strict-tdd-mode -->\n\
+                        Strict TDD Mode: disabled\n\
+                        <!-- /gentle-ai:strict-tdd-mode -->\n";
+        assert!(!parse_strict_tdd_marker(disabled));
+        // The enabled line after the block closed does not count.
+        let after_close = "<!-- gentle-ai:strict-tdd-mode -->\n\
+                           something else\n\
+                           <!-- /gentle-ai:strict-tdd-mode -->\n\
+                           Strict TDD Mode: enabled\n";
+        assert!(!parse_strict_tdd_marker(after_close));
+    }
+
+    #[test]
+    fn parse_strict_tdd_marker_empty_input() {
+        assert!(!parse_strict_tdd_marker(""));
+        assert!(!parse_strict_tdd_marker("   \n"));
     }
 }

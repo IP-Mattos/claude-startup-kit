@@ -620,6 +620,11 @@ export function SettingsView({
                   {stack.error}
                 </div>
               )}
+              {stack.syncError && (
+                <div className="v3-error" role="alert" aria-live="assertive">
+                  {t("stack.sync_failed", { error: stack.syncError })}
+                </div>
+              )}
               <p className="v3-row-meta">{t("settings.stack_hint")}</p>
             </div>
           </article>

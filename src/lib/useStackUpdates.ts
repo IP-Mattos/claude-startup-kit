@@ -29,6 +29,14 @@ export interface StackToolStatus {
   state: "up_to_date" | "update_available" | "not_installed" | string;
 }
 
+// `apply_stack_update` result. The upgrade log and the follow-up gentle-ai
+// config sync are reported separately: `sync_error` set means the stack
+// upgrade itself succeeded but the config sync did not.
+export interface StackUpdateOutcome {
+  log: string;
+  sync_error: string | null;
+}
+
 export interface StackUpdatesState {
   tools: StackToolStatus[];
   // True while the initial check (or a manual refresh) is in flight.
@@ -37,6 +45,10 @@ export interface StackUpdatesState {
   applying: boolean;
   // Last error, cleared on next successful operation.
   error: string | null;
+  // Raw backend error of the config sync that follows a successful
+  // upgrade, or null. Kept apart from `error` so a sync failure never reads
+  // as a failed upgrade; SettingsView renders it with its own wording.
+  syncError: string | null;
 
   checkNow: () => void;
   applyAll: () => Promise<void>;
@@ -99,6 +111,7 @@ export function useStackUpdates(): StackUpdatesState {
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const ranOnce = useRef(false);
 
   const runCheck = useCallback(async (force: boolean) => {
@@ -150,16 +163,21 @@ export function useStackUpdates(): StackUpdatesState {
     if (!IS_TAURI) return;
     setApplying(true);
     setError(null);
+    setSyncError(null);
     try {
-      // The upgrade output is discarded — gentle-ai's stdout is already
+      // The upgrade log is discarded — gentle-ai's stdout is already
       // visible to power users via terminal logs, and the post-run version
       // table below is the authoritative state surface for everyone else.
-      await invoke<string>("apply_stack_update");
+      // The follow-up config sync is reported separately so its failure
+      // never reads as a failed upgrade.
+      const outcome = await invoke<StackUpdateOutcome>("apply_stack_update");
       // Force-refresh after upgrade so the table reflects new versions.
       await runCheck(true);
-      // Stack upgrade can shift gentle-ai version; nudge the
-      // right-panel WorkspaceCard.
+      // Stack upgrade can shift gentle-ai version and may have synced its
+      // config; nudge the right-panel WorkspaceCard and the drift banners.
       window.dispatchEvent(new Event("csk:workspace-invalidate"));
+      window.dispatchEvent(new Event("csk:gentle-ai-synced"));
+      setSyncError(outcome.sync_error);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -182,6 +200,7 @@ export function useStackUpdates(): StackUpdatesState {
     loading,
     applying,
     error,
+    syncError,
     checkNow,
     applyAll,
     openInstallWizard,

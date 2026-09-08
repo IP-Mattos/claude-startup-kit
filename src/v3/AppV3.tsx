@@ -388,6 +388,50 @@ export default function AppV3() {
               </div>
             </div>
           )}
+          {/* Config-drift banner (binary newer than the managed config).
+              Hidden only while an update is being applied, because that
+              path ends in its own sync. Disappearing is the success
+              feedback; a failed resync keeps it up with the error. */}
+          {updates.syncStatus?.sync_needed && !gentleAiApplying && (
+            <div className="v3-update-banner" role="status" aria-live="polite">
+              <div className="v3-update-banner-body">
+                <strong>
+                  {t("banner.gentle_sync_needed", {
+                    assets: updates.syncStatus.assets_version,
+                    binary: updates.syncStatus.binary_version,
+                  })}
+                </strong>
+                {/* A binary update whose follow-up sync failed lands here:
+                    the update itself succeeded and is reported as such;
+                    this banner carries the retry. */}
+                {updates.gentleAiSyncError && (
+                  <span className="v3-update-banner-result">
+                    {" "}
+                    ·{" "}
+                    {t("banner.gentle_updated_sync_failed", {
+                      v: updates.syncStatus.binary_version,
+                      error: updates.gentleAiSyncError,
+                    })}
+                  </span>
+                )}
+                {updates.resyncError && (
+                  <span className="v3-update-banner-result"> · {updates.resyncError}</span>
+                )}
+              </div>
+              <div className="v3-update-banner-actions">
+                <button
+                  type="button"
+                  className="v3-update-banner-primary"
+                  onClick={() => {
+                    void updates.resync();
+                  }}
+                  disabled={updates.resyncing}
+                >
+                  {updates.resyncing ? t("claude.syncing") : t("banner.gentle_sync_now")}
+                </button>
+              </div>
+            </div>
+          )}
           {fetchErrors.length > 0 && (
             <div className="v3-fetch-banner" role="alert" aria-live="polite">
               <div className="v3-fetch-banner-body">

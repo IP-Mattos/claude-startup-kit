@@ -385,6 +385,10 @@ const STRINGS = {
   },
   "settings.stack_apply_all": { en: "Update all", es: "Actualizar todo" },
   "settings.stack_applying": { en: "Updating…", es: "Actualizando…" },
+  "stack.sync_failed": {
+    en: "Stack updated, but the gentle-ai config sync failed: {error}",
+    es: "Stack actualizado, pero la sincronización de la configuración de gentle-ai falló: {error}",
+  },
   "settings.stack_apply_all_title": {
     en: "Run gentle-ai upgrade across every managed tool",
     es: "Corre gentle-ai upgrade sobre todas las herramientas gestionadas",
@@ -465,6 +469,15 @@ const STRINGS = {
     es: "gentle-ai actualizado a v{v}",
   },
   "banner.update_failed": { en: "Update failed", es: "Falló la actualización" },
+  "banner.gentle_sync_needed": {
+    en: "Gentle AI config is out of date: installed assets are v{assets}, the binary is v{binary}.",
+    es: "La configuración de Gentle AI está desactualizada: los assets instalados son v{assets}, el binario es v{binary}.",
+  },
+  "banner.gentle_sync_now": { en: "Sync now", es: "Sincronizar ahora" },
+  "banner.gentle_updated_sync_failed": {
+    en: "Updated to v{v}, but the config sync failed: {error}",
+    es: "Actualizado a v{v}, pero la sincronización de la configuración falló: {error}",
+  },
 
   // Topbar misc
   "topbar.clock_label": { en: "Current time", es: "Hora actual" },

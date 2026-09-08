@@ -40,9 +40,31 @@ export interface UpdateStatus {
   configured: boolean;
 }
 
+// Drift between the running gentle-ai binary and the managed config it last
+// installed (`~/.gentle-ai/state.json`). Versions are semver-normalized; an
+// empty `assets_version` means unknown, and `sync_needed` is false whenever
+// either side is unknown, mirroring gentle-ai doctor.
+export interface GentleAiSyncStatus {
+  binary_version: string;
+  assets_version: string;
+  sync_needed: boolean;
+}
+
+// `apply_gentle_ai_update` result. The binary update and the follow-up
+// config sync are reported separately: `sync_error` set means the binary
+// DID move to `version` but the sync failed, and the drift banner offers
+// the retry.
+export interface GentleAiUpdateOutcome {
+  version: string;
+  sync_error: string | null;
+}
+
 export interface UpdatesState {
   app: UpdateStatus | null;
   gentleAi: UpdateStatus | null;
+  // Config-drift signal for the "config out of date" banner. null when the
+  // check failed or has not run yet — treated as no drift.
+  syncStatus: GentleAiSyncStatus | null;
   // True while ANY check is in flight; UI uses this to disable the manual
   // "Check now" button.
   checking: boolean;
@@ -55,6 +77,13 @@ export interface UpdatesState {
   // error (and vice versa) when both shared a single string.
   appError: string | null;
   gentleAiError: string | null;
+  // True while the drift banner's resync is running; its own error slot so
+  // a resync failure never clobbers a pending update-channel error.
+  resyncing: boolean;
+  resyncError: string | null;
+  // Set when the last gentle-ai update installed fine but its follow-up
+  // config sync failed. Cleared by the next successful resync.
+  gentleAiSyncError: string | null;
   // Imperative actions.
   checkNow: () => void;
   // Triggers atomic auto-update: download + verify signature + replace
@@ -63,6 +92,10 @@ export interface UpdatesState {
   // the promise rejects and `appError` is populated.
   applyApp: () => Promise<void>;
   applyGentleAi: () => Promise<string | null>;
+  // Re-runs `gentle-ai sync` with the persisted Strict TDD choice (theme
+  // preserved only if installed). Resolves true on success; on failure
+  // `resyncError` is populated and the banner stays up for a retry.
+  resync: () => Promise<boolean>;
   dismissApp: (version: string) => void;
   dismissGentleAi: (version: string) => void;
 }
@@ -153,8 +186,36 @@ export function useUpdates(): UpdatesState {
   const [applyingApp, setApplyingApp] = useState(false);
   const [appError, setAppError] = useState<string | null>(null);
   const [gentleAiError, setGentleAiError] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<GentleAiSyncStatus | null>(null);
+  const [resyncing, setResyncing] = useState(false);
+  const [resyncError, setResyncError] = useState<string | null>(null);
+  const [gentleAiSyncError, setGentleAiSyncError] = useState<string | null>(null);
   // Avoid re-running on StrictMode double-mount in dev.
   const ranOnce = useRef(false);
+
+  // Single owner of the `gentle_ai_sync_status` probe. A failure clears the
+  // banner (null) but is NOT swallowed: it surfaces through the gentle-ai
+  // channel error so a broken backend never masquerades as "no drift".
+  const refreshSyncStatus = useCallback(async (): Promise<void> => {
+    if (!IS_TAURI) return;
+    try {
+      setSyncStatus(await invoke<GentleAiSyncStatus>("gentle_ai_sync_status"));
+    } catch (e) {
+      setSyncStatus(null);
+      setGentleAiError(String(e));
+    }
+  }, []);
+
+  // The manual sync in the Gentle-AI tab, a resync, and a stack update all
+  // announce a finished sync on the window; re-probe so every hook
+  // instance (AppV3, Overview, Settings) shows the same drift state.
+  useEffect(() => {
+    const onSynced = () => {
+      void refreshSyncStatus();
+    };
+    window.addEventListener("csk:gentle-ai-synced", onSynced);
+    return () => window.removeEventListener("csk:gentle-ai-synced", onSynced);
+  }, [refreshSyncStatus]);
 
   const runChecks = useCallback(async (force: boolean) => {
     if (!IS_TAURI) {
@@ -231,9 +292,14 @@ export function useUpdates(): UpdatesState {
       );
     }
 
+    // Drift check has no cooldown: it is local (one version probe plus a
+    // small file read) and an update done outside CSK (manual `go install`)
+    // must surface on the next mount, not a day later.
+    tasks.push(refreshSyncStatus());
+
     await Promise.all(tasks);
     setChecking(false);
-  }, []);
+  }, [refreshSyncStatus]);
 
   useEffect(() => {
     if (ranOnce.current) return;
@@ -265,15 +331,21 @@ export function useUpdates(): UpdatesState {
     if (!IS_TAURI) return null;
     setChecking(true);
     setGentleAiError(null);
+    setGentleAiSyncError(null);
     try {
-      const newVersion = await invoke<string>("apply_gentle_ai_update");
-      // Re-check both channels after a successful upgrade.
+      // The backend syncs the managed config right after the installer
+      // (Strict TDD and theme read from disk). A sync failure arrives as
+      // `sync_error` on a successful outcome: the binary moved, so this is
+      // still an update success and the drift banner carries the retry.
+      const outcome = await invoke<GentleAiUpdateOutcome>("apply_gentle_ai_update");
+      setGentleAiSyncError(outcome.sync_error);
+      // Re-check both channels (plus drift) after a successful upgrade.
       await runChecks(true);
       // Tell the WorkspaceCard to re-fetch — backend cache was already
       // busted by the IPC, but the card's mount-time effect needs a kick
       // to actually re-call workspace_summary.
       window.dispatchEvent(new Event("csk:workspace-invalidate"));
-      return newVersion;
+      return outcome.version;
     } catch (e) {
       setGentleAiError(String(e));
       return null;
@@ -281,6 +353,29 @@ export function useUpdates(): UpdatesState {
       setChecking(false);
     }
   }, [runChecks]);
+
+  const resync = useCallback(async (): Promise<boolean> => {
+    if (!IS_TAURI) return false;
+    setResyncing(true);
+    setResyncError(null);
+    try {
+      await invoke<string>("gentle_ai_resync");
+      setGentleAiSyncError(null);
+      // Only the drift probe re-runs (no GitHub release checks) so the
+      // banner clears from fresh state.json data before this resolves.
+      await refreshSyncStatus();
+      // Sync can change what the WorkspaceCard shows; same kick as
+      // applyGentleAi. The synced event refreshes the other hook instances.
+      window.dispatchEvent(new Event("csk:workspace-invalidate"));
+      window.dispatchEvent(new Event("csk:gentle-ai-synced"));
+      return true;
+    } catch (e) {
+      setResyncError(String(e));
+      return false;
+    } finally {
+      setResyncing(false);
+    }
+  }, [refreshSyncStatus]);
 
   const dismissApp = useCallback((version: string) => {
     writeString(LS_DISMISS_APP, version);
@@ -299,9 +394,14 @@ export function useUpdates(): UpdatesState {
     applyingApp,
     appError,
     gentleAiError,
+    syncStatus,
+    resyncing,
+    resyncError,
+    gentleAiSyncError,
     checkNow,
     applyApp,
     applyGentleAi,
+    resync,
     dismissApp,
     dismissGentleAi,
   };

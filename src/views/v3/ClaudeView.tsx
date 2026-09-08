@@ -108,6 +108,8 @@ export function ClaudeView() {
     try {
       await invoke<string>("gentle_ai_sync", { includeTheme, strictTdd });
       setSyncResult(t("claude.sync_done"));
+      // Let the update hooks re-probe the config-drift banner.
+      window.dispatchEvent(new Event("csk:gentle-ai-synced"));
       // Bumping the nonce re-fetches status / skills / mcps so the
       // grid reflects whatever sync just installed.
       setRefreshNonce((n) => n + 1);
