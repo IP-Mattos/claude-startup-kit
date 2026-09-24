@@ -27,6 +27,7 @@ import { CleanupView } from "../views/v3/CleanupView";
 import { ConversationsView } from "../views/v3/ConversationsView";
 import { TrelloView } from "../views/v3/TrelloView";
 import { ClaudeView } from "../views/v3/ClaudeView";
+import { PiView } from "../views/v3/PiView";
 import { SettingsView } from "../views/v3/SettingsView";
 import "./AppV3.css";
 
@@ -488,6 +489,7 @@ export default function AppV3() {
           {tab === "conversations" && <ConversationsView />}
           {tab === "trello" && <TrelloView />}
           {tab === "claude" && <ClaudeView />}
+          {tab === "pi" && <PiView />}
           {tab === "settings" && (
             <SettingsView
               companionName={companionName}

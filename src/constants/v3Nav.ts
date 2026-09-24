@@ -6,6 +6,7 @@
 
 import {
   Activity,
+  Bot,
   Boxes,
   Cog,
   Columns3,
@@ -60,6 +61,7 @@ export const SIDEBAR_NAV: NavEntry[] = SIDEBAR_SECTIONS.flatMap((s) => s.entries
 
 export const TOPBAR_NAV: NavEntry[] = [
   { id: "claude", navKey: "nav.claude", Icon: Boxes },
+  { id: "pi", navKey: "nav.pi", Icon: Bot },
   { id: "settings", navKey: "nav.settings", Icon: Cog },
 ];
 

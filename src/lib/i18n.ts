@@ -29,6 +29,7 @@ const STRINGS = {
   "nav.tokens": { en: "Tokens", es: "Tokens" },
   "nav.standup": { en: "Standup", es: "Standup" },
   "nav.claude": { en: "Gentle-AI", es: "Gentle-AI" },
+  "nav.pi": { en: "Pi stack", es: "Stack Pi" },
   "nav.companions": { en: "Companions", es: "Compañeros" },
   "nav.settings": { en: "Settings", es: "Ajustes" },
   "nav.sync": { en: "Sync", es: "Sync" },
@@ -956,6 +957,50 @@ const STRINGS = {
     es: "{n} menciones en los últimos 30 días",
   },
   "claude.open": { en: "Open", es: "Abrir" },
+
+  // Pi stack view (PiView) — health of the local Pi / gentle-pi stack,
+  // mirrors what the Gentle-AI view does for the gentle-ai stack.
+  "pi.title": { en: "Pi stack", es: "Stack Pi" },
+  "pi.subtitle": {
+    en: "Health of the local Pi / gentle-pi stack — CLI versions, the pinned gentle-ai binary, and agent settings.",
+    es: "Salud del stack local de Pi / gentle-pi: versiones de CLI, el binario pineado de gentle-ai y la configuración del agente.",
+  },
+  "pi.card_title": { en: "Stack health", es: "Salud del stack" },
+  "pi.state_ok": { en: "ok", es: "ok" },
+  "pi.state_missing": { en: "missing", es: "falta" },
+  "pi.state_unknown": { en: "unknown", es: "desconocido" },
+  "pi.row_pi_title": { en: "Pi CLI", es: "CLI de Pi" },
+  "pi.row_pi_meta": { en: "Version {version} · {path}", es: "Versión {version} · {path}" },
+  "pi.row_claude_title": { en: "Claude Code", es: "Claude Code" },
+  "pi.row_claude_meta": { en: "Version {version}", es: "Versión {version}" },
+  "pi.row_gentlepi_title": { en: "gentle-pi", es: "gentle-pi" },
+  "pi.row_gentlepi_meta": {
+    en: "Version {version} · {root}",
+    es: "Versión {version} · {root}",
+  },
+  "pi.row_binary_title": {
+    en: "Pinned gentle-ai binary",
+    es: "Binario pineado de gentle-ai",
+  },
+  "pi.row_binary_meta": {
+    en: "Pinned {version} · expected at {path}",
+    es: "Pineado {version} · esperado en {path}",
+  },
+  "pi.row_binary_fix": {
+    en: "Missing. Run `node scripts/install-gentle-ai.mjs` inside the gentle-pi package root to build it — npm's ignore-scripts skips the postinstall that normally builds it, and a gentle-pi upgrade re-pins a new version that needs rebuilding again.",
+    es: "Falta. Ejecutá `node scripts/install-gentle-ai.mjs` dentro de la raíz del paquete gentle-pi para compilarlo — ignore-scripts de npm salta el postinstall que normalmente lo compila, y cada actualización de gentle-pi pinea una versión nueva que hay que reconstruir de nuevo.",
+  },
+  "pi.row_settings_title": { en: "Pi agent settings", es: "Configuración del agente Pi" },
+  "pi.row_settings_meta": {
+    en: "Provider: {provider} · Model: {model} · TUI: {tui}",
+    es: "Proveedor: {provider} · Modelo: {model} · TUI: {tui}",
+  },
+  "pi.row_settings_packages": { en: "Packages: {packages}", es: "Paquetes: {packages}" },
+  "pi.errors_title": { en: "Detected issues", es: "Problemas detectados" },
+  "pi.unavailable": {
+    en: "Pi status is not available in this environment.",
+    es: "El estado de Pi no está disponible en este entorno.",
+  },
 
   // Companions view
   "companions.title": { en: "Companion", es: "Compañero" },
