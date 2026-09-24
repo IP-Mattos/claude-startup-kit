@@ -2914,12 +2914,15 @@ fn claude_version(program: &str) -> String {
     if !out.status.success() {
         return String::new();
     }
-    // Output looks like "2.1.195 (Claude Code)" — take the first whitespace token.
-    String::from_utf8_lossy(&out.stdout)
-        .split_whitespace()
-        .next()
-        .unwrap_or("")
-        .to_string()
+    parse_claude_version_stdout(&String::from_utf8_lossy(&out.stdout))
+}
+
+/// Pure parse step behind `claude_version`: the first whitespace-delimited
+/// token of `<program> --version` stdout. Output looks like
+/// `"2.1.195 (Claude Code)"` — take the first token. Empty string when
+/// stdout has no non-whitespace content.
+fn parse_claude_version_stdout(stdout: &str) -> String {
+    stdout.split_whitespace().next().unwrap_or("").to_string()
 }
 
 /// Snapshot of the installed Claude Code CLI(s). On Windows a NATIVE install
@@ -3024,6 +3027,338 @@ async fn update_claude_code() -> Result<String, String> {
     })
     .await
     .map_err(|e| format!("task join: {e}"))?
+}
+
+// ─── Pi / gentle-pi stack health (read-only, offline) ──────────────────────
+//
+// Mirrors what the `claude` tab already does for the gentle-ai stack, for
+// Pi's own stack instead: Pi CLI, Claude Code CLI, the installed gentle-pi
+// package, its pinned gentle-ai binary, and Pi's own settings.json. Every
+// source below is read independently — a missing `pi` binary, an absent
+// settings file, or a malformed installer script each append a message to
+// `errors` instead of failing the whole command, so the UI can still render
+// the rest of the payload.
+
+#[derive(Debug, Serialize, Clone, Default)]
+pub struct PiCliInfo {
+    pub version: Option<String>,
+    pub path: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone, Default)]
+pub struct PiStackClaudeCodeInfo {
+    pub version: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone, Default)]
+pub struct GentlePiInfo {
+    pub installed: bool,
+    pub version: Option<String>,
+    pub root: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone, Default)]
+pub struct GentleAiBinaryInfo {
+    pub pinned_version: Option<String>,
+    pub expected_path: Option<String>,
+    pub present: bool,
+}
+
+#[derive(Debug, Serialize, Clone, Default, PartialEq)]
+pub struct PiSettingsInfo {
+    pub default_provider: Option<String>,
+    pub default_model: Option<String>,
+    pub tui_mode: Option<String>,
+    pub packages: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Clone, Default)]
+pub struct PiStackStatus {
+    pub pi: PiCliInfo,
+    pub claude_code: PiStackClaudeCodeInfo,
+    pub gentle_pi: GentlePiInfo,
+    pub gentle_ai_binary: GentleAiBinaryInfo,
+    pub settings: PiSettingsInfo,
+    pub errors: Vec<String>,
+}
+
+/// Run `<path> --version` for the Pi CLI, dispatching through `cmd /c` for
+/// an npm `.cmd`/`.bat` wrapper — `Command::new` cannot resolve those
+/// directly on Windows (verified locally: `pi` resolves to `pi.cmd` under
+/// the npm global bin dir, and a bare `Command::new("pi")` fails with
+/// "program not found" there, the same reason `read_managed_tool_version`
+/// special-cases wrapper extensions). Parsed with `parse_pi_version_stdout`;
+/// `None` on any failure.
+fn probe_pi_version(path: &str) -> Option<String> {
+    let lower = path.to_lowercase();
+    let out = if lower.ends_with(".cmd") || lower.ends_with(".bat") {
+        silent_command("cmd").args(["/c", path, "--version"]).output()
+    } else {
+        silent_command(path).arg("--version").output()
+    };
+    let out = out.ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    parse_pi_version_stdout(&String::from_utf8_lossy(&out.stdout))
+}
+
+/// Pure parse step behind `probe_pi_version`: `pi --version` prints a bare
+/// semver like `"0.87.1\n"` (verified locally) — scrape with the same
+/// semver extractor other CLI probes in this file use rather than assuming
+/// the whole trimmed string is the version.
+fn parse_pi_version_stdout(stdout: &str) -> Option<String> {
+    extract_semver(stdout)
+}
+
+/// Extract `INSTALLER_VERSION` from gentle-pi's `scripts/gentle-ai-installer.mjs`
+/// source, e.g. `export const INSTALLER_VERSION = "3.7.0";` → `Some("3.7.0")`.
+/// Matches only the declaration line itself (`const INSTALLER_VERSION =`),
+/// not a later `${INSTALLER_VERSION}` template interpolation elsewhere in
+/// the file, so it can't latch onto an unrelated line. `None` when the
+/// declaration is missing, unquoted, or the quoted value is empty.
+fn parse_installer_version(script: &str) -> Option<String> {
+    for line in script.lines() {
+        let trimmed = line.trim();
+        let after_name = match trimmed
+            .strip_prefix("export const INSTALLER_VERSION")
+            .or_else(|| trimmed.strip_prefix("const INSTALLER_VERSION"))
+        {
+            Some(rest) => rest,
+            None => continue,
+        };
+        // Found the declaration line — from here a parse failure means a
+        // genuinely malformed script, not "keep looking".
+        let after_eq = after_name.trim_start().strip_prefix('=')?.trim_start();
+        let quoted = after_eq.strip_prefix('"')?;
+        let end = quoted.find('"')?;
+        let version = &quoted[..end];
+        return if version.is_empty() {
+            None
+        } else {
+            Some(version.to_string())
+        };
+    }
+    None
+}
+
+/// `{"name":"gentle-pi","version":"3.7.0",...}` → `Some("3.7.0")`. `None` on
+/// invalid JSON or a missing/empty/non-string `version` field.
+fn parse_gentle_pi_version(json: &str) -> Option<String> {
+    let value: serde_json::Value = serde_json::from_str(json).ok()?;
+    let version = value.get("version")?.as_str()?.trim();
+    if version.is_empty() {
+        None
+    } else {
+        Some(version.to_string())
+    }
+}
+
+/// Parse `~/.pi/agent/settings.json`. Absent fields decode as `None` /
+/// empty rather than failing — only invalid JSON is an `Err`.
+fn parse_pi_settings(json: &str) -> Result<PiSettingsInfo, String> {
+    let value: serde_json::Value = serde_json::from_str(json).map_err(|e| e.to_string())?;
+    let default_provider = value
+        .get("defaultProvider")
+        .and_then(|v| v.as_str())
+        .map(str::to_string);
+    let default_model = value
+        .get("defaultModel")
+        .and_then(|v| v.as_str())
+        .map(str::to_string);
+    let tui_mode = value
+        .get("tuiMode")
+        .and_then(|v| v.as_str())
+        .map(str::to_string);
+    let packages = value
+        .get("packages")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|p| p.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok(PiSettingsInfo {
+        default_provider,
+        default_model,
+        tui_mode,
+        packages,
+    })
+}
+
+/// Expected `gentle-ai` binary path pinned by gentle-pi's installer:
+/// `<gentle_pi_root>/.gentle-ai/v<version>/gentle-ai(.exe)`.
+fn gentle_ai_binary_path(gentle_pi_root: &Path, version: &str) -> PathBuf {
+    let filename = if cfg!(target_os = "windows") {
+        "gentle-ai.exe"
+    } else {
+        "gentle-ai"
+    };
+    gentle_pi_root
+        .join(".gentle-ai")
+        .join(format!("v{version}"))
+        .join(filename)
+}
+
+#[tauri::command]
+async fn pi_stack_status() -> PiStackStatus {
+    tokio::task::spawn_blocking(pi_stack_status_blocking)
+        .await
+        .unwrap_or_else(|e| {
+            let mut status = PiStackStatus::default();
+            status.errors.push(format!("task join: {e}"));
+            status
+        })
+}
+
+fn pi_stack_status_blocking() -> PiStackStatus {
+    let mut errors: Vec<String> = Vec::new();
+
+    // ── Pi CLI ──
+    let pi_path = resolve_managed_tool("pi");
+    let pi_version = match &pi_path {
+        Some(path) => {
+            let version = probe_pi_version(path);
+            if version.is_none() {
+                errors.push(format!("pi --version failed for {path}"));
+            }
+            version
+        }
+        None => {
+            errors.push("pi executable not found".to_string());
+            None
+        }
+    };
+    let pi = PiCliInfo {
+        version: pi_version,
+        path: pi_path,
+    };
+
+    // ── Claude Code CLI ──
+    let claude_raw = claude_version("claude");
+    let claude_code_version = if claude_raw.is_empty() {
+        errors.push("claude --version failed or claude not found".to_string());
+        None
+    } else {
+        Some(claude_raw)
+    };
+    let claude_code = PiStackClaudeCodeInfo {
+        version: claude_code_version,
+    };
+
+    // ── gentle-pi package + pinned gentle-ai binary + Pi settings ──
+    let home = dirs_home();
+    if home.is_none() {
+        errors.push("home directory unavailable".to_string());
+    }
+    let pi_agent_dir = home.map(|h| h.join(".pi").join("agent"));
+    let gentle_pi_root = pi_agent_dir
+        .as_ref()
+        .map(|dir| dir.join("npm").join("node_modules").join("gentle-pi"));
+
+    let gentle_pi = match &gentle_pi_root {
+        Some(root) => {
+            let pkg_path = root.join("package.json");
+            match fs::read_to_string(&pkg_path) {
+                Ok(text) => match parse_gentle_pi_version(&text) {
+                    Some(version) => GentlePiInfo {
+                        installed: true,
+                        version: Some(version),
+                        root: Some(root.to_string_lossy().into_owned()),
+                    },
+                    None => {
+                        errors.push(format!(
+                            "gentle-pi package.json at {} has no readable version",
+                            pkg_path.display()
+                        ));
+                        GentlePiInfo {
+                            installed: false,
+                            version: None,
+                            root: Some(root.to_string_lossy().into_owned()),
+                        }
+                    }
+                },
+                Err(e) => {
+                    errors.push(format!(
+                        "gentle-pi package.json unreadable ({}): {e}",
+                        pkg_path.display()
+                    ));
+                    GentlePiInfo::default()
+                }
+            }
+        }
+        None => GentlePiInfo::default(),
+    };
+
+    let gentle_ai_binary = match &gentle_pi_root {
+        Some(root) => {
+            let installer_path = root.join("scripts").join("gentle-ai-installer.mjs");
+            match fs::read_to_string(&installer_path) {
+                Ok(text) => match parse_installer_version(&text) {
+                    Some(version) => {
+                        let expected = gentle_ai_binary_path(root, &version);
+                        let present = expected.is_file();
+                        GentleAiBinaryInfo {
+                            pinned_version: Some(version),
+                            expected_path: Some(expected.to_string_lossy().into_owned()),
+                            present,
+                        }
+                    }
+                    None => {
+                        errors.push(format!(
+                            "could not read INSTALLER_VERSION from {}",
+                            installer_path.display()
+                        ));
+                        GentleAiBinaryInfo::default()
+                    }
+                },
+                Err(e) => {
+                    errors.push(format!(
+                        "gentle-ai-installer.mjs unreadable ({}): {e}",
+                        installer_path.display()
+                    ));
+                    GentleAiBinaryInfo::default()
+                }
+            }
+        }
+        None => GentleAiBinaryInfo::default(),
+    };
+
+    let settings = match &pi_agent_dir {
+        Some(dir) => {
+            let settings_path = dir.join("settings.json");
+            match fs::read_to_string(&settings_path) {
+                Ok(text) => match parse_pi_settings(&text) {
+                    Ok(parsed) => parsed,
+                    Err(e) => {
+                        errors.push(format!(
+                            "pi settings.json malformed ({}): {e}",
+                            settings_path.display()
+                        ));
+                        PiSettingsInfo::default()
+                    }
+                },
+                Err(e) => {
+                    errors.push(format!(
+                        "pi settings.json unreadable ({}): {e}",
+                        settings_path.display()
+                    ));
+                    PiSettingsInfo::default()
+                }
+            }
+        }
+        None => PiSettingsInfo::default(),
+    };
+
+    PiStackStatus {
+        pi,
+        claude_code,
+        gentle_pi,
+        gentle_ai_binary,
+        settings,
+        errors,
+    }
 }
 
 #[tauri::command]
@@ -8283,6 +8618,7 @@ pub fn run() {
             install_claudewatch_tui,
             claude_code_status,
             update_claude_code,
+            pi_stack_status,
             open_path_in_explorer,
             write_text_file,
             read_text_file,
@@ -9073,5 +9409,163 @@ mod tests {
     fn parse_strict_tdd_marker_empty_input() {
         assert!(!parse_strict_tdd_marker(""));
         assert!(!parse_strict_tdd_marker("   \n"));
+    }
+
+    // ── pi_stack_status pure parsers ────────────────────────────────────
+
+    // parse_pi_version_stdout
+
+    #[test]
+    fn parse_pi_version_stdout_bare_semver() {
+        // Real `pi --version` output on this machine: a bare semver, no
+        // banner text.
+        assert_eq!(
+            parse_pi_version_stdout("0.87.1\n"),
+            Some("0.87.1".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_pi_version_stdout_none_on_blank_or_unparseable() {
+        assert_eq!(parse_pi_version_stdout(""), None);
+        assert_eq!(parse_pi_version_stdout("not a version\n"), None);
+    }
+
+    // parse_claude_version_stdout
+
+    #[test]
+    fn parse_claude_version_stdout_takes_first_token() {
+        // Real `claude --version` output: "2.1.281 (Claude Code)".
+        assert_eq!(
+            parse_claude_version_stdout("2.1.281 (Claude Code)\n"),
+            "2.1.281"
+        );
+    }
+
+    #[test]
+    fn parse_claude_version_stdout_empty_on_blank() {
+        assert_eq!(parse_claude_version_stdout(""), "");
+        assert_eq!(parse_claude_version_stdout("   \n"), "");
+    }
+
+    // parse_installer_version
+
+    #[test]
+    fn parse_installer_version_reads_declaration() {
+        let script = "export const INSTALLER_VERSION = \"3.7.0\";\n\
+                       export const RELEASE_BASE_URL = `https://example.com/v${INSTALLER_VERSION}/`;\n";
+        assert_eq!(parse_installer_version(script), Some("3.7.0".to_string()));
+    }
+
+    #[test]
+    fn parse_installer_version_ignores_leading_whitespace_and_var_form() {
+        assert_eq!(
+            parse_installer_version("  const INSTALLER_VERSION = \"1.2.3\";"),
+            Some("1.2.3".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_installer_version_none_when_declaration_missing() {
+        let script = "export const RELEASE_BASE_URL = `https://example.com/`;\n";
+        assert_eq!(parse_installer_version(script), None);
+        assert_eq!(parse_installer_version(""), None);
+    }
+
+    #[test]
+    fn parse_installer_version_none_on_malformed_declaration() {
+        // No quotes around the value.
+        assert_eq!(
+            parse_installer_version("export const INSTALLER_VERSION = 3.7.0;"),
+            None
+        );
+        // Unterminated string.
+        assert_eq!(
+            parse_installer_version("export const INSTALLER_VERSION = \"3.7.0;"),
+            None
+        );
+        // Empty quoted value.
+        assert_eq!(
+            parse_installer_version("export const INSTALLER_VERSION = \"\";"),
+            None
+        );
+    }
+
+    // parse_gentle_pi_version
+
+    #[test]
+    fn parse_gentle_pi_version_reads_field() {
+        let json = r#"{"name":"gentle-pi","version":"3.7.0","description":"x"}"#;
+        assert_eq!(parse_gentle_pi_version(json), Some("3.7.0".to_string()));
+    }
+
+    #[test]
+    fn parse_gentle_pi_version_none_when_missing_or_invalid() {
+        assert_eq!(parse_gentle_pi_version(r#"{"name":"gentle-pi"}"#), None);
+        assert_eq!(parse_gentle_pi_version("not json"), None);
+        assert_eq!(parse_gentle_pi_version(r#"{"version":""}"#), None);
+        assert_eq!(parse_gentle_pi_version(r#"{"version":123}"#), None);
+    }
+
+    // parse_pi_settings
+
+    #[test]
+    fn parse_pi_settings_reads_all_fields() {
+        // Verbatim shape of ~/.pi/agent/settings.json on this machine.
+        let json = r#"{
+            "defaultModel": "opus",
+            "defaultProvider": "pi-claude-code-provider",
+            "lastChangelogVersion": "0.85.1",
+            "packages": [
+                "npm:gentle-pi",
+                "npm:gentle-engram",
+                "npm:pi-web-access"
+            ],
+            "theme": "gentleman",
+            "tuiMode": "fullscreen"
+        }"#;
+        let parsed = parse_pi_settings(json).expect("valid json");
+        assert_eq!(
+            parsed.default_provider,
+            Some("pi-claude-code-provider".to_string())
+        );
+        assert_eq!(parsed.default_model, Some("opus".to_string()));
+        assert_eq!(parsed.tui_mode, Some("fullscreen".to_string()));
+        assert_eq!(
+            parsed.packages,
+            vec![
+                "npm:gentle-pi".to_string(),
+                "npm:gentle-engram".to_string(),
+                "npm:pi-web-access".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn parse_pi_settings_absent_fields_are_none_and_empty() {
+        let parsed = parse_pi_settings("{}").expect("valid json");
+        assert_eq!(parsed, PiSettingsInfo::default());
+    }
+
+    #[test]
+    fn parse_pi_settings_err_on_malformed_json() {
+        assert!(parse_pi_settings("not json").is_err());
+        assert!(parse_pi_settings("{\"defaultModel\": ").is_err());
+    }
+
+    // gentle_ai_binary_path
+
+    #[test]
+    fn gentle_ai_binary_path_builds_expected_layout() {
+        let root = Path::new("C:/Users/DemonTwo/.pi/agent/npm/node_modules/gentle-pi");
+        let expected_filename = if cfg!(target_os = "windows") {
+            "gentle-ai.exe"
+        } else {
+            "gentle-ai"
+        };
+        assert_eq!(
+            gentle_ai_binary_path(root, "3.7.0"),
+            root.join(".gentle-ai").join("v3.7.0").join(expected_filename)
+        );
     }
 }
