@@ -1002,6 +1002,28 @@ const STRINGS = {
     en: "Pi status is not available in this environment.",
     es: "El estado de Pi no está disponible en este entorno.",
   },
+  "pi.install_title": { en: "Install the stack", es: "Instalar el stack" },
+  "pi.install_desc": {
+    en: "Runs the npm install, the gentle-ai install, and the gentle-pi postinstall step that builds the pinned gentle-ai binary — the step most manual installs miss.",
+    es: "Corre el install de npm, el install de gentle-ai y el paso de postinstall de gentle-pi que compila el binario pineado de gentle-ai — el paso que la mayoría de las instalaciones manuales se saltea.",
+  },
+  "pi.install_provider_label": {
+    en: "Also install the Claude provider",
+    es: "Instalar también el proveedor de Claude",
+  },
+  "pi.install_provider_hint": {
+    en: "Needs Claude Code logged in on this machine.",
+    es: "Necesita Claude Code logueado en este equipo.",
+  },
+  "pi.install_button": { en: "Install stack", es: "Instalar stack" },
+  "pi.install_running": { en: "Installing…", es: "Instalando…" },
+  "pi.install_step_ok": { en: "done", es: "listo" },
+  "pi.install_step_failed": { en: "failed", es: "falló" },
+  "pi.install_success": { en: "Pi stack installed.", es: "Stack de Pi instalado." },
+  "pi.install_stopped": {
+    en: "Installation stopped — see the failed step below.",
+    es: "La instalación se detuvo — mirá el paso que falló abajo.",
+  },
 
   // Companions view
   "companions.title": { en: "Companion", es: "Compañero" },

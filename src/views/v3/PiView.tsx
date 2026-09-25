@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { CheckCircle2, HelpCircle, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle2, Download, HelpCircle, RefreshCw, XCircle } from "lucide-react";
 import { friendlyErrorEn } from "../../lib/format";
 import { useT, type StringKey } from "../../lib/i18n";
 import { IS_TAURI } from "../../lib/env";
@@ -43,6 +43,15 @@ interface PiStackStatus {
   gentle_ai_binary: GentleAiBinaryInfo;
   settings: PiSettingsInfo;
   errors: string[];
+}
+
+// Payload shape of the Rust `install_pi_stack` command — one entry per
+// step actually attempted (a failing step stops the sequence early, so
+// this can be shorter than the full plan).
+interface InstallStepResult {
+  name: string;
+  ok: boolean;
+  output_tail: string;
 }
 
 type RowState = "ok" | "missing" | "unknown";
@@ -122,6 +131,35 @@ export function PiView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshNonce, setRefreshNonce] = useState(0);
+
+  // Install action state — separate from `loading` so the health card
+  // stays visible while the sequence runs. Same shape as ClaudeView's
+  // sync flow: a pending flag, a per-run result, and a refresh afterwards
+  // so the rows reflect whatever the install just changed.
+  const [installing, setInstalling] = useState(false);
+  const [includeProvider, setIncludeProvider] = useState(false);
+  const [installResults, setInstallResults] = useState<InstallStepResult[] | null>(null);
+  const [installError, setInstallError] = useState<string | null>(null);
+
+  const runInstall = async () => {
+    if (!IS_TAURI || installing) return;
+    setInstalling(true);
+    setInstallResults(null);
+    setInstallError(null);
+    try {
+      const results = await invoke<InstallStepResult[]>("install_pi_stack", {
+        includeProvider,
+      });
+      setInstallResults(results);
+      // Rows only reflect reality after a refresh — same reason ClaudeView
+      // bumps refreshNonce once a sync/uninstall returns.
+      setRefreshNonce((n) => n + 1);
+    } catch (e) {
+      setInstallError(friendlyErrorEn(e));
+    } finally {
+      setInstalling(false);
+    }
+  };
 
   useEffect(() => {
     if (!IS_TAURI) {
@@ -273,6 +311,92 @@ export function PiView() {
                 t={t}
               />
             </ul>
+          </article>
+
+          {/* Install action — runs the sequence odd/tasks/pi-stack-installer.md
+              documents: npm install, gentle-ai install, then gentle-pi's
+              postinstall (the step that actually builds the pinned binary),
+              plus the Claude provider as an opt-in. Mirrors ClaudeView's
+              sync card: primary button + pending state + result banner. */}
+          <article className="v3-card">
+            <header className="v3-card-head">
+              <h2 className="v3-card-title">{t("pi.install_title")}</h2>
+            </header>
+            <p className="v3-subtitle">{t("pi.install_desc")}</p>
+            <label className="v3-toggle-row">
+              <input
+                type="checkbox"
+                checked={includeProvider}
+                disabled={installing}
+                onChange={() => setIncludeProvider((prev) => !prev)}
+              />
+              <div className="v3-toggle-body">
+                <div className="v3-toggle-label">{t("pi.install_provider_label")}</div>
+                <div className="v3-row-meta">{t("pi.install_provider_hint")}</div>
+              </div>
+            </label>
+            <div className="v3-gai-sync-actions">
+              <button
+                type="button"
+                className="v3-btn-primary"
+                onClick={runInstall}
+                disabled={installing}
+              >
+                <Download size={13} strokeWidth={2} />
+                {installing ? t("pi.install_running") : t("pi.install_button")}
+              </button>
+            </div>
+
+            {installError && (
+              <div className="v3-error" role="alert" aria-live="assertive">
+                {installError}
+              </div>
+            )}
+
+            {installResults && (
+              <>
+                <div
+                  className={
+                    installResults.every((r) => r.ok) ? "v3-success" : "v3-error"
+                  }
+                  role="status"
+                  aria-live="polite"
+                >
+                  {installResults.every((r) => r.ok)
+                    ? t("pi.install_success")
+                    : t("pi.install_stopped")}
+                </div>
+                <ul className="v3-list">
+                  {installResults.map((r, i) => (
+                    <li key={i} className="v3-claude-row">
+                      <div className="v3-claude-row-body">
+                        <div className="v3-claude-row-title">
+                          <span className="v3-claude-row-name">{r.name}</span>
+                          <span
+                            className={
+                              "v3-gai-status-pill " +
+                              (r.ok
+                                ? "v3-gai-status-pill-ok"
+                                : "v3-gai-status-pill-missing")
+                            }
+                          >
+                            {r.ok ? (
+                              <CheckCircle2 size={11} strokeWidth={2.4} />
+                            ) : (
+                              <XCircle size={11} strokeWidth={2.4} />
+                            )}
+                            {r.ok ? t("pi.install_step_ok") : t("pi.install_step_failed")}
+                          </span>
+                        </div>
+                        {!r.ok && r.output_tail && (
+                          <p className="v3-gai-component-desc">{r.output_tail}</p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </article>
 
           {/* Per-source failures — never let a backend failure look like an
