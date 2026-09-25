@@ -1007,13 +1007,21 @@ const STRINGS = {
     en: "Runs the npm install, the gentle-ai install, and the gentle-pi postinstall step that builds the pinned gentle-ai binary — the step most manual installs miss.",
     es: "Corre el install de npm, el install de gentle-ai y el paso de postinstall de gentle-pi que compila el binario pineado de gentle-ai — el paso que la mayoría de las instalaciones manuales se saltea.",
   },
+  "pi.install_claude_label": {
+    en: "Also install Claude Code",
+    es: "Instalar también Claude Code",
+  },
+  "pi.install_claude_hint": {
+    en: "Runs Anthropic's official Windows installer. It does not log you in — after it finishes, open a terminal and run `claude` yourself.",
+    es: "Corre el instalador oficial de Anthropic para Windows. No inicia sesión por vos — cuando termine, abrí una terminal y ejecutá `claude` vos mismo.",
+  },
   "pi.install_provider_label": {
     en: "Also install the Claude provider",
     es: "Instalar también el proveedor de Claude",
   },
   "pi.install_provider_hint": {
-    en: "Needs Claude Code logged in on this machine.",
-    es: "Necesita Claude Code logueado en este equipo.",
+    en: "Needs Claude Code logged in on this machine, version 2.1.281 or newer.",
+    es: "Necesita Claude Code logueado en este equipo, versión 2.1.281 o superior.",
   },
   "pi.install_button": { en: "Install stack", es: "Instalar stack" },
   "pi.install_running": { en: "Installing…", es: "Instalando…" },

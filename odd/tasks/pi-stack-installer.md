@@ -45,6 +45,8 @@ Strict TDD is enabled. Runner: `cargo test --locked` in `src-tauri/`. Observed R
 - [x] **T1 — `install_pi_stack` command.** Route: delegated writer. Takes the provider opt-in as an argument, runs the three base steps in order plus the optional fourth, and returns a per-step result (name, ok, and the tail of its output) instead of a bare error, so the UI can show which step failed. A failing step stops the sequence: step 3 is meaningless if step 2 did not produce a gentle-pi root. Missing `npm`, `node` or `gentle-ai` fails with a message naming what is missing.
 - [x] **T2 — Install action in the panel.** Route: delegated writer. A button with the opt-in for the Claude provider, pending state while it runs, the per-step result rendered afterwards, and a refresh of the status when it finishes. Copy in `en` and `es`.
 
+- [ ] **T3 — Claude Code as an opt-in install step.** Route: delegated writer. Added after v0.1.123, from evidence on the user's second machine: the panel reported `claude --version failed or claude not found`, which is accurate and leaves the user stuck, and the Claude provider is useless without it. A second opt-in, independent of the provider one, runs Anthropic's documented Windows installer `irm https://claude.ai/install.ps1 | iex` as the FIRST step, before the Pi stack, so the later provider step can find it. Two things this cannot do, and the copy must say so: it does not log you in — that is interactive, `claude` in a terminal — and the provider also needs Claude Code at 2.1.281 or newer.
+
 ## Acceptance criteria
 
 - On a machine with Pi missing, the action installs it and the panel's rows flip from missing to ok after the refresh.

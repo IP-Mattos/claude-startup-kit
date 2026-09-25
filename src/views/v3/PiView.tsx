@@ -137,6 +137,7 @@ export function PiView() {
   // sync flow: a pending flag, a per-run result, and a refresh afterwards
   // so the rows reflect whatever the install just changed.
   const [installing, setInstalling] = useState(false);
+  const [includeClaudeCode, setIncludeClaudeCode] = useState(false);
   const [includeProvider, setIncludeProvider] = useState(false);
   const [installResults, setInstallResults] = useState<InstallStepResult[] | null>(null);
   const [installError, setInstallError] = useState<string | null>(null);
@@ -148,6 +149,7 @@ export function PiView() {
     setInstallError(null);
     try {
       const results = await invoke<InstallStepResult[]>("install_pi_stack", {
+        includeClaudeCode,
         includeProvider,
       });
       setInstallResults(results);
@@ -323,6 +325,18 @@ export function PiView() {
               <h2 className="v3-card-title">{t("pi.install_title")}</h2>
             </header>
             <p className="v3-subtitle">{t("pi.install_desc")}</p>
+            <label className="v3-toggle-row">
+              <input
+                type="checkbox"
+                checked={includeClaudeCode}
+                disabled={installing}
+                onChange={() => setIncludeClaudeCode((prev) => !prev)}
+              />
+              <div className="v3-toggle-body">
+                <div className="v3-toggle-label">{t("pi.install_claude_label")}</div>
+                <div className="v3-row-meta">{t("pi.install_claude_hint")}</div>
+              </div>
+            </label>
             <label className="v3-toggle-row">
               <input
                 type="checkbox"

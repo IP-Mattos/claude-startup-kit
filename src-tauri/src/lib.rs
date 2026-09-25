@@ -2925,6 +2925,26 @@ fn parse_claude_version_stdout(stdout: &str) -> String {
     stdout.split_whitespace().next().unwrap_or("").to_string()
 }
 
+/// Default Claude Code install location written by Anthropic's documented
+/// installer (`irm https://claude.ai/install.ps1 | iex` on Windows — see
+/// https://code.claude.com/docs/en/setup): `~/.local/bin/claude(.exe)`.
+/// Shared by `claude_code_status`, `update_claude_code`, and the
+/// `pi_stack_status` fallback below, instead of duplicating the join in
+/// each. The `pi_stack_status` use is the load-bearing one: `resolve_cli`'s
+/// `CLI_RESOLUTION_CACHE` can still hold this process's earlier "claude not
+/// found" result for the bare name after `install_pi_stack`'s Claude Code
+/// step has just written the binary here, so a bare `claude_version("claude")`
+/// call won't see it until CSK restarts. Probing this full path directly
+/// bypasses that cache — `resolve_cli` only rewrites the literal bare name.
+fn default_claude_code_path(home: &Path) -> PathBuf {
+    let filename = if cfg!(target_os = "windows") {
+        "claude.exe"
+    } else {
+        "claude"
+    };
+    home.join(".local").join("bin").join(filename)
+}
+
 /// Snapshot of the installed Claude Code CLI(s). On Windows a NATIVE install
 /// lives at `~/.local/bin/claude.exe` and can go stale independently of the
 /// `claude` resolved on PATH — when the two versions differ, the native one is
@@ -2954,7 +2974,7 @@ fn find_exe_in_path(name: &str) -> Option<PathBuf> {
 async fn claude_code_status() -> ClaudeCodeStatus {
     // `claude --version` takes hundreds of ms — keep it off the async runtime.
     tokio::task::spawn_blocking(|| {
-        let native = dirs_home().map(|h| h.join(".local").join("bin").join("claude.exe"));
+        let native = dirs_home().map(|h| default_claude_code_path(&h));
         let native_installed = native.as_ref().is_some_and(|p| p.is_file());
         let native_version = match &native {
             Some(p) if native_installed => claude_version(&p.to_string_lossy()),
@@ -3005,7 +3025,7 @@ async fn claude_code_status() -> ClaudeCodeStatus {
 #[tauri::command]
 async fn update_claude_code() -> Result<String, String> {
     tokio::task::spawn_blocking(|| -> Result<String, String> {
-        let native = dirs_home().map(|h| h.join(".local").join("bin").join("claude.exe"));
+        let native = dirs_home().map(|h| default_claude_code_path(&h));
         let program: String = match &native {
             Some(p) if p.is_file() => p.to_string_lossy().into_owned(),
             _ => "claude".to_string(),
@@ -3236,7 +3256,19 @@ fn pi_stack_status_blocking() -> PiStackStatus {
     };
 
     // ── Claude Code CLI ──
+    // PATH-resolved lookup first (unchanged). If that's empty, also probe
+    // the default install location directly — see `default_claude_code_path`
+    // for why a bare lookup alone can stay stale right after an install.
     let claude_raw = claude_version("claude");
+    let claude_raw = if claude_raw.is_empty() {
+        dirs_home()
+            .map(|h| default_claude_code_path(&h))
+            .filter(|p| p.is_file())
+            .map(|p| claude_version(&p.to_string_lossy()))
+            .unwrap_or_default()
+    } else {
+        claude_raw
+    };
     let claude_code_version = if claude_raw.is_empty() {
         errors.push("claude --version failed or claude not found".to_string());
         None
@@ -3453,12 +3485,14 @@ async fn open_in_pi(path: String) -> Result<(), String> {
 //
 // The sequence `odd/tasks/pi-stack-installer.md` documents: install the Pi
 // runtime, install gentle-pi and its companions, then run gentle-pi's
-// postinstall by hand — step 3 is the whole point. npm's `--ignore-scripts`
-// in step 1 (deliberate supply-chain hardening; do not drop it) silently
-// skips the postinstall that normally builds the pinned `gentle-ai` binary
-// `pi_stack_status` already knows how to detect as missing. Step 4 (the
-// Claude provider) is an opt-in on top, since it needs Claude Code logged
-// in on the machine.
+// postinstall by hand — the postinstall step is the whole point. npm's
+// `--ignore-scripts` on the runtime install (deliberate supply-chain
+// hardening; do not drop it) silently skips the postinstall that normally
+// builds the pinned `gentle-ai` binary `pi_stack_status` already knows how
+// to detect as missing. Two independent opt-ins sit on top of that fixed
+// sequence: Claude Code itself, run FIRST so the base steps and the
+// provider step below can find it on PATH; and the Claude provider, run
+// LAST, since it needs Claude Code logged in on the machine.
 
 /// One step of the install sequence, fully resolved and ready to spawn:
 /// program, args, and an optional working directory. Building the plan is
@@ -3504,50 +3538,73 @@ fn dispatch_install_step(
     }
 }
 
-/// Ordered step plan for `install_pi_stack`: npm install → gentle-ai
-/// install → gentle-pi's postinstall (the step that actually builds the
-/// pinned binary), plus the Claude-provider opt-in as an optional 4th step.
+/// Ordered step plan for `install_pi_stack`: an optional Claude Code CLI
+/// install first, then npm install → gentle-ai install → gentle-pi's
+/// postinstall (the step that actually builds the pinned binary), plus the
+/// Claude-provider opt-in as an optional last step. The two opt-ins are
+/// independent of each other and of the fixed base sequence.
 ///
 /// `pi_path` is only read when `include_provider` is true. `pi` doesn't
-/// exist to resolve until step 1 has installed it, so `install_pi_stack`
-/// resolves it fresh only after steps 1–3 have actually run and calls this
-/// builder a second time to get the provider step's exact shape — passing
-/// an empty string here when `include_provider` is false is harmless, it's
-/// never read.
+/// exist to resolve until the npm step has installed it, so `install_pi_stack`
+/// resolves it fresh only after the base steps have actually run and calls
+/// this builder a second time to get the provider step's exact shape —
+/// passing an empty string here when `include_provider` is false is
+/// harmless, it's never read.
 fn build_install_pi_stack_steps(
     npm_path: &str,
     node_path: &str,
     gentle_ai_path: &str,
     gentle_pi_root: &str,
     pi_path: &str,
+    include_claude_code: bool,
     include_provider: bool,
 ) -> Vec<InstallStep> {
-    let mut steps = vec![
-        dispatch_install_step(
-            "npm install -g pi-coding-agent",
-            npm_path,
-            vec![
-                "install".to_string(),
-                "-g".to_string(),
-                "--ignore-scripts".to_string(),
-                "@earendil-works/pi-coding-agent".to_string(),
+    let mut steps: Vec<InstallStep> = Vec::with_capacity(5);
+    if include_claude_code {
+        // Anthropic's documented Windows installer:
+        // https://code.claude.com/docs/en/setup. Built directly rather than
+        // through `dispatch_install_step` — like `node` below, the bare
+        // "powershell" name is never a `.cmd`/`.bat` wrapper, so no dispatch
+        // is needed. `run_install_step`'s `silent_command` resolves it to
+        // its canonical path the same way every other `silent_command
+        // ("powershell")` call site in this file does. Installs to
+        // `%USERPROFILE%\.local\bin\claude.exe` and needs no admin rights.
+        steps.push(InstallStep {
+            name: "Claude Code (irm https://claude.ai/install.ps1 | iex)",
+            program: "powershell".to_string(),
+            args: vec![
+                "-NoProfile".to_string(),
+                "-NonInteractive".to_string(),
+                "-Command".to_string(),
+                "irm https://claude.ai/install.ps1 | iex".to_string(),
             ],
-            None,
-        ),
-        dispatch_install_step(
-            "gentle-ai install --agent pi",
-            gentle_ai_path,
-            vec!["install".to_string(), "--agent".to_string(), "pi".to_string()],
-            None,
-        ),
-        // node itself is never a `.cmd`/`.bat` wrapper — no dispatch needed.
-        InstallStep {
-            name: "gentle-pi postinstall (install-gentle-ai.mjs)",
-            program: node_path.to_string(),
-            args: vec!["scripts/install-gentle-ai.mjs".to_string()],
-            dir: Some(gentle_pi_root.to_string()),
-        },
-    ];
+            dir: None,
+        });
+    }
+    steps.push(dispatch_install_step(
+        "npm install -g pi-coding-agent",
+        npm_path,
+        vec![
+            "install".to_string(),
+            "-g".to_string(),
+            "--ignore-scripts".to_string(),
+            "@earendil-works/pi-coding-agent".to_string(),
+        ],
+        None,
+    ));
+    steps.push(dispatch_install_step(
+        "gentle-ai install --agent pi",
+        gentle_ai_path,
+        vec!["install".to_string(), "--agent".to_string(), "pi".to_string()],
+        None,
+    ));
+    // node itself is never a `.cmd`/`.bat` wrapper — no dispatch needed.
+    steps.push(InstallStep {
+        name: "gentle-pi postinstall (install-gentle-ai.mjs)",
+        program: node_path.to_string(),
+        args: vec!["scripts/install-gentle-ai.mjs".to_string()],
+        dir: Some(gentle_pi_root.to_string()),
+    });
     if include_provider {
         steps.push(dispatch_install_step(
             "pi install pi-claude-code-provider",
@@ -3629,7 +3686,10 @@ fn run_install_step(step: &InstallStep) -> InstallStepResult {
 /// only a missing prerequisite (npm/node/gentle-ai not resolvable at all)
 /// fails before any step is attempted.
 #[tauri::command]
-async fn install_pi_stack(include_provider: bool) -> Result<Vec<InstallStepResult>, String> {
+async fn install_pi_stack(
+    include_claude_code: bool,
+    include_provider: bool,
+) -> Result<Vec<InstallStepResult>, String> {
     tokio::task::spawn_blocking(move || -> Result<Vec<InstallStepResult>, String> {
         let npm_path = resolve_managed_tool("npm")
             .ok_or_else(|| "npm not found on this machine. Install Node.js first.".to_string())?;
@@ -3641,18 +3701,20 @@ async fn install_pi_stack(include_provider: bool) -> Result<Vec<InstallStepResul
             .ok_or_else(|| "could not resolve the user home directory".to_string())?;
         let gentle_pi_root = gentle_pi_root_path(&home).to_string_lossy().into_owned();
 
-        // Steps 1–3 always run first; `pi` doesn't exist to resolve until
-        // step 1 has installed it, so the plan is built without the
-        // provider step here regardless of the opt-in.
+        // The optional Claude Code step (if any) plus the base steps always
+        // run first; `pi` doesn't exist to resolve until the npm step has
+        // installed it, so the plan is built without the provider step here
+        // regardless of that opt-in.
         let base_steps = build_install_pi_stack_steps(
             &npm_path,
             &node_path,
             &gentle_ai_path,
             &gentle_pi_root,
             "",
+            include_claude_code,
             false,
         );
-        let mut results: Vec<InstallStepResult> = Vec::with_capacity(4);
+        let mut results: Vec<InstallStepResult> = Vec::with_capacity(5);
         for step in &base_steps {
             let result = run_install_step(step);
             let ok = result.ok;
@@ -3674,6 +3736,7 @@ async fn install_pi_stack(include_provider: bool) -> Result<Vec<InstallStepResul
                         &gentle_ai_path,
                         &gentle_pi_root,
                         &pi_path,
+                        include_claude_code,
                         true,
                     );
                     if let Some(provider_step) = with_provider.last() {
@@ -9907,6 +9970,22 @@ mod tests {
         );
     }
 
+    // default_claude_code_path
+
+    #[test]
+    fn default_claude_code_path_builds_expected_layout() {
+        let home = Path::new("C:/Users/demo");
+        let expected_filename = if cfg!(target_os = "windows") {
+            "claude.exe"
+        } else {
+            "claude"
+        };
+        assert_eq!(
+            default_claude_code_path(home),
+            home.join(".local").join("bin").join(expected_filename)
+        );
+    }
+
     // build_open_in_pi_launch
 
     #[test]
@@ -9980,6 +10059,7 @@ mod tests {
             "C:/Users/demo/.pi/agent/npm/node_modules/gentle-pi",
             "",
             false,
+            false,
         );
         assert_eq!(steps.len(), 3);
 
@@ -10031,6 +10111,7 @@ mod tests {
             "C:/Users/demo/.gentle-ai/v2.9.1/gentle-ai.exe",
             "C:/Users/demo/.pi/agent/npm/node_modules/gentle-pi",
             "C:/Users/demo/AppData/Roaming/npm/pi.cmd",
+            false,
             true,
         );
         assert_eq!(steps.len(), 4);
@@ -10046,15 +10127,97 @@ mod tests {
             ]
         );
         assert_eq!(steps[3].dir, None);
+        assert!(steps.iter().all(|s| !s.name.starts_with("Claude Code")));
     }
 
     #[test]
     fn install_pi_stack_steps_provider_step_omitted_when_opted_out() {
         let steps = build_install_pi_stack_steps(
-            "npm", "node", "gentle-ai", "root", "unused-pi-path", false,
+            "npm", "node", "gentle-ai", "root", "unused-pi-path", false, false,
         );
         assert_eq!(steps.len(), 3);
         assert!(steps.iter().all(|s| !s.name.contains("provider")));
+    }
+
+    // Two independent opt-ins on top of the fixed 3-step base sequence:
+    // Claude Code (must run FIRST, so a later provider step can find it)
+    // and the Claude provider (must run LAST). These four tests cover every
+    // combination: neither (above), provider only (above), Claude Code
+    // only, and both together.
+
+    #[test]
+    fn install_pi_stack_steps_claude_code_runs_first_when_opted_in_alone() {
+        let steps = build_install_pi_stack_steps(
+            "C:/Program Files/nodejs/npm.cmd",
+            "C:/Program Files/nodejs/node.exe",
+            "C:/Users/demo/.gentle-ai/v2.9.1/gentle-ai.exe",
+            "C:/Users/demo/.pi/agent/npm/node_modules/gentle-pi",
+            "unused-pi-path",
+            true,
+            false,
+        );
+        // Claude Code first, then the 3 unchanged base steps, no provider.
+        assert_eq!(steps.len(), 4);
+        assert_eq!(
+            steps[0].name,
+            "Claude Code (irm https://claude.ai/install.ps1 | iex)"
+        );
+        assert_eq!(steps[0].program, "powershell");
+        assert_eq!(
+            steps[0].args,
+            vec![
+                "-NoProfile".to_string(),
+                "-NonInteractive".to_string(),
+                "-Command".to_string(),
+                "irm https://claude.ai/install.ps1 | iex".to_string(),
+            ]
+        );
+        assert_eq!(steps[0].dir, None);
+        // The base steps shift down by one but are otherwise unchanged.
+        assert_eq!(steps[1].program, "cmd"); // npm's .cmd wrapper
+        assert_eq!(
+            steps[2].program,
+            "C:/Users/demo/.gentle-ai/v2.9.1/gentle-ai.exe"
+        );
+        assert_eq!(steps[3].program, "C:/Program Files/nodejs/node.exe");
+        assert!(steps.iter().all(|s| !s.name.contains("provider")));
+    }
+
+    #[test]
+    fn install_pi_stack_steps_claude_code_and_provider_are_independent_opt_ins() {
+        let steps = build_install_pi_stack_steps(
+            "C:/Program Files/nodejs/npm.cmd",
+            "C:/Program Files/nodejs/node.exe",
+            "C:/Users/demo/.gentle-ai/v2.9.1/gentle-ai.exe",
+            "C:/Users/demo/.pi/agent/npm/node_modules/gentle-pi",
+            "C:/Users/demo/AppData/Roaming/npm/pi.cmd",
+            true,
+            true,
+        );
+        // Claude Code first, provider last, base steps in between — both
+        // opt-ins present at once, independently of each other.
+        assert_eq!(steps.len(), 5);
+        assert_eq!(
+            steps[0].name,
+            "Claude Code (irm https://claude.ai/install.ps1 | iex)"
+        );
+        assert_eq!(steps[0].program, "powershell");
+        assert_eq!(steps[1].program, "cmd"); // npm's .cmd wrapper
+        assert_eq!(
+            steps[2].program,
+            "C:/Users/demo/.gentle-ai/v2.9.1/gentle-ai.exe"
+        );
+        assert_eq!(steps[3].program, "C:/Program Files/nodejs/node.exe");
+        assert_eq!(steps[4].program, "cmd"); // pi's .cmd wrapper
+        assert_eq!(
+            steps[4].args,
+            vec![
+                "/c".to_string(),
+                "C:/Users/demo/AppData/Roaming/npm/pi.cmd".to_string(),
+                "install".to_string(),
+                "npm:pi-claude-code-provider".to_string(),
+            ]
+        );
     }
 
     #[test]
@@ -10068,6 +10231,7 @@ mod tests {
             "C:/Users/demo/.local/bin/gentle-ai.exe",
             "root",
             "C:/Users/demo/.local/bin/pi.exe",
+            false,
             true,
         );
         assert_eq!(steps[0].program, "C:/Users/demo/.local/bin/npm.exe");
