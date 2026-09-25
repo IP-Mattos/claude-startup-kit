@@ -617,6 +617,7 @@ const STRINGS = {
   },
   "projects.open_in_explorer": { en: "Open in Explorer", es: "Abrir en Explorer" },
   "projects.open_in_tui": { en: "Open in TUI", es: "Abrir en TUI" },
+  "projects.open_in_pi": { en: "Open in Pi", es: "Abrir en Pi" },
   "projects.skill_registry": { en: "Skills", es: "Skills" },
   "projects.skill_registry_missing": {
     en: "No skill registry — run `gentle-ai skill-registry refresh`",

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
+  Bot,
   FolderOpen,
   GitBranch,
   Info,
@@ -77,6 +78,8 @@ export function ProjectsView({
     invoke("open_in_vscode", { path }).catch((e) => setError(friendlyErrorEn(e)));
   const openTui = (path: string) =>
     invoke("open_in_tui", { path }).catch((e) => setError(friendlyErrorEn(e)));
+  const openPi = (path: string) =>
+    invoke("open_in_pi", { path }).catch((e) => setError(friendlyErrorEn(e)));
   const openExplorer = (path: string) =>
     invoke("open_path_in_explorer", { path }).catch((e) =>
       setError(friendlyErrorEn(e))
@@ -217,6 +220,7 @@ export function ProjectsView({
                 git={git}
                 onOpen={() => open(p.path)}
                 onOpenTui={() => openTui(p.path)}
+                onOpenPi={() => openPi(p.path)}
                 onOpenExplorer={() => openExplorer(p.path)}
                 onOpenSkills={() => openSkillRegistry(p.path)}
               />
@@ -315,6 +319,7 @@ function ProjectListRow({
   git,
   onOpen,
   onOpenTui,
+  onOpenPi,
   onOpenExplorer,
   onOpenSkills,
 }: {
@@ -323,6 +328,7 @@ function ProjectListRow({
   git: GitInfo | null;
   onOpen: () => void;
   onOpenTui: () => void;
+  onOpenPi: () => void;
   onOpenExplorer: () => void;
   onOpenSkills: () => void;
 }) {
@@ -384,6 +390,14 @@ function ProjectListRow({
             aria-label={t("projects.open_in_tui")}
           >
             <SquareTerminal size={13} strokeWidth={2} />
+          </button>
+          <button
+            className="v3-btn-ghost v3-btn-sm v3-btn-icon"
+            onClick={onOpenPi}
+            title={t("projects.open_in_pi")}
+            aria-label={t("projects.open_in_pi")}
+          >
+            <Bot size={13} strokeWidth={2} />
           </button>
         </div>
       </div>

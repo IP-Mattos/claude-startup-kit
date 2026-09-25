@@ -3361,6 +3361,94 @@ fn pi_stack_status_blocking() -> PiStackStatus {
     }
 }
 
+/// Locate Windows Terminal the same way `claude-dash.ps1` does for
+/// `open_in_tui`: PATH first, then the WindowsApps execution-alias dir
+/// (which can be off PATH when app-execution-aliases are disabled).
+/// `None` when neither is present — `open_in_pi` then falls back to a
+/// plain `cmd.exe` window.
+fn resolve_windows_terminal() -> Option<String> {
+    if let Some(found) = find_exe_in_path("wt") {
+        return Some(found.to_string_lossy().into_owned());
+    }
+    let local = std::env::var_os("LOCALAPPDATA")?;
+    let alias = PathBuf::from(local).join("Microsoft\\WindowsApps\\wt.exe");
+    if alias.is_file() {
+        Some(alias.to_string_lossy().into_owned())
+    } else {
+        None
+    }
+}
+
+/// Build the `(program, args)` pair `open_in_pi` spawns to open a visible
+/// terminal running `pi` in `dir` — the same WT-then-plain-`cmd.exe`
+/// fallback `claude-dash.ps1` uses for `open_in_tui`, simplified to a
+/// single pane since there's only one program to run here.
+///
+/// Both branches route the final launch through `cmd /k <pi_path>` rather
+/// than spawning `pi_path` directly: `cmd.exe` resolves a `.cmd`/`.bat`
+/// wrapper on its own command line (unlike `Command::new`, which is why
+/// `probe_pi_version` needs its own `cmd /c` dispatch), and `/k` keeps the
+/// window open after `pi` exits so a missing/broken install is visible
+/// instead of a window flashing shut.
+///
+/// Pure: no filesystem or process access, so it's unit-testable without
+/// spawning anything. `dir` is assumed already validated/canonicalized by
+/// the caller.
+fn build_open_in_pi_launch(wt_path: Option<&str>, pi_path: &str, dir: &str) -> (String, Vec<String>) {
+    match wt_path {
+        Some(wt) => (
+            wt.to_string(),
+            vec![
+                "new-tab".to_string(),
+                "--title".to_string(),
+                "Pi".to_string(),
+                "--startingDirectory".to_string(),
+                dir.to_string(),
+                "cmd".to_string(),
+                "/k".to_string(),
+                pi_path.to_string(),
+            ],
+        ),
+        None => (
+            "cmd".to_string(),
+            vec!["/k".to_string(), pi_path.to_string()],
+        ),
+    }
+}
+
+/// Open `pi` interactively for a project in a visible terminal — the
+/// "Open in Pi" launcher, modelled on `open_in_tui`.
+///
+/// Deliberately does NOT go through `silent_command()`: that helper exists
+/// to suppress the console window every other shelled-out CLI in this file
+/// gets by default, which is the opposite of what an interactive launcher
+/// needs. The window must be visible so the user can actually type into
+/// `pi`, and so a missing/broken install shows its error instead of
+/// silently doing nothing.
+#[tauri::command]
+async fn open_in_pi(path: String) -> Result<(), String> {
+    let canonical = validate_open_path(&path)?;
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let pi_path = resolve_managed_tool("pi").ok_or_else(|| {
+            "pi no encontrado en este equipo. Instalá gentle-pi para usar este botón.".to_string()
+        })?;
+        let dir = canonical.to_string_lossy().into_owned();
+        let wt_path = resolve_windows_terminal();
+        let (program, args) = build_open_in_pi_launch(wt_path.as_deref(), &pi_path, &dir);
+        let mut cmd = std::process::Command::new(&program);
+        cmd.args(&args);
+        if wt_path.is_none() {
+            // `wt.exe` takes `--startingDirectory` itself; the plain
+            // `cmd.exe` fallback needs its cwd set directly.
+            cmd.current_dir(&canonical);
+        }
+        cmd.spawn().map_err(|e| format_spawn_error(&program, &e))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("task join: {e}"))?
+}
+
 #[tauri::command]
 async fn open_path_in_explorer(path: String) -> Result<(), String> {
     let canonical = validate_open_path(&path)?;
@@ -8619,6 +8707,7 @@ pub fn run() {
             claude_code_status,
             update_claude_code,
             pi_stack_status,
+            open_in_pi,
             open_path_in_explorer,
             write_text_file,
             read_text_file,
@@ -9566,6 +9655,68 @@ mod tests {
         assert_eq!(
             gentle_ai_binary_path(root, "3.7.0"),
             root.join(".gentle-ai").join("v3.7.0").join(expected_filename)
+        );
+    }
+
+    // build_open_in_pi_launch
+
+    #[test]
+    fn build_open_in_pi_launch_prefers_windows_terminal_when_available() {
+        let (program, args) = build_open_in_pi_launch(
+            Some("C:/WindowsApps/wt.exe"),
+            "C:/Users/demo/AppData/Roaming/npm/pi.cmd",
+            "C:/Users/demo/projects/foo",
+        );
+        assert_eq!(program, "C:/WindowsApps/wt.exe");
+        assert_eq!(
+            args,
+            vec![
+                "new-tab".to_string(),
+                "--title".to_string(),
+                "Pi".to_string(),
+                "--startingDirectory".to_string(),
+                "C:/Users/demo/projects/foo".to_string(),
+                "cmd".to_string(),
+                "/k".to_string(),
+                "C:/Users/demo/AppData/Roaming/npm/pi.cmd".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn build_open_in_pi_launch_falls_back_to_plain_cmd_when_wt_absent() {
+        let (program, args) = build_open_in_pi_launch(
+            None,
+            "C:/Users/demo/AppData/Roaming/npm/pi.cmd",
+            "C:/Users/demo/projects/foo",
+        );
+        assert_eq!(program, "cmd");
+        assert_eq!(
+            args,
+            vec![
+                "/k".to_string(),
+                "C:/Users/demo/AppData/Roaming/npm/pi.cmd".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn build_open_in_pi_launch_works_with_a_bare_pi_exe_path() {
+        // No `.cmd`/`.bat` dispatch tricks needed here — unlike
+        // `probe_pi_version`'s bare `Command::new`, this always routes
+        // through `cmd /k`, and cmd.exe resolves either extension itself.
+        let (program, args) = build_open_in_pi_launch(
+            None,
+            "C:/Users/demo/.local/bin/pi.exe",
+            "C:/Users/demo/projects/foo",
+        );
+        assert_eq!(program, "cmd");
+        assert_eq!(
+            args,
+            vec![
+                "/k".to_string(),
+                "C:/Users/demo/.local/bin/pi.exe".to_string(),
+            ]
         );
     }
 }
