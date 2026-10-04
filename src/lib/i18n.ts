@@ -785,11 +785,6 @@ const STRINGS = {
   "claude.sync_all_with_theme": { en: "Sync with theme", es: "Sincronizar con tema" },
   "claude.syncing": { en: "Syncing…", es: "Sincronizando…" },
   "claude.sync_done": { en: "Sync complete", es: "Sync completo" },
-  "claude.sync_strict_tdd": { en: "Strict TDD", es: "TDD estricto" },
-  "claude.sync_strict_tdd_hint": {
-    en: "Adds --strict-tdd to the gentle-ai sync run",
-    es: "Agrega --strict-tdd a la ejecución de gentle-ai sync",
-  },
   "claude.uninstall": { en: "Uninstall", es: "Desinstalar" },
   "claude.uninstalling": { en: "Uninstalling…", es: "Desinstalando…" },
   "claude.uninstall_hint": {

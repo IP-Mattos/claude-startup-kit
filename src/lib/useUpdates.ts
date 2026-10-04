@@ -92,9 +92,8 @@ export interface UpdatesState {
   // the promise rejects and `appError` is populated.
   applyApp: () => Promise<void>;
   applyGentleAi: () => Promise<string | null>;
-  // Re-runs `gentle-ai sync` with the persisted Strict TDD choice (theme
-  // preserved only if installed). Resolves true on success; on failure
-  // `resyncError` is populated and the banner stays up for a retry.
+  // Re-runs `gentle-ai sync` (theme preserved only if installed).
+  // Resolves true on success; on failure `resyncError` is populated and the banner stays up for a retry.
   resync: () => Promise<boolean>;
   dismissApp: (version: string) => void;
   dismissGentleAi: (version: string) => void;
@@ -334,7 +333,7 @@ export function useUpdates(): UpdatesState {
     setGentleAiSyncError(null);
     try {
       // The backend syncs the managed config right after the installer
-      // (Strict TDD and theme read from disk). A sync failure arrives as
+      // (theme read from disk). A sync failure arrives as
       // `sync_error` on a successful outcome: the binary moved, so this is
       // still an update success and the drift banner carries the retry.
       const outcome = await invoke<GentleAiUpdateOutcome>("apply_gentle_ai_update");

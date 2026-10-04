@@ -6272,22 +6272,18 @@ async fn gentle_ai_status() -> Result<GentleAiStatus, String> {
 
 // ─── Gentle-AI sync helpers (auto-sync after update + drift banner) ───────
 //
-// gentle-ai does not persist the `--strict-tdd` / `--include-theme` choices,
-// so every sync CSK triggers must forward them explicitly. Drift between the
+// gentle-ai does not persist the `--include-theme` choice, so every sync
+// CSK triggers must forward it explicitly. Drift between the
 // binary and the managed config is detected the way gentle-ai doctor does
 // it: `~/.gentle-ai/state.json` records the binary version that produced the
 // installed assets, and `gentle-ai sync` rewrites it to the running version.
 
-/// Argument vector for `gentle-ai sync`. Order matches the historical
-/// command line (sync, --include-theme, --strict-tdd) so logs stay
-/// comparable across the manual and automatic paths.
-fn gentle_ai_sync_args(strict_tdd: bool, include_theme: bool) -> Vec<&'static str> {
+/// Argument vector for `gentle-ai sync`. `--strict-tdd` is never emitted:
+/// gentle-ai 4.0.0 retired it and rejects the run when it is present.
+fn gentle_ai_sync_args(include_theme: bool) -> Vec<&'static str> {
     let mut args = vec!["sync"];
     if include_theme {
         args.push("--include-theme");
-    }
-    if strict_tdd {
-        args.push("--strict-tdd");
     }
     args
 }
@@ -6339,47 +6335,12 @@ fn theme_installed() -> bool {
     detect_component("theme", &home.join(".claude"), None)
 }
 
-/// gentle-ai records the Strict TDD choice as a managed block in
-/// `~/.claude/CLAUDE.md` (written by its sdd component when `sync
-/// --strict-tdd` runs, removed on uninstall): an opening
-/// `<!-- gentle-ai:strict-tdd-mode -->` comment, the line
-/// `Strict TDD Mode: enabled`, and the matching closing comment. True only
-/// when that block exists and carries the exact enabled line. Line-based,
-/// so CRLF and stray indentation do not matter.
-fn parse_strict_tdd_marker(claude_md: &str) -> bool {
-    let mut in_block = false;
-    for line in claude_md.lines() {
-        match line.trim() {
-            "<!-- gentle-ai:strict-tdd-mode -->" => in_block = true,
-            "<!-- /gentle-ai:strict-tdd-mode -->" => in_block = false,
-            "Strict TDD Mode: enabled" if in_block => return true,
-            _ => {}
-        }
-    }
-    false
-}
-
-/// Whether Strict TDD is currently installed, read from disk the same way
-/// `theme_installed` reads the theme. False when CLAUDE.md is unreadable.
-fn strict_tdd_installed() -> bool {
-    let Some(home) = dirs_home() else {
-        return false;
-    };
-    fs::read_to_string(home.join(".claude").join("CLAUDE.md"))
-        .map(|md| parse_strict_tdd_marker(&md))
-        .unwrap_or(false)
-}
-
 /// Single place that spawns `gentle-ai sync`: formats failures the same
 /// way for every caller, busts the workspace summary cache on success
 /// (sync can install a brand-new CLI as a side effect) and returns stdout.
-fn run_gentle_ai_sync(
-    program: &str,
-    strict_tdd: bool,
-    include_theme: bool,
-) -> Result<String, String> {
+fn run_gentle_ai_sync(program: &str, include_theme: bool) -> Result<String, String> {
     let out = silent_command(program)
-        .args(gentle_ai_sync_args(strict_tdd, include_theme))
+        .args(gentle_ai_sync_args(include_theme))
         .output()
         .map_err(|e| format_spawn_error("gentle-ai", &e))?;
     if !out.status.success() {
@@ -6396,21 +6357,20 @@ fn run_gentle_ai_sync(
 
 /// The one owner of the preserve rule for every sync CSK triggers on its
 /// own (post-update, "Update all", the drift banner): resolve the binary,
-/// read the Strict TDD and theme choices from disk, and run the sync with
-/// both forwarded. The manual `gentle_ai_sync` command stays explicit
+/// read the theme choice from disk, and run the sync with it forwarded. The manual `gentle_ai_sync` command stays explicit
 /// because there the user picks the flags.
 fn run_managed_sync() -> Result<String, String> {
     let program = resolve_gentle_ai()
         .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
-    run_gentle_ai_sync(&program, strict_tdd_installed(), theme_installed())
+    run_gentle_ai_sync(&program, theme_installed())
 }
 
 #[tauri::command]
-async fn gentle_ai_sync(include_theme: bool, strict_tdd: bool) -> Result<String, String> {
+async fn gentle_ai_sync(include_theme: bool) -> Result<String, String> {
     tokio::task::spawn_blocking(move || -> Result<String, String> {
         let program = resolve_gentle_ai()
             .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
-        run_gentle_ai_sync(&program, strict_tdd, include_theme)
+        run_gentle_ai_sync(&program, include_theme)
     })
     .await
     .map_err(|e| format!("task join: {e}"))?
@@ -9654,30 +9614,24 @@ mod tests {
 
     #[test]
     fn gentle_ai_sync_args_plain() {
-        assert_eq!(gentle_ai_sync_args(false, false), vec!["sync"]);
+        assert_eq!(gentle_ai_sync_args(false), vec!["sync"]);
     }
 
     #[test]
     fn gentle_ai_sync_args_theme_only() {
         assert_eq!(
-            gentle_ai_sync_args(false, true),
+            gentle_ai_sync_args(true),
             vec!["sync", "--include-theme"]
         );
     }
 
     #[test]
-    fn gentle_ai_sync_args_strict_tdd_only() {
-        assert_eq!(gentle_ai_sync_args(true, false), vec!["sync", "--strict-tdd"]);
-    }
-
-    #[test]
-    fn gentle_ai_sync_args_both_flags_keep_command_order() {
-        // Order mirrors the historical `gentle_ai_sync` command line:
-        // sync, then --include-theme, then --strict-tdd.
-        assert_eq!(
-            gentle_ai_sync_args(true, true),
-            vec!["sync", "--include-theme", "--strict-tdd"]
-        );
+    fn gentle_ai_sync_args_never_emit_retired_strict_tdd() {
+        // gentle-ai 4.0.0 rejects `--strict-tdd` outright, so no input may
+        // ever produce it.
+        for include_theme in [false, true] {
+            assert!(!gentle_ai_sync_args(include_theme).contains(&"--strict-tdd"));
+        }
     }
 
     // ── assets_out_of_date ──────────────────────────────────────────────
@@ -9768,48 +9722,6 @@ mod tests {
             parse_installed_assets_version(r#"{"installed_binary_version":"2.2.4""#),
             None
         );
-    }
-
-    // ── parse_strict_tdd_marker ─────────────────────────────────────────
-
-    #[test]
-    fn parse_strict_tdd_marker_enabled_block() {
-        // Verbatim shape of the managed block gentle-ai injects into
-        // ~/.claude/CLAUDE.md when `sync --strict-tdd` runs.
-        let md = "# CLAUDE.md\n\n<!-- gentle-ai:strict-tdd-mode -->\n\
-                  Strict TDD Mode: enabled\n\
-                  <!-- /gentle-ai:strict-tdd-mode -->\n";
-        assert!(parse_strict_tdd_marker(md));
-        // CRLF and surrounding whitespace on the lines are tolerated.
-        let crlf = "<!-- gentle-ai:strict-tdd-mode -->\r\n  Strict TDD Mode: enabled  \r\n<!-- /gentle-ai:strict-tdd-mode -->\r\n";
-        assert!(parse_strict_tdd_marker(crlf));
-    }
-
-    #[test]
-    fn parse_strict_tdd_marker_missing_block() {
-        assert!(!parse_strict_tdd_marker("# CLAUDE.md\n\nSome persona text.\n"));
-        // The line alone, outside the managed block, is not the marker.
-        assert!(!parse_strict_tdd_marker("Strict TDD Mode: enabled\n"));
-    }
-
-    #[test]
-    fn parse_strict_tdd_marker_block_with_other_text() {
-        let disabled = "<!-- gentle-ai:strict-tdd-mode -->\n\
-                        Strict TDD Mode: disabled\n\
-                        <!-- /gentle-ai:strict-tdd-mode -->\n";
-        assert!(!parse_strict_tdd_marker(disabled));
-        // The enabled line after the block closed does not count.
-        let after_close = "<!-- gentle-ai:strict-tdd-mode -->\n\
-                           something else\n\
-                           <!-- /gentle-ai:strict-tdd-mode -->\n\
-                           Strict TDD Mode: enabled\n";
-        assert!(!parse_strict_tdd_marker(after_close));
-    }
-
-    #[test]
-    fn parse_strict_tdd_marker_empty_input() {
-        assert!(!parse_strict_tdd_marker(""));
-        assert!(!parse_strict_tdd_marker("   \n"));
     }
 
     // ── pi_stack_status pure parsers ────────────────────────────────────
