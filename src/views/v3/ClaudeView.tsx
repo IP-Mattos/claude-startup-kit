@@ -74,25 +74,61 @@ export function ClaudeView() {
   // 5s so it doesn't linger after the next refresh.
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
+  // Agent whose config file is locked by another app (e.g. VS Code). It
+  // stays visible as pending until a full sync succeeds.
+  const [blockedAgent, setBlockedAgent] = useState<string | null>(null);
+  const [blockedIncludeTheme, setBlockedIncludeTheme] = useState(false);
 
-  const runSync = async (includeTheme: boolean) => {
+  const runSync = async (includeTheme: boolean, agents?: string[]) => {
     if (!IS_TAURI || syncing) return;
     setSyncing(true);
     setSyncResult(null);
     setError(null);
     try {
-      await invoke<string>("gentle_ai_sync", { includeTheme });
-      setSyncResult(t("claude.sync_done"));
+      await invoke<string>("gentle_ai_sync", { includeTheme, agents });
+      if (agents) {
+        // Subset run: the blocked agent was skipped on purpose and is
+        // still pending.
+        setSyncResult(
+          t("claude.sync_blocked_pending", { agent: blockedAgent ?? "" })
+        );
+      } else {
+        setBlockedAgent(null);
+        setSyncResult(t("claude.sync_done"));
+      }
       // Let the update hooks re-probe the config-drift banner.
       window.dispatchEvent(new Event("csk:gentle-ai-synced"));
       // Bumping the nonce re-fetches status / skills / mcps so the
       // grid reflects whatever sync just installed.
       setRefreshNonce((n) => n + 1);
     } catch (e) {
-      setError(friendlyErrorEn(e));
+      const message = e instanceof Error ? e.message : String(e);
+      const blocked = await invoke<string | null>("gentle_ai_sync_blocked_agent", {
+        error: message,
+      }).catch(() => null);
+      if (blocked) {
+        setBlockedAgent(blocked);
+        setBlockedIncludeTheme(includeTheme);
+      } else {
+        setError(friendlyErrorEn(e));
+      }
     } finally {
       setSyncing(false);
     }
+  };
+
+  // Re-run the sync for every installed agent except the blocked one.
+  const syncOtherAgents = async () => {
+    if (!IS_TAURI || syncing || !blockedAgent) return;
+    const installed = await invoke<string[]>("gentle_ai_installed_agents").catch(
+      () => [] as string[]
+    );
+    const others = installed.filter((a) => a !== blockedAgent);
+    if (others.length === 0) {
+      setError(t("claude.sync_blocked_no_others"));
+      return;
+    }
+    await runSync(blockedIncludeTheme, others);
   };
 
   // Per-component uninstall — gentle-ai takes a backup snapshot first so
@@ -399,6 +435,20 @@ export function ClaudeView() {
                 {t("claude.sync_all_with_theme")}
               </button>
             </div>
+            {blockedAgent && (
+              <div className="v3-error v3-gai-sync-result" role="status" aria-live="polite">
+                <strong>{t("claude.sync_blocked_title", { agent: blockedAgent })}</strong>
+                <p>{t("claude.sync_blocked_body", { agent: blockedAgent })}</p>
+                <button
+                  type="button"
+                  className="v3-btn-primary"
+                  onClick={syncOtherAgents}
+                  disabled={syncing}
+                >
+                  {t("claude.sync_blocked_others")}
+                </button>
+              </div>
+            )}
             {syncResult && (
               <div className="v3-success v3-gai-sync-result" role="status" aria-live="polite">
                 <CheckCircle2 size={14} strokeWidth={2} />

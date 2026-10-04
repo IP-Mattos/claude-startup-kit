@@ -785,6 +785,26 @@ const STRINGS = {
   "claude.sync_all_with_theme": { en: "Sync with theme", es: "Sincronizar con tema" },
   "claude.syncing": { en: "Syncing…", es: "Sincronizando…" },
   "claude.sync_done": { en: "Sync complete", es: "Sync completo" },
+  "claude.sync_blocked_title": {
+    en: "{agent} is blocked",
+    es: "{agent} está bloqueado",
+  },
+  "claude.sync_blocked_body": {
+    en: "Another app is holding {agent}'s config files, so the sync could not replace them. Close that app (for VS Code, close all its windows) and sync again. In the meantime you can sync the rest; {agent} stays pending.",
+    es: "Otra aplicación tiene abiertos los archivos de configuración de {agent}, así que el sync no pudo reemplazarlos. Cierra esa aplicación (en VS Code, todas sus ventanas) y sincroniza de nuevo. Mientras tanto se pueden sincronizar los demás; {agent} queda pendiente.",
+  },
+  "claude.sync_blocked_others": {
+    en: "Sync the other agents",
+    es: "Sincronizar los demás agentes",
+  },
+  "claude.sync_blocked_no_others": {
+    en: "No other installed agents were found to sync.",
+    es: "No se encontraron otros agentes instalados para sincronizar.",
+  },
+  "claude.sync_blocked_pending": {
+    en: "Other agents synced. {agent} is still pending.",
+    es: "Los demás agentes se sincronizaron. {agent} sigue pendiente.",
+  },
   "claude.uninstall": { en: "Uninstall", es: "Desinstalar" },
   "claude.uninstalling": { en: "Uninstalling…", es: "Desinstalando…" },
   "claude.uninstall_hint": {

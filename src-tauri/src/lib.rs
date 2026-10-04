@@ -6280,12 +6280,84 @@ async fn gentle_ai_status() -> Result<GentleAiStatus, String> {
 
 /// Argument vector for `gentle-ai sync`. `--strict-tdd` is never emitted:
 /// gentle-ai 4.0.0 retired it and rejects the run when it is present.
-fn gentle_ai_sync_args(include_theme: bool) -> Vec<&'static str> {
-    let mut args = vec!["sync"];
+/// A non-empty `agents` restricts the run to those agents (`--agent a,b`);
+/// empty means "every installed agent", exactly as before.
+fn gentle_ai_sync_args(include_theme: bool, agents: &[String]) -> Vec<String> {
+    let mut args = vec!["sync".to_string()];
     if include_theme {
-        args.push("--include-theme");
+        args.push("--include-theme".to_string());
+    }
+    if !agents.is_empty() {
+        args.push("--agent".to_string());
+        args.push(agents.join(","));
     }
     args
+}
+
+/// The agent whose config file blocked a sync, when the failure is a
+/// locked/denied file for one specific agent (typically VS Code holding its
+/// prompts folder). The agent comes from the `for "<agent>"` marker in
+/// gentle-ai's error. Anything else, including a lock message with no agent
+/// to blame, returns None so unrelated errors keep their normal handling.
+fn blocked_sync_agent(text: &str) -> Option<String> {
+    let lower = text.to_lowercase();
+    let locked = lower.contains("access is denied")
+        || lower.contains("being used by another process");
+    if !locked {
+        return None;
+    }
+    let rest = text.split_once("for \"")?.1;
+    let agent = rest.split_once('"')?.0.trim();
+    if agent.is_empty() {
+        None
+    } else {
+        Some(agent.to_string())
+    }
+}
+
+/// `installed_agents` from `~/.gentle-ai/state.json`. Empty on invalid
+/// JSON or a missing/non-array field; non-string and blank entries are
+/// dropped.
+fn parse_installed_agents(json: &str) -> Vec<String> {
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(json) else {
+        return Vec::new();
+    };
+    value
+        .get("installed_agents")
+        .and_then(|v| v.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|a| a.as_str())
+                .map(|a| a.trim().to_string())
+                .filter(|a| !a.is_empty())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn read_installed_agents() -> Vec<String> {
+    let Some(home) = dirs_home() else {
+        return Vec::new();
+    };
+    fs::read_to_string(home.join(".gentle-ai").join("state.json"))
+        .map(|raw| parse_installed_agents(&raw))
+        .unwrap_or_default()
+}
+
+/// Agents recorded as installed by gentle-ai (empty when unknown).
+#[tauri::command]
+async fn gentle_ai_installed_agents() -> Result<Vec<String>, String> {
+    tokio::task::spawn_blocking(read_installed_agents)
+        .await
+        .map_err(|e| format!("task join: {e}"))
+}
+
+/// Classifies a sync failure message for the UI: the blocked agent when a
+/// locked file stopped one agent, otherwise None.
+#[tauri::command]
+fn gentle_ai_sync_blocked_agent(error: String) -> Option<String> {
+    blocked_sync_agent(&error)
 }
 
 /// True when the installed assets were produced by a different binary
@@ -6338,9 +6410,13 @@ fn theme_installed() -> bool {
 /// Single place that spawns `gentle-ai sync`: formats failures the same
 /// way for every caller, busts the workspace summary cache on success
 /// (sync can install a brand-new CLI as a side effect) and returns stdout.
-fn run_gentle_ai_sync(program: &str, include_theme: bool) -> Result<String, String> {
+fn run_gentle_ai_sync(
+    program: &str,
+    include_theme: bool,
+    agents: &[String],
+) -> Result<String, String> {
     let out = silent_command(program)
-        .args(gentle_ai_sync_args(include_theme))
+        .args(gentle_ai_sync_args(include_theme, agents))
         .output()
         .map_err(|e| format_spawn_error("gentle-ai", &e))?;
     if !out.status.success() {
@@ -6362,15 +6438,28 @@ fn run_gentle_ai_sync(program: &str, include_theme: bool) -> Result<String, Stri
 fn run_managed_sync() -> Result<String, String> {
     let program = resolve_gentle_ai()
         .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
-    run_gentle_ai_sync(&program, theme_installed())
+    run_gentle_ai_sync(&program, theme_installed(), &[])
 }
 
 #[tauri::command]
-async fn gentle_ai_sync(include_theme: bool) -> Result<String, String> {
+async fn gentle_ai_sync(
+    include_theme: bool,
+    agents: Option<Vec<String>>,
+) -> Result<String, String> {
+    // Agent names become a CLI argument: keep only plain identifiers.
+    let agents: Vec<String> = agents
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|a| {
+            !a.is_empty()
+                && a.chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        })
+        .collect();
     tokio::task::spawn_blocking(move || -> Result<String, String> {
         let program = resolve_gentle_ai()
             .ok_or_else(|| "gentle-ai not installed on this machine".to_string())?;
-        run_gentle_ai_sync(&program, include_theme)
+        run_gentle_ai_sync(&program, include_theme, &agents)
     })
     .await
     .map_err(|e| format!("task join: {e}"))?
@@ -8991,6 +9080,8 @@ pub fn run() {
             apply_gentle_ai_update,
             gentle_ai_status,
             gentle_ai_sync,
+            gentle_ai_installed_agents,
+            gentle_ai_sync_blocked_agent,
             gentle_ai_sync_status,
             gentle_ai_resync,
             gentle_ai_uninstall_component,
@@ -9614,14 +9705,27 @@ mod tests {
 
     #[test]
     fn gentle_ai_sync_args_plain() {
-        assert_eq!(gentle_ai_sync_args(false), vec!["sync"]);
+        assert_eq!(gentle_ai_sync_args(false, &[]), vec!["sync"]);
     }
 
     #[test]
     fn gentle_ai_sync_args_theme_only() {
         assert_eq!(
-            gentle_ai_sync_args(true),
+            gentle_ai_sync_args(true, &[]),
             vec!["sync", "--include-theme"]
+        );
+    }
+
+    #[test]
+    fn gentle_ai_sync_args_with_agent_subset() {
+        let agents = vec!["claude-code".to_string(), "opencode".to_string(), "pi".to_string()];
+        assert_eq!(
+            gentle_ai_sync_args(false, &agents),
+            vec!["sync", "--agent", "claude-code,opencode,pi"]
+        );
+        assert_eq!(
+            gentle_ai_sync_args(true, &agents),
+            vec!["sync", "--include-theme", "--agent", "claude-code,opencode,pi"]
         );
     }
 
@@ -9630,9 +9734,60 @@ mod tests {
         // gentle-ai 4.0.0 rejects `--strict-tdd` outright, so no input may
         // ever produce it.
         for include_theme in [false, true] {
-            assert!(!gentle_ai_sync_args(include_theme).contains(&"--strict-tdd"));
+            assert!(!gentle_ai_sync_args(include_theme, &[])
+                .iter()
+                .any(|a| a == "--strict-tdd"));
         }
     }
+
+    // ── blocked_sync_agent ──────────────────────────────────────────────
+
+    #[test]
+    fn blocked_sync_agent_detects_access_denied_for_vscode_copilot() {
+        let text = r#"Error: execute sync pipeline: sync engram for "vscode-copilot": replace "C:\Users\DemonTwo\AppData\Roaming\Code\User\prompts\gentle-ai.instructions.md" atomically: rename C:\Users\DemonTwo\AppData\Roaming\Code\User\prompts\.gentle-ai-3827075654.tmp C:\Users\DemonTwo\AppData\Roaming\Code\User\prompts\gentle-ai.instructions.md: Access is denied."#;
+        assert_eq!(blocked_sync_agent(text), Some("vscode-copilot".to_string()));
+    }
+
+    #[test]
+    fn blocked_sync_agent_detects_file_in_use_variant() {
+        let text = r#"sync engram for "opencode": rename a b: The process cannot access the file because it is being used by another process."#;
+        assert_eq!(blocked_sync_agent(text), Some("opencode".to_string()));
+    }
+
+    #[test]
+    fn blocked_sync_agent_ignores_unrelated_errors() {
+        assert_eq!(blocked_sync_agent("Error: unknown flag: --agent"), None);
+        assert_eq!(
+            blocked_sync_agent(r#"sync engram for "pi": connection refused"#),
+            None
+        );
+        // A lock message without an agent to blame is not this case.
+        assert_eq!(blocked_sync_agent("rename a b: Access is denied."), None);
+        assert_eq!(blocked_sync_agent(""), None);
+    }
+
+    // ── parse_installed_agents ──────────────────────────────────────────
+
+    #[test]
+    fn parse_installed_agents_reads_state_json() {
+        let json = r#"{"installed_agents":["claude-code","opencode","vscode-copilot","pi"]}"#;
+        assert_eq!(
+            parse_installed_agents(json),
+            vec!["claude-code", "opencode", "vscode-copilot", "pi"]
+        );
+    }
+
+    #[test]
+    fn parse_installed_agents_fails_gracefully() {
+        assert!(parse_installed_agents("not json").is_empty());
+        assert!(parse_installed_agents("{}").is_empty());
+        assert!(parse_installed_agents(r#"{"installed_agents":"x"}"#).is_empty());
+        assert_eq!(
+            parse_installed_agents(r#"{"installed_agents":["pi",3,"  ",null]}"#),
+            vec!["pi"]
+        );
+    }
+
 
     // ── assets_out_of_date ──────────────────────────────────────────────
 
