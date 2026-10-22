@@ -20,19 +20,13 @@ const STRINGS = {
   // Sidebar nav
   "nav.overview": { en: "Overview", es: "Resumen" },
   "nav.projects": { en: "Projects", es: "Proyectos" },
-  "nav.prs": { en: "Pull Requests", es: "Pull Requests" },
   "nav.audit": { en: "Audit", es: "Auditoría" },
   "nav.cleanup": { en: "Cleanup", es: "Limpieza" },
-  "nav.todos": { en: "Todos", es: "Pendientes" },
   "nav.conversations": { en: "Conversations", es: "Conversaciones" },
   "nav.trello": { en: "Board", es: "Tablero" },
-  "nav.tokens": { en: "Tokens", es: "Tokens" },
-  "nav.standup": { en: "Standup", es: "Standup" },
   "nav.claude": { en: "Gentle-AI", es: "Gentle-AI" },
   "nav.pi": { en: "Pi stack", es: "Stack Pi" },
-  "nav.companions": { en: "Companions", es: "Compañeros" },
   "nav.settings": { en: "Settings", es: "Ajustes" },
-  "nav.sync": { en: "Sync", es: "Sync" },
   // Sidebar section headers (small caps labels above tab groups)
   "nav.section_workspace": { en: "Workspace", es: "Workspace" },
   "nav.section_insights": { en: "Insights", es: "Insights" },
@@ -47,16 +41,9 @@ const STRINGS = {
   "status.warn_other": { en: "{n} warnings", es: "{n} advertencias" },
   "status.last_scan": { en: "Last scan", es: "Último scan" },
   "status.run_audit": { en: "Run audit", es: "Auditar" },
-  "status.crit_short": { en: "crit", es: "crít" },
-  "status.warn_short": { en: "warn", es: "adv" },
 
   // Statusbar (bottom)
   "statusbar.ready": { en: "Ready", es: "Listo" },
-  "statusbar.projects_one": { en: "{n} project", es: "{n} proyecto" },
-  "statusbar.projects_other": { en: "{n} projects", es: "{n} proyectos" },
-  "statusbar.findings_one": { en: "{n} finding", es: "{n} hallazgo" },
-  "statusbar.findings_other": { en: "{n} findings", es: "{n} hallazgos" },
-  "statusbar.scan": { en: "Scan {ago}", es: "Scan {ago}" },
 
   // Greeting + small bits
   "greeting.morning": { en: "Good morning", es: "Buen día" },
@@ -69,7 +56,6 @@ const STRINGS = {
   "common.update_now": { en: "Update now", es: "Actualizar" },
   "common.updating": { en: "Updating…", es: "Actualizando…" },
   "common.open": { en: "Open", es: "Abrir" },
-  "common.continue": { en: "Continue", es: "Seguir" },
   "common.cancel": { en: "Cancel", es: "Cancelar" },
   "common.close": { en: "Close", es: "Cerrar" },
   "common.save": { en: "Save", es: "Guardar" },
@@ -107,7 +93,6 @@ const STRINGS = {
 
   // Companion widget — single-line nudge, never the same data the System
   // Status card already shows.
-  "companion.online": { en: "Online", es: "En línea" },
   "companion.idle": {
     en: "I've reviewed your workspace. Nothing critical to flag right now.",
     es: "Revisé tu workspace. Nada crítico para marcar ahora.",
@@ -120,10 +105,6 @@ const STRINGS = {
     en: "Audit clean on critical.\n{n} warnings to look at when you have time.",
     es: "Sin críticos.\n{n} advertencias para mirar cuando tengas un rato.",
   },
-  "companion.has_prs": {
-    en: "Workspace healthy.\n{n} pull requests waiting for your review.",
-    es: "Workspace sano.\nHay {n} pull requests esperando tu review.",
-  },
   "companion.today": {
     en: "You've been working on {project} today. Audit's clean.",
     es: "Estuviste trabajando en {project} hoy. Sin hallazgos críticos.",
@@ -131,60 +112,12 @@ const STRINGS = {
   // Last-scan label inside the companion footer
   "companion.stat_scan": { en: "Last scan", es: "Último scan" },
   // Workspace sync (Settings card — engram-only over a private GitHub repo)
-  "sync.title": { en: "Workspace sync", es: "Sync del workspace" },
-  "sync.lead": {
-    en: "Mirror your engram memory to a private GitHub repo so you can pick up the same context on another machine.",
-    es: "Espejá tu memoria de engram a un repo privado de GitHub para retomar el contexto en otra máquina.",
-  },
-  "sync.repo_label": { en: "Repository name", es: "Nombre del repo" },
-  "sync.repo_placeholder": { en: "claude-sync", es: "claude-sync" },
-  "sync.repo_hint": {
-    en: "Will be created under your gh user as private. You can also paste a full owner/name.",
-    es: "Se crea privado bajo tu usuario de gh. También aceptá owner/name completo.",
-  },
-  "sync.setup": { en: "Set up sync", es: "Configurar sync" },
-  "sync.setting_up": { en: "Setting up…", es: "Configurando…" },
-  "sync.connected_to": { en: "Connected to", es: "Conectado a" },
-  "sync.last_sync": { en: "Last sync", es: "Último sync" },
-  "sync.last_sync_export": { en: "exported", es: "exportado" },
-  "sync.last_sync_import": { en: "imported", es: "importado" },
-  "sync.never_synced": { en: "Never synced yet", es: "Nunca sincronizado" },
-  "sync.export_now": { en: "Push to remote", es: "Subir al remoto" },
-  "sync.exporting": { en: "Pushing…", es: "Subiendo…" },
-  "sync.import_now": { en: "Pull from remote", es: "Bajar del remoto" },
-  "sync.importing": { en: "Pulling…", es: "Bajando…" },
-  "sync.disconnect": { en: "Disconnect", es: "Desconectar" },
-  "sync.confirm_import_title": {
-    en: "Pull from remote",
-    es: "Bajar del remoto",
-  },
-  "sync.confirm_import": {
-    en: "This will overwrite engram memory on this machine with the remote. Continue?",
-    es: "Esto va a pisar la memoria de engram en esta máquina con la del remoto. ¿Seguir?",
-  },
-  "sync.confirm_disconnect_title": {
-    en: "Disconnect sync",
-    es: "Desconectar sync",
-  },
-  "sync.confirm_disconnect": {
-    en: "Stop syncing? The remote repo stays on GitHub — you can re-attach later.",
-    es: "¿Detener el sync? El repo remoto queda en GitHub, podés re-conectar después.",
-  },
   "sync.target_pick": { en: "Choose folder…", es: "Elegir carpeta…" },
   "sync.target_picker_title": {
     en: "Pick a folder to clone projects into",
     es: "Elegí una carpeta para clonar los proyectos",
   },
-  "sync.alias_label": { en: "alias", es: "alias" },
   "sync.clone_status_cloning": { en: "Cloning…", es: "Clonando…" },
-  "sync.repo_preview": {
-    en: "Will create a private repo at github.com/{full}",
-    es: "Se va a crear un repo privado en github.com/{full}",
-  },
-  "sync.repo_preview_no_user": {
-    en: "Will create a private repo named {name} (gh login pending)",
-    es: "Se va a crear un repo privado llamado {name} (falta login en gh)",
-  },
   "sync.gh_repos_title": {
     en: "All your GitHub repos",
     es: "Todos tus repos de GitHub",
@@ -206,18 +139,6 @@ const STRINGS = {
     es: "Ningún repo coincide con el filtro.",
   },
   "sync.gh_repo_private": { en: "private", es: "privado" },
-  "sync.behind_title": {
-    en: "Another machine pushed since your last import",
-    es: "Otra máquina hizo push desde tu último import",
-  },
-  "sync.behind_lead": {
-    en: "Click Import to apply remote changes locally — your local engram and project list will update.",
-    es: "Click Importar para traer los cambios remotos — tu engram local y la lista de proyectos se actualizan.",
-  },
-  "sync.remote_status_error": {
-    en: "Couldn't reach the remote ({msg}). Sync still works manually.",
-    es: "No se pudo alcanzar el remoto ({msg}). El sync sigue funcionando manualmente.",
-  },
   "cleanup.confirm_title": {
     en: "Delete files?",
     es: "¿Borrar archivos?",
@@ -235,23 +156,11 @@ const STRINGS = {
     en: "We turned on launch-on-startup so the app is ready every time you log in. Sync your engram memory to GitHub to share it across machines, or tweak the rest in Settings.",
     es: "Activamos el inicio automático con Windows para que la app esté lista cada vez que prendas la PC. Sincronizá tu memoria de engram con GitHub para compartirla entre máquinas, o ajustá el resto en Configuración.",
   },
-  "onboarding.cta_sync": { en: "Set up sync", es: "Configurar sync" },
   "onboarding.cta_settings": { en: "Open Settings", es: "Abrir Configuración" },
   "onboarding.dismiss": { en: "Dismiss", es: "Cerrar" },
   // Project clone section (shown when projects.json has entries)
-  "sync.projects_title": { en: "Projects on this remote", es: "Proyectos en este remoto" },
-  "sync.projects_empty": {
-    en: "No projects with git remotes were detected on the source machine.",
-    es: "No se detectaron proyectos con remoto en la máquina fuente.",
-  },
-  "sync.projects_lead": {
-    en: "Clone any of these into a folder on this machine. Already-existing folders are skipped.",
-    es: "Cloná cualquiera de estos en una carpeta de esta máquina. Las que ya existen se omiten.",
-  },
   "sync.target_label": { en: "Clone into", es: "Clonar en" },
   "sync.target_placeholder": { en: "C:\\code", es: "C:\\code" },
-  "sync.clone_all": { en: "Clone all", es: "Clonar todos" },
-  "sync.cloning": { en: "Cloning…", es: "Clonando…" },
   "sync.clone_one": { en: "Clone", es: "Clonar" },
   "sync.clone_status_cloned": { en: "Cloned", es: "Clonado" },
   "sync.clone_status_exists": { en: "Already exists", es: "Ya existe" },
@@ -267,18 +176,15 @@ const STRINGS = {
   "workspace.gentle_ai": { en: "gentle-ai", es: "gentle-ai" },
   // Contextual action buttons (one is shown, picked by current state)
   "companion.action_review_audit": { en: "Review audit", es: "Ver auditoría" },
-  "companion.action_open_prs": { en: "Open PRs", es: "Ver PRs" },
   "companion.action_open_project": { en: "Open today's project", es: "Abrir proyecto del día" },
   "companion.action_browse_projects": { en: "Browse projects", es: "Ver proyectos" },
 
   // Settings
   "settings.title": { en: "Settings", es: "Ajustes" },
   "settings.section_general": { en: "General", es: "General" },
-  "settings.section_shortcuts": { en: "Shortcuts", es: "Atajos" },
   "settings.section_claude_code": { en: "Claude Code", es: "Claude Code" },
   "settings.section_gentle_ai": { en: "Gentle AI", es: "Gentle AI" },
   "settings.section_csk": { en: "Claude Startup Kit", es: "Claude Startup Kit" },
-  "settings.section_companion": { en: "Companion", es: "Compañero" },
   "settings.subtitle": {
     en: "App preferences and configuration.",
     es: "Preferencias y configuración de la app.",
@@ -301,10 +207,6 @@ const STRINGS = {
   "settings.sync_hint": {
     en: "Pick any folder (a private git repo, a OneDrive folder, a USB drive, a NAS) and use Push to write your memories there, then Pull on another PC to import them. The folder can be moved by any transport — engram handles compression and dedup; only new memories are exported.",
     es: "Elegí una carpeta cualquiera (un repo git privado, una carpeta de OneDrive, un USB, un NAS) y usá Subir para escribir tus memorias ahí. En la otra PC, Bajar las importa. La carpeta la movés con el transporte que vos quieras — engram comprime y deduplica solo; sólo se exportan memorias nuevas.",
-  },
-  "settings.sync_dir_unset": {
-    en: "(no folder selected)",
-    es: "(sin carpeta elegida)",
   },
   "settings.sync_no_dir_yet": {
     en: "No folder selected yet. Pick any folder you can move between PCs (a private git repo, a OneDrive folder, a USB drive, a NAS) and CSK will export your engram memories there. Same folder on the other PC, and you import.",
@@ -367,12 +269,7 @@ const STRINGS = {
     en: "No release published yet on GitHub. Configure once a release pipeline ships.",
     es: "Todavía no hay release publicado en GitHub. Configurá cuando haya pipeline de releases.",
   },
-  "settings.update_gentle_ai_hint": {
-    en: "gentle-ai is not on PATH. Install it from gentle-ai's repo.",
-    es: "gentle-ai no está en el PATH. Instalalo desde el repo de gentle-ai.",
-  },
   "settings.update_app_label": { en: "Claude Startup Kit", es: "Claude Startup Kit" },
-  "settings.update_gentle_ai_label": { en: "gentle-ai", es: "gentle-ai" },
 
   // Stack tools card — managed by gentle-ai, surfaced via check_stack_updates
   "settings.stack_title": { en: "Stack tools", es: "Herramientas del stack" },
@@ -462,7 +359,6 @@ const STRINGS = {
     en: "is available (you're on v{current})",
     es: "está disponible (vos estás en v{current})",
   },
-  "banner.open_release": { en: "Open release", es: "Abrir release" },
   "banner.fetch_failed": { en: "Some data failed to load.", es: "Algunos datos no cargaron." },
   "banner.retry": { en: "Retry", es: "Reintentar" },
   "banner.gentle_upgraded": {
@@ -500,18 +396,7 @@ const STRINGS = {
     en: "Here's what's happening across your workspace.",
     es: "Esto es lo que está pasando en tu workspace.",
   },
-  "overview.stat_projects": { en: "Projects", es: "Proyectos" },
-  "overview.stat_prs": { en: "Pull Requests", es: "Pull Requests" },
-  "overview.stat_findings": { en: "Audit Findings", es: "Hallazgos" },
-  "overview.stat_health": { en: "Health Score", es: "Salud" },
-  "overview.this_week": { en: "{n} this week", es: "{n} esta semana" },
-  "overview.open_count": { en: "{n} open", es: "{n} abiertas" },
-  "overview.high_priority": { en: "{n} high priority", es: "{n} alta prioridad" },
-  "overview.zero_critical": { en: "0 critical", es: "0 críticos" },
-  "overview.n_critical": { en: "{n} critical", es: "{n} críticos" },
   "overview.recent_projects": { en: "Recent Projects", es: "Proyectos recientes" },
-  "overview.recent_prs": { en: "Recent Pull Requests", es: "Pull Requests recientes" },
-  "overview.audit_summary": { en: "Audit Summary", es: "Resumen de auditoría" },
   "overview.view_all": { en: "View all", es: "Ver todos" },
   // Signal feed — actionable items only (no INFO).
   "overview.signal_title": { en: "Needs attention", es: "Requiere atención" },
@@ -542,45 +427,33 @@ const STRINGS = {
   "overview.tokens_week": { en: "Week", es: "Semana" },
   "overview.tokens_month": { en: "Month", es: "Mes" },
   "overview.tokens_empty": { en: "No token usage in this range.", es: "Sin uso de tokens en este rango." },
+  "overview.tokens_error": {
+    en: "Could not load token usage: {msg}",
+    es: "No se pudo cargar el uso de tokens: {msg}",
+  },
+  "err.empty": { en: "Something went wrong.", es: "Algo salió mal." },
+  "err.gh_auth": {
+    en: "You need to authenticate with `gh auth login`.",
+    es: "Necesitas autenticarte con `gh auth login`.",
+  },
+  "err.tool_missing": {
+    en: "A required system tool is missing. Check that it's installed and in PATH.",
+    es: "Falta una herramienta del sistema necesaria. Verifica que esté instalada y en el PATH.",
+  },
+  "err.permission": {
+    en: "Permission denied accessing the resource.",
+    es: "Permiso denegado al acceder al recurso.",
+  },
+  "err.not_found": { en: "File or path not found.", es: "Archivo o ruta no encontrados." },
+  "err.network": {
+    en: "Network problem. Try again in a moment.",
+    es: "Problema de red. Inténtalo de nuevo en un momento.",
+  },
   "overview.tokens_sub": { en: "across {n} session(s)", es: "en {n} sesión(es)" },
   // Gentle-AI mini-card on Overview — shows installed / total components +
   // a deep link into the verifier tab.
-  "overview.gentle_ai_card_title": { en: "Gentle-AI", es: "Gentle-AI" },
-  "overview.gentle_ai_components_count": {
-    en: "{ok}/{total} components installed",
-    es: "{ok}/{total} componentes instalados",
-  },
-  "overview.gentle_ai_view_details": { en: "View details →", es: "Ver detalles →" },
-  "overview.gentle_ai_cli_missing": {
-    en: "gentle-ai CLI not detected",
-    es: "gentle-ai CLI no detectado",
-  },
   "overview.loading_projects": { en: "Loading projects…", es: "Cargando proyectos…" },
-  "overview.loading_prs": { en: "Loading PRs…", es: "Cargando PRs…" },
   "overview.no_recent_projects": { en: "No recent projects detected.", es: "No se detectaron proyectos recientes." },
-  "overview.no_prs": { en: "No PRs awaiting your review.", es: "No hay PRs esperando tu review." },
-  "overview.audit_clean": { en: "Audit clean. No findings.", es: "Auditoría limpia. Sin hallazgos." },
-  "overview.audit_status_clear": { en: "All clear", es: "Sin hallazgos" },
-  "overview.audit_status_warnings": { en: "Warnings", es: "Advertencias" },
-  "overview.audit_status_attention": { en: "Needs attention", es: "Necesita atención" },
-  "overview.tile_critical": { en: "Critical", es: "Críticos" },
-  "overview.tile_warning": { en: "Warning", es: "Advertencias" },
-  "overview.tile_info": { en: "Info", es: "Info" },
-  "overview.total_findings": { en: "total findings", es: "hallazgos totales" },
-  "overview.crit_attention_one": {
-    en: "{n} critical issue needs your attention",
-    es: "{n} problema crítico necesita tu atención",
-  },
-  "overview.crit_attention_other": {
-    en: "{n} critical issues need your attention",
-    es: "{n} problemas críticos necesitan tu atención",
-  },
-  "overview.audit_bar_label": {
-    en: "{total} audit findings: {crit} critical, {warn} warnings, {info} info",
-    es: "{total} hallazgos: {crit} críticos, {warn} advertencias, {info} info",
-  },
-  "overview.audit_last_now": { en: "just now", es: "ahora" },
-  "overview.open_pr_label": { en: "Open pull request {title}", es: "Abrir pull request {title}" },
   "overview.open_project_label": { en: "Open project {name}", es: "Abrir proyecto {name}" },
 
   // Activity labels (today/yesterday/Nd ago)
@@ -640,26 +513,6 @@ const STRINGS = {
   },
 
   // PRs view
-  "prs.title": { en: "Pull Requests", es: "Pull Requests" },
-  "prs.summary_one": { en: "{n} PR awaiting your review.", es: "{n} PR esperando tu review." },
-  "prs.summary_other": { en: "{n} PRs awaiting your review.", es: "{n} PRs esperando tu review." },
-  "prs.search_placeholder": {
-    en: "Search PRs by title, repo, or author…",
-    es: "Buscar PRs por título, repo o autor…",
-  },
-  "prs.search_aria": { en: "Search pull requests", es: "Buscar pull requests" },
-  "prs.loading": { en: "Loading pull requests…", es: "Cargando pull requests…" },
-  "prs.inbox_zero": {
-    en: "No PRs awaiting your review. Inbox zero.",
-    es: "No hay PRs esperando review. Inbox zero.",
-  },
-  "prs.empty_search": {
-    en: 'No PRs match "{q}".',
-    es: 'Ningún PR coincide con "{q}".',
-  },
-  "prs.open": { en: "Open", es: "Abrir" },
-  "prs.by_author": { en: "by {author}", es: "por {author}" },
-  "prs.open_label": { en: "Open pull request {title}", es: "Abrir pull request {title}" },
 
   // Audit view
   "audit.title": { en: "Audit", es: "Auditoría" },
@@ -1071,36 +924,8 @@ const STRINGS = {
   // Todos view — per-project lightweight checklist persisted to
   // ~/.claude/csk-todos.json. The picker also accepts an "All projects"
   // option that pulls every todo across every known project.
-  "todos.title": { en: "Todos", es: "Pendientes" },
-  "todos.subtitle": {
-    en: "Lightweight per-project checklist. Lives on disk under ~/.claude/csk-todos.json.",
-    es: "Checklist liviana por proyecto. Vive en disco en ~/.claude/csk-todos.json.",
-  },
-  "todos.refresh": { en: "Refresh", es: "Refrescar" },
-  "todos.refreshing": { en: "Refreshing…", es: "Refrescando…" },
-  "todos.project_picker_label": { en: "Project", es: "Proyecto" },
-  "todos.all_projects": { en: "All projects", es: "Todos los proyectos" },
-  "todos.placeholder": {
-    en: "Add a todo… (Enter to save)",
-    es: "Sumá un pendiente… (Enter para guardar)",
-  },
-  "todos.add_button": { en: "Add", es: "Sumar" },
-  "todos.adding": { en: "Adding…", es: "Sumando…" },
-  "todos.empty_no_project": {
-    en: "Pick a project to start.",
-    es: "Elegí un proyecto para arrancar.",
-  },
-  "todos.empty_for_project": { en: "No todos yet.", es: "No hay pendientes todavía." },
-  "todos.delete_aria": { en: "Delete todo", es: "Borrar pendiente" },
-  "todos.toggle_aria": { en: "Toggle todo", es: "Alternar pendiente" },
-  "todos.edit_aria": { en: "Edit todo", es: "Editar pendiente" },
-  "todos.count_one": { en: "{n} todo", es: "{n} pendiente" },
-  "todos.count_other": { en: "{n} todos", es: "{n} pendientes" },
-  "todos.pending_count": { en: "{n} pending", es: "{n} pendiente(s)" },
-  "todos.done_count": { en: "{n} done", es: "{n} hecho(s)" },
 
   // Sync view extras
-  "sync.target_required": { en: "Set a target directory first", es: "Configurá un directorio destino primero" },
 
   // Conversations view — full-text search over ~/.claude/projects/*/*.jsonl
   "conversations.title": { en: "Conversations", es: "Conversaciones" },
@@ -1296,16 +1121,10 @@ const STRINGS = {
   // Modern theme — the orb hero header (ModernHero) rendered above the real
   // Overview sections when a modern theme is active.
   "modern.eyebrow": { en: "Dashboard", es: "Dashboard" },
-  "modern.subtitle": {
-    en: "Here's what's happening across your workspace.",
-    es: "Esto es lo que está pasando en tu workspace.",
-  },
   "modern.search_placeholder": {
     en: "Search the workspace…",
     es: "Buscar en el workspace…",
   },
-  "modern.search": { en: "Search", es: "Buscar" },
-  "modern.new_project": { en: "New project", es: "Nuevo proyecto" },
   "modern.gentle_online": { en: "Gentle-AI online", es: "Gentle-AI online" },
   // Hero card status line: greeting + active projects + whether anything
   // needs review.
@@ -1316,67 +1135,10 @@ const STRINGS = {
   // Token usage view — aggregates ~/.claude/projects/*.jsonl assistant
   // message usage fields into per-day buckets. Window-aware totals + a
   // sparkline + a 7-day recent table.
-  "tokens.title": { en: "Token Usage", es: "Uso de tokens" },
-  "tokens.subtitle": {
-    en: "Tokens consumed across every Claude Code conversation on this machine.",
-    es: "Tokens consumidos en todas las conversaciones de Claude Code de esta máquina.",
-  },
-  "tokens.refresh": { en: "Refresh", es: "Refrescar" },
-  "tokens.refreshing": { en: "Refreshing…", es: "Refrescando…" },
-  "tokens.window_label": { en: "Window", es: "Rango" },
-  "tokens.total_label": { en: "tokens · last {n} days", es: "tokens · últimos {n} días" },
-  "tokens.sessions_count": { en: "{n} sessions", es: "{n} sesiones" },
-  "tokens.files_count": { en: "{n} files", es: "{n} archivos" },
-  "tokens.sparkline_caption": { en: "{from} → {to}", es: "{from} → {to}" },
-  "tokens.breakdown_title": { en: "Breakdown", es: "Desglose" },
-  "tokens.label_input": { en: "INPUT", es: "INPUT" },
-  "tokens.label_output": { en: "OUTPUT", es: "OUTPUT" },
-  "tokens.label_cache_read": { en: "CACHE READ", es: "CACHE READ" },
-  "tokens.label_cache_new": { en: "CACHE NEW", es: "CACHE NEW" },
-  "tokens.recent_title": { en: "Last 7 days", es: "Últimos 7 días" },
-  "tokens.col_date": { en: "Date", es: "Fecha" },
-  "tokens.col_total": { en: "Total", es: "Total" },
-  "tokens.col_sessions": { en: "Sessions", es: "Sesiones" },
-  "tokens.empty": {
-    en: "No token usage recorded yet in this window.",
-    es: "No hay uso de tokens registrado en este rango todavía.",
-  },
 
   // Daily standup — generates a copy-pasteable "yesterday / today /
   // blockers" report from git log + completed todos + engram session
   // summaries across known projects.
-  "standup.title": { en: "Daily standup", es: "Standup diario" },
-  "standup.subtitle": {
-    en: "Git activity + completed todos + memory summaries. Copy it to Slack or Linear.",
-    es: "Actividad de git + pendientes cerrados + memoria. Pegalo en Slack o Linear.",
-  },
-  "standup.window_label": { en: "Window", es: "Rango" },
-  "standup.window_24h": { en: "24h", es: "24h" },
-  "standup.window_48h": { en: "48h", es: "48h" },
-  "standup.window_1w": { en: "1w", es: "1sem" },
-  "standup.regenerate": { en: "Regenerate", es: "Regenerar" },
-  "standup.regenerating": { en: "Generating…", es: "Generando…" },
-  "standup.copy": { en: "Copy", es: "Copiar" },
-  "standup.copied": { en: "Copied!", es: "¡Copiado!" },
-  "standup.section_done": { en: "DONE YESTERDAY", es: "AYER" },
-  "standup.section_today": { en: "TODAY (open todos · {n})", es: "HOY (pendientes · {n})" },
-  "standup.section_blockers": { en: "BLOCKERS", es: "BLOQUEOS" },
-  "standup.section_memory": {
-    en: "MEMORY (engram, last {n}h)",
-    es: "MEMORIA (engram, últimas {n}h)",
-  },
-  "standup.blockers_none": { en: "none recorded", es: "ninguno registrado" },
-  "standup.engram_unavailable": {
-    en: "no memory entries",
-    es: "sin entradas de memoria",
-  },
-  "standup.empty_no_activity": {
-    en: "No activity in the last {n} hours.",
-    es: "Sin actividad en las últimas {n} horas.",
-  },
-  "standup.breakdown_title": { en: "Per-project breakdown", es: "Desglose por proyecto" },
-  "standup.no_commits": { en: "no commits in window", es: "sin commits en el rango" },
-  "standup.no_todos": { en: "no completed todos", es: "sin pendientes cerrados" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;
@@ -1454,6 +1216,21 @@ export function useT(): {
       setPref(p);
     },
   };
+}
+
+// Non-hook translator for plain helpers (e.g. error mapping) that cannot call
+// useT(). Reads the active language at call time.
+export function translateNow(
+  key: StringKey,
+  vars?: Record<string, string | number>,
+): string {
+  const entry = STRINGS[key];
+  if (!entry) return String(key);
+  let s: string = entry[getLang()] ?? entry.en;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, String(v));
+  }
+  return s;
 }
 
 // Picks the right plural variant for a "one|other" pair. Trivial because we

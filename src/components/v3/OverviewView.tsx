@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import {
   activityLabelT,
+  friendlyErrorEn,
   onKeyboardActivate,
   projectName,
 } from "../../lib/format";
@@ -280,6 +281,7 @@ function TokensPanel({ t }: { t: T }) {
   const [days, setDays] = useState(7);
   const [stats, setStats] = useState<TokenStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!IS_TAURI) {
@@ -288,12 +290,16 @@ function TokensPanel({ t }: { t: T }) {
     }
     let cancelled = false;
     setLoading(true);
+    setError(null);
     invoke<TokenStats>("token_usage", { windowDays: days })
       .then((res) => {
         if (!cancelled) setStats(res);
       })
-      .catch(() => {
-        if (!cancelled) setStats(null);
+      .catch((e) => {
+        if (!cancelled) {
+          setStats(null);
+          setError(friendlyErrorEn(e));
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -326,6 +332,10 @@ function TokensPanel({ t }: { t: T }) {
       </header>
       {loading ? (
         <div className="v3-empty">{t("common.loading")}</div>
+      ) : error ? (
+        <div className="v3-error" role="alert">
+          {t("overview.tokens_error", { msg: error })}
+        </div>
       ) : !stats || stats.total_all === 0 ? (
         <div className="v3-empty">{t("overview.tokens_empty")}</div>
       ) : (

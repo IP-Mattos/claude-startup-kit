@@ -20,6 +20,7 @@ import { useT } from "../../lib/i18n";
 import type { LangPref, StringKey } from "../../lib/i18n";
 import { friendlyErrorEn } from "../../lib/format";
 import { IS_TAURI } from "../../lib/env";
+import { KEYBOARD_TAB_ORDER } from "../../constants/v3Nav";
 import { ConfirmModal } from "../../components/v3/ConfirmModal";
 import { CompanionsView } from "./CompanionsView";
 
@@ -454,7 +455,7 @@ export function SettingsView({
             <div className="v3-form">
               <div className="v3-shortcuts">
                 <div className="v3-shortcut">
-                  <kbd>Ctrl</kbd> + <kbd>1</kbd>…<kbd>7</kbd>
+                  <kbd>Ctrl</kbd> + <kbd>1</kbd>…<kbd>{KEYBOARD_TAB_ORDER.length}</kbd>
                   <span>{t("settings.shortcut_switch_tabs")}</span>
                 </div>
                 <div className="v3-shortcut">

@@ -1,4 +1,4 @@
-import type { StringKey } from "./i18n";
+import { translateNow, type StringKey } from "./i18n";
 type Translator = (k: StringKey, vars?: Record<string, string | number>) => string;
 
 // Compute "X ago" for a unix-ms timestamp. `t` flows in from useT() at the
@@ -61,25 +61,26 @@ export function formatDate(unix: number): string {
   return new Date(unix * 1000).toISOString().slice(0, 10);
 }
 
-// Map raw backend errors to user-friendly English messages.
+// Map raw backend errors to user-friendly messages in the active language
+// (name kept for its ~49 call sites). Unknown errors pass through unchanged.
 export function friendlyErrorEn(e: unknown): string {
   const raw = String(e ?? "").trim();
   const lower = raw.toLowerCase();
-  if (!raw) return "Something went wrong.";
+  if (!raw) return translateNow("err.empty");
   if (lower.includes("gh") && (lower.includes("not authenticated") || lower.includes("auth"))) {
-    return "You need to authenticate with `gh auth login`.";
+    return translateNow("err.gh_auth");
   }
   if (lower.includes("not found") && lower.includes("command")) {
-    return "A required system tool is missing. Check that it's installed and in PATH.";
+    return translateNow("err.tool_missing");
   }
   if (lower.includes("permission denied") || lower.includes("eacces")) {
-    return "Permission denied accessing the resource.";
+    return translateNow("err.permission");
   }
   if (lower.includes("enoent")) {
-    return "File or path not found.";
+    return translateNow("err.not_found");
   }
   if (lower.includes("network") || lower.includes("timed out") || lower.includes("timeout")) {
-    return "Network problem. Try again in a moment.";
+    return translateNow("err.network");
   }
   return raw;
 }

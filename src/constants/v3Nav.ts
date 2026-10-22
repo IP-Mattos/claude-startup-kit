@@ -65,8 +65,8 @@ export const TOPBAR_NAV: NavEntry[] = [
   { id: "settings", navKey: "nav.settings", Icon: Cog },
 ];
 
-// Keyboard shortcuts cover the operational sidebar tabs (Ctrl+1..9). The
-// topbar tabs (Claude / Sync / Companion / Settings) are low-frequency —
+// Keyboard shortcuts cover the operational sidebar tabs (Ctrl+1..N). The
+// topbar tabs (Claude / Pi / Settings) are low-frequency —
 // Ctrl+, still jumps to Settings; the others are click-only.
 export const KEYBOARD_TAB_ORDER: ReadonlyArray<V3Tab> = [
   "overview",
