@@ -1019,8 +1019,8 @@ const STRINGS = {
   },
   "pi.install_title": { en: "Install the stack", es: "Instalar el stack" },
   "pi.install_desc": {
-    en: "Runs the npm install, the gentle-ai install, and the gentle-pi postinstall step that builds the pinned gentle-ai binary — the step most manual installs miss.",
-    es: "Corre el install de npm, el install de gentle-ai y el paso de postinstall de gentle-pi que compila el binario pineado de gentle-ai — el paso que la mayoría de las instalaciones manuales se saltea.",
+    en: "Runs the npm install, the gentle-ai install, and the gentle-pi postinstall step that builds the pinned gentle-ai binary — the step most manual installs miss. Then installs the Claude providers (pi-claude-bridge, with pi-claude-code-provider as a fallback) and makes claude-bridge/claude-opus-5-5 the default model unless you chose another provider. Using them needs Claude Code logged in on this machine.",
+    es: "Corre el install de npm, el install de gentle-ai y el paso de postinstall de gentle-pi que compila el binario pineado de gentle-ai — el paso que la mayoría de las instalaciones manuales se saltea. Después instala los proveedores de Claude (pi-claude-bridge, con pi-claude-code-provider como respaldo) y deja claude-bridge/claude-opus-5-5 como modelo por defecto, salvo que hayas elegido otro proveedor. Para usarlos, Claude Code tiene que tener una sesión iniciada en este equipo.",
   },
   "pi.install_claude_label": {
     en: "Also install Claude Code",
@@ -1030,15 +1030,14 @@ const STRINGS = {
     en: "Runs Anthropic's official Windows installer. It does not log you in — after it finishes, open a terminal and run `claude` yourself.",
     es: "Corre el instalador oficial de Anthropic para Windows. No inicia sesión por vos — cuando termine, abrí una terminal y ejecutá `claude` vos mismo.",
   },
-  "pi.install_provider_label": {
-    en: "Also install the Claude provider",
-    es: "Instalar también el proveedor de Claude",
-  },
-  "pi.install_provider_hint": {
-    en: "Needs Claude Code logged in on this machine, version 2.1.281 or newer.",
-    es: "Necesita Claude Code logueado en este equipo, versión 2.1.281 o superior.",
-  },
   "pi.install_button": { en: "Install stack", es: "Instalar stack" },
+  "pi.update_button": { en: "Update stack", es: "Actualizar stack" },
+  "pi.update_running": { en: "Updating…", es: "Actualizando…" },
+  "pi.update_hint": {
+    en: "Adds any missing Claude provider, updates every Pi package (gentle-pi, pi-claude-bridge…), and rebuilds the pinned gentle-ai binary.",
+    es: "Agrega el proveedor de Claude que falte, actualiza todos los paquetes de Pi (gentle-pi, pi-claude-bridge…) y recompila el binario pineado de gentle-ai.",
+  },
+  "pi.update_success": { en: "Pi stack updated.", es: "Stack de Pi actualizado." },
   "pi.install_running": { en: "Installing…", es: "Instalando…" },
   "pi.install_step_ok": { en: "done", es: "listo" },
   "pi.install_step_failed": { en: "failed", es: "falló" },
